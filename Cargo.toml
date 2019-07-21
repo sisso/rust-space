@@ -5,12 +5,3 @@ authors = ["sisso <sisso@sisso.com.br>"]
 edition = "2018"
 
 [dependencies]
-
-[lib]
-name = "space_lib"
-# crate-type = ["dylib"] # comment to run main
-path = "src/lib.rs"
-
-[[bin]]
-name = "space-bin"
-path = "src/bin.rs"

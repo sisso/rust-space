@@ -1,14 +1,14 @@
-extern crate space_lib;
+// extern crate space_lib;
 
-use space_lib::*;
+//use space_lib::*;
+mod log;
 mod game;
 mod utils;
+mod local_game;
 
 fn main() {
-    let game = game::Game::new();
-
-    //    println!("{}", process(3));
-//    println!("test")
+    local_game::run();
+    println!("done")
 }
 
 #[cfg(test)]
