@@ -1,6 +1,6 @@
 from ctypes import cdll
 
-lib = cdll.LoadLibrary("target/release/libspace.so")
+lib = cdll.LoadLibrary("target/release/libspace_lib.so")
 
 r = lib.process(3)
 

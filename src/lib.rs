@@ -1,3 +1,9 @@
+mod game;
+
+pub fn process_2(v: u32) -> u32 {
+    v * 2
+}
+
 #[no_mangle]
 pub extern fn process(v: u32) -> u32 {
     v * 2
