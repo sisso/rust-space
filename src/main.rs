@@ -1,9 +1,13 @@
 extern crate space_lib;
 
-use space_lib::process;
+use space_lib::*;
+mod game;
+mod utils;
 
 fn main() {
-    println!("{}", process(3));
+    let game = game::Game::new();
+
+    //    println!("{}", process(3));
 //    println!("test")
 }
 
