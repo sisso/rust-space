@@ -30,6 +30,9 @@ impl Ai {
                 (Command::Mine, Action::Fly { to}, Location::Space { sector_id, pos}) => {
                     // ignore
                 },
+                (Command::Mine, Action::Undock, Location::Docked { .. }) => {
+                    // ignore
+                },
                 (Command::Idle, Action::Idle, _) => {
                     // ignore
                 },

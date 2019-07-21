@@ -50,5 +50,6 @@ impl Game {
     pub fn tick(&mut self, total_time: Seconds, delta_time: Seconds) {
         let tick = Tick { total_time, delta_time };
         self.ai.tick(&tick, &mut self.objects, & self.sectors);
+        self.actions.tick(&tick, &mut self.objects, & self.sectors);
     }
 }

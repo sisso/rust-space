@@ -72,13 +72,13 @@ impl NewObj {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum Location {
     Docked { obj_id: ObjId },
     Space { sector_id: SectorId, pos: Position },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Obj {
     pub id: ObjId,
     pub max_speed: Option<Speed>,
@@ -88,6 +88,10 @@ pub struct Obj {
     pub can_dock: bool,
     pub has_dock: bool,
     pub action: Action,
+    pub action_delay: Option<Seconds>,
+}
+
+impl Obj {
 }
 
 pub struct ObjRepo {
@@ -115,23 +119,46 @@ impl ObjRepo {
             can_dock: new_obj.can_dock,
             has_dock: new_obj.has_dock,
             action: Action::Idle,
+            action_delay: None,
         };
 
         Log::info("objects", &format!("adding object {:?}", obj));
 
-        self.index.insert(obj.id, obj);
+        if self.index.insert(obj.id, obj).is_some() {
+            panic!("can not add already existent obj")
+        }
         id
     }
 
     pub fn set_command(&mut self, obj_id: ObjId, command: Command) {
         let mut obj = self.index.get_mut(&obj_id).unwrap();
+        Log::info("objects", &format!("set command {:?}: {:?}", obj.id, command));
         obj.command = command;
     }
 
     pub fn set_action(&mut self, obj_id: ObjId, action: Action) {
         let mut obj = self.index.get_mut(&obj_id).unwrap();
+        Log::info("objects", &format!("set action {:?}: {:?}", obj.id, action));
         obj.action = action;
     }
+
+    pub fn set_location(&mut self, obj_id: ObjId, location: Location) {
+        let mut obj = self.index.get_mut(&obj_id).unwrap();
+        Log::info("objects", &format!("set location {:?}: {:?}", obj.id, location));
+        obj.location = location;
+    }
+
+    pub fn get(&self, obj_id: &ObjId) -> &Obj {
+        self.index.get(obj_id).unwrap()
+    }
+
+//    pub fn _update(&mut self, obj: Obj) {
+//        Log::info("objects", &format!("update object {:?}", obj));
+//
+//        if self.index.insert(obj.id, obj).is_none() {
+//            panic!("can not update non existent object");
+//        }
+//    }
 
     pub fn list<'a>(&'a self) -> impl Iterator<Item = &Obj> + 'a {
         self.index.values()

@@ -9,7 +9,7 @@ pub struct Extractable {
     pub time: Seconds,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Cargo {
     pub max: u32
 }
