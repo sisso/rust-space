@@ -83,4 +83,8 @@ pub fn run() {
 
     load_sectors(&mut game);
     load_objects(&mut game);
+
+    for i in 0..10 {
+        game.tick(Seconds(i as f32), Seconds(1.0));
+    }
 }

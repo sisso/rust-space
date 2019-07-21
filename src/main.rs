@@ -1,7 +1,6 @@
 // extern crate space_lib;
 
 //use space_lib::*;
-mod log;
 mod game;
 mod utils;
 mod local_game;

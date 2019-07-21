@@ -41,3 +41,17 @@ impl NextId {
         v
     }
 }
+
+pub struct Log {
+
+}
+
+impl Log {
+    pub fn info(ctx: &str, s: &str) {
+        println!("INFO {} - {}", ctx, s);
+    }
+
+    pub fn warn(ctx: &str, s: &str) {
+        println!("WARN {} - {}", ctx, s);
+    }
+}

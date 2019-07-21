@@ -1,9 +1,9 @@
 use crate::utils::*;
-use crate::log::*;
 use super::wares::*;
 use super::command::*;
 
 use std::collections::HashMap;
+use crate::game::action::Action;
 use crate::game::sectors::SectorId;
 
 #[derive(Clone,Copy,PartialEq,Eq,Hash,Debug)]
@@ -80,13 +80,14 @@ pub enum Location {
 
 #[derive(Debug)]
 pub struct Obj {
-    id: ObjId,
-    max_speed: Option<Speed>,
-    cargo: Cargo,
-    location: Location,
-    command: Command,
-    can_dock: bool,
-    has_dock: bool,
+    pub id: ObjId,
+    pub max_speed: Option<Speed>,
+    pub cargo: Cargo,
+    pub location: Location,
+    pub command: Command,
+    pub can_dock: bool,
+    pub has_dock: bool,
+    pub action: Action,
 }
 
 pub struct ObjRepo {
@@ -113,6 +114,7 @@ impl ObjRepo {
             command: Command::Idle,
             can_dock: new_obj.can_dock,
             has_dock: new_obj.has_dock,
+            action: Action::Idle,
         };
 
         Log::info("objects", &format!("adding object {:?}", obj));
@@ -124,5 +126,14 @@ impl ObjRepo {
     pub fn set_command(&mut self, obj_id: ObjId, command: Command) {
         let mut obj = self.index.get_mut(&obj_id).unwrap();
         obj.command = command;
+    }
+
+    pub fn set_action(&mut self, obj_id: ObjId, action: Action) {
+        let mut obj = self.index.get_mut(&obj_id).unwrap();
+        obj.action = action;
+    }
+
+    pub fn list<'a>(&'a self) -> impl Iterator<Item = &Obj> + 'a {
+        self.index.values()
     }
 }
