@@ -1,10 +1,10 @@
+use std::collections::HashMap;
+
 use crate::utils::*;
 use super::wares::*;
-use super::command::*;
-
-use std::collections::HashMap;
-use crate::game::action::Action;
-use crate::game::sectors::SectorId;
+use super::commands::*;
+use super::action::Action;
+use super::sectors::SectorId;
 
 #[derive(Clone,Copy,PartialEq,Eq,Hash,Debug)]
 pub struct ObjId(pub u32);
@@ -78,6 +78,35 @@ pub enum Location {
     Space { sector_id: SectorId, pos: Position },
 }
 
+#[derive(Clone, Debug)]
+pub struct LocationSpace {
+    pub sector_id: SectorId,
+    pub pos: Position
+}
+
+impl Location {
+    pub fn as_space(&self) -> LocationSpace {
+        match self {
+            Location::Space { sector_id, pos} => LocationSpace { sector_id: *sector_id, pos: *pos },
+            _ => panic!("unexpected state for get")
+        }
+    }
+
+    pub fn get(&self) -> (SectorId, Position) {
+        match self {
+            Location::Space { sector_id, pos} => (*sector_id, *pos),
+            _ => panic!("unexpected state for get")
+        }
+    }
+
+    pub fn get_docked(&self) -> ObjId {
+        match self {
+            Location::Docked { obj_id } => *obj_id,
+            _ => panic!("unexpected state for get_docked")
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Obj {
     pub id: ObjId,
@@ -88,7 +117,9 @@ pub struct Obj {
     pub can_dock: bool,
     pub has_dock: bool,
     pub action: Action,
+    // TODO: use it
     pub action_delay: Option<Seconds>,
+    pub extractable: Option<Extractable>,
 }
 
 impl Obj {
@@ -120,6 +151,7 @@ impl ObjRepo {
             has_dock: new_obj.has_dock,
             action: Action::Idle,
             action_delay: None,
+            extractable: new_obj.extractable,
         };
 
         Log::info("objects", &format!("adding object {:?}", obj));
@@ -151,14 +183,6 @@ impl ObjRepo {
     pub fn get(&self, obj_id: &ObjId) -> &Obj {
         self.index.get(obj_id).unwrap()
     }
-
-//    pub fn _update(&mut self, obj: Obj) {
-//        Log::info("objects", &format!("update object {:?}", obj));
-//
-//        if self.index.insert(obj.id, obj).is_none() {
-//            panic!("can not update non existent object");
-//        }
-//    }
 
     pub fn list<'a>(&'a self) -> impl Iterator<Item = &Obj> + 'a {
         self.index.values()

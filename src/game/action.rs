@@ -26,12 +26,15 @@ impl Actions {
 
         for obj in objects.list() {
             match (&obj.action, &obj.location) {
+                (Action::Idle, _) => {
+                    // ignore
+                },
                 (Action::Undock, Location::Docked { obj_id }) => {
                     let station = objects.get(&obj_id);
 
                     let (sector_id, pos) = match station.location {
                         Location::Space { sector_id, pos } => (sector_id, pos),
-                        _ => panic!("statin is not at space")
+                        _ => panic!("station is not at space")
                     };
 
                     let new_location = Location::Space {
@@ -44,8 +47,8 @@ impl Actions {
                 (Action::Undock, Location::Space { .. }) => {
                     set_actions.push((obj.id, Action::Idle, None));
                 },
-                (a, b) => {
-                    Log::warn("actions", &format!("unknown {:?} {:?} {:?}", obj, a, b));
+                _ => {
+                    Log::warn("actions", &format!("unknown {:?}", obj));
                 }
             }
         }

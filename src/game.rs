@@ -1,17 +1,16 @@
-pub mod ai;
 pub mod sectors;
 pub mod objects;
 pub mod wares;
 pub mod action;
-pub mod command;
+pub mod commands;
+
+use crate::utils::*;
 
 use self::sectors::*;
 use self::objects::*;
 use self::wares::*;
-use self::ai::*;
-use self::command::*;
-use crate::utils::*;
-use crate::game::action::{Actions, Action};
+use self::commands::*;
+use self::action::*;
 
 pub struct Tick {
     total_time: Seconds,
@@ -19,7 +18,7 @@ pub struct Tick {
 }
 
 pub struct Game {
-    ai: Ai,
+    commands: Commands,
     actions: Actions,
     sectors: SectorRepo,
     objects: ObjRepo,
@@ -28,7 +27,7 @@ pub struct Game {
 impl Game {
     pub fn new() -> Self {
         Game {
-            ai: Ai::new(),
+            commands: Commands::new(),
             actions: Actions::new(),
             sectors: SectorRepo::new(),
             objects: ObjRepo::new(),
@@ -48,8 +47,9 @@ impl Game {
     }
 
     pub fn tick(&mut self, total_time: Seconds, delta_time: Seconds) {
+        Log::info("game", &format!("tick {}/{}", delta_time.0, total_time.0));
         let tick = Tick { total_time, delta_time };
-        self.ai.tick(&tick, &mut self.objects, & self.sectors);
+        self.commands.tick(&tick, &mut self.objects, & self.sectors);
         self.actions.tick(&tick, &mut self.objects, & self.sectors);
     }
 }

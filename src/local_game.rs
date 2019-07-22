@@ -2,7 +2,7 @@ use crate::game::*;
 use crate::game::sectors::*;
 use crate::game::objects::*;
 use crate::game::wares::*;
-use crate::game::command::*;
+use crate::game::commands::*;
 use crate::utils::*;
 
 const WARE_ORE: WareId = WareId(0);
