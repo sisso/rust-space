@@ -15,9 +15,10 @@ struct MineState {
     target_obj_id: ObjId,
 }
 
+#[derive(Debug)]
 enum NavigationStateStep {
     MoveTo { pos: Position, },
-    Jump {}
+    Jump { sector_id: SectorId }
 }
 
 struct NavigationState {
@@ -57,46 +58,26 @@ impl Commands {
         let mut set_actions = vec![];
 
         for obj in objects.list() {
+            // check to mine, jump or dock
+            let mut state = self.state.entry(obj.id).or_insert(State::new());
+
             match (&obj.command, &obj.action, &obj.location) {
                 (Command::Mine, Action::Idle, Location::Docked { obj_id }) => {
                     set_actions.push((obj.id, Action::Undock));
                 },
                 (Command::Mine, Action::Idle, Location::Space { sector_id, pos}) => {
-                    // check to mine, jump or dock
-                    let state = self.get_state(&obj.id);
-
                     if state.mine.is_none() {
                         // TODO: unwarp
-                        let target = self.search_mine_target(objects, sectors, obj).unwrap();
+                        let target = search_mine_target(objects, sectors, obj).unwrap();
                         // TODO: unwarp
-                        let navigation = self.find_navigation_to(objects, sectors, &obj.location.as_space(), target.id).unwrap();
+                        let navigation = find_navigation_to(objects, sectors, &obj.location.as_space(), target.id).unwrap();
 
-                        // FIXME: how to remove this double find?
-                        let mut state = self.get_state_mut(obj.id);
                         state.mine = Some(MineState { target_obj_id: target.id });
                         state.navigation = Some(navigation);
                     }
 
-                    // TODO: serious? 3 time get? what is your problem man
-                    let state = self.get_state(&obj.id);
-                    let action = self.navigation_next_action(sectors, obj, &state.navigation.as_ref().unwrap());
+                    let action = navigation_next_action(sectors, obj, &mut state.navigation.as_mut().unwrap());
                     set_actions.push((obj.id, action));
-
-//                    let state_mine = state.mine.as_ref().unwrap();
-//
-//                    if *sector_id == state_mine.target_sector_id {
-//                        /*
-//                        if near { mine } else { move_to }
-//                        */
-//                        // move to position
-////                        set_actions.push((obj.id, Action::Fly { to: state_mine.target_position }));
-//                    } else {
-//                        /*
-//                        if near { jump } else { move_to }
-//                        */
-//                        // jump to
-////                        set_actions.push((obj.id, Action::Fly { to: jump_position }));
-//                    }
                 },
                 (Command::Mine, Action::Fly { to}, Location::Space { sector_id, pos}) => {
                     // ignore
@@ -129,41 +110,83 @@ impl Commands {
         self.state.get(&id).unwrap()
     }
 
-    fn search_mine_target<'a>(&self, objects: &'a ObjRepo, sectors: &SectorRepo, obj: &Obj) -> Option<&'a Obj> {
-        // search minerable
-        let candidates =
-            objects.list().find(|obj| {
-                obj.extractable.is_some()
-            });
-
-        // collect params
-        candidates
-    }
-
-    // TODO: support moveable objects
-    // TODO: support docked objects
-    fn find_navigation_to(&self, objects: &ObjRepo, sectors: &SectorRepo, from: &LocationSpace, to_obj_id: ObjId) -> Option<NavigationState> {
-        // collect params
-        let target_pos= objects.get(&to_obj_id).location.as_space();
-
-        let path = self.find_path(sectors, &from, &target_pos);
-
-        Some(
-            NavigationState {
-                target_obj_id: to_obj_id,
-                target_sector_id: target_pos.sector_id,
-                target_position: target_pos.pos,
-                path: vec![]
-            }
-        )
-    }
-
-    fn find_path(&self, sectors: &SectorRepo, from: &LocationSpace, to: &LocationSpace) -> Vec<NavigationStateStep> {
-        vec![]
-    }
-
-    fn navigation_next_action(&self, sectors: &SectorRepo, obj: &Obj, navigation: &NavigationState) -> Action {
-        unimplemented!()
-    }
 }
 
+
+fn search_mine_target<'a>(objects: &'a ObjRepo, sectors: &SectorRepo, obj: &Obj) -> Option<&'a Obj> {
+    // search minerable
+    let candidates =
+        objects.list().find(|obj| {
+            obj.extractable.is_some()
+        });
+
+    // collect params
+    candidates
+}
+
+// TODO: support movable objects
+// TODO: support docked objects
+fn find_navigation_to(objects: &ObjRepo, sectors: &SectorRepo, from: &LocationSpace, to_obj_id: ObjId) -> Option<NavigationState> {
+    // collect params
+    let target_pos= objects.get(&to_obj_id).location.as_space();
+    let path = find_path(sectors, from, &target_pos);
+
+    Some(
+        NavigationState {
+            target_obj_id: to_obj_id,
+            target_sector_id: target_pos.sector_id,
+            target_position: target_pos.pos,
+            path: path
+        }
+    )
+}
+
+fn find_path(sectors: &SectorRepo, from: &LocationSpace, to: &LocationSpace) -> Vec<NavigationStateStep> {
+    let mut path: Vec<NavigationStateStep> = vec![];
+
+    let mut current = from.clone();
+
+    loop {
+        if current.sector_id == to.sector_id {
+            path.push(NavigationStateStep::MoveTo { pos: to.pos });
+            break;
+        } else {
+            let current_sector = sectors.get(&current.sector_id);
+            let jump = current_sector.jumps.iter().find(|jump| {
+                jump.to == to.sector_id
+            }).unwrap();
+
+            path.push(NavigationStateStep::MoveTo { pos: jump.pos });
+            path.push(NavigationStateStep::Jump { sector_id: jump.to });
+
+            let arrival_sector = sectors.get(&jump.to);
+            let arrival_jump = arrival_sector.jumps.iter().find(|jump| {
+                jump.to == current_sector.id
+            }).unwrap();
+            let arrival_position = arrival_jump.pos;
+
+            current = LocationSpace {
+                sector_id: jump.to,
+                pos: arrival_position
+            }
+        }
+    }
+
+    path.reverse();
+
+    Log::debug("command.find_path", &format!("from {:?} to {:?}: {:?}", from, to, path));
+
+    path
+}
+
+fn navigation_next_action(sectors: &SectorRepo, obj: &Obj, navigation: &mut NavigationState) -> Action {
+    match navigation.path.pop() {
+        Some(NavigationStateStep::MoveTo { pos}) => {
+            Action::Fly { to: pos }
+        },
+        Some(NavigationStateStep::Jump { .. }) => {
+            Action::Jump
+        },
+        None => Action::Idle,
+    }
+}

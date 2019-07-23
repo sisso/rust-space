@@ -4,8 +4,8 @@ use std::collections::HashMap;
 
 #[derive(Clone,Debug)]
 pub struct Jump {
-    to: SectorId,
-    pos: V2,
+    pub to: SectorId,
+    pub pos: V2,
 }
 
 #[derive(Clone,Copy,PartialEq,Eq,Hash,Debug)]
@@ -23,8 +23,8 @@ pub struct NewSector {
 
 #[derive(Debug)]
 pub struct Sector {
-    id: SectorId,
-    jumps: Vec<Jump>
+    pub id: SectorId,
+    pub jumps: Vec<Jump>
 }
 
 pub struct SectorRepo {
@@ -52,5 +52,9 @@ impl SectorRepo {
         Log::info("sectors", &format!("adding {:?}", sector));
 
         self.index.insert(sector.id, sector);
+    }
+
+    pub fn get(&self, sector_id: &SectorId) -> &Sector {
+        self.index.get(sector_id).unwrap()
     }
 }

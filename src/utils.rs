@@ -51,6 +51,10 @@ impl Log {
         println!("INFO {} - {}", ctx, s);
     }
 
+    pub fn debug(ctx: &str, s: &str) {
+        println!("DEBUG {} - {}", ctx, s);
+    }
+
     pub fn warn(ctx: &str, s: &str) {
         println!("WARN {} - {}", ctx, s);
     }
