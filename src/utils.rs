@@ -4,13 +4,40 @@ pub struct V2 {
     pub y: f32,
 }
 
-impl V2 {
-    pub fn zero() -> Self {
-        V2 { x: 0.0, y: 0.0 }
-    }
+const V2_ZERO: V2 = V2 { x: 0.0, y: 0.0 };
 
+impl V2 {
     pub fn new(x: f32, y: f32) -> Self {
         V2 { x, y }
+    }
+
+    pub fn add(&self, other: &V2) -> V2 {
+        V2 {
+            x: self.x + other.x,
+            y: self.y + other.y,
+        }
+    }
+
+    pub fn sub(&self, other: &V2) -> V2 {
+        V2 {
+            x: self.x - other.x,
+            y: self.y - other.y,
+        }
+    }
+
+    pub fn normalized(&self) -> V2 {
+        self.mult(1.0 / self.length_sqr().sqrt())
+    }
+
+    pub fn length_sqr(&self) -> f32 {
+        (self.x * self.x) + (self.y * self.y)
+    }
+
+    pub fn mult(&self, scale: f32) -> V2 {
+        V2 {
+            x: self.x * scale,
+            y: self.y * scale,
+        }
     }
 }
 
