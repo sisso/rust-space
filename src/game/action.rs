@@ -53,20 +53,34 @@ impl Actions {
                 (Action::Fly { to }, Location::Space { sector_id, pos}) => {
                     let delta   = to.sub(pos);
                     let length_sqr = delta.length_sqr();
+                    let norm = delta.div(length_sqr.sqrt());
+                    let mov = norm.mult(tick.delta_time.0);
 
-                    if length_sqr <= MIN_DISTANCE_SQR {
-                        Log::debug("actions", &format!("{:?} arrive at {:?}", obj.id, to));
-                        set_actions.push((obj.id, Some(Action::Idle), None));
-                    } else {
-                        let delta = delta.normalized();
-                        let delta = delta.mult(tick.delta_time.0);
-                        let new_position = pos.add(&delta);
-                        Log::debug("actions", &format!("{:?} move to {:?}", obj.id, new_position));
-                        set_actions.push((obj.id, None, Some(Location::Space {
-                            sector_id: *sector_id,
-                            pos: new_position
-                        })));
-                    }
+                    let (action, location) =
+                        // if current move distance is bigger that distance to arrive, move to the position
+                        if length_sqr <= mov.length_sqr() {
+                            Log::debug("actions", &format!("{:?} arrive at {:?}", obj.id, to));
+                            (
+                                Some(Action::Idle),
+                                Some(Location::Space {
+                                    sector_id: *sector_id,
+                                    pos: to.clone()
+                                })
+                            )
+                        } else {
+                            let new_position = pos.add(&mov);
+                            Log::debug("actions", &format!("{:?} move to {:?}", obj.id, new_position));
+
+                            (
+                                None,
+                                Some(Location::Space {
+                                    sector_id: *sector_id,
+                                    pos: new_position
+                                })
+                            )
+                        };
+
+                    set_actions.push((obj.id, action, location));
                 },
                 _ => {
                     Log::warn("actions", &format!("unknown {:?}", obj));

@@ -29,6 +29,10 @@ impl V2 {
         self.mult(1.0 / self.length_sqr().sqrt())
     }
 
+    pub fn length(&self) -> f32 {
+        self.length_sqr().sqrt()
+    }
+
     pub fn length_sqr(&self) -> f32 {
         (self.x * self.x) + (self.y * self.y)
     }
@@ -38,6 +42,10 @@ impl V2 {
             x: self.x * scale,
             y: self.y * scale,
         }
+    }
+
+    pub fn div(&self, scale: f32) -> V2 {
+        self.mult(1.0 / scale)
     }
 }
 
