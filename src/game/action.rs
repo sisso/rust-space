@@ -52,13 +52,17 @@ impl Actions {
                 },
                 (Action::Fly { to }, Location::Space { sector_id, pos}) => {
                     let delta   = to.sub(pos);
+                    // delta == zero can cause length sqr NaN
                     let length_sqr = delta.length_sqr();
                     let norm = delta.div(length_sqr.sqrt());
-                    let mov = norm.mult(tick.delta_time.0);
+                    let speed = obj.max_speed.unwrap();
+                    let mov = norm.mult(speed.0 * tick.delta_time.0);
+
+//                    Log::debug("actions", &format!("{:?} {:?} {:?} {:?} {:?} {:?}", pos, to, delta, length_sqr, norm, mov));
 
                     let (action, location) =
                         // if current move distance is bigger that distance to arrive, move to the position
-                        if length_sqr <= mov.length_sqr() {
+                        if length_sqr.is_nan() || length_sqr <= mov.length_sqr() {
                             Log::debug("actions", &format!("{:?} arrive at {:?}", obj.id, to));
                             (
                                 Some(Action::Idle),
@@ -81,6 +85,17 @@ impl Actions {
                         };
 
                     set_actions.push((obj.id, action, location));
+                },
+                (Action::Jump, Location::Space { sector_id, pos}) => {
+                    let jump = sectors.find_jump_at(sector_id, pos).unwrap();
+                    Log::debug("actions", &format!("{:?} jump to {:?}", obj.id, jump.to));
+
+                    let location = Location::Space {
+                        sector_id: jump.to,
+                        pos: jump.pos
+                    };
+                    set_actions.push((obj.id, Some(Action::Idle), Some(location)));
+
                 },
                 _ => {
                     Log::warn("actions", &format!("unknown {:?}", obj));
