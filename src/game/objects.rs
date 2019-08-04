@@ -113,7 +113,6 @@ pub struct Obj {
     pub max_speed: Option<Speed>,
     pub cargo: Cargo,
     pub location: Location,
-    pub command: Command,
     pub can_dock: bool,
     pub has_dock: bool,
     pub action: Action,
@@ -146,7 +145,6 @@ impl ObjRepo {
             max_speed: new_obj.speed,
             cargo: Cargo::new(new_obj.cargo_size),
             location: new_obj.location.unwrap(),
-            command: Command::Idle,
             can_dock: new_obj.can_dock,
             has_dock: new_obj.has_dock,
             action: Action::Idle,
@@ -160,12 +158,6 @@ impl ObjRepo {
             panic!("can not add already existent obj")
         }
         id
-    }
-
-    pub fn set_command(&mut self, obj_id: ObjId, command: Command) {
-        let mut obj = self.index.get_mut(&obj_id).unwrap();
-        Log::info("objects", &format!("set command {:?}: {:?}", obj.id, command));
-        obj.command = command;
     }
 
     pub fn set_action(&mut self, obj_id: ObjId, action: Action) {

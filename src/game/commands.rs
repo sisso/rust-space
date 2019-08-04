@@ -29,6 +29,7 @@ struct NavigationState {
 }
 
 struct State {
+    command: Command,
     mine: Option<MineState>,
     navigation: Option<NavigationState>,
 }
@@ -36,6 +37,7 @@ struct State {
 impl State {
     fn new() -> Self {
         State {
+            command: Command::Idle,
             mine: None,
             navigation: None
         }
@@ -61,7 +63,7 @@ impl Commands {
             // check to mine, jump or dock
             let mut state = self.state.entry(obj.id).or_insert(State::new());
 
-            match (&obj.command, &obj.action, &obj.location) {
+            match (&state.command, &obj.action, &obj.location) {
                 (Command::Mine, Action::Idle, Location::Docked { obj_id }) => {
                     set_actions.push((obj.id, Action::Undock));
                 },
@@ -100,6 +102,12 @@ impl Commands {
         for (obj_id, action) in set_actions {
             objects.set_action(obj_id, action);
         }
+    }
+
+    pub fn set_command(&mut self, obj_id: ObjId, command: Command) {
+        let mut state = self.get_state_mut(obj_id);
+        Log::info("commands", &format!("set command {:?}: {:?}", obj_id, command));
+        state.command = command;
     }
 
     fn get_state_mut(&mut self, id: ObjId) -> &mut State {

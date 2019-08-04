@@ -43,7 +43,7 @@ impl Game {
     }
 
     pub fn set_command(&mut self, obj_id: ObjId, command: Command) {
-        self.objects.set_command(obj_id, command);
+        self.commands.set_command(obj_id, command);
     }
 
     pub fn tick(&mut self, total_time: Seconds, delta_time: Seconds) {
