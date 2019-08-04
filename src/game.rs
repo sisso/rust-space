@@ -39,7 +39,10 @@ impl Game {
     }
 
     pub fn add_object(&mut self, new_obj: NewObj) -> ObjId {
-        self.objects.add_object(new_obj)
+        let id = self.objects.add_object(new_obj);
+        self.commands.init(id);
+        self.actions.init(id);
+        id
     }
 
     pub fn set_command(&mut self, obj_id: ObjId, command: Command) {
@@ -49,7 +52,7 @@ impl Game {
     pub fn tick(&mut self, total_time: Seconds, delta_time: Seconds) {
         Log::info("game", &format!("tick {}/{}", delta_time.0, total_time.0));
         let tick = Tick { total_time, delta_time };
-        self.commands.tick(&tick, &mut self.objects, & self.sectors);
-        self.actions.tick(&tick, &mut self.objects, & self.sectors);
+        self.commands.tick(&tick, &mut self.objects, &mut self.actions, & self.sectors);
+        self.actions.tick(&tick, &mut self.objects, &self.sectors);
     }
 }

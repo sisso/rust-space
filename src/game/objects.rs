@@ -115,9 +115,6 @@ pub struct Obj {
     pub location: Location,
     pub can_dock: bool,
     pub has_dock: bool,
-    pub action: Action,
-    // TODO: use it
-    pub action_delay: Option<Seconds>,
     pub extractable: Option<Extractable>,
 }
 
@@ -147,8 +144,6 @@ impl ObjRepo {
             location: new_obj.location.unwrap(),
             can_dock: new_obj.can_dock,
             has_dock: new_obj.has_dock,
-            action: Action::Idle,
-            action_delay: None,
             extractable: new_obj.extractable,
         };
 
@@ -158,12 +153,6 @@ impl ObjRepo {
             panic!("can not add already existent obj")
         }
         id
-    }
-
-    pub fn set_action(&mut self, obj_id: ObjId, action: Action) {
-        let mut obj = self.index.get_mut(&obj_id).unwrap();
-        Log::info("objects", &format!("set action {:?}: {:?}", obj.id, action));
-        obj.action = action;
     }
 
     pub fn set_location(&mut self, obj_id: ObjId, location: Location) {

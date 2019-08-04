@@ -56,14 +56,19 @@ impl Commands {
         }
     }
 
-    pub fn tick(&mut self, tick: &Tick, objects: &mut ObjRepo, sectors: &SectorRepo) {
+    pub fn init(&mut self, obj_id: ObjId) {
+        self.state.insert(obj_id, State::new());
+    }
+
+    pub fn tick(&mut self, tick: &Tick, objects: &mut ObjRepo, actions: &mut Actions, sectors: &SectorRepo) {
         let mut set_actions = vec![];
 
         for obj in objects.list() {
             // check to mine, jump or dock
             let mut state = self.state.entry(obj.id).or_insert(State::new());
+            let action = actions.get_action(&obj.id);
 
-            match (&state.command, &obj.action, &obj.location) {
+            match (&state.command, action, &obj.location) {
                 (Command::Mine, Action::Idle, Location::Docked { obj_id }) => {
                     set_actions.push((obj.id, Action::Undock));
                 },
@@ -100,18 +105,18 @@ impl Commands {
         }
 
         for (obj_id, action) in set_actions {
-            objects.set_action(obj_id, action);
+            actions.set_action(obj_id, action);
         }
     }
 
     pub fn set_command(&mut self, obj_id: ObjId, command: Command) {
-        let mut state = self.get_state_mut(obj_id);
+        let mut state = self.get_state_mut(&obj_id);
         Log::info("commands", &format!("set command {:?}: {:?}", obj_id, command));
         state.command = command;
     }
 
-    fn get_state_mut(&mut self, id: ObjId) -> &mut State {
-        self.state.entry(id).or_insert(State::new())
+    fn get_state_mut(&mut self, id: &ObjId) -> &mut State {
+        self.state.get_mut(id).unwrap()
     }
 
     fn get_state(&self, id: &ObjId) -> &State {
