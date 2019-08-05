@@ -4,6 +4,7 @@ use super::action::*;
 use super::objects::*;
 use crate::utils::*;
 use std::collections::HashMap;
+use crate::game::locations::{Location, Locations, LocationSpace};
 
 #[derive(Debug, Clone)]
 pub enum Command {
@@ -60,15 +61,16 @@ impl Commands {
         self.state.insert(obj_id, State::new());
     }
 
-    pub fn tick(&mut self, tick: &Tick, objects: &mut ObjRepo, actions: &mut Actions, sectors: &SectorRepo) {
+    pub fn tick(&mut self, tick: &Tick, objects: &mut ObjRepo, actions: &mut Actions, locations: &Locations, sectors: &SectorRepo) {
         let mut set_actions = vec![];
 
         for obj in objects.list() {
             // check to mine, jump or dock
             let mut state = self.state.entry(obj.id).or_insert(State::new());
             let action = actions.get_action(&obj.id);
+            let location = locations.get_location(&obj.id).unwrap();
 
-            match (&state.command, action, &obj.location) {
+            match (&state.command, action, location) {
                 (Command::Mine, Action::Idle, Location::Docked { obj_id }) => {
                     set_actions.push((obj.id, Action::Undock));
                 },
@@ -77,7 +79,7 @@ impl Commands {
                         // TODO: unwarp
                         let target = search_mine_target(objects, sectors, obj).unwrap();
                         // TODO: unwarp
-                        let navigation = find_navigation_to(objects, sectors, &obj.location.as_space(), target.id).unwrap();
+                        let navigation = find_navigation_to(objects, sectors, locations, &location.as_space(), target.id).unwrap();
 
                         state.mine = Some(MineState { target_obj_id: target.id });
                         state.navigation = Some(navigation);
@@ -139,9 +141,10 @@ fn search_mine_target<'a>(objects: &'a ObjRepo, sectors: &SectorRepo, obj: &Obj)
 
 // TODO: support movable objects
 // TODO: support docked objects
-fn find_navigation_to(objects: &ObjRepo, sectors: &SectorRepo, from: &LocationSpace, to_obj_id: ObjId) -> Option<NavigationState> {
+fn find_navigation_to(objects: &ObjRepo, sectors: &SectorRepo, locations: &Locations, from: &LocationSpace, to_obj_id: ObjId) -> Option<NavigationState> {
     // collect params
-    let target_pos= objects.get(&to_obj_id).location.as_space();
+    let location = locations.get_location(&to_obj_id).unwrap();
+    let target_pos= location.as_space();
     let path = find_path(sectors, from, &target_pos);
 
     Some(

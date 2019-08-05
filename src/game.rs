@@ -3,6 +3,7 @@ pub mod objects;
 pub mod wares;
 pub mod action;
 pub mod commands;
+pub mod locations;
 
 use crate::utils::*;
 
@@ -11,6 +12,7 @@ use self::objects::*;
 use self::wares::*;
 use self::commands::*;
 use self::action::*;
+use crate::game::locations::Locations;
 
 pub struct Tick {
     total_time: Seconds,
@@ -22,6 +24,7 @@ pub struct Game {
     actions: Actions,
     sectors: SectorRepo,
     objects: ObjRepo,
+    locations: Locations,
 }
 
 impl Game {
@@ -31,6 +34,7 @@ impl Game {
             actions: Actions::new(),
             sectors: SectorRepo::new(),
             objects: ObjRepo::new(),
+            locations: Locations::new(),
         }
     }
 
@@ -39,9 +43,17 @@ impl Game {
     }
 
     pub fn add_object(&mut self, new_obj: NewObj) -> ObjId {
+        let mut location = new_obj.location.clone();
+
         let id = self.objects.add_object(new_obj);
+        self.locations.init(&id);
         self.commands.init(id);
         self.actions.init(id);
+
+        location.take().into_iter().for_each(|location| {
+            self.locations.set_location(&id, location)
+        });
+
         id
     }
 
@@ -52,7 +64,7 @@ impl Game {
     pub fn tick(&mut self, total_time: Seconds, delta_time: Seconds) {
         Log::info("game", &format!("tick {}/{}", delta_time.0, total_time.0));
         let tick = Tick { total_time, delta_time };
-        self.commands.tick(&tick, &mut self.objects, &mut self.actions, & self.sectors);
-        self.actions.tick(&tick, &mut self.objects, &self.sectors);
+        self.commands.tick(&tick, &mut self.objects, &mut self.actions, &mut self.locations, &self.sectors);
+        self.actions.tick(&tick, &mut self.objects, &self.sectors, &mut self.locations);
     }
 }

@@ -1,8 +1,10 @@
 use crate::utils::{V2, Position, Log, Seconds};
-use crate::game::objects::{ObjRepo, Location, ObjId};
-use crate::game::sectors::SectorRepo;
-use crate::game::Tick;
+use super::objects::{ObjRepo, ObjId};
+use super::locations::{Location};
+use super::sectors::SectorRepo;
+use super::Tick;
 use std::collections::HashMap;
+use crate::game::locations::Locations;
 
 #[derive(Clone,Debug)]
 pub enum Action {
@@ -45,21 +47,23 @@ impl Actions {
         self.states.insert(obj_id, State::new());
     }
 
-    pub fn tick(&mut self, tick: &Tick, objects: &mut ObjRepo, sectors: &SectorRepo) {
+    pub fn tick(&mut self, tick: &Tick, objects: &mut ObjRepo, sectors: &SectorRepo, locations: &mut Locations) {
         let mut set_actions: Vec<(ObjId, Option<Action>, Option<Location>)> = vec![];
 
         for obj in objects.list() {
+            let location = locations.get_location(&obj.id).unwrap();
             let state = self.states.get(&obj.id).unwrap();
 
-            match (&state.action, &obj.location) {
+            match (&state.action, location) {
                 (Action::Idle, _) => {
                     // ignore
                 },
                 (Action::Undock, Location::Docked { obj_id }) => {
                     let station = objects.get(&obj_id);
+                    let station_location = locations.get_location(&obj_id).unwrap();
 
-                    let (sector_id, pos) = match station.location {
-                        Location::Space { sector_id, pos } => (sector_id, pos),
+                    let (sector_id, pos) = match station_location {
+                        Location::Space { sector_id, pos } => (sector_id.clone(), pos.clone()),
                         _ => panic!("station is not at space")
                     };
 
@@ -132,7 +136,7 @@ impl Actions {
             });
 
             if let Some(location) = location {
-                objects.set_location(obj_id, location);
+                locations.set_location(&obj_id, location);
             }
         }
     }
