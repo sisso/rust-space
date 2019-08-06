@@ -75,6 +75,7 @@ fn new_ship_miner(game: &mut Game, docked_at: ObjId) -> ObjId {
             .with_speed(Speed(1.0))
             .at_dock(docked_at)
             .can_dock()
+            .with_ai()
     )
 }
 

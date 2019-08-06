@@ -20,6 +20,7 @@ pub struct NewObj {
     pub location: Option<Location>,
     pub can_dock: bool,
     pub has_dock: bool,
+    pub ai: bool,
 }
 
 impl NewObj {
@@ -30,7 +31,8 @@ impl NewObj {
             extractable: None,
             location: None,
             can_dock: false,
-            has_dock: false
+            has_dock: false,
+            ai: false
         }
     }
 
@@ -71,6 +73,11 @@ impl NewObj {
         self.can_dock = true;
         self
     }
+
+    pub fn with_ai(mut self) -> Self {
+        self.ai = true;
+        self
+    }
 }
 
 
@@ -100,7 +107,8 @@ impl ObjRepo {
         }
     }
 
-    pub fn add_object(&mut self, new_obj: NewObj) -> ObjId {
+    // TODO: should be only accessed by Game
+    pub fn add_object(&mut self, new_obj: &NewObj) -> ObjId {
         let id = ObjId(self.ids.next());
 
         let obj = Obj {
@@ -109,7 +117,7 @@ impl ObjRepo {
             cargo: Cargo::new(new_obj.cargo_size),
             can_dock: new_obj.can_dock,
             has_dock: new_obj.has_dock,
-            extractable: new_obj.extractable,
+            extractable: new_obj.extractable.clone(),
         };
 
         Log::info("objects", &format!("adding object {:?}", obj));

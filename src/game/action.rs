@@ -44,23 +44,26 @@ impl Actions {
     }
 
     pub fn init(&mut self, obj_id: ObjId) {
+        Log::info("actions", &format!("init {:?}", obj_id));
         self.states.insert(obj_id, State::new());
     }
 
-    pub fn tick(&mut self, tick: &Tick, objects: &mut ObjRepo, sectors: &SectorRepo, locations: &mut Locations) {
-        let mut set_actions: Vec<(ObjId, Option<Action>, Option<Location>)> = vec![];
+    pub fn tick(&mut self, tick: &Tick, _objects: &mut ObjRepo, sectors: &SectorRepo, locations: &mut Locations) {
+        for (obj_id, state) in self.states.iter_mut() {
+            let location = locations.get_location(obj_id);
+            if location.is_none() {
+                continue;
+            }
+            let location = location.unwrap();
 
-        for obj in objects.list() {
-            let location = locations.get_location(&obj.id).unwrap();
-            let state = self.states.get(&obj.id).unwrap();
+            Log::debug("actions", &format!("process {:?} {:?}", obj_id, location));
 
             match (&state.action, location) {
                 (Action::Idle, _) => {
                     // ignore
                 },
-                (Action::Undock, Location::Docked { obj_id }) => {
-                    let station = objects.get(&obj_id);
-                    let station_location = locations.get_location(&obj_id).unwrap();
+                (Action::Undock, Location::Docked { obj_id: station_id }) => {
+                    let station_location = locations.get_location(&station_id).unwrap();
 
                     let (sector_id, pos) = match station_location {
                         Location::Space { sector_id, pos } => (sector_id.clone(), pos.clone()),
@@ -72,12 +75,15 @@ impl Actions {
                         pos
                     };
 
-                    set_actions.push((obj.id, Some(Action::Idle), Some(new_location)));
+                    state.action = Action::Idle;
+                    locations.set_location(obj_id, new_location);
                 },
                 (Action::Undock, Location::Space { .. }) => {
-                    set_actions.push((obj.id, Some(Action::Idle), None));
+                    state.action = Action::Idle;
                 },
                 (Action::Fly { to }, Location::Space { sector_id, pos}) => {
+                    let obj = _objects.get(obj_id);
+
                     let delta   = to.sub(pos);
                     // delta == zero can cause length sqr NaN
                     let length_sqr = delta.length_sqr();
@@ -87,71 +93,54 @@ impl Actions {
 
 //                    Log::debug("actions", &format!("{:?} {:?} {:?} {:?} {:?} {:?}", pos, to, delta, length_sqr, norm, mov));
 
-                    let (action, location) =
-                        // if current move distance is bigger that distance to arrive, move to the position
-                        if length_sqr.is_nan() || length_sqr <= mov.length_sqr() {
-                            Log::debug("actions", &format!("{:?} arrive at {:?}", obj.id, to));
-                            (
-                                Some(Action::Idle),
-                                Some(Location::Space {
-                                    sector_id: *sector_id,
-                                    pos: to.clone()
-                                })
-                            )
-                        } else {
-                            let new_position = pos.add(&mov);
-                            Log::debug("actions", &format!("{:?} move to {:?}", obj.id, new_position));
+                    // if current move distance is bigger that distance to arrive, move to the position
+                    if length_sqr.is_nan() || length_sqr <= mov.length_sqr() {
+                        Log::debug("actions", &format!("{:?} arrive at {:?}", obj_id, to));
 
-                            (
-                                None,
-                                Some(Location::Space {
-                                    sector_id: *sector_id,
-                                    pos: new_position
-                                })
-                            )
+                        let location = Location::Space {
+                            sector_id: *sector_id,
+                            pos: to.clone()
                         };
 
-                    set_actions.push((obj.id, action, location));
+                        state.action = Action::Idle;
+                        locations.set_location(obj_id, location);
+                    } else {
+                        let new_position = pos.add(&mov);
+                        Log::debug("actions", &format!("{:?} move to {:?}", obj_id, new_position));
+
+                        let location = Location::Space {
+                            sector_id: *sector_id,
+                            pos: new_position
+                        };
+                        locations.set_location(obj_id, location);
+                    };
                 },
                 (Action::Jump, Location::Space { sector_id, pos}) => {
                     let jump = sectors.find_jump_at(sector_id, pos).unwrap();
-                    Log::debug("actions", &format!("{:?} jump to {:?}", obj.id, jump.to));
+                    Log::debug("actions", &format!("{:?} jump to {:?}", obj_id, jump.to));
 
                     let location = Location::Space {
                         sector_id: jump.to,
                         pos: jump.pos
                     };
-                    set_actions.push((obj.id, Some(Action::Idle), Some(location)));
 
+                    state.action = Action::Idle;
+                    locations.set_location(obj_id, location);
                 },
                 _ => {
-                    Log::warn("actions", &format!("unknown {:?}", obj));
+                    Log::warn("actions", &format!("unknown {:?}", obj_id));
                 }
-            }
-        }
-
-        for (obj_id, action, location) in set_actions {
-            action.into_iter().for_each(|action| {
-                self.set_action(obj_id, action);
-            });
-
-            if let Some(location) = location {
-                locations.set_location(&obj_id, location);
             }
         }
     }
 
-    pub fn set_action(&mut self, obj_id: ObjId, action: Action) {
-        let mut state = self.get_state_mut(&obj_id);
+    pub fn set_action(&mut self, obj_id: &ObjId, action: Action) {
+        let mut state = self.states.get_mut(&obj_id).expect(&format!("{:?} action not found", obj_id));
         Log::info("actions", &format!("set action {:?}: {:?}", obj_id, action));
         state.action = action;
     }
 
     pub fn get_action(&self, obj_id: &ObjId) -> &Action {
         &self.states.get(&obj_id).unwrap().action
-    }
-
-    fn get_state_mut(&mut self, id: &ObjId) -> &mut State {
-        self.states.get_mut(id).unwrap()
     }
 }

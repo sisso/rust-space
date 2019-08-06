@@ -43,15 +43,16 @@ impl Game {
     }
 
     pub fn add_object(&mut self, new_obj: NewObj) -> ObjId {
-        let mut location = new_obj.location.clone();
-
-        let id = self.objects.add_object(new_obj);
+        let id = self.objects.add_object(&new_obj);
         self.locations.init(&id);
-        self.commands.init(id);
-        self.actions.init(id);
 
-        location.take().into_iter().for_each(|location| {
-            self.locations.set_location(&id, location)
+        if new_obj.ai {
+            self.commands.init(id);
+            self.actions.init(id);
+        }
+
+        new_obj.location.iter().for_each(|location| {
+            self.locations.set_location(&id, location.clone());
         });
 
         id
