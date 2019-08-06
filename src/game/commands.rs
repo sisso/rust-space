@@ -5,6 +5,7 @@ use super::objects::*;
 use crate::utils::*;
 use std::collections::HashMap;
 use crate::game::locations::{Location, Locations, LocationSpace};
+use crate::game::extractables::Extractables;
 
 #[derive(Debug, Clone)]
 pub enum Command {
@@ -62,7 +63,7 @@ impl Commands {
         self.state.insert(obj_id, State::new());
     }
 
-    pub fn tick(&mut self, tick: &Tick, objects: &mut ObjRepo, actions: &mut Actions, locations: &Locations, sectors: &SectorRepo) {
+    pub fn tick(&mut self, tick: &Tick, extractables: &Extractables, actions: &mut Actions, locations: &Locations, sectors: &SectorRepo) {
         for (obj_id, state) in self.state.iter_mut() {
             let action = actions.get_action(obj_id);
             let location = locations.get_location(obj_id).unwrap();
@@ -74,11 +75,11 @@ impl Commands {
                 (Command::Mine, Action::Idle, Location::Space { sector_id, pos}) => {
                     if state.mine.is_none() {
                         // TODO: unwarp
-                        let target = search_mine_target(objects, sectors, obj_id).unwrap();
+                        let target = search_mine_target(extractables, sectors, obj_id).unwrap();
                         // TODO: unwarp
-                        let navigation = find_navigation_to(sectors, locations, &location.as_space(), target.id).unwrap();
+                        let navigation = find_navigation_to(sectors, locations, &location.as_space(), &target).unwrap();
 
-                        state.mine = Some(MineState { target_obj_id: target.id });
+                        state.mine = Some(MineState { target_obj_id: target });
                         state.navigation = Some(navigation);
                     }
 
@@ -119,21 +120,15 @@ impl Commands {
     }
 }
 
-
-fn search_mine_target<'a>(objects: &'a ObjRepo, sectors: &SectorRepo, obj_id: &ObjId) -> Option<&'a Obj> {
-    // search minerable
-    let candidates =
-        objects.list().find(|obj| {
-            obj.extractable.is_some()
-        });
-
-    // collect params
-    candidates
+fn search_mine_target(extractables: &Extractables, sectors: &SectorRepo, obj_id: &ObjId) -> Option<ObjId> {
+    // TODO: search nearest
+    let candidates = extractables.list().find(|_| true);
+    candidates.map(|i| i.clone())
 }
 
 // TODO: support movable objects
 // TODO: support docked objects
-fn find_navigation_to(sectors: &SectorRepo, locations: &Locations, from: &LocationSpace, to_obj_id: ObjId) -> Option<NavigationState> {
+fn find_navigation_to(sectors: &SectorRepo, locations: &Locations, from: &LocationSpace, to_obj_id: &ObjId) -> Option<NavigationState> {
     // collect params
     let location = locations.get_location(&to_obj_id).unwrap();
     let target_pos= location.as_space();
@@ -141,7 +136,7 @@ fn find_navigation_to(sectors: &SectorRepo, locations: &Locations, from: &Locati
 
     Some(
         NavigationState {
-            target_obj_id: to_obj_id,
+            target_obj_id: *to_obj_id,
             target_sector_id: target_pos.sector_id,
             target_position: target_pos.pos,
             path: path

@@ -4,6 +4,7 @@ use crate::game::objects::*;
 use crate::game::wares::*;
 use crate::game::commands::*;
 use crate::utils::*;
+use crate::game::extractables::Extractable;
 
 const WARE_ORE: WareId = WareId(0);
 
@@ -85,7 +86,7 @@ pub fn run() {
     load_sectors(&mut game);
     load_objects(&mut game);
 
-    for i in 0..30 {
+    for i in 0..20 {
         game.tick(Seconds(i as f32), Seconds(1.0));
     }
 }

@@ -4,6 +4,8 @@ pub mod wares;
 pub mod action;
 pub mod commands;
 pub mod locations;
+pub mod template;
+pub mod extractables;
 
 use crate::utils::*;
 
@@ -13,6 +15,7 @@ use self::wares::*;
 use self::commands::*;
 use self::action::*;
 use crate::game::locations::Locations;
+use crate::game::extractables::Extractables;
 
 pub struct Tick {
     total_time: Seconds,
@@ -25,6 +28,7 @@ pub struct Game {
     sectors: SectorRepo,
     objects: ObjRepo,
     locations: Locations,
+    extractables: Extractables
 }
 
 impl Game {
@@ -35,6 +39,7 @@ impl Game {
             sectors: SectorRepo::new(),
             objects: ObjRepo::new(),
             locations: Locations::new(),
+            extractables: Extractables::new(),
         }
     }
 
@@ -55,6 +60,10 @@ impl Game {
             self.locations.set_location(&id, location.clone());
         });
 
+        new_obj.extractable.iter().for_each(|i| {
+            self.extractables.set_extractable(&id, i.clone());
+        });
+
         id
     }
 
@@ -65,7 +74,7 @@ impl Game {
     pub fn tick(&mut self, total_time: Seconds, delta_time: Seconds) {
         Log::info("game", &format!("tick {}/{}", delta_time.0, total_time.0));
         let tick = Tick { total_time, delta_time };
-        self.commands.tick(&tick, &mut self.objects, &mut self.actions, &mut self.locations, &self.sectors);
+        self.commands.tick(&tick, &self.extractables,&mut self.actions, &mut self.locations, &self.sectors);
         self.actions.tick(&tick, &mut self.objects, &self.sectors, &mut self.locations);
     }
 }

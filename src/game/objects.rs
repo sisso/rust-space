@@ -6,6 +6,7 @@ use super::commands::*;
 use super::action::Action;
 use super::sectors::SectorId;
 use crate::game::locations::Location;
+use crate::game::extractables::Extractable;
 
 #[derive(Clone,Copy,PartialEq,Eq,Hash,Debug)]
 pub struct ObjId(pub u32);
@@ -88,7 +89,6 @@ pub struct Obj {
     pub cargo: Cargo,
     pub can_dock: bool,
     pub has_dock: bool,
-    pub extractable: Option<Extractable>,
 }
 
 impl Obj {
@@ -117,7 +117,6 @@ impl ObjRepo {
             cargo: Cargo::new(new_obj.cargo_size),
             can_dock: new_obj.can_dock,
             has_dock: new_obj.has_dock,
-            extractable: new_obj.extractable.clone(),
         };
 
         Log::info("objects", &format!("adding object {:?}", obj));
