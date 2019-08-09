@@ -52,6 +52,9 @@ impl V2 {
 pub type Position = V2;
 
 #[derive(Clone,Copy,Debug)]
+pub struct Speed(pub f32);
+
+#[derive(Clone,Copy,Debug)]
 pub struct Seconds(pub f32);
 
 impl Seconds {

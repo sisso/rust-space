@@ -48,7 +48,7 @@ impl Actions {
         self.states.insert(obj_id, State::new());
     }
 
-    pub fn tick(&mut self, tick: &Tick, _objects: &mut ObjRepo, sectors: &SectorRepo, locations: &mut Locations) {
+    pub fn tick(&mut self, tick: &Tick, sectors: &SectorRepo, locations: &mut Locations) {
         for (obj_id, state) in self.states.iter_mut() {
             let location = locations.get_location(obj_id);
             if location.is_none() {
@@ -82,13 +82,11 @@ impl Actions {
                     state.action = Action::Idle;
                 },
                 (Action::Fly { to }, Location::Space { sector_id, pos}) => {
-                    let obj = _objects.get(obj_id);
-
                     let delta   = to.sub(pos);
                     // delta == zero can cause length sqr NaN
                     let length_sqr = delta.length_sqr();
                     let norm = delta.div(length_sqr.sqrt());
-                    let speed = obj.max_speed.unwrap();
+                    let speed = locations.get_speed(&obj_id).unwrap();
                     let mov = norm.mult(speed.0 * tick.delta_time.0);
 
 //                    Log::debug("actions", &format!("{:?} {:?} {:?} {:?} {:?} {:?}", pos, to, delta, length_sqr, norm, mov));

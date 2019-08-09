@@ -14,8 +14,8 @@ use self::objects::*;
 use self::wares::*;
 use self::commands::*;
 use self::action::*;
-use crate::game::locations::Locations;
-use crate::game::extractables::Extractables;
+use crate::game::locations::{Locations, Location};
+use crate::game::extractables::{Extractables, Extractable};
 
 pub struct Tick {
     total_time: Seconds,
@@ -28,7 +28,8 @@ pub struct Game {
     sectors: SectorRepo,
     objects: ObjRepo,
     locations: Locations,
-    extractables: Extractables
+    extractables: Extractables,
+    cargos: Cargos,
 }
 
 impl Game {
@@ -40,6 +41,7 @@ impl Game {
             objects: ObjRepo::new(),
             locations: Locations::new(),
             extractables: Extractables::new(),
+            cargos: Cargos::new(),
         }
     }
 
@@ -48,7 +50,8 @@ impl Game {
     }
 
     pub fn add_object(&mut self, new_obj: NewObj) -> ObjId {
-        let id = self.objects.add_object(&new_obj);
+        let id = self.objects.create();
+
         self.locations.init(&id);
 
         if new_obj.ai {
@@ -60,9 +63,17 @@ impl Game {
             self.locations.set_location(&id, location.clone());
         });
 
+        new_obj.speed.iter().for_each(|speed| {
+            self.locations.set_moveable(&id, speed.clone());
+        });
+
         new_obj.extractable.iter().for_each(|i| {
             self.extractables.set_extractable(&id, i.clone());
         });
+
+        if new_obj.cargo_size > 0 {
+            self.cargos.init(&id, new_obj.cargo_size);
+        }
 
         id
     }
@@ -75,6 +86,74 @@ impl Game {
         Log::info("game", &format!("tick {}/{}", delta_time.0, total_time.0));
         let tick = Tick { total_time, delta_time };
         self.commands.tick(&tick, &self.extractables,&mut self.actions, &mut self.locations, &self.sectors);
-        self.actions.tick(&tick, &mut self.objects, &self.sectors, &mut self.locations);
+        self.actions.tick(&tick, &self.sectors, &mut self.locations);
+    }
+}
+
+
+pub struct NewObj {
+    pub speed: Option<Speed>,
+    pub cargo_size: u32,
+    pub extractable: Option<Extractable>,
+    pub location: Option<Location>,
+    pub can_dock: bool,
+    pub has_dock: bool,
+    pub ai: bool,
+}
+
+impl NewObj {
+    pub fn new() -> NewObj {
+        NewObj {
+            speed: None,
+            cargo_size: 0,
+            extractable: None,
+            location: None,
+            can_dock: false,
+            has_dock: false,
+            ai: false
+        }
+    }
+
+    pub fn with_cargo(mut self, cargo: u32) -> Self {
+        self.cargo_size = cargo;
+        self
+    }
+
+    pub fn with_speed(mut self, speed: Speed) -> Self {
+        self.speed = Some(speed);
+        self
+    }
+
+    pub fn at_position(mut self, sector_id: SectorId, pos: Position) -> Self {
+        self.location = Some(Location::Space {
+            sector_id,
+            pos
+        });
+        self
+    }
+
+    pub fn at_dock(mut self, obj_id: ObjId) -> Self {
+        self.location = Some(Location::Docked { obj_id });
+        self
+    }
+
+    pub fn extractable(mut self, extractable: Extractable) -> Self {
+        self.extractable = Some(extractable);
+        self
+    }
+
+    pub fn has_dock(mut self) -> Self {
+        self.has_dock = true;
+        self
+    }
+
+    pub fn can_dock(mut self) -> Self {
+        self.can_dock = true;
+        self
+    }
+
+    pub fn with_ai(mut self) -> Self {
+        self.ai = true;
+        self
     }
 }

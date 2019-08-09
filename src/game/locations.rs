@@ -16,6 +16,11 @@ pub struct LocationSpace {
     pub pos: Position
 }
 
+#[derive(Clone, Debug)]
+pub struct Moveable {
+    pub speed: Speed
+}
+
 impl Location {
     pub fn as_space(&self) -> LocationSpace {
         match self {
@@ -40,13 +45,15 @@ impl Location {
 }
 
 struct State {
-    location: Option<Location>
+    location: Option<Location>,
+    movement: Option<Moveable>,
 }
 
 impl State {
     pub fn new() -> Self {
         State {
-            location: None
+            location: None,
+            movement: None,
         }
     }
 }
@@ -67,14 +74,31 @@ impl Locations {
     }
 
     pub fn set_location(&mut self, obj_id: &ObjId, location: Location) {
-        let mut state = self.index.get_mut(&obj_id).unwrap();
+        let state = self.get_create_state(&obj_id);
         Log::info("locations", &format!("set location {:?}: {:?}", obj_id, location));
         state.location = Some(location);
     }
 
+    pub fn set_moveable(&mut self, obj_id: &ObjId, speed: Speed) {
+        let state = self.get_create_state(&obj_id);
+        Log::info("locations", &format!("set moveable {:?}: {:?}", obj_id, speed));
+        state.movement = Some(Moveable { speed, });
+    }
 
     pub fn get_location(&self, id: &ObjId) -> Option<&Location> {
         let state = self.index.get(id);
         state.and_then(|i| i.location.as_ref())
+    }
+
+    pub fn get_speed(&self, id: &ObjId) -> Option<&Speed> {
+        let state = self.index.get(id);
+        state.and_then(|i| {
+            i.movement.as_ref().map(|j| &j.speed)
+        })
+    }
+
+    fn get_create_state(&mut self, obj_id: &&ObjId) -> &mut State {
+        let mut state = self.index.get_mut(&obj_id).unwrap();
+        state
     }
 }
