@@ -35,10 +35,10 @@ fn load_sectors(game: &mut Game) {
 
 fn load_objects(game: &mut Game) {
     // asteroid field
-    let _ = new_asteroid(game, SECTOR_1, V2::new(5.0, -5.0));
+    let _ = new_asteroid(game, SECTOR_1, V2::new(-5.0, 5.0));
 
     // station
-    let station_id = new_station(game, SECTOR_0, V2::new(-5.0, 5.0));
+    let station_id = new_station(game, SECTOR_0, V2::new(5.0, -5.0));
 
     // miner
     let ship_id = new_ship_miner(game, station_id);

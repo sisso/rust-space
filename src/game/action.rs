@@ -85,14 +85,15 @@ impl Actions {
                     let delta   = to.sub(pos);
                     // delta == zero can cause length sqr NaN
                     let length_sqr = delta.length_sqr();
-                    let norm = delta.div(length_sqr.sqrt());
                     let speed = locations.get_speed(&obj_id).unwrap();
-                    let mov = norm.mult(speed.0 * tick.delta_time.0);
+                    let max_distance = speed.0 * tick.delta_time.0;
+                    let norm = delta.div(length_sqr.sqrt());
+                    let mov = norm.mult(max_distance);
 
-//                    Log::debug("actions", &format!("{:?} {:?} {:?} {:?} {:?} {:?}", pos, to, delta, length_sqr, norm, mov));
+//                    Log::debug("actions", &format!("pos {:?}, to {:?}, delta {:?}, lensqr {:?}, norm {:?}, mov {:?}", pos, to, delta, length_sqr, norm, mov));
 
                     // if current move distance is bigger that distance to arrive, move to the position
-                    if length_sqr.is_nan() || length_sqr <= mov.length_sqr() {
+                    if length_sqr.is_nan() || length_sqr <= max_distance {
                         Log::debug("actions", &format!("{:?} arrive at {:?}", obj_id, to));
 
                         let location = Location::Space {
@@ -103,6 +104,7 @@ impl Actions {
                         state.action = Action::Idle;
                         locations.set_location(obj_id, location);
                     } else {
+
                         let new_position = pos.add(&mov);
                         Log::debug("actions", &format!("{:?} move to {:?}", obj_id, new_position));
 
