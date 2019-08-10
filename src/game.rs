@@ -6,6 +6,8 @@ pub mod commands;
 pub mod locations;
 pub mod template;
 pub mod extractables;
+pub mod executor_command_idle;
+pub mod executor_command_mine;
 
 use crate::utils::*;
 
@@ -85,7 +87,8 @@ impl Game {
     pub fn tick(&mut self, total_time: Seconds, delta_time: Seconds) {
         Log::info("game", &format!("tick delta {} total {}", delta_time.0, total_time.0));
         let tick = Tick { total_time, delta_time };
-        self.commands.tick(&tick, &self.extractables,&mut self.actions, &mut self.locations, &self.sectors);
+        executor_command_idle::execute(&mut self.commands, &mut self.actions);
+        executor_command_mine::execute(&tick, &mut self.commands, &self.extractables, &mut self.actions, &self.locations, &self.sectors);
         self.actions.tick(&tick, &self.sectors, &mut self.locations);
     }
 }
