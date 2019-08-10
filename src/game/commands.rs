@@ -13,21 +13,30 @@ pub enum Command {
     Mine,
 }
 
+#[derive(Debug, Clone)]
 struct MineState {
+    mining: bool,
     target_obj_id: ObjId,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum NavigationStateStep {
     MoveTo { pos: Position, },
     Jump { sector_id: SectorId }
 }
 
+#[derive(Debug, Clone)]
 struct NavigationState {
     target_obj_id: ObjId,
     target_sector_id: SectorId,
     target_position: V2,
     path: Vec<NavigationStateStep>
+}
+
+impl NavigationState {
+    fn is_complete(&self) -> bool {
+        self.path.is_empty()
+    }
 }
 
 struct State {
@@ -65,44 +74,84 @@ impl Commands {
 
     pub fn tick(&mut self, tick: &Tick, extractables: &Extractables, actions: &mut Actions, locations: &Locations, sectors: &SectorRepo) {
         for (obj_id, state) in self.state.iter_mut() {
-            let action = actions.get_action(obj_id);
-            let location = locations.get_location(obj_id).unwrap();
+            match state.command {
+                Command::Mine => Commands::do_command_mine(extractables, actions, locations, sectors, obj_id, state),
+                Command::Idle => Commands::do_command_idle(actions, obj_id, state),
+            }
 
-            match (&state.command, action, location) {
-                (Command::Mine, Action::Idle, Location::Docked { .. }) => {
-                    actions.set_action(obj_id, Action::Undock);
-                },
-                (Command::Mine, Action::Idle, Location::Space { sector_id, pos}) => {
-                    if state.mine.is_none() {
-                        // TODO: unwarp
-                        let target = search_mine_target(extractables, sectors, obj_id).unwrap();
-                        // TODO: unwarp
-                        let navigation = find_navigation_to(sectors, locations, &location.as_space(), &target).unwrap();
+        }
+    }
 
-                        state.mine = Some(MineState { target_obj_id: target });
-                        state.navigation = Some(navigation);
-                    }
+    fn do_command_idle(actions: &mut Actions, obj_id: &ObjId, state: &mut State) {
+        let action = actions.get_action(obj_id);
 
-                    let action = navigation_next_action(sectors, obj_id, &mut state.navigation.as_mut().unwrap());
-                    actions.set_action(obj_id, action);
-                },
-                (Command::Mine, Action::Fly { to}, Location::Space { sector_id, pos}) => {
-                    // ignore
-                },
-                (Command::Mine, Action::Undock, Location::Docked { .. }) => {
-                    // ignore
-                },
-                (Command::Idle, Action::Idle, _) => {
-                    // ignore
-                },
-                (Command::Idle, _, _) => {
-                    actions.set_action(obj_id, Action::Idle);
-                },
-                (a, b, c) => {
-                    Log::warn("command", &format!("unknown {:?}", obj_id));
-                }
+        match action {
+            Action::Idle => {},
+            _ => {
+                Log::info("command", &format!("{:?} setting idle action", obj_id));
+                actions.set_action(obj_id, Action::Idle);
+            },
+        }
+    }
+
+    fn do_command_mine(extractables: &Extractables, actions: &mut Actions, locations: &Locations, sectors: &SectorRepo, obj_id: &ObjId, state: &mut State) -> () {
+        let action = actions.get_action(obj_id);
+        let location = locations.get_location(obj_id).unwrap();
+
+        match (action, location) {
+            (Action::Idle, Location::Docked { .. }) => {
+                actions.set_action(obj_id, Action::Undock);
+            },
+            (Action::Idle, Location::Space { sector_id, pos }) => {
+                Commands::do_command_mine_idle(extractables, actions, locations, sectors, obj_id, state, location)
+            },
+            (Action::Fly { to }, Location::Space { sector_id, pos }) => {
+                // ignore
+            },
+            (Action::Undock, Location::Docked { .. }) => {
+                // ignore
+            },
+            (a, b) => {
+                Log::warn("command", &format!("unknown {:?}", obj_id));
             }
         }
+    }
+
+    fn do_command_mine_idle(extractables: &Extractables, actions: &mut Actions, locations: &Locations, sectors: &SectorRepo, obj_id: &ObjId, state: &mut State, location: &Location) -> () {
+        if state.mine.is_none() {
+            Commands::set_mine_state_nearest_target(extractables, locations, sectors, obj_id, state, location);
+            Log::info("commands", &format!("{:?} creating mining state {:?}", obj_id, state.mine));
+        }
+
+        let mine_state = state.mine.as_mut().unwrap();
+        if mine_state.mining {
+            return;
+        }
+
+        if state.navigation.iter().any(|i| i.is_complete()) {
+            Log::info("commands", &format!("{:?} arrive to mine location", obj_id));
+            mine_state.mining = true;
+
+            actions.set_action(obj_id, Action::Mine {
+                target: mine_state.target_obj_id
+            });
+        } else {
+            let action = navigation_next_action(sectors, obj_id, &mut state.navigation.as_mut().unwrap());
+            actions.set_action(obj_id, action);
+        }
+    }
+
+    fn set_mine_state_nearest_target(extractables: &Extractables, locations: &Locations, sectors: &SectorRepo, obj_id: &ObjId, state: &mut State, location: &Location) {
+        // TODO: unwarp
+        let target = search_mine_target(extractables, sectors, obj_id).unwrap();
+        // TODO: unwarp
+        let navigation = find_navigation_to(sectors, locations, &location.as_space(), &target).unwrap();
+
+        state.mine = Some(MineState {
+            mining: false,
+            target_obj_id: target
+        });
+        state.navigation = Some(navigation);
     }
 
     pub fn set_command(&mut self, obj_id: ObjId, command: Command) {

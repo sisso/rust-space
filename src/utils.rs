@@ -86,14 +86,12 @@ pub struct Log {
 
 impl Log {
     pub fn info(ctx: &str, s: &str) {
-        println!("INFO {} - {}", ctx, s);
+        println!("INFO  {: <10} - {}", ctx, s);
     }
-
     pub fn debug(ctx: &str, s: &str) {
-        println!("DEBUG {} - {}", ctx, s);
+        println!("DEBUG {: <10} - {}", ctx, s);
     }
-
     pub fn warn(ctx: &str, s: &str) {
-        println!("WARN {} - {}", ctx, s);
+         println!("WARN  {: <10} - {}", ctx, s);
     }
 }

@@ -12,7 +12,7 @@ pub enum Action {
     Undock,
     Fly { to: Position },
     Jump,
-    Mine,
+    Mine { target: ObjId },
 }
 
 const MIN_DISTANCE: f32 = 0.01;
