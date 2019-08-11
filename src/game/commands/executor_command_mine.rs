@@ -1,15 +1,13 @@
 use crate::game::objects::ObjId;
 use crate::game::commands::*;
 use crate::utils::*;
-use super::sectors::*;
-use super::Tick;
-use super::action::{Actions, Action};
-use super::objects::*;
+use super::super::sectors::*;
+use super::super::Tick;
+use super::*;
+use super::super::objects::*;
 use crate::utils::*;
 use crate::game::locations::{Location, Locations, LocationSpace};
 use crate::game::extractables::Extractables;
-
-use std::collections::HashMap;
 
 pub fn execute(tick: &Tick, commands: &mut Commands, extractables: &Extractables, actions: &mut Actions, locations: &Locations, sectors: &SectorRepo) {
     for (obj_id, state) in commands.list_mut() {
@@ -22,7 +20,7 @@ pub fn execute(tick: &Tick, commands: &mut Commands, extractables: &Extractables
     }
 }
 
-fn do_command_mine(extractables: &Extractables, actions: &mut Actions, locations: &Locations, sectors: &SectorRepo, obj_id: &ObjId, state: &mut State) -> () {
+fn do_command_mine(extractables: &Extractables, actions: &mut Actions, locations: &Locations, sectors: &SectorRepo, obj_id: &ObjId, state: &mut CommandState) -> () {
     let action = actions.get_action(obj_id);
     let location = locations.get_location(obj_id).unwrap();
 
@@ -45,7 +43,7 @@ fn do_command_mine(extractables: &Extractables, actions: &mut Actions, locations
     }
 }
 
-fn do_command_mine_idle(extractables: &Extractables, actions: &mut Actions, locations: &Locations, sectors: &SectorRepo, obj_id: &ObjId, state: &mut State, location: &Location) -> () {
+fn do_command_mine_idle(extractables: &Extractables, actions: &mut Actions, locations: &Locations, sectors: &SectorRepo, obj_id: &ObjId, state: &mut CommandState, location: &Location) -> () {
     if state.mine.is_none() {
         set_mine_state_nearest_target(extractables, locations, sectors, obj_id, state, location);
         Log::info("commands", &format!("{:?} creating mining state {:?}", obj_id, state.mine));
@@ -64,12 +62,14 @@ fn do_command_mine_idle(extractables: &Extractables, actions: &mut Actions, loca
             target: mine_state.target_obj_id
         });
     } else {
-        let action = navigation_next_action(sectors, obj_id, &mut state.navigation.as_mut().unwrap());
-        actions.set_action(obj_id, action);
+        state.navigation.iter_mut().for_each(|mut i| {
+            let action = i.navigation_next_action();
+            actions.set_action(obj_id, action);
+        });
     }
 }
 
-fn set_mine_state_nearest_target(extractables: &Extractables, locations: &Locations, sectors: &SectorRepo, obj_id: &ObjId, state: &mut State, location: &Location) {
+fn set_mine_state_nearest_target(extractables: &Extractables, locations: &Locations, sectors: &SectorRepo, obj_id: &ObjId, state: &mut CommandState, location: &Location) {
     // TODO: unwarp
     let target = search_mine_target(extractables, sectors, obj_id).unwrap();
     // TODO: unwarp
@@ -142,16 +142,4 @@ fn find_path(sectors: &SectorRepo, from: &LocationSpace, to: &LocationSpace) -> 
     Log::debug("command.find_path", &format!("from {:?} to {:?}: {:?}", from, to, path));
 
     path
-}
-
-fn navigation_next_action(sectors: &SectorRepo, object_id: &ObjId, navigation: &mut NavigationState) -> Action {
-    match navigation.path.pop() {
-        Some(NavigationStateStep::MoveTo { pos}) => {
-            Action::Fly { to: pos }
-        },
-        Some(NavigationStateStep::Jump { .. }) => {
-            Action::Jump
-        },
-        None => Action::Idle,
-    }
 }

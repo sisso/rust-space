@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::utils::*;
 use super::wares::*;
 use super::commands::*;
-use super::action::Action;
+use super::actions::Action;
 use super::sectors::SectorId;
 use crate::game::locations::Location;
 use crate::game::extractables::Extractable;

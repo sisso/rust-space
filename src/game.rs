@@ -1,13 +1,11 @@
 pub mod sectors;
 pub mod objects;
 pub mod wares;
-pub mod action;
+pub mod actions;
 pub mod commands;
 pub mod locations;
 pub mod template;
 pub mod extractables;
-pub mod executor_command_idle;
-pub mod executor_command_mine;
 
 use crate::utils::*;
 
@@ -15,7 +13,7 @@ use self::sectors::*;
 use self::objects::*;
 use self::wares::*;
 use self::commands::*;
-use self::action::*;
+use self::actions::*;
 use crate::game::locations::{Locations, Location};
 use crate::game::extractables::{Extractables, Extractable};
 
@@ -87,9 +85,8 @@ impl Game {
     pub fn tick(&mut self, total_time: Seconds, delta_time: Seconds) {
         Log::info("game", &format!("tick delta {} total {}", delta_time.0, total_time.0));
         let tick = Tick { total_time, delta_time };
-        executor_command_idle::execute(&mut self.commands, &mut self.actions);
-        executor_command_mine::execute(&tick, &mut self.commands, &self.extractables, &mut self.actions, &self.locations, &self.sectors);
-        self.actions.tick(&tick, &self.sectors, &mut self.locations);
+        self.commands.execute(&tick, &self.extractables, &mut self.actions, &self.locations, &self.sectors);
+        self.actions.execute(&tick, &self.sectors, &mut self.locations);
     }
 }
 
