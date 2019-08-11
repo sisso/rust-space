@@ -10,18 +10,31 @@ use crate::game::locations::{Location, Locations, LocationSpace};
 use crate::game::extractables::Extractables;
 use crate::game::wares::Cargos;
 
-pub fn execute(tick: &Tick, commands: &mut Commands, extractables: &Extractables, actions: &mut Actions, locations: &Locations, sectors: &SectorRepo) {
+pub fn execute(tick: &Tick,
+               commands: &mut Commands,
+               extractables: &Extractables,
+               actions: &mut Actions,
+               locations: &Locations,
+               sectors: &SectorRepo,
+               cargos: &mut Cargos) {
+
     for (obj_id, state) in commands.list_mut() {
         match state.command {
             Command::Mine => {
-                do_command_mine(extractables, actions, locations, sectors, obj_id, state);
+                do_command_mine(extractables, actions, locations, sectors, obj_id, state, cargos);
             },
             _ => {},
         }
     }
 }
 
-fn do_command_mine(extractables: &Extractables, actions: &mut Actions, locations: &Locations, sectors: &SectorRepo, obj_id: &ObjId, state: &mut CommandState) -> () {
+fn do_command_mine(extractables: &Extractables,
+                   actions: &mut Actions,
+                   locations: &Locations,
+                   sectors: &SectorRepo,
+                   obj_id: &ObjId,
+                   state: &mut CommandState,
+                   cargos: &mut Cargos) -> () {
     let action = actions.get_action(obj_id);
     let location = locations.get_location(obj_id).unwrap();
 
@@ -30,7 +43,13 @@ fn do_command_mine(extractables: &Extractables, actions: &mut Actions, locations
             actions.set_action(obj_id, Action::Undock);
         },
         (Action::Idle, Location::Space { sector_id, pos }) => {
-            do_command_mine_idle(extractables, actions, locations, sectors, obj_id, state, location)
+            if cargos.get_cargo(obj_id).map(|i| i.is_full()).unwrap_or(false) {
+                // cargo is full
+                // TODO: move back
+            } else {
+                // move to mine
+                do_command_mine_idle(extractables, actions, locations, sectors, obj_id, state, location)
+            }
         },
         (Action::Fly { to }, Location::Space { sector_id, pos }) => {
             // ignore

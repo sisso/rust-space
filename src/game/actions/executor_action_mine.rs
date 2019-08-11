@@ -40,7 +40,6 @@ pub fn execute(tick: &Tick,
                 cargo.add_to_max(&ext.ware_id, 1.0);
                 Log::debug("executor_action_mine", &format!("{:?} new cargo {:?}", obj_id, cargo));
 
-
                 if cargo.is_full() {
                     Log::debug("executor_action_mine", &format!("{:?} cargo is full", obj_id));
                     state.action = Action::Idle;

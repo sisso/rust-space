@@ -6,6 +6,7 @@ use crate::utils::*;
 use std::collections::HashMap;
 use crate::game::locations::{Location, Locations, LocationSpace};
 use crate::game::extractables::Extractables;
+use crate::game::wares::Cargos;
 
 mod executor_command_idle;
 mod executor_command_mine;
@@ -87,9 +88,9 @@ impl Commands {
         self.state.insert(obj_id, CommandState::new());
     }
 
-    pub fn execute(&mut self, tick: &Tick, extractables: &Extractables, actions: &mut Actions, locations: &Locations, sectors: &SectorRepo) {
+    pub fn execute(&mut self, tick: &Tick, extractables: &Extractables, actions: &mut Actions, locations: &Locations, sectors: &SectorRepo, cargos: &mut Cargos) {
         executor_command_idle::execute(self, actions);
-        executor_command_mine::execute(tick, self, extractables, actions, locations, sectors);
+        executor_command_mine::execute(tick, self, extractables, actions, locations, sectors, cargos);
     }
 
     pub fn set_command(&mut self, obj_id: ObjId, command: Command) {

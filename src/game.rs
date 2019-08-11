@@ -85,7 +85,7 @@ impl Game {
     pub fn tick(&mut self, total_time: Seconds, delta_time: Seconds) {
         Log::info("game", &format!("tick delta {} total {}", delta_time.0, total_time.0));
         let tick = Tick { total_time, delta_time };
-        self.commands.execute(&tick, &self.extractables, &mut self.actions, &self.locations, &self.sectors);
+        self.commands.execute(&tick, &self.extractables, &mut self.actions, &self.locations, &self.sectors, &mut self.cargos);
         self.actions.execute(&tick, &self.sectors, &mut self.locations, &self.extractables, &mut self.cargos);
     }
 }
