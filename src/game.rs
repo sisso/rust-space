@@ -71,7 +71,7 @@ impl Game {
             self.extractables.set_extractable(&id, i.clone());
         });
 
-        if new_obj.cargo_size > 0 {
+        if new_obj.cargo_size > 0.0 {
             self.cargos.init(&id, new_obj.cargo_size);
         }
 
@@ -93,7 +93,7 @@ impl Game {
 
 pub struct NewObj {
     pub speed: Option<Speed>,
-    pub cargo_size: u32,
+    pub cargo_size: f32,
     pub extractable: Option<Extractable>,
     pub location: Option<Location>,
     pub can_dock: bool,
@@ -105,7 +105,7 @@ impl NewObj {
     pub fn new() -> NewObj {
         NewObj {
             speed: None,
-            cargo_size: 0,
+            cargo_size: 0.0,
             extractable: None,
             location: None,
             can_dock: false,
@@ -114,7 +114,7 @@ impl NewObj {
         }
     }
 
-    pub fn with_cargo(mut self, cargo: u32) -> Self {
+    pub fn with_cargo(mut self, cargo: f32) -> Self {
         self.cargo_size = cargo;
         self
     }

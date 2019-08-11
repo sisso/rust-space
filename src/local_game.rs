@@ -62,7 +62,7 @@ fn new_asteroid(game: &mut Game, sector_id: SectorId, pos: V2) -> ObjId {
 fn new_station(game: &mut Game, sector_id: SectorId, pos: V2) -> ObjId {
     game.add_object(
         NewObj::new()
-            .with_cargo(100)
+            .with_cargo(100.0)
             .at_position(sector_id, pos)
             .has_dock()
     )
@@ -71,7 +71,7 @@ fn new_station(game: &mut Game, sector_id: SectorId, pos: V2) -> ObjId {
 fn new_ship_miner(game: &mut Game, docked_at: ObjId) -> ObjId {
     game.add_object(
         NewObj::new()
-            .with_cargo(1)
+            .with_cargo(2.0)
             .with_speed(Speed(1.0))
             .at_dock(docked_at)
             .can_dock()
@@ -85,7 +85,7 @@ pub fn run() {
     load_sectors(&mut game);
     load_objects(&mut game);
 
-    for i in 0..25 {
+    for i in 0..30 {
         game.tick(Seconds(i as f32), Seconds(1.0));
     }
 }

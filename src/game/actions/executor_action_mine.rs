@@ -29,9 +29,25 @@ pub fn execute(tick: &Tick,
                 let ext = extractables.get_extractable(&target);
                 Log::debug("executor_action_mine", &format!("{:?} mine complete, extracted {:?}", obj_id, ext.ware_id));
 
+                let mut cargo = cargos.get_cargo_mut(obj_id);
+                let cargo =
+                    if let Some(cargo) = cargo { cargo }
+                    else {
+                        Log::warn("executor_action_mine", &format!("{:?} has no cargo", obj_id));
+                        continue;
+                    };
 
-                Log::debug("executor_action_mine", &format!("{:?} set mine time delay {:?}", obj_id, ext.time));
-                state.action_delay = Some(ext.time);
+                cargo.add_to_max(&ext.ware_id, 1.0);
+                Log::debug("executor_action_mine", &format!("{:?} new cargo {:?}", obj_id, cargo));
+
+
+                if cargo.is_full() {
+                    Log::debug("executor_action_mine", &format!("{:?} cargo is full", obj_id));
+                    state.action = Action::Idle;
+                } else {
+                    Log::debug("executor_action_mine", &format!("{:?} set mine time delay {:?}", obj_id, ext.time));
+                    state.action_delay = Some(ext.time);
+                }
             },
             (Action::Mine { target }, Some(delay)) => {
                 state.action_delay = Some(Seconds(delay.0 - tick.delta_time.0));
