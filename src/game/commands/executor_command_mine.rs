@@ -35,21 +35,32 @@ fn do_command_mine(extractables: &Extractables,
                    obj_id: &ObjId,
                    state: &mut CommandState,
                    cargos: &mut Cargos) -> () {
+
     let action = actions.get_action(obj_id);
-    let location = locations.get_location(obj_id).unwrap();
+
+    let location = match locations.get_location(obj_id) {
+        Some(location) => location,
+        None => {
+            Log::warn("executor_command_mine", &format!("{:?} has no location", obj_id));
+            return;
+        }
+    };
+
+    let is_cargo_full = cargos.get_cargo(obj_id).map(|i| i.is_full()).unwrap_or(false);
+    let is_mining = state.mine.as_ref().map(|i| i.mining).unwrap_or(false);
 
     match (action, location) {
         (Action::Idle, Location::Docked { .. }) => {
             actions.set_action(obj_id, Action::Undock);
         },
-        (Action::Idle, Location::Space { sector_id, pos }) => {
-            if cargos.get_cargo(obj_id).map(|i| i.is_full()).unwrap_or(false) {
-                // cargo is full
-                // TODO: move back
-            } else {
-                // move to mine
-                do_command_mine_idle(extractables, actions, locations, sectors, obj_id, state, location)
-            }
+        (Action::Idle, Location::Space { .. }) if is_cargo_full => {
+            execute_mine_deliver_resources(actions, locations, sectors, obj_id, state, location, cargos);
+        },
+        (Action::Idle, Location::Space { .. }) if is_mining => {
+            Log::warn("executor_command_mine", &format!("{:?} unexpected state, action is idle and mining state is mining", obj_id));
+        },
+        (Action::Idle, Location::Space { .. }) => {
+            execute_mine_idle(extractables, actions, locations, sectors, obj_id, state, location, cargos)
         },
         (Action::Fly { to }, Location::Space { sector_id, pos }) => {
             // ignore
@@ -66,50 +77,56 @@ fn do_command_mine(extractables: &Extractables,
     }
 }
 
-fn do_command_mine_idle(extractables: &Extractables,
-                        actions: &mut Actions,
-                        locations: &Locations,
-                        sectors: &SectorRepo,
-                        obj_id: &ObjId,
-                        state: &mut CommandState,
-                        location: &Location) -> () {
+fn execute_mine_idle(extractables: &Extractables,
+                     actions: &mut Actions,
+                     locations: &Locations,
+                     sectors: &SectorRepo,
+                     obj_id: &ObjId,
+                     state: &mut CommandState,
+                     location: &Location,
+                     cargos: &mut Cargos) {
 
     if state.mine.is_none() {
-        set_mine_state_nearest_target(extractables, locations, sectors, obj_id, state, location);
-        Log::info("commands", &format!("{:?} creating mining state {:?}", obj_id, state.mine));
+        // TODO: unwarp
+        let target = search_mine_target(extractables, sectors, obj_id).unwrap();
+        // TODO: unwarp
+        let navigation = find_navigation_to(sectors, locations, &location.as_space(), &target).unwrap();
+
+        state.clear();
+
+        state.mine = Some(MineState {
+            mining: false,
+            target_obj_id: target
+        });
+
+        state.navigation = Some(navigation);
+
+        Log::info("executor_command_mine", &format!("{:?} set mining state {:?}, navigation {:?}", obj_id, state.mine, state.navigation));
     }
 
-    let mine_state = state.mine.as_mut().unwrap();
-    if mine_state.mining {
-        return;
-    }
 
-    if state.navigation.iter().any(|i| i.is_complete()) {
+    if execute_navigation(actions, obj_id, state) {
         Log::info("commands", &format!("{:?} arrive to mine location", obj_id));
-        mine_state.mining = true;
 
+        let mine_state = state.mine.as_mut().unwrap();
+        mine_state.mining = true;
         actions.set_action(obj_id, Action::Mine {
             target: mine_state.target_obj_id
         });
+    }
+}
+
+fn execute_navigation(actions: &mut Actions, obj_id: &ObjId, state: &mut CommandState) -> bool {
+    if state.navigation.iter().any(|i| i.is_complete()) {
+        true
     } else {
         state.navigation.iter_mut().for_each(|i| {
             let action = i.navigation_next_action();
             actions.set_action(obj_id, action);
         });
+
+        false
     }
-}
-
-fn set_mine_state_nearest_target(extractables: &Extractables, locations: &Locations, sectors: &SectorRepo, obj_id: &ObjId, state: &mut CommandState, location: &Location) {
-    // TODO: unwarp
-    let target = search_mine_target(extractables, sectors, obj_id).unwrap();
-    // TODO: unwarp
-    let navigation = find_navigation_to(sectors, locations, &location.as_space(), &target).unwrap();
-
-    state.mine = Some(MineState {
-        mining: false,
-        target_obj_id: target
-    });
-    state.navigation = Some(navigation);
 }
 
 fn search_mine_target(extractables: &Extractables, sectors: &SectorRepo, obj_id: &ObjId) -> Option<ObjId> {
@@ -172,4 +189,42 @@ fn find_path(sectors: &SectorRepo, from: &LocationSpace, to: &LocationSpace) -> 
     Log::debug("command.find_path", &format!("from {:?} to {:?}: {:?}", from, to, path));
 
     path
+}
+
+fn execute_mine_deliver_resources(
+    actions: &mut Actions,
+    locations: &Locations,
+    sectors: &SectorRepo,
+    obj_id: &ObjId,
+    state: &mut CommandState,
+    location: &Location,
+    cargos: &mut Cargos
+) {
+    if state.deliver.is_none() {
+        let target = match search_deliver_target(obj_id) {
+            Some(target) => target,
+            None => {
+                Log::warn("executor_command_mine", &format!("{:?} fail to find deliver target", obj_id));
+                return;
+            },
+        };
+
+        state.clear();
+
+        state.deliver = Some(
+          DeliverState {
+              target_obj_id: target,
+          }
+        );
+
+        state.navigation = find_navigation_to(sectors, locations, &location.as_space(), &target);
+
+        Log::info("executor_command_mine", &format!("{:?} set deliver state {:?}, navigation {:?}", obj_id, state.deliver, state.navigation));
+    }
+
+    println!("{:?}", state);
+}
+
+fn search_deliver_target(obj_id: &ObjId) -> Option<ObjId> {
+    None
 }

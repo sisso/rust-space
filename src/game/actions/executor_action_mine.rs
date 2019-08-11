@@ -29,7 +29,7 @@ pub fn execute(tick: &Tick,
                 let ext = extractables.get_extractable(&target);
                 Log::debug("executor_action_mine", &format!("{:?} mine complete, extracted {:?}", obj_id, ext.ware_id));
 
-                let mut cargo = cargos.get_cargo_mut(obj_id);
+                let cargo = cargos.get_cargo_mut(obj_id);
                 let cargo =
                     if let Some(cargo) = cargo { cargo }
                     else {

@@ -19,8 +19,13 @@ pub enum Command {
 
 #[derive(Debug, Clone)]
 struct MineState {
-    pub mining: bool,
-    pub target_obj_id: ObjId,
+    mining: bool,
+    target_obj_id: ObjId,
+}
+
+#[derive(Debug, Clone)]
+struct DeliverState {
+    target_obj_id: ObjId,
 }
 
 #[derive(Debug, Clone)]
@@ -55,9 +60,11 @@ impl NavigationState {
     }
 }
 
+#[derive(Debug, Clone)]
 struct CommandState {
     command: Command,
     mine: Option<MineState>,
+    deliver: Option<DeliverState>,
     navigation: Option<NavigationState>,
 }
 
@@ -66,8 +73,15 @@ impl CommandState {
         CommandState {
             command: Command::Idle,
             mine: None,
+            deliver: None,
             navigation: None
         }
+    }
+
+    fn clear(&mut self) {
+        self.mine = None;
+        self.deliver = None;
+        self.navigation = None;
     }
 }
 

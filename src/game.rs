@@ -6,6 +6,7 @@ pub mod commands;
 pub mod locations;
 pub mod template;
 pub mod extractables;
+pub mod navigation;
 
 use crate::utils::*;
 
@@ -16,6 +17,7 @@ use self::commands::*;
 use self::actions::*;
 use crate::game::locations::{Locations, Location};
 use crate::game::extractables::{Extractables, Extractable};
+use crate::game::navigation::Navigations;
 
 pub struct Tick {
     total_time: Seconds,
@@ -30,6 +32,7 @@ pub struct Game {
     locations: Locations,
     extractables: Extractables,
     cargos: Cargos,
+    navigations: Navigations,
 }
 
 impl Game {
@@ -42,6 +45,7 @@ impl Game {
             locations: Locations::new(),
             extractables: Extractables::new(),
             cargos: Cargos::new(),
+            navigations: Navigations::new(),
         }
     }
 
@@ -65,6 +69,7 @@ impl Game {
 
         new_obj.speed.iter().for_each(|speed| {
             self.locations.set_moveable(&id, speed.clone());
+            self.navigations.init(&id);
         });
 
         new_obj.extractable.iter().for_each(|i| {
