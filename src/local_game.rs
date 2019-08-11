@@ -52,7 +52,7 @@ fn new_asteroid(game: &mut Game, sector_id: SectorId, pos: V2) -> ObjId {
             .extractable(
                 Extractable {
                     ware_id: WARE_ORE,
-                    time: Seconds(1.0),
+                    time: Seconds(1.5),
                 }
             )
             .at_position(sector_id, pos)
@@ -63,7 +63,6 @@ fn new_station(game: &mut Game, sector_id: SectorId, pos: V2) -> ObjId {
     game.add_object(
         NewObj::new()
             .with_cargo(100)
-            .with_speed(Speed(1.0))
             .at_position(sector_id, pos)
             .has_dock()
     )
@@ -86,7 +85,7 @@ pub fn run() {
     load_sectors(&mut game);
     load_objects(&mut game);
 
-    for i in 0..20 {
+    for i in 0..25 {
         game.tick(Seconds(i as f32), Seconds(1.0));
     }
 }

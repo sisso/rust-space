@@ -5,10 +5,13 @@ use super::sectors::SectorRepo;
 use super::Tick;
 use std::collections::HashMap;
 use crate::game::locations::Locations;
+use crate::game::extractables::Extractables;
+use crate::game::wares::Cargos;
 
 mod executor_action_dockundock;
 mod executor_action_jump;
 mod executor_action_fly;
+mod executor_action_mine;
 
 #[derive(Clone,Debug)]
 pub enum Action {
@@ -56,10 +59,11 @@ impl Actions {
         self.states.iter_mut()
     }
 
-    pub fn execute(&mut self, tick: &Tick, sectors: &SectorRepo, locations: &mut Locations) {
+    pub fn execute(&mut self, tick: &Tick, sectors: &SectorRepo, locations: &mut Locations, extractables: &Extractables, cargos: &mut Cargos) {
         executor_action_dockundock::execute(self, locations);
         executor_action_jump::execute(self, locations, sectors);
         executor_action_fly::execute(tick, self, locations, sectors);
+        executor_action_mine::execute(tick, self, locations, extractables, cargos);
     }
 
     pub fn set_action(&mut self, obj_id: &ObjId, action: Action) {

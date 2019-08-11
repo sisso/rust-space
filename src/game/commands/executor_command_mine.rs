@@ -8,6 +8,7 @@ use super::super::objects::*;
 use crate::utils::*;
 use crate::game::locations::{Location, Locations, LocationSpace};
 use crate::game::extractables::Extractables;
+use crate::game::wares::Cargos;
 
 pub fn execute(tick: &Tick, commands: &mut Commands, extractables: &Extractables, actions: &mut Actions, locations: &Locations, sectors: &SectorRepo) {
     for (obj_id, state) in commands.list_mut() {
@@ -37,13 +38,23 @@ fn do_command_mine(extractables: &Extractables, actions: &mut Actions, locations
         (Action::Undock, Location::Docked { .. }) => {
             // ignore
         },
+        (Action::Mine { .. }, _) => {
+            // ignore
+        },
         (a, b) => {
             Log::warn("command", &format!("unknown {:?}", obj_id));
         }
     }
 }
 
-fn do_command_mine_idle(extractables: &Extractables, actions: &mut Actions, locations: &Locations, sectors: &SectorRepo, obj_id: &ObjId, state: &mut CommandState, location: &Location) -> () {
+fn do_command_mine_idle(extractables: &Extractables,
+                        actions: &mut Actions,
+                        locations: &Locations,
+                        sectors: &SectorRepo,
+                        obj_id: &ObjId,
+                        state: &mut CommandState,
+                        location: &Location) -> () {
+
     if state.mine.is_none() {
         set_mine_state_nearest_target(extractables, locations, sectors, obj_id, state, location);
         Log::info("commands", &format!("{:?} creating mining state {:?}", obj_id, state.mine));
@@ -62,7 +73,7 @@ fn do_command_mine_idle(extractables: &Extractables, actions: &mut Actions, loca
             target: mine_state.target_obj_id
         });
     } else {
-        state.navigation.iter_mut().for_each(|mut i| {
+        state.navigation.iter_mut().for_each(|i| {
             let action = i.navigation_next_action();
             actions.set_action(obj_id, action);
         });
