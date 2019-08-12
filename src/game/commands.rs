@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 
 use crate::game::extractables::Extractables;
 use crate::game::locations::{Location, Locations, LocationSpace};
@@ -33,7 +33,8 @@ struct DeliverState {
 #[derive(Debug, Clone)]
 enum NavigationStateStep {
     MoveTo { pos: Position, },
-    Jump { sector_id: SectorId }
+    Jump { sector_id: SectorId },
+    Dock { target: ObjId },
 }
 
 #[derive(Debug, Clone)]
@@ -41,7 +42,7 @@ struct NavigationState {
     target_obj_id: ObjId,
     target_sector_id: SectorId,
     target_position: V2,
-    path: Vec<NavigationStateStep>
+    path: VecDeque<NavigationStateStep>
 }
 
 impl NavigationState {
@@ -50,15 +51,24 @@ impl NavigationState {
     }
 
     fn navigation_next_action(&mut self) -> Action {
-        match self.path.pop() {
+        match self.path.pop_front() {
             Some(NavigationStateStep::MoveTo { pos}) => {
                 Action::Fly { to: pos }
             },
             Some(NavigationStateStep::Jump { .. }) => {
                 Action::Jump
             },
+            Some(NavigationStateStep::Dock { target }) => {
+                Action::Dock { target }
+            },
             None => Action::Idle,
         }
+    }
+
+    fn append_dock_at(&mut self, target: ObjId) {
+        self.path.push_back(NavigationStateStep::Dock {
+            target
+        })
     }
 }
 

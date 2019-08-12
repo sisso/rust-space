@@ -37,12 +37,25 @@ impl Cargo {
         self.current += to_add;
     }
 
+    pub fn clear(&mut self) {
+        self.current = 0.0;
+        self.wares.clear();
+    }
+
     pub fn free_space(&self) -> f32 {
         self.max - self.current
     }
 
     pub fn is_full(&self) -> bool {
         self.current >= self.max
+    }
+
+    pub fn get_current(&self) -> f32 {
+        self.current
+    }
+
+    pub fn get_wares(&self) -> Vec<&WareId> {
+        self.wares.keys().collect()
     }
 }
 

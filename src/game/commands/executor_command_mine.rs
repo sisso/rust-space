@@ -9,6 +9,7 @@ use crate::utils::*;
 use crate::game::locations::{Location, Locations, LocationSpace};
 use crate::game::extractables::Extractables;
 use crate::game::wares::Cargos;
+use std::collections::VecDeque;
 
 pub fn execute(tick: &Tick,
                commands: &mut Commands,
@@ -54,6 +55,11 @@ fn do_command_mine(
     let is_mining = state.mine.as_ref().map(|i| i.mining).unwrap_or(false);
 
     match (action, location) {
+        (Action::Idle, Location::Docked { obj_id: target_id }) if is_cargo_full => {
+            let cargo = cargos.get_cargo_mut(obj_id).unwrap();
+            Log::info("executor_command_mine", &format!("{:?} deliver {:?} of {:?} to {:?}", obj_id, cargo.get_current(), cargo.get_wares(), target_id));
+            cargo.clear();
+        },
         (Action::Idle, Location::Docked { .. }) => {
             actions.set_action(obj_id, Action::Undock);
         },
@@ -103,7 +109,7 @@ fn execute_mine_idle(extractables: &Extractables,
         // TODO: unwarp
         let target = search_mine_target(extractables, sectors, obj_id).unwrap();
         // TODO: unwarp
-        let navigation = find_navigation_to(sectors, locations, &location.as_space(), &target).unwrap();
+        let navigation = find_navigation_to(sectors, locations, &location.get_space(), &target).unwrap();
 
         state.clear();
 
@@ -117,8 +123,8 @@ fn execute_mine_idle(extractables: &Extractables,
         Log::info("executor_command_mine", &format!("{:?} set mining state {:?}, navigation {:?}", obj_id, state.mine, state.navigation));
     }
 
-
-    if execute_navigation(actions, obj_id, state) {
+    let nav = state.navigation.as_mut().unwrap();
+    if nav.is_complete() {
         Log::info("executor_command_mine", &format!("{:?} arrive to mine location", obj_id));
 
         let mine_state = state.mine.as_mut().unwrap();
@@ -126,19 +132,9 @@ fn execute_mine_idle(extractables: &Extractables,
         actions.set_action(obj_id, Action::Mine {
             target: mine_state.target_obj_id
         });
-    }
-}
-
-fn execute_navigation(actions: &mut Actions, obj_id: &ObjId, state: &mut CommandState) -> bool {
-    if state.navigation.iter().any(|i| i.is_complete()) {
-        true
     } else {
-        state.navigation.iter_mut().for_each(|i| {
-            let action = i.navigation_next_action();
-            actions.set_action(obj_id, action);
-        });
-
-        false
+        let action = nav.navigation_next_action();
+        actions.set_action(obj_id, action);
     }
 }
 
@@ -153,7 +149,7 @@ fn search_mine_target(extractables: &Extractables, sectors: &SectorRepo, obj_id:
 fn find_navigation_to(sectors: &SectorRepo, locations: &Locations, from: &LocationSpace, to_obj_id: &ObjId) -> Option<NavigationState> {
     // collect params
     let location = locations.get_location(&to_obj_id).unwrap();
-    let target_pos= location.as_space();
+    let target_pos= location.get_space();
     let path = find_path(sectors, from, &target_pos);
 
     Some(
@@ -166,14 +162,14 @@ fn find_navigation_to(sectors: &SectorRepo, locations: &Locations, from: &Locati
     )
 }
 
-fn find_path(sectors: &SectorRepo, from: &LocationSpace, to: &LocationSpace) -> Vec<NavigationStateStep> {
-    let mut path: Vec<NavigationStateStep> = vec![];
+fn find_path(sectors: &SectorRepo, from: &LocationSpace, to: &LocationSpace) -> VecDeque<NavigationStateStep> {
+    let mut path: VecDeque<NavigationStateStep> = VecDeque::new();
 
     let mut current = from.clone();
 
     loop {
         if current.sector_id == to.sector_id {
-            path.push(NavigationStateStep::MoveTo { pos: to.pos });
+            path.push_back(NavigationStateStep::MoveTo { pos: to.pos });
             break;
         } else {
             let current_sector = sectors.get(&current.sector_id);
@@ -181,8 +177,8 @@ fn find_path(sectors: &SectorRepo, from: &LocationSpace, to: &LocationSpace) -> 
                 jump.to == to.sector_id
             }).unwrap();
 
-            path.push(NavigationStateStep::MoveTo { pos: jump.pos });
-            path.push(NavigationStateStep::Jump { sector_id: jump.to });
+            path.push_back(NavigationStateStep::MoveTo { pos: jump.pos });
+            path.push_back(NavigationStateStep::Jump { sector_id: jump.to });
 
             let arrival_sector = sectors.get(&jump.to);
             let arrival_jump = arrival_sector.jumps.iter().find(|jump| {
@@ -196,8 +192,6 @@ fn find_path(sectors: &SectorRepo, from: &LocationSpace, to: &LocationSpace) -> 
             }
         }
     }
-
-    path.reverse();
 
     Log::debug("executor_command_mine", &format!("navigation path from {:?} to {:?}: {:?}", from, to, path));
 
@@ -231,15 +225,23 @@ fn execute_mine_deliver_resources(
           }
         );
 
-        state.navigation = find_navigation_to(sectors, locations, &location.as_space(), &target);
+        state.navigation =
+            find_navigation_to(sectors, locations, &location.get_space(), &target)
+                .map(|mut nav| {
+                    nav.append_dock_at(target);
+                    nav
+                });
 
         Log::info("executor_command_mine", &format!("{:?} set deliver state {:?}, navigation {:?}", obj_id, state.deliver, state.navigation));
     }
 
     // println!("{:?}", state);
-
-    if execute_navigation(actions, obj_id, state) {
+    let nav = state.navigation.as_mut().unwrap();
+    if nav.is_complete() {
         Log::info("executor_command_mine", &format!("{:?} arrive to deliver location", obj_id));
+    } else {
+        let action = nav.navigation_next_action();
+        actions.set_action(obj_id, action);
     }
 }
 

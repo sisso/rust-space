@@ -6,6 +6,7 @@ use std::collections::HashMap;
 
 #[derive(Clone, Debug)]
 pub enum Location {
+    // TODO: rename to target_di or docked_id
     Docked { obj_id: ObjId },
     Space { sector_id: SectorId, pos: Position },
 }
@@ -22,17 +23,17 @@ pub struct Moveable {
 }
 
 impl Location {
-    pub fn as_space(&self) -> LocationSpace {
+    pub fn get_space(&self) -> LocationSpace {
         match self {
             Location::Space { sector_id, pos} => LocationSpace { sector_id: *sector_id, pos: *pos },
             _ => panic!("unexpected state for get")
         }
     }
 
-    pub fn get(&self) -> (SectorId, Position) {
+    pub fn get_space_opt(&self) -> Option<LocationSpace> {
         match self {
-            Location::Space { sector_id, pos} => (*sector_id, *pos),
-            _ => panic!("unexpected state for get")
+            Location::Space { sector_id, pos} => Some(LocationSpace { sector_id: *sector_id, pos: *pos }),
+            _ => None
         }
     }
 

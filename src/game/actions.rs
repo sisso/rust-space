@@ -17,6 +17,7 @@ mod executor_action_mine;
 pub enum Action {
     Idle,
     Undock,
+    Dock { target: ObjId },
     Fly { to: Position },
     Jump,
     Mine { target: ObjId },

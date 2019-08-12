@@ -7,6 +7,23 @@ use crate::game::locations::*;
 pub fn execute(actions: &mut Actions, locations: &mut Locations) {
     for (obj_id, state) in actions.list_mut() {
         match state.action {
+            Action::Dock { target } => {
+                let location = locations.get_location(obj_id).unwrap().get_space_opt();
+                let target_location = locations.get_location(&target).unwrap().get_space_opt();
+
+                match (&location, &target_location) {
+                    (Some(loc), Some(tloc)) if loc.sector_id == tloc.sector_id &&
+                        loc.pos.sub(&tloc.pos).length_sqr() <= MIN_DISTANCE_SQR => {
+
+                        state.action = Action::Idle;
+                        locations.set_location(obj_id, Location::Docked { obj_id: target });
+                    },
+                    _ => {
+                        Log::warn("executor_action_dockundock", &format!("{:?} {:?} can not dock at {:?} {:?} has no location", obj_id, location, target, target_location));
+                    }
+                }
+
+            },
             Action::Undock => {
                 let location = locations.get_location(obj_id);
 

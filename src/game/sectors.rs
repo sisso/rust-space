@@ -58,6 +58,7 @@ impl SectorRepo {
         self.index.get(sector_id).unwrap()
     }
 
+    // TODO: support more that one jump
     pub fn find_jump_at(&self, sector_id: &SectorId, jump_position: &Position) -> Option<&Jump> {
         let sector = self.get(sector_id);
         sector.jumps.get(0)
