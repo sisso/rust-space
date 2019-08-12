@@ -14,6 +14,7 @@ pub struct ObjId(pub u32);
 #[derive(Debug, Clone)]
 pub struct Obj {
     pub id: ObjId,
+    pub has_dock: bool,
 }
 
 impl Obj {
@@ -32,11 +33,12 @@ impl ObjRepo {
         }
     }
 
-    pub fn create(&mut self) -> ObjId {
+    pub fn create(&mut self, has_dock: bool) -> ObjId {
         let id = ObjId(self.ids.next());
 
         let obj = Obj {
-            id: id,
+            id,
+            has_dock,
         };
 
         Log::info("objects", &format!("adding object {:?}", obj));

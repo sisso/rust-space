@@ -7,6 +7,7 @@ pub mod locations;
 pub mod template;
 pub mod extractables;
 pub mod navigation;
+pub mod docking;
 
 use crate::utils::*;
 
@@ -18,6 +19,7 @@ use self::actions::*;
 use crate::game::locations::{Locations, Location};
 use crate::game::extractables::{Extractables, Extractable};
 use crate::game::navigation::Navigations;
+use crate::game::docking::Docking;
 
 pub struct Tick {
     total_time: Seconds,
@@ -33,6 +35,7 @@ pub struct Game {
     extractables: Extractables,
     cargos: Cargos,
     navigations: Navigations,
+    docking: Docking,
 }
 
 impl Game {
@@ -46,6 +49,7 @@ impl Game {
             extractables: Extractables::new(),
             cargos: Cargos::new(),
             navigations: Navigations::new(),
+            docking: Docking::new(),
         }
     }
 
@@ -54,7 +58,7 @@ impl Game {
     }
 
     pub fn add_object(&mut self, new_obj: NewObj) -> ObjId {
-        let id = self.objects.create();
+        let id = self.objects.create(new_obj.has_dock);
 
         self.locations.init(&id);
 
@@ -90,7 +94,7 @@ impl Game {
     pub fn tick(&mut self, total_time: Seconds, delta_time: Seconds) {
         Log::info("game", &format!("tick delta {} total {}", delta_time.0, total_time.0));
         let tick = Tick { total_time, delta_time };
-        self.commands.execute(&tick, &self.extractables, &mut self.actions, &self.locations, &self.sectors, &mut self.cargos);
+        self.commands.execute(&tick, &self.objects, &self.extractables, &mut self.actions, &self.locations, &self.sectors, &mut self.cargos);
         self.actions.execute(&tick, &self.sectors, &mut self.locations, &self.extractables, &mut self.cargos);
     }
 }

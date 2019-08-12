@@ -1,12 +1,14 @@
-use super::sectors::*;
-use super::Tick;
+use std::collections::HashMap;
+
+use crate::game::extractables::Extractables;
+use crate::game::locations::{Location, Locations, LocationSpace};
+use crate::game::wares::Cargos;
+use crate::utils::*;
+
 use super::actions::*;
 use super::objects::*;
-use crate::utils::*;
-use std::collections::HashMap;
-use crate::game::locations::{Location, Locations, LocationSpace};
-use crate::game::extractables::Extractables;
-use crate::game::wares::Cargos;
+use super::sectors::*;
+use super::Tick;
 
 mod executor_command_idle;
 mod executor_command_mine;
@@ -102,9 +104,9 @@ impl Commands {
         self.state.insert(obj_id, CommandState::new());
     }
 
-    pub fn execute(&mut self, tick: &Tick, extractables: &Extractables, actions: &mut Actions, locations: &Locations, sectors: &SectorRepo, cargos: &mut Cargos) {
+    pub fn execute(&mut self, tick: &Tick, objects: &ObjRepo, extractables: &Extractables, actions: &mut Actions, locations: &Locations, sectors: &SectorRepo, cargos: &mut Cargos) {
         executor_command_idle::execute(self, actions);
-        executor_command_mine::execute(tick, self, extractables, actions, locations, sectors, cargos);
+        executor_command_mine::execute(tick, self, objects, extractables, actions, locations, sectors, cargos);
     }
 
     pub fn set_command(&mut self, obj_id: ObjId, command: Command) {
@@ -112,8 +114,6 @@ impl Commands {
         Log::info("commands", &format!("set command {:?}: {:?}", obj_id, command));
         state.command = command;
     }
-
-
 
     fn list_mut<'a>(&'a mut self) -> impl Iterator<Item = (&ObjId, &mut CommandState)> + 'a {
         self.state.iter_mut()

@@ -3,47 +3,41 @@ use crate::utils::*;
 
 use std::collections::HashMap;
 
-#[derive(Clone, Debug)]
 struct State {
-    value: Value
-}
 
-#[derive(Clone, Debug)]
-pub struct Value {
 }
 
 impl State {
     pub fn new() -> Self {
         State {
-            value: Value {}
         }
     }
 }
 
-pub struct Templates {
+pub struct Docking {
     index: HashMap<ObjId, State>,
 }
 
-impl Templates {
+impl Docking {
     pub fn new() -> Self {
-        Templates {
+        Docking {
             index: HashMap::new()
         }
     }
 
     pub fn init(&mut self, obj_id: &ObjId) {
+        Log::info("docking", &format!("init {:?}", obj_id));
         self.index.insert(*obj_id, State::new());
     }
 
-    pub fn set(&mut self, obj_id: &ObjId, value: Value) {
+    pub fn set(&mut self, obj_id: &ObjId) {
         let mut state = self.index.get_mut(&obj_id).unwrap();
-        Log::info("template", &format!("set {:?}: {:?}", obj_id, value));
-        state.value = value;
+        Log::info("docking", &format!("set {:?}", obj_id));
     }
 
 
-    pub fn get(&self, id: &ObjId) -> &Value {
-        let state = self.index.get(id).unwrap();
-        &state.value
-    }
+//    pub fn get(&self, id: &ObjId) -> &Value {
+//        let state = self.index.get(id).unwrap();
+//        &state.value
+//    }
 }

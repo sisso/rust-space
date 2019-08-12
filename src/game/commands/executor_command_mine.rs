@@ -12,6 +12,7 @@ use crate::game::wares::Cargos;
 
 pub fn execute(tick: &Tick,
                commands: &mut Commands,
+               objects: &ObjRepo,
                extractables: &Extractables,
                actions: &mut Actions,
                locations: &Locations,
@@ -21,20 +22,23 @@ pub fn execute(tick: &Tick,
     for (obj_id, state) in commands.list_mut() {
         match state.command {
             Command::Mine => {
-                do_command_mine(extractables, actions, locations, sectors, obj_id, state, cargos);
+                do_command_mine(objects, extractables, actions, locations, sectors, obj_id, state, cargos);
             },
             _ => {},
         }
     }
 }
 
-fn do_command_mine(extractables: &Extractables,
-                   actions: &mut Actions,
-                   locations: &Locations,
-                   sectors: &SectorRepo,
-                   obj_id: &ObjId,
-                   state: &mut CommandState,
-                   cargos: &mut Cargos) -> () {
+fn do_command_mine(
+    objects: &ObjRepo,
+    extractables: &Extractables,
+    actions: &mut Actions,
+    locations: &Locations,
+    sectors: &SectorRepo,
+    obj_id: &ObjId,
+    state: &mut CommandState,
+    cargos: &mut Cargos
+) -> () {
 
     let action = actions.get_action(obj_id);
 
@@ -54,7 +58,16 @@ fn do_command_mine(extractables: &Extractables,
             actions.set_action(obj_id, Action::Undock);
         },
         (Action::Idle, Location::Space { .. }) if is_cargo_full => {
-            execute_mine_deliver_resources(actions, locations, sectors, obj_id, state, location, cargos);
+            execute_mine_deliver_resources(
+                objects,
+                actions,
+                locations,
+                sectors,
+                obj_id,
+                state,
+                location,
+                cargos
+            );
         },
         (Action::Idle, Location::Space { .. }) if is_mining => {
             Log::warn("executor_command_mine", &format!("{:?} unexpected state, action is idle and mining state is mining", obj_id));
@@ -72,7 +85,7 @@ fn do_command_mine(extractables: &Extractables,
             // ignore
         },
         (a, b) => {
-            Log::warn("command", &format!("unknown {:?}", obj_id));
+            Log::warn("executor_command_mine", &format!("unknown {:?}", obj_id));
         }
     }
 }
@@ -106,7 +119,7 @@ fn execute_mine_idle(extractables: &Extractables,
 
 
     if execute_navigation(actions, obj_id, state) {
-        Log::info("commands", &format!("{:?} arrive to mine location", obj_id));
+        Log::info("executor_command_mine", &format!("{:?} arrive to mine location", obj_id));
 
         let mine_state = state.mine.as_mut().unwrap();
         mine_state.mining = true;
@@ -186,12 +199,13 @@ fn find_path(sectors: &SectorRepo, from: &LocationSpace, to: &LocationSpace) -> 
 
     path.reverse();
 
-    Log::debug("command.find_path", &format!("from {:?} to {:?}: {:?}", from, to, path));
+    Log::debug("executor_command_mine", &format!("navigation path from {:?} to {:?}: {:?}", from, to, path));
 
     path
 }
 
 fn execute_mine_deliver_resources(
+    objects: &ObjRepo,
     actions: &mut Actions,
     locations: &Locations,
     sectors: &SectorRepo,
@@ -201,7 +215,7 @@ fn execute_mine_deliver_resources(
     cargos: &mut Cargos
 ) {
     if state.deliver.is_none() {
-        let target = match search_deliver_target(obj_id) {
+        let target = match search_deliver_target(objects, obj_id) {
             Some(target) => target,
             None => {
                 Log::warn("executor_command_mine", &format!("{:?} fail to find deliver target", obj_id));
@@ -222,9 +236,16 @@ fn execute_mine_deliver_resources(
         Log::info("executor_command_mine", &format!("{:?} set deliver state {:?}, navigation {:?}", obj_id, state.deliver, state.navigation));
     }
 
-    println!("{:?}", state);
+    // println!("{:?}", state);
+
+    if execute_navigation(actions, obj_id, state) {
+        Log::info("executor_command_mine", &format!("{:?} arrive to deliver location", obj_id));
+    }
 }
 
-fn search_deliver_target(obj_id: &ObjId) -> Option<ObjId> {
-    None
+fn search_deliver_target(objects: &ObjRepo, obj_id: &ObjId) -> Option<ObjId> {
+    objects
+        .list()
+        .find(|obj| obj.has_dock)
+        .map(|i| i.id)
 }
