@@ -8,6 +8,7 @@ pub mod template;
 pub mod extractables;
 pub mod navigation;
 pub mod docking;
+pub mod save;
 
 use crate::utils::*;
 
@@ -20,6 +21,7 @@ use crate::game::locations::{Locations, Location};
 use crate::game::extractables::{Extractables, Extractable};
 use crate::game::navigation::Navigations;
 use crate::game::docking::Docking;
+use crate::game::save::Save;
 
 pub struct Tick {
     total_time: Seconds,
@@ -96,6 +98,16 @@ impl Game {
         let tick = Tick { total_time, delta_time };
         self.commands.execute(&tick, &self.objects, &self.extractables, &mut self.actions, &self.locations, &self.sectors, &mut self.cargos);
         self.actions.execute(&tick, &self.sectors, &mut self.locations, &self.extractables, &mut self.cargos);
+    }
+
+    pub fn save(&self, save: &mut impl Save) {
+        self.commands.save(save);
+        self.actions.save(save);
+        self.sectors.save(save);
+        self.objects.save(save);
+        self.locations.save(save);
+        self.extractables.save(save);
+        self.cargos.save(save);
     }
 }
 

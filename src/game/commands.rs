@@ -9,6 +9,7 @@ use super::actions::*;
 use super::objects::*;
 use super::sectors::*;
 use super::Tick;
+use crate::game::save::Save;
 
 mod executor_command_idle;
 mod executor_command_mine;
@@ -125,7 +126,9 @@ impl Commands {
         state.command = command;
     }
 
-    fn list_mut<'a>(&'a mut self) -> impl Iterator<Item = (&ObjId, &mut CommandState)> + 'a {
+    pub fn save(&self, save: &mut impl Save) {}
+
+    fn list_mut<'a>(&'a mut self) -> impl Iterator<Item=(&ObjId, &mut CommandState)> + 'a {
         self.state.iter_mut()
     }
 

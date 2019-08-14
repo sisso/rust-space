@@ -2,6 +2,7 @@ use super::objects::{ObjId};
 use crate::utils::*;
 
 use std::collections::HashMap;
+use crate::game::save::Save;
 
 #[derive(Clone, Debug)]
 struct State {
@@ -30,6 +31,8 @@ impl Navigations {
         Log::info("navigations", &format!("init {:?}", id));
         self.index.insert(*id, State::new());
     }
+
+    pub fn save(&self, save: &mut impl Save) {}
 
 //
 //    pub fn set_location(&mut self, obj_id: &ObjId, value: Value) {

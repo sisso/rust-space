@@ -2,6 +2,7 @@ use super::objects::{ObjId};
 use crate::utils::*;
 
 use std::collections::HashMap;
+use crate::game::save::Save;
 
 struct State {
 
@@ -35,6 +36,7 @@ impl Docking {
         Log::info("docking", &format!("set {:?}", obj_id));
     }
 
+    pub fn save(&self, save: &mut impl Save) {}
 
 //    pub fn get(&self, id: &ObjId) -> &Value {
 //        let state = self.index.get(id).unwrap();

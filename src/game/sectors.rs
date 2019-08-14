@@ -1,6 +1,7 @@
 use crate::utils::*;
 
 use std::collections::HashMap;
+use crate::game::save::Save;
 
 #[derive(Clone,Debug)]
 pub struct Jump {
@@ -63,4 +64,7 @@ impl SectorRepo {
         let sector = self.get(sector_id);
         sector.jumps.get(0)
     }
+
+    pub fn save(&self, save: &mut impl Save) {}
+
 }

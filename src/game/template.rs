@@ -2,6 +2,7 @@ use super::objects::{ObjId};
 use crate::utils::*;
 
 use std::collections::HashMap;
+use crate::game::save::Save;
 
 #[derive(Clone, Debug)]
 struct State {
@@ -46,4 +47,6 @@ impl Templates {
         let state = self.index.get(id).unwrap();
         &state.value
     }
+
+    pub fn save(&self, save: &mut impl Save) {}
 }

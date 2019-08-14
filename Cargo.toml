@@ -5,3 +5,4 @@ authors = ["sisso <sisso@sisso.com.br>"]
 edition = "2018"
 
 [dependencies]
+serde_json = "1.0"

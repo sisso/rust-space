@@ -3,6 +3,7 @@ use super::sectors::*;
 use crate::utils::*;
 
 use std::collections::HashMap;
+use crate::game::save::Save;
 
 #[derive(Clone, Debug)]
 pub enum Location {
@@ -102,4 +103,6 @@ impl Locations {
         let mut state = self.index.get_mut(&obj_id).unwrap();
         state
     }
+
+    pub fn save(&self, save: &mut impl Save) {}
 }

@@ -1,8 +1,11 @@
+use serde_json::json;
+
 use crate::game::*;
 use crate::game::sectors::*;
 use crate::game::objects::*;
 use crate::game::wares::*;
 use crate::game::commands::*;
+use crate::game::save::*;
 use crate::utils::*;
 use crate::game::extractables::Extractable;
 
@@ -86,6 +89,14 @@ pub fn run() {
     load_objects(&mut game);
 
     for i in 0..50 {
-        game.tick(Seconds(i as f32), Seconds(1.0));
+        let total_time = Seconds(i as f32);
+        game.tick(total_time, Seconds(1.0));
+        let save = &mut SaveToFile::new(format!("/tmp/01_{}.json", i).to_string());
+        save.init();
+        save.add(json!({
+            "total_time": i
+        }).to_string());
+        game.save(save);
+        save.close();
     }
 }

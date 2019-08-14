@@ -3,6 +3,7 @@ use crate::utils::*;
 
 use std::collections::HashMap;
 use crate::game::wares::WareId;
+use crate::game::save::Save;
 
 
 #[derive(Clone,Debug)]
@@ -53,4 +54,6 @@ impl Extractables {
     pub fn list<'a>(&'a self) -> impl Iterator<Item = &ObjId> + 'a {
         self.index.keys()
     }
+
+    pub fn save(&self, save: &mut impl Save) {}
 }

@@ -7,6 +7,7 @@ use super::actions::Action;
 use super::sectors::SectorId;
 use crate::game::locations::Location;
 use crate::game::extractables::Extractable;
+use crate::game::save::Save;
 
 #[derive(Clone,Copy,PartialEq,Eq,Hash,Debug)]
 pub struct ObjId(pub u32);
@@ -56,5 +57,17 @@ impl ObjRepo {
 
     pub fn list<'a>(&'a self) -> impl Iterator<Item = &Obj> + 'a {
         self.index.values()
+    }
+
+    pub fn save(&self, save: &mut impl Save) {
+        use serde_json::json;
+
+        for (k,v) in self.index.iter() {
+            save.add(json!({
+                "type": "object",
+                "obj_id": k.0,
+                "has_dock": v.has_dock
+            }).to_string());
+        }
     }
 }

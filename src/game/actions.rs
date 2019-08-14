@@ -7,6 +7,7 @@ use std::collections::HashMap;
 use crate::game::locations::Locations;
 use crate::game::extractables::Extractables;
 use crate::game::wares::Cargos;
+use crate::game::save::Save;
 
 mod executor_action_dockundock;
 mod executor_action_jump;
@@ -75,5 +76,29 @@ impl Actions {
 
     pub fn get_action(&self, obj_id: &ObjId) -> &Action {
         &self.states.get(&obj_id).unwrap().action
+    }
+
+    pub fn save(&self, save: &mut impl Save) {
+        use serde_json::json;
+
+        for (k,v) in self.states.iter() {
+            let (action, target_id, target_pos) =
+                match v.action {
+                    Action::Idle => ("idle", None, None),
+                    Action::Mine { target } => ("mine", Some(target.0), None),
+                    Action::Dock { target } => ("dock", Some(target.0), None),
+                    Action::Jump => ("jump", None, None),
+                    Action::Undock => ("undock", None, None),
+                    Action::Fly { to } => ("fly", None, Some((to.x, to.y))),
+                };
+
+            save.add(json!({
+                "type": "action",
+                "obj_id": k.0,
+                "action": action,
+                "target_id": target_id,
+                "target_pos": target_pos,
+            }).to_string());
+        }
     }
 }

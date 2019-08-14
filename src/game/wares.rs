@@ -2,6 +2,7 @@ use super::objects::{ObjId};
 use crate::utils::*;
 
 use std::collections::HashMap;
+use crate::game::save::Save;
 
 #[derive(Clone,Copy,PartialEq,Eq,Hash,Debug)]
 pub struct WareId(pub u32);
@@ -135,5 +136,7 @@ impl Cargos {
         self.index.insert(*to, cargo_to);
         Log::info("Cargos", &format!("move_all {:?} to {:?}, new cargos {:?} and {:?}", from, to, self.index.get(from), self.index.get(to)));
     }
+
+    pub fn save(&self, save: &mut impl Save) {}
 }
 
