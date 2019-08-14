@@ -92,6 +92,6 @@ impl Log {
         println!("DEBUG {: <25} - {}", ctx, s);
     }
     pub fn warn(ctx: &str, s: &str) {
-         println!("WARN  {: <25} - {}", ctx, s);
+        println!("WARN  {: <25} - {}", ctx, s);
     }
 }

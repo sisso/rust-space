@@ -56,9 +56,11 @@ fn do_command_mine(
 
     match (action, location) {
         (Action::Idle, Location::Docked { obj_id: target_id }) if is_cargo_full => {
-            let cargo = cargos.get_cargo_mut(obj_id).unwrap();
-            Log::info("executor_command_mine", &format!("{:?} deliver {:?} of {:?} to {:?}", obj_id, cargo.get_current(), cargo.get_wares(), target_id));
-            cargo.clear();
+//            let cargo = cargos.get_cargo_mut(obj_id).unwrap();
+//            Log::info("executor_command_mine", &format!("{:?} deliver {:?} of {:?} to {:?}", obj_id, cargo.get_current(), cargo.get_wares(), target_id));
+//            cargo.clear();
+            Log::info("executor_command_mine", &format!("{:?} deliver cargo", obj_id));
+            cargos.move_all(obj_id, target_id);
         },
         (Action::Idle, Location::Docked { .. }) => {
             actions.set_action(obj_id, Action::Undock);
