@@ -70,7 +70,11 @@ impl ObjRepo {
     }
 
     pub fn load(&mut self, load: &mut impl Load) {
+        let mut max_id: u32 = 0;
+
         for (id, value) in load.get_components("object") {
+            max_id = max_id.max(*id);
+
             let obj = Obj {
                 id: ObjId(*id),
                 has_dock: value["has_dock"].as_bool().unwrap(),
@@ -78,5 +82,7 @@ impl ObjRepo {
 
             self.index.insert(ObjId(*id), obj);
         }
+
+        self.ids = NextId::from(max_id);
     }
 }

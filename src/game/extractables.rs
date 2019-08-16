@@ -73,8 +73,8 @@ impl Extractables {
     pub fn load(&mut self, load: &mut impl Load) {
         for (id, value) in load.get_components("extractable") {
             let extractable = Extractable {
-                ware_id: WareId(value["ware_id"].as_u32()),
-                time: Seconds(value["seconds"].as_f32()),
+                ware_id: WareId(value["ware_id"].to_u32()),
+                time: Seconds(value["seconds"].to_f32()),
             };
 
             self.set_extractable(&ObjId(*id), extractable);

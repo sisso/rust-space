@@ -5,6 +5,14 @@ use std::io::{Write, BufReader};
 use std::collections::HashMap;
 use crate::game::jsons::JsonValueExtra;
 
+pub trait CanSave {
+    fn save(&self, save: &mut impl Save);
+}
+
+pub trait CanLoad {
+    fn load(&mut self, load: &mut impl Load);
+}
+
 pub trait Save {
     fn init(&mut self);
     fn add_header(&mut self, header_name: &str, value: serde_json::Value);
@@ -81,7 +89,7 @@ impl LoadFromFile {
                 let list = load.headers.entry(header.to_string()).or_default();
                 list.push(value);
             } else {
-                let id = ast["id"].as_u32();
+                let id = ast["id"].to_u32();
                 let component = ast["component"].as_str().unwrap();
                 let list = load.components.entry(component.to_string()).or_default();
                 list.push((id, value));

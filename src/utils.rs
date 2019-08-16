@@ -73,6 +73,12 @@ impl NextId {
         }
     }
 
+    pub fn from(know_max: u32) -> Self {
+        NextId {
+            next: know_max + 1
+        }
+    }
+
     pub fn next(&mut self) -> u32 {
         let v = self.next;
         self.next += 1;

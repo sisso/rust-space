@@ -1,8 +1,9 @@
-use super::objects::{ObjId};
+use std::collections::HashMap;
+
+use crate::game::save::{CanSave, CanLoad, Load, Save};
 use crate::utils::*;
 
-use std::collections::HashMap;
-use crate::game::save::Save;
+use super::objects::ObjId;
 
 #[derive(Clone,Copy,PartialEq,Eq,Hash,Debug)]
 pub struct WareId(pub u32);
@@ -136,8 +137,10 @@ impl Cargos {
         self.index.insert(*to, cargo_to);
         Log::info("Cargos", &format!("move_all {:?} to {:?}, new cargos {:?} and {:?}", from, to, self.index.get(from), self.index.get(to)));
     }
+}
 
-    pub fn save(&self, save: &mut impl Save) {
+impl CanSave for Cargos {
+    fn save(&self, save: &mut impl Save) {
         use serde_json::json;
 
         for (k,v) in self.index.iter() {
@@ -155,3 +158,8 @@ impl Cargos {
     }
 }
 
+impl CanLoad for Cargos {
+    fn load(&mut self, load: &mut impl Load) {
+        unimplemented!()
+    }
+}

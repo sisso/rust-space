@@ -89,7 +89,7 @@ impl Sectors {
 
             for i in value["jumps"].as_array().unwrap().iter() {
                 let to_sector_id = SectorId(i["to_sector_id"].as_i64().unwrap() as u32);
-                let pos = i["pos"].as_v2();
+                let pos = i["pos"].to_v2();
 
                 jumps.push(NewJump { to_sector_id, pos});
             }

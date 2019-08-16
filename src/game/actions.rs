@@ -7,7 +7,8 @@ use std::collections::HashMap;
 use crate::game::locations::Locations;
 use crate::game::extractables::Extractables;
 use crate::game::wares::Cargos;
-use crate::game::save::Save;
+use crate::game::save::{Save, Load};
+use crate::game::jsons::JsonValueExtra;
 
 mod executor_action_dockundock;
 mod executor_action_jump;
@@ -97,6 +98,28 @@ impl Actions {
                 "target_id": target_id,
                 "target_pos": target_pos,
             }));
+        }
+    }
+    pub fn load(&mut self, load: &mut impl Load) {
+        for (id, value) in load.get_components("action") {
+            let action = value["action"].as_str().unwrap();
+            let target_id = value["target_id"].as_u64();
+            let target_pos = value["target_id"].as_v2();
+
+            let action = match (action.as_ref(), target_id, target_pos) {
+                ("idle", _, _) => Action::Idle,
+                ("mine", Some(target_id), _) => Action::Mine { target: ObjId(target_id as u32) },
+                ("dock", Some(target_id), _) => Action::Dock { target: ObjId(target_id as u32) },
+                ("jump", _, _) => Action::Jump,
+                ("undock", _, _) => Action::Undock,
+                ("fly", _, Some(target_pos)) => Action::Fly { to: target_pos },
+                _ => panic!("unexpected action")
+            };
+
+            self.states.insert(ObjId(*id), ActionState {
+                action,
+                action_delay: None
+            });
         }
     }
 }

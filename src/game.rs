@@ -23,7 +23,7 @@ use crate::game::locations::{Locations, Location};
 use crate::game::extractables::{Extractables};
 use crate::game::navigation::Navigations;
 use crate::game::docking::Docking;
-use crate::game::save::{Save, Load};
+use crate::game::save::{Save, Load, CanSave, CanLoad};
 use crate::game::new_obj::NewObj;
 
 pub struct Tick {
@@ -104,6 +104,7 @@ impl Game {
     }
 
     pub fn save(&self, save: &mut impl Save) {
+        // TODO: impl
         self.commands.save(save);
         self.actions.save(save);
         self.sectors.save(save);
@@ -115,5 +116,12 @@ impl Game {
 
     pub fn load(&mut self, load: &mut impl Load) {
         self.sectors.load(load);
+        self.objects.load(load);
+        self.extractables.load(load);
+        self.locations.load(load);
+        // TODO: impl
+        self.commands.load(load);
+        self.actions.load(load);
+        self.cargos.load(load);
     }
 }

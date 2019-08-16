@@ -3,7 +3,8 @@ use super::sectors::*;
 use crate::utils::*;
 
 use std::collections::HashMap;
-use crate::game::save::Save;
+use crate::game::save::{Save, Load};
+use crate::game::jsons::JsonValueExtra;
 
 #[derive(Clone, Debug)]
 pub enum Location {
@@ -131,6 +132,40 @@ impl Locations {
                 "pos": pos,
                 "speed": speed,
             }));
+        }
+    }
+
+    pub fn load(&mut self, load: &mut impl Load) {
+        for (id, value) in load.get_components("location") {
+            let location = {
+                if value["docket_at"].is_number() {
+                    Some(Location::Docked {
+                        docked_id: ObjId(value["docket_at"].to_u32())
+                    })
+                } else if value["sector_id"].is_number() && value["pos"].is_array() {
+                    Some(Location::Space {
+                        sector_id: SectorId(value["sector_id"].to_u32()),
+                        pos: value["pos"].to_v2(),
+                    })
+                } else {
+                    None
+                }
+            };
+
+            let movement = {
+                if value["speed"].is_number() {
+                    Some(Moveable {
+                        speed: Speed(value["speed"].to_f32())
+                    })
+                } else {
+                    None
+                }
+            };
+
+            self.index.insert(ObjId(*id), State {
+                location,
+                movement
+            });
         }
     }
 }

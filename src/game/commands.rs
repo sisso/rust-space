@@ -2,6 +2,7 @@ use std::collections::{HashMap, VecDeque};
 
 use crate::game::extractables::Extractables;
 use crate::game::locations::{Location, Locations, LocationSpace};
+use crate::game::save::{Load, Save};
 use crate::game::wares::Cargos;
 use crate::utils::*;
 
@@ -9,7 +10,6 @@ use super::actions::*;
 use super::objects::*;
 use super::sectors::*;
 use super::Tick;
-use crate::game::save::Save;
 
 mod executor_command_idle;
 mod executor_command_mine;
@@ -126,7 +126,17 @@ impl Commands {
         state.command = command;
     }
 
-    pub fn save(&self, save: &mut impl Save) {}
+    pub fn save(&self, save: &mut impl Save) {
+        for (id, state) in self.state.iter() {
+
+
+
+        }
+    }
+
+    pub fn load(&mut self, load: &mut impl Load) {
+
+    }
 
     fn list_mut<'a>(&'a mut self) -> impl Iterator<Item=(&ObjId, &mut CommandState)> + 'a {
         self.state.iter_mut()
@@ -139,4 +149,5 @@ impl Commands {
     fn get_state(&self, id: &ObjId) -> &CommandState {
         self.state.get(&id).unwrap()
     }
+
 }
