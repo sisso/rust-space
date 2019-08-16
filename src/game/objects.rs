@@ -63,11 +63,9 @@ impl ObjRepo {
         use serde_json::json;
 
         for (k,v) in self.index.iter() {
-            save.add(json!({
-                "type": "object",
-                "obj_id": k.0,
+            save.add(k.0, "object", json!({
                 "has_dock": v.has_dock
-            }).to_string());
+            }));
         }
     }
 }

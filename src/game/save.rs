@@ -1,8 +1,11 @@
+use serde_json::json;
+
 use std::io::Write;
 
 pub trait Save {
     fn init(&mut self);
-    fn add(&mut self, content: String);
+    fn add_header(&mut self, component: &str, content: serde_json::Value);
+    fn add(&mut self, id: u32, component: &str, content: serde_json::Value);
     fn close(&mut self);
 }
 
@@ -24,8 +27,19 @@ impl Save for SaveToFile {
     fn init(&mut self) {
     }
 
-    fn add(&mut self, content: String) {
-        self.buffer.push(content);
+    fn add_header(&mut self, component: &str, content: serde_json::Value) {
+        self.buffer.push(json!({
+            "component": component,
+            "content": content
+        }).to_string());
+    }
+
+    fn add(&mut self, id: u32, component: &str, content: serde_json::Value) {
+        self.buffer.push(json!({
+            "id": id,
+            "component": component,
+            "content": content
+        }).to_string());
     }
 
     fn close(&mut self) {
@@ -33,7 +47,7 @@ impl Save for SaveToFile {
         use std::io::prelude::*;
 
         let mut file = File::create(&self.target).unwrap();
-        file.write_all(self.buffer.join("\n").as_bytes()).unwrap();
-        file.flush();
+        let _ = file.write_all(self.buffer.join("\n").as_bytes()).unwrap();
+        let _ = file.flush().unwrap();
     }
 }

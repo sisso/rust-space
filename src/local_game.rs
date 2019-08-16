@@ -93,9 +93,9 @@ pub fn run() {
         game.tick(total_time, Seconds(1.0));
         let save = &mut SaveToFile::new(format!("/tmp/01_{}.json", i).to_string());
         save.init();
-        save.add(json!({
+        save.add_header("game", json!({
             "total_time": i
-        }).to_string());
+        }));
         game.save(save);
         save.close();
     }

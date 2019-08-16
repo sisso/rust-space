@@ -33,7 +33,7 @@ impl Cargo {
                 return;
             }
 
-            from.remove(&id, amount_to_move);
+            let _ = from.remove(&id, amount_to_move).unwrap();
         }
     }
 
@@ -137,6 +137,21 @@ impl Cargos {
         Log::info("Cargos", &format!("move_all {:?} to {:?}, new cargos {:?} and {:?}", from, to, self.index.get(from), self.index.get(to)));
     }
 
-    pub fn save(&self, save: &mut impl Save) {}
+    pub fn save(&self, save: &mut impl Save) {
+        use serde_json::json;
+
+        for (k,v) in self.index.iter() {
+            let mut wares_json: HashMap<u32, f32> = HashMap::new();
+            for (ware_id, amount) in v.cargo.wares.iter() {
+                wares_json.insert(ware_id.0, *amount);
+            }
+
+            save.add(k.0, "cargo", json!({
+                "max": v.cargo.max,
+                "current": v.cargo.current,
+                "wares": wares_json
+            }));
+        }
+    }
 }
 

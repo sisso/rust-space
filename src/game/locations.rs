@@ -104,5 +104,34 @@ impl Locations {
         state
     }
 
-    pub fn save(&self, save: &mut impl Save) {}
+
+    pub fn save(&self, save: &mut impl Save) {
+        use serde_json::json;
+
+        for (k,v) in self.index.iter() {
+            let speed: Option<f32> = match v.movement {
+                Some(Moveable{ speed }) => Some(speed.0),
+                None => None
+            };
+
+            let (sector_id, docket_at, pos) = match v.location {
+                Some(Location::Space { sector_id, pos })=> {
+                    (Some(sector_id.0), None, Some((pos.x, pos.y)))
+                }
+                Some(Location::Docked { obj_id }) => {
+                    (None, Some(obj_id.0), None)
+                }
+                None => {
+                    (None, None, None)
+                }
+            };
+
+            save.add(k.0, "location", json!({
+                "sector_id": sector_id,
+                "docket_at": docket_at,
+                "pos": pos,
+                "speed": speed,
+            }));
+        }
+    }
 }

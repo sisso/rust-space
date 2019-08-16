@@ -92,13 +92,11 @@ impl Actions {
                     Action::Fly { to } => ("fly", None, Some((to.x, to.y))),
                 };
 
-            save.add(json!({
-                "type": "action",
-                "obj_id": k.0,
+            save.add(k.0, "action", json!({
                 "action": action,
                 "target_id": target_id,
                 "target_pos": target_pos,
-            }).to_string());
+            }));
         }
     }
 }
