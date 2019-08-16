@@ -1,5 +1,0 @@
-{"total_time":49}
-{"action":"fly","obj_id":2,"target_id":null,"target_pos":[-5.0,5.0],"type":"action"}
-{"has_dock":false,"obj_id":0,"type":"object"}
-{"has_dock":true,"obj_id":1,"type":"object"}
-{"has_dock":false,"obj_id":2,"type":"object"}

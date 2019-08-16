@@ -4,8 +4,8 @@ use std::io::Write;
 
 pub trait Save {
     fn init(&mut self);
-    fn add_header(&mut self, component: &str, content: serde_json::Value);
-    fn add(&mut self, id: u32, component: &str, content: serde_json::Value);
+    fn add_header(&mut self, header_name: &str, value: serde_json::Value);
+    fn add(&mut self, id: u32, component: &str, value: serde_json::Value);
     fn close(&mut self);
 }
 
@@ -27,18 +27,18 @@ impl Save for SaveToFile {
     fn init(&mut self) {
     }
 
-    fn add_header(&mut self, component: &str, content: serde_json::Value) {
+    fn add_header(&mut self, header_name: &str, header_value: serde_json::Value) {
         self.buffer.push(json!({
-            "component": component,
-            "content": content
+            "header": header_name,
+            "value": header_value
         }).to_string());
     }
 
-    fn add(&mut self, id: u32, component: &str, content: serde_json::Value) {
+    fn add(&mut self, id: u32, component: &str, value: serde_json::Value) {
         self.buffer.push(json!({
             "id": id,
             "component": component,
-            "content": content
+            "value": value
         }).to_string());
     }
 

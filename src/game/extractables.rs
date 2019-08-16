@@ -55,5 +55,17 @@ impl Extractables {
         self.index.keys()
     }
 
-    pub fn save(&self, save: &mut impl Save) {}
+    pub fn save(&self, save: &mut impl Save) {
+        use serde_json::json;
+
+        for (k,v) in self.index.iter() {
+            let ware_id = v.extractable.ware_id.0;
+            let seconds = v.extractable.time.0;
+
+            save.add(k.0, "extractable", json!({
+                "ware_id": ware_id,
+                "seconds": seconds,
+            }));
+        }
+    }
 }

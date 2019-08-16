@@ -65,6 +65,20 @@ impl SectorRepo {
         sector.jumps.get(0)
     }
 
-    pub fn save(&self, save: &mut impl Save) {}
+    pub fn save(&self, save: &mut impl Save) {
+        use serde_json::json;
 
+        for (sector_id,sector) in self.index.iter() {
+            let jumps: Vec<serde_json::Value> = sector.jumps.iter().map(|jump| {
+                json!({
+                    "to_sector_id": jump.to.0,
+                    "pos": (jump.pos.x, jump.pos.y)
+                })
+            }).collect();
+
+            save.add(sector_id.0, "sector", json!({
+                "jumps": jumps
+            }));
+        }
+    }
 }
