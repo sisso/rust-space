@@ -55,10 +55,7 @@ fn do_command_mine(
     let is_mining = state.mine.as_ref().map(|i| i.mining).unwrap_or(false);
 
     match (action, location) {
-        (Action::Idle, Location::Docked { obj_id: target_id }) if is_cargo_full => {
-//            let cargo = cargos.get_cargo_mut(obj_id).unwrap();
-//            Log::info("executor_command_mine", &format!("{:?} deliver {:?} of {:?} to {:?}", obj_id, cargo.get_current(), cargo.get_wares(), target_id));
-//            cargo.clear();
+        (Action::Idle, Location::Docked { docked_id: target_id }) if is_cargo_full => {
             Log::info("executor_command_mine", &format!("{:?} deliver cargo", obj_id));
             cargos.move_all(obj_id, target_id);
         },

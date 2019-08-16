@@ -16,19 +16,19 @@ pub fn execute(actions: &mut Actions, locations: &mut Locations) {
                         loc.pos.sub(&tloc.pos).length_sqr() <= MIN_DISTANCE_SQR => {
 
                         state.action = Action::Idle;
-                        locations.set_location(obj_id, Location::Docked { obj_id: target });
+                        locations.set_location(obj_id, Location::Docked { docked_id: target });
                     },
                     _ => {
                         Log::warn("executor_action_dockundock", &format!("{:?} {:?} can not dock at {:?} {:?} has no location", obj_id, location, target, target_location));
                     }
                 }
 
-            },
+            }
             Action::Undock => {
                 let location = locations.get_location(obj_id);
 
                 match location {
-                    Some(Location::Docked { obj_id: station_id }) => {
+                    Some(Location::Docked { docked_id: station_id }) => {
                         let station_location = locations.get_location(&station_id).unwrap();
 
                         let (sector_id, pos) = match station_location {

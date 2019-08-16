@@ -9,6 +9,7 @@ pub mod extractables;
 pub mod navigation;
 pub mod docking;
 pub mod save;
+pub mod new_obj;
 
 use crate::utils::*;
 
@@ -21,7 +22,8 @@ use crate::game::locations::{Locations, Location};
 use crate::game::extractables::{Extractables, Extractable};
 use crate::game::navigation::Navigations;
 use crate::game::docking::Docking;
-use crate::game::save::Save;
+use crate::game::save::{Save, Load};
+use crate::game::new_obj::NewObj;
 
 pub struct Tick {
     total_time: Seconds,
@@ -109,72 +111,8 @@ impl Game {
         self.extractables.save(save);
         self.cargos.save(save);
     }
-}
 
+    pub fn load(&mut self, load: &mut impl Load) {
 
-pub struct NewObj {
-    pub speed: Option<Speed>,
-    pub cargo_size: f32,
-    pub extractable: Option<Extractable>,
-    pub location: Option<Location>,
-    pub can_dock: bool,
-    pub has_dock: bool,
-    pub ai: bool,
-}
-
-impl NewObj {
-    pub fn new() -> NewObj {
-        NewObj {
-            speed: None,
-            cargo_size: 0.0,
-            extractable: None,
-            location: None,
-            can_dock: false,
-            has_dock: false,
-            ai: false
-        }
-    }
-
-    pub fn with_cargo(mut self, cargo: f32) -> Self {
-        self.cargo_size = cargo;
-        self
-    }
-
-    pub fn with_speed(mut self, speed: Speed) -> Self {
-        self.speed = Some(speed);
-        self
-    }
-
-    pub fn at_position(mut self, sector_id: SectorId, pos: Position) -> Self {
-        self.location = Some(Location::Space {
-            sector_id,
-            pos
-        });
-        self
-    }
-
-    pub fn at_dock(mut self, obj_id: ObjId) -> Self {
-        self.location = Some(Location::Docked { obj_id });
-        self
-    }
-
-    pub fn extractable(mut self, extractable: Extractable) -> Self {
-        self.extractable = Some(extractable);
-        self
-    }
-
-    pub fn has_dock(mut self) -> Self {
-        self.has_dock = true;
-        self
-    }
-
-    pub fn can_dock(mut self) -> Self {
-        self.can_dock = true;
-        self
-    }
-
-    pub fn with_ai(mut self) -> Self {
-        self.ai = true;
-        self
     }
 }

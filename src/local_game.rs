@@ -8,6 +8,7 @@ use crate::game::commands::*;
 use crate::game::save::*;
 use crate::utils::*;
 use crate::game::extractables::Extractable;
+use crate::game::new_obj::NewObj;
 
 const WARE_ORE: WareId = WareId(0);
 
@@ -82,6 +83,11 @@ fn new_ship_miner(game: &mut Game, docked_at: ObjId) -> ObjId {
     )
 }
 
+fn load_from_save(game: &mut Game, load_file: &str) {
+    let mut load = LoadFromFile::new(load_file);
+    game.load(&mut load);
+}
+
 pub fn run() {
     let mut game = Game::new();
 
@@ -91,12 +97,12 @@ pub fn run() {
     for i in 0..50 {
         let total_time = Seconds(i as f32);
         game.tick(total_time, Seconds(1.0));
-        let save = &mut SaveToFile::new(format!("/tmp/01_{}.json", i).to_string());
+        let mut save = SaveToFile::new(&format!("/tmp/01_{}.json", i));
         save.init();
         save.add_header("game", json!({
             "total_time": i
         }));
-        game.save(save);
+        game.save(&mut save);
         save.close();
     }
 }

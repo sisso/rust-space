@@ -7,8 +7,7 @@ use crate::game::save::Save;
 
 #[derive(Clone, Debug)]
 pub enum Location {
-    // TODO: rename to target_di or docked_id
-    Docked { obj_id: ObjId },
+    Docked { docked_id: ObjId },
     Space { sector_id: SectorId, pos: Position },
 }
 
@@ -40,7 +39,7 @@ impl Location {
 
     pub fn get_docked(&self) -> ObjId {
         match self {
-            Location::Docked { obj_id } => *obj_id,
+            Location::Docked { docked_id } => *docked_id,
             _ => panic!("unexpected state for get_docked")
         }
     }
@@ -118,8 +117,8 @@ impl Locations {
                 Some(Location::Space { sector_id, pos })=> {
                     (Some(sector_id.0), None, Some((pos.x, pos.y)))
                 }
-                Some(Location::Docked { obj_id }) => {
-                    (None, Some(obj_id.0), None)
+                Some(Location::Docked { docked_id }) => {
+                    (None, Some(docked_id.0), None)
                 }
                 None => {
                     (None, None, None)
