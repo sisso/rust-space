@@ -7,7 +7,7 @@ use super::actions::Action;
 use super::sectors::SectorId;
 use crate::game::locations::Location;
 use crate::game::extractables::Extractable;
-use crate::game::save::Save;
+use crate::game::save::{Save, Load};
 
 #[derive(Clone,Copy,PartialEq,Eq,Hash,Debug)]
 pub struct ObjId(pub u32);
@@ -66,6 +66,17 @@ impl ObjRepo {
             save.add(k.0, "object", json!({
                 "has_dock": v.has_dock
             }));
+        }
+    }
+
+    pub fn load(&mut self, load: &mut impl Load) {
+        for (id, value) in load.get_components("object") {
+            let obj = Obj {
+                id: ObjId(*id),
+                has_dock: value["has_dock"].as_bool().unwrap(),
+            };
+
+            self.index.insert(ObjId(*id), obj);
         }
     }
 }

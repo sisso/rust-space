@@ -3,6 +3,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::io::{Write, BufReader};
 use std::collections::HashMap;
+use crate::game::jsons::JsonValueExtra;
 
 pub trait Save {
     fn init(&mut self);
@@ -12,8 +13,8 @@ pub trait Save {
 }
 
 pub trait Load {
-    fn get_headers(&mut self) -> Vec<serde_json::Value>;
-    fn get_components(&mut self, component: &str) -> Vec<(u32, serde_json::Value)>;
+    fn get_headers(&mut self, header: &str) -> Vec<&serde_json::Value>;
+    fn get_components(&mut self, component: &str) -> Vec<&(u32, serde_json::Value)>;
 }
 
 pub struct SaveToFile {
@@ -57,35 +58,52 @@ impl Save for SaveToFile {
 }
 
 pub struct LoadFromFile {
-    headers: Vec<Value>,
-    components: HashMap<String, Vec<Value>>,
+    headers: HashMap<String, Vec<Value>>,
+    components: HashMap<String, Vec<(u32, Value)>>,
 }
 
 impl LoadFromFile {
     pub fn new(file_path: &str) -> Self {
-        let mut file = File::create(file_path).unwrap();
-        let mut headers: Vec<Value> = vec![];
-        let mut components: HashMap<String, Vec<Value>> = HashMap::new();
+        let mut load = LoadFromFile {
+            headers: HashMap::new(),
+            components: HashMap::new(),
+        };
+
+        let mut file = File::open(file_path).expect(&format!("failed to open file {:?}", file_path));
 
         for line in BufReader::new(file).lines() {
-            let line = line.unwrap();
+            let line = line.expect(&format!("failed to read line from {:?}", file_path));
+            let ast: Value = serde_json::from_str(line.as_str()).unwrap();
+            // TODO: remove clone
+            let value: Value = ast["value"].clone();
 
-            unimplemented!();
+            if let Some(header) = ast["header"].as_str() {
+                let list = load.headers.entry(header.to_string()).or_default();
+                list.push(value);
+            } else {
+                let id = ast["id"].as_u32();
+                let component = ast["component"].as_str().unwrap();
+                let list = load.components.entry(component.to_string()).or_default();
+                list.push((id, value));
+            }
         }
 
-        LoadFromFile {
-            headers: headers,
-            components: components,
-        }
+        load
     }
 }
 
 impl Load for LoadFromFile {
-    fn get_headers(&mut self) -> Vec<Value> {
-        unimplemented!()
+    fn get_headers(&mut self, header: &str) -> Vec<&Value> {
+        self.headers
+            .get(header)
+            .map(|i| { i.iter().collect() })
+            .unwrap_or(Vec::new())
     }
 
-    fn get_components(&mut self, component: &str) -> Vec<(u32, Value)> {
-        unimplemented!()
+    fn get_components(&mut self, component: &str) -> Vec<&(u32, Value)> {
+        self.components
+            .get(component)
+            .map(|i| { i.iter().collect() })
+            .unwrap_or(Vec::new())
     }
 }

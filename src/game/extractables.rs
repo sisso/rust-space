@@ -3,7 +3,8 @@ use crate::utils::*;
 
 use std::collections::HashMap;
 use crate::game::wares::WareId;
-use crate::game::save::Save;
+use crate::game::save::{Save, Load};
+use crate::game::jsons::*;
 
 
 #[derive(Clone,Debug)]
@@ -66,6 +67,17 @@ impl Extractables {
                 "ware_id": ware_id,
                 "seconds": seconds,
             }));
+        }
+    }
+
+    pub fn load(&mut self, load: &mut impl Load) {
+        for (id, value) in load.get_components("extractable") {
+            let extractable = Extractable {
+                ware_id: WareId(value["ware_id"].as_u32()),
+                time: Seconds(value["seconds"].as_f32()),
+            };
+
+            self.set_extractable(&ObjId(*id), extractable);
         }
     }
 }

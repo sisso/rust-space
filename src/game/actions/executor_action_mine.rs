@@ -3,7 +3,7 @@ use crate::game::objects::ObjId;
 use crate::game::commands::*;
 use crate::utils::*;
 use crate::game::locations::*;
-use crate::game::sectors::{Sector, SectorRepo};
+use crate::game::sectors::{Sector, Sectors};
 use crate::game::Tick;
 use crate::game::extractables::Extractables;
 use crate::game::wares::Cargos;

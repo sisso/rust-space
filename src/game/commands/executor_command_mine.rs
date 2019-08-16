@@ -17,7 +17,7 @@ pub fn execute(tick: &Tick,
                extractables: &Extractables,
                actions: &mut Actions,
                locations: &Locations,
-               sectors: &SectorRepo,
+               sectors: &Sectors,
                cargos: &mut Cargos) {
 
     for (obj_id, state) in commands.list_mut() {
@@ -35,7 +35,7 @@ fn do_command_mine(
     extractables: &Extractables,
     actions: &mut Actions,
     locations: &Locations,
-    sectors: &SectorRepo,
+    sectors: &Sectors,
     obj_id: &ObjId,
     state: &mut CommandState,
     cargos: &mut Cargos
@@ -98,7 +98,7 @@ fn do_command_mine(
 fn execute_mine_idle(extractables: &Extractables,
                      actions: &mut Actions,
                      locations: &Locations,
-                     sectors: &SectorRepo,
+                     sectors: &Sectors,
                      obj_id: &ObjId,
                      state: &mut CommandState,
                      location: &Location,
@@ -137,7 +137,7 @@ fn execute_mine_idle(extractables: &Extractables,
     }
 }
 
-fn search_mine_target(extractables: &Extractables, sectors: &SectorRepo, obj_id: &ObjId) -> Option<ObjId> {
+fn search_mine_target(extractables: &Extractables, sectors: &Sectors, obj_id: &ObjId) -> Option<ObjId> {
     // TODO: search nearest
     let candidates = extractables.list().find(|_| true);
     candidates.map(|i| i.clone())
@@ -145,7 +145,7 @@ fn search_mine_target(extractables: &Extractables, sectors: &SectorRepo, obj_id:
 
 // TODO: support movable objects
 // TODO: support docked objects
-fn find_navigation_to(sectors: &SectorRepo, locations: &Locations, from: &LocationSpace, to_obj_id: &ObjId) -> Option<NavigationState> {
+fn find_navigation_to(sectors: &Sectors, locations: &Locations, from: &LocationSpace, to_obj_id: &ObjId) -> Option<NavigationState> {
     // collect params
     let location = locations.get_location(&to_obj_id).unwrap();
     let target_pos= location.get_space();
@@ -161,7 +161,7 @@ fn find_navigation_to(sectors: &SectorRepo, locations: &Locations, from: &Locati
     )
 }
 
-fn find_path(sectors: &SectorRepo, from: &LocationSpace, to: &LocationSpace) -> VecDeque<NavigationStateStep> {
+fn find_path(sectors: &Sectors, from: &LocationSpace, to: &LocationSpace) -> VecDeque<NavigationStateStep> {
     let mut path: VecDeque<NavigationStateStep> = VecDeque::new();
 
     let mut current = from.clone();
@@ -201,7 +201,7 @@ fn execute_mine_deliver_resources(
     objects: &ObjRepo,
     actions: &mut Actions,
     locations: &Locations,
-    sectors: &SectorRepo,
+    sectors: &Sectors,
     obj_id: &ObjId,
     state: &mut CommandState,
     location: &Location,

@@ -10,6 +10,7 @@ pub mod navigation;
 pub mod docking;
 pub mod save;
 pub mod new_obj;
+pub mod jsons;
 
 use crate::utils::*;
 
@@ -19,7 +20,7 @@ use self::wares::*;
 use self::commands::*;
 use self::actions::*;
 use crate::game::locations::{Locations, Location};
-use crate::game::extractables::{Extractables, Extractable};
+use crate::game::extractables::{Extractables};
 use crate::game::navigation::Navigations;
 use crate::game::docking::Docking;
 use crate::game::save::{Save, Load};
@@ -33,7 +34,7 @@ pub struct Tick {
 pub struct Game {
     commands: Commands,
     actions: Actions,
-    sectors: SectorRepo,
+    sectors: Sectors,
     objects: ObjRepo,
     locations: Locations,
     extractables: Extractables,
@@ -47,7 +48,7 @@ impl Game {
         Game {
             commands: Commands::new(),
             actions: Actions::new(),
-            sectors: SectorRepo::new(),
+            sectors: Sectors::new(),
             objects: ObjRepo::new(),
             locations: Locations::new(),
             extractables: Extractables::new(),
@@ -113,6 +114,6 @@ impl Game {
     }
 
     pub fn load(&mut self, load: &mut impl Load) {
-
+        self.sectors.load(load);
     }
 }

@@ -3,9 +3,9 @@ use crate::game::objects::ObjId;
 use crate::game::commands::*;
 use crate::utils::*;
 use crate::game::locations::*;
-use crate::game::sectors::{Sector, SectorRepo};
+use crate::game::sectors::{Sector, Sectors};
 
-pub fn execute(actions: &mut Actions, locations: &mut Locations, sectors: &SectorRepo) {
+pub fn execute(actions: &mut Actions, locations: &mut Locations, sectors: &Sectors) {
     for (obj_id, state) in actions.list_mut() {
         match state.action {
             Action::Jump => {

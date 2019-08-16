@@ -1,7 +1,10 @@
 use crate::utils::*;
 
+use serde_json::json;
 use std::collections::HashMap;
-use crate::game::save::Save;
+use crate::game::jsons;
+use crate::game::save::{Save, Load};
+use crate::game::jsons::JsonValueExtra;
 
 #[derive(Clone,Debug)]
 pub struct Jump {
@@ -28,13 +31,13 @@ pub struct Sector {
     pub jumps: Vec<Jump>
 }
 
-pub struct SectorRepo {
+pub struct Sectors {
     index: HashMap<SectorId, Sector>
 }
 
-impl SectorRepo {
+impl Sectors {
     pub fn new() -> Self {
-        SectorRepo {
+        Sectors {
             index: HashMap::new()
         }
     }
@@ -66,19 +69,37 @@ impl SectorRepo {
     }
 
     pub fn save(&self, save: &mut impl Save) {
-        use serde_json::json;
-
         for (sector_id,sector) in self.index.iter() {
             let jumps: Vec<serde_json::Value> = sector.jumps.iter().map(|jump| {
                 json!({
                     "to_sector_id": jump.to.0,
-                    "pos": (jump.pos.x, jump.pos.y)
+                    "pos": jsons::from_v2(jump.pos)
                 })
             }).collect();
 
             save.add(sector_id.0, "sector", json!({
                 "jumps": jumps
             }));
+        }
+    }
+
+    pub fn load(&mut self, load: &mut impl Load) {
+        for (id, value) in load.get_components("sector") {
+            let mut jumps = vec![];
+
+            for i in value["jumps"].as_array().unwrap().iter() {
+                let to_sector_id = SectorId(i["to_sector_id"].as_i64().unwrap() as u32);
+                let pos = i["pos"].as_v2();
+
+                jumps.push(NewJump { to_sector_id, pos});
+            }
+
+            let ns = NewSector {
+                id: SectorId(*id),
+                jumps: jumps
+            };
+
+            self.add_sector(ns);
         }
     }
 }

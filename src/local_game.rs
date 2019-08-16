@@ -91,8 +91,19 @@ fn load_from_save(game: &mut Game, load_file: &str) {
 pub fn run() {
     let mut game = Game::new();
 
-    load_sectors(&mut game);
-    load_objects(&mut game);
+    let load_file =
+//        Some("/tmp/01_24.json");
+        None;
+
+    match load_file {
+        Some(file) => {
+            load_from_save(&mut game, file);
+        },
+        None => {
+            load_sectors(&mut game);
+            load_objects(&mut game);
+        }
+    }
 
     for i in 0..50 {
         let total_time = Seconds(i as f32);

@@ -115,7 +115,7 @@ impl Commands {
         self.state.insert(obj_id, CommandState::new());
     }
 
-    pub fn execute(&mut self, tick: &Tick, objects: &ObjRepo, extractables: &Extractables, actions: &mut Actions, locations: &Locations, sectors: &SectorRepo, cargos: &mut Cargos) {
+    pub fn execute(&mut self, tick: &Tick, objects: &ObjRepo, extractables: &Extractables, actions: &mut Actions, locations: &Locations, sectors: &Sectors, cargos: &mut Cargos) {
         executor_command_idle::execute(self, actions);
         executor_command_mine::execute(tick, self, objects, extractables, actions, locations, sectors, cargos);
     }

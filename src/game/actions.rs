@@ -1,7 +1,7 @@
 use crate::utils::{V2, Position, Log, Seconds};
 use super::objects::{ObjRepo, ObjId};
 use super::locations::{Location};
-use super::sectors::SectorRepo;
+use super::sectors::Sectors;
 use super::Tick;
 use std::collections::HashMap;
 use crate::game::locations::Locations;
@@ -61,7 +61,7 @@ impl Actions {
         self.states.iter_mut()
     }
 
-    pub fn execute(&mut self, tick: &Tick, sectors: &SectorRepo, locations: &mut Locations, extractables: &Extractables, cargos: &mut Cargos) {
+    pub fn execute(&mut self, tick: &Tick, sectors: &Sectors, locations: &mut Locations, extractables: &Extractables, cargos: &mut Cargos) {
         executor_action_dockundock::execute(self, locations);
         executor_action_jump::execute(self, locations, sectors);
         executor_action_fly::execute(tick, self, locations, sectors);

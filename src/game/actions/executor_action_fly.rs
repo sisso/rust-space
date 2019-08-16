@@ -3,10 +3,10 @@ use crate::game::objects::ObjId;
 use crate::game::commands::*;
 use crate::utils::*;
 use crate::game::locations::*;
-use crate::game::sectors::{Sector, SectorRepo, SectorId};
+use crate::game::sectors::{Sector, Sectors, SectorId};
 use crate::game::Tick;
 
-pub fn execute(tick: &Tick, actions: &mut Actions, locations: &mut Locations, sectors: &SectorRepo) {
+pub fn execute(tick: &Tick, actions: &mut Actions, locations: &mut Locations, sectors: &Sectors) {
     for (obj_id, state) in actions.list_mut() {
         match state.action {
             Action::Fly { to } => {
@@ -29,7 +29,7 @@ pub fn execute(tick: &Tick, actions: &mut Actions, locations: &mut Locations, se
 
 fn execute_fly(tick: &Tick,
                locations: &mut Locations,
-               sectors: &SectorRepo,
+               sectors: &Sectors,
                obj_id: &ObjId,
                state: &mut ActionState,
                pos: Position,
