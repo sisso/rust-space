@@ -129,18 +129,6 @@ impl Commands {
         state.command = command;
     }
 
-    pub fn save(&self, save: &mut impl Save) {
-        for (id, state) in self.state.iter() {
-
-
-
-        }
-    }
-
-    pub fn load(&mut self, load: &mut impl Load) {
-
-    }
-
     fn list_mut<'a>(&'a mut self) -> impl Iterator<Item=(&ObjId, &mut CommandState)> + 'a {
         self.state.iter_mut()
     }
