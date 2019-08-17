@@ -11,6 +11,7 @@ pub mod docking;
 pub mod save;
 pub mod new_obj;
 pub mod jsons;
+pub mod ship_internals;
 
 use crate::utils::*;
 
