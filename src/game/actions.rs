@@ -104,7 +104,7 @@ impl Actions {
         for (id, value) in load.get_components("action") {
             let action = value["action"].as_str().unwrap();
             let target_id = value["target_id"].as_u64();
-            let target_pos = value["target_id"].as_v2();
+            let target_pos = value["target_pos"].as_v2();
 
             let action = match (action.as_ref(), target_id, target_pos) {
                 ("idle", _, _) => Action::Idle,

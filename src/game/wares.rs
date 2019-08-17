@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use serde_json::json;
+use serde_json::{json, Value};
 
 use crate::game::save::{CanSave, CanLoad, Load, Save};
 use crate::utils::*;
@@ -145,9 +145,12 @@ impl Cargos {
 impl CanSave for Cargos {
     fn save(&self, save: &mut impl Save) {
         for (obj_id,state) in self.index.iter() {
-            let wares_json: Vec<(u32, f32)> =
+            let wares_json: Vec<Value> =
                 state.cargo.wares.iter().map(|(ware_id, amount)| {
-                    (ware_id.0, *amount)
+                    json!({
+                        "ware_id": ware_id.0,
+                        "amount": *amount,
+                    })
                 }).collect();
 
             save.add(obj_id.0, "cargo", json!({
@@ -164,8 +167,8 @@ impl CanLoad for Cargos {
         for (k, v) in load.get_components("cargo") {
             let wares: HashMap<WareId, f32> =
                 v["wares"].as_array().unwrap().iter().map(|i| {
-                    let ware_id = WareId(i.to_u32());
-                    let amount = i.to_f32();
+                    let ware_id = WareId(i["ware_id"].to_u32());
+                    let amount = i["amount"].to_f32();
                     (ware_id, amount)
                 }).collect();
 

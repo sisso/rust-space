@@ -14,7 +14,6 @@ pub trait CanLoad {
 }
 
 pub trait Save {
-    fn init(&mut self);
     fn add_header(&mut self, header_name: &str, value: serde_json::Value);
     fn add(&mut self, id: u32, component: &str, value: serde_json::Value);
     fn close(&mut self);
@@ -40,9 +39,6 @@ impl SaveToFile {
 }
 
 impl Save for SaveToFile {
-    fn init(&mut self) {
-    }
-
     fn add_header(&mut self, header_name: &str, header_value: serde_json::Value) {
         self.buffer.push(json!({
             "header": header_name,

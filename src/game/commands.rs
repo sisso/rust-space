@@ -235,6 +235,11 @@ impl CanLoad for Commands {
                             state["sector_id"].as_u64(),
                             state["target"].as_u64()
                         ) {
+                        ("moveto", Some(pos), None, None) => {
+                            NavigationStateStep::MoveTo {
+                                pos: pos.to_v2()
+                            }
+                        },
                         ("jump", None, Some(sector_id), None) => {
                             NavigationStateStep::Jump {
                                 sector_id: SectorId(sector_id as u32)

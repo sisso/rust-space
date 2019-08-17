@@ -82,12 +82,6 @@ fn new_ship_miner(game: &mut Game, docked_at: ObjId) -> ObjId {
             .with_ai()
     )
 }
-
-fn load_from_save(game: &mut Game, load_file: &str) {
-    let mut load = LoadFromFile::new(load_file);
-    game.load(&mut load);
-}
-
 pub fn run() {
     let mut game = Game::new();
 
@@ -108,12 +102,37 @@ pub fn run() {
     for i in 0..50 {
         let total_time = Seconds(i as f32);
         game.tick(total_time, Seconds(1.0));
-        let mut save = SaveToFile::new(&format!("/tmp/01_{}.json", i));
-        save.init();
-        save.add_header("game", json!({
-            "total_time": i
-        }));
-        game.save(&mut save);
-        save.close();
+        assert_saves(&game, i);
     }
+}
+
+fn assert_saves(game: &Game, tick: u32) {
+    // save
+    let file_1 = format!("/tmp/01_{}.json", tick);
+    let file_2 = format!("/tmp/02_{}.json", tick);
+
+    {
+        save_to_file(game,  tick, file_1.as_ref());
+    }
+
+    // load
+    {
+        let mut game = Game::new();
+        load_from_save(&mut game, file_1.as_ref());
+        save_to_file(&game,  tick, file_2.as_ref());
+    }
+}
+
+fn save_to_file(game: &Game, tick: u32, file: &str) {
+    let mut save = SaveToFile::new(file);
+    save.add_header("game", json!({
+            "total_time": tick
+        }));
+    game.save(&mut save);
+    save.close();
+}
+
+fn load_from_save(game: &mut Game, load_file: &str) {
+    let mut load = LoadFromFile::new(load_file);
+    game.load(&mut load);
 }
