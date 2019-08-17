@@ -2,7 +2,7 @@ use std::collections::{HashMap, VecDeque};
 
 use crate::game::extractables::Extractables;
 use crate::game::locations::{Location, Locations, LocationSpace};
-use crate::game::save::{Load, Save};
+use crate::game::save::{Load, Save, CanSave, CanLoad};
 use crate::game::wares::Cargos;
 use crate::utils::*;
 
@@ -10,6 +10,8 @@ use super::actions::*;
 use super::objects::*;
 use super::sectors::*;
 use super::Tick;
+use super::jsons;
+use serde_json::Value;
 
 mod executor_command_idle;
 mod executor_command_mine;
@@ -149,5 +151,73 @@ impl Commands {
     fn get_state(&self, id: &ObjId) -> &CommandState {
         self.state.get(&id).unwrap()
     }
-
 }
+
+impl CanSave for Commands {
+    fn save(&self, save: &mut impl Save) {
+        use serde_json::json;
+
+        for (obj_id, state) in self.state.iter() {
+            let command = match state.command {
+                Command::Idle => "idle",
+                Command::Mine => "mine",
+            };
+
+            let mine_state: Option<Value> = state.mine.as_ref().map(|mine_state| {
+                json!({
+                    "mining": mine_state.mining,
+                    "target_obj_id": mine_state.target_obj_id.0,
+                })
+            });
+
+            let deliver_state: Option<Value> = state.deliver.as_ref().map(|state| {
+                json!({
+                    "target_obj_id": state.target_obj_id.0,
+                })
+            });
+
+            let navigation_state: Option<Value> = state.navigation.as_ref().map(|state| {
+                let path: Vec<Value> = state.path.iter().map(|i| {
+                    let (step, pos, sector_id, target) = match i {
+                        NavigationStateStep::MoveTo { pos } => {
+                            ("move-to", Some(jsons::from_v2(pos)), None, None)
+                        },
+                        NavigationStateStep::Jump { sector_id } => {
+                            ("move-to", None, Some(sector_id.0), None)
+                        },
+                        NavigationStateStep::Dock { target } => {
+                            ("move-to", None, None, Some(target.0))
+                        },
+                    };
+
+                    json!({
+                        "step": step,
+                        "pos": pos,
+                        "sector_id": sector_id,
+                        "target": target,
+                    })
+                }).collect();
+
+                json!({
+                    "target_obj_id": state.target_obj_id.0,
+                    "target_sector_id": state.target_sector_id.0,
+                    "target_position": jsons::from_v2(&state.target_position),
+                    "path": path,
+                })
+            });
+
+            save.add(obj_id.0, "command", json!({
+                "command": command,
+                "mine_state": mine_state,
+                "deliver_state": deliver_state,
+                "navigation_state": navigation_state,
+            }));
+        }
+    }
+}
+
+impl CanLoad for Commands {
+    fn load(&mut self, load: &mut impl Load) {
+    }
+}
+

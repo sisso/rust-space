@@ -73,7 +73,7 @@ impl Sectors {
             let jumps: Vec<serde_json::Value> = sector.jumps.iter().map(|jump| {
                 json!({
                     "to_sector_id": jump.to.0,
-                    "pos": jsons::from_v2(jump.pos)
+                    "pos": jsons::from_v2(&jump.pos)
                 })
             }).collect();
 

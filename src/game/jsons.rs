@@ -3,7 +3,7 @@ use serde_json::json;
 
 use crate::utils::V2;
 
-pub fn from_v2(v: V2) -> Value {
+pub fn from_v2(v: &V2) -> Value {
     json!((v.x, v.y))
 }
 
