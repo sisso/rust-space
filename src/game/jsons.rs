@@ -12,6 +12,7 @@ pub trait JsonValueExtra {
     fn to_u32(&self) -> u32;
     fn as_v2(&self) -> Option<V2>;
     fn to_v2(&self) -> V2;
+    fn as_opt(&self) -> Option<&Value>;
 }
 
 impl JsonValueExtra for Value {
@@ -32,5 +33,13 @@ impl JsonValueExtra for Value {
 
     fn to_v2(&self) -> V2 {
         self.as_v2().unwrap()
+    }
+
+    fn as_opt(&self) -> Option<&Value> {
+        if self.is_null() {
+            None
+        } else {
+            Some(self)
+        }
     }
 }

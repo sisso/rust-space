@@ -12,6 +12,7 @@ use super::sectors::*;
 use super::Tick;
 use super::jsons;
 use serde_json::Value;
+use crate::game::jsons::JsonValueExtra;
 
 mod executor_command_idle;
 mod executor_command_mine;
@@ -180,13 +181,13 @@ impl CanSave for Commands {
                 let path: Vec<Value> = state.path.iter().map(|i| {
                     let (step, pos, sector_id, target) = match i {
                         NavigationStateStep::MoveTo { pos } => {
-                            ("move-to", Some(jsons::from_v2(pos)), None, None)
+                            ("moveto", Some(jsons::from_v2(pos)), None, None)
                         },
                         NavigationStateStep::Jump { sector_id } => {
-                            ("move-to", None, Some(sector_id.0), None)
+                            ("jump", None, Some(sector_id.0), None)
                         },
                         NavigationStateStep::Dock { target } => {
-                            ("move-to", None, None, Some(target.0))
+                            ("dock", None, None, Some(target.0))
                         },
                     };
 
@@ -218,6 +219,63 @@ impl CanSave for Commands {
 
 impl CanLoad for Commands {
     fn load(&mut self, load: &mut impl Load) {
+        for (id, state) in load.get_components("command") {
+            let command = match state["command"].as_str().unwrap().as_ref() {
+                "idle" => Command::Idle,
+                "mine" => Command::Mine,
+                _      => panic!(),
+            };
+
+            let mine = state["mine_state"].as_object().map(|state| {
+                MineState {
+                    mining: state["mining"].as_bool().unwrap(),
+                    target_obj_id: ObjId(state["target_obj_id"].to_u32())
+                }
+            });
+
+            let deliver = state["deliver_state"].as_object().map(|state| {
+                DeliverState {
+                    target_obj_id: ObjId(state["target_obj_id"].to_u32())
+                }
+            });
+
+            let navigation = state["navigation_state"].as_object().map(|state| {
+                let path = state["path"].as_array().unwrap().iter().map(|state| {
+                    match (
+                            state["step"].as_str().unwrap().as_ref(),
+                            state["pos"].as_opt(),
+                            state["sector_id"].as_u64(),
+                            state["target"].as_u64()
+                        ) {
+                        ("jump", None, Some(sector_id), None) => {
+                            NavigationStateStep::Jump {
+                                sector_id: SectorId(sector_id as u32)
+                            }
+                        },
+                        ("dock", None, None, Some(target_id)) => {
+                            NavigationStateStep::Dock {
+                                target: ObjId(target_id as u32)
+                            }
+                        },
+                        _ => panic!("fail to parse navigation path")
+                    }
+                }).collect();
+
+                NavigationState {
+                    target_obj_id: ObjId(state["target_obj_id"].to_u32()),
+                    target_sector_id: SectorId(state["target_sector_id"].to_u32()),
+                    target_position: state["target_position"].to_v2(),
+                    path
+                }
+            });
+
+            self.state.insert(ObjId(*id), CommandState {
+                command,
+                mine,
+                deliver,
+                navigation
+            });
+        }
     }
 }
 
