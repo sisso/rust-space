@@ -104,24 +104,22 @@ impl Game {
     }
 
     pub fn save(&self, save: &mut impl Save) {
-        // TODO: impl
-        self.commands.save(save);
-        self.actions.save(save);
         self.sectors.save(save);
         self.objects.save(save);
         self.locations.save(save);
         self.extractables.save(save);
         self.cargos.save(save);
+        self.actions.save(save);
+        self.commands.save(save);
     }
 
     pub fn load(&mut self, load: &mut impl Load) {
         self.sectors.load(load);
         self.objects.load(load);
-        self.extractables.load(load);
         self.locations.load(load);
-        // TODO: impl
+        self.extractables.load(load);
+        self.cargos.load(load);
         self.commands.load(load);
         self.actions.load(load);
-        self.cargos.load(load);
     }
 }

@@ -3,7 +3,7 @@ use super::sectors::*;
 use crate::utils::*;
 
 use std::collections::HashMap;
-use crate::game::save::{Save, Load};
+use crate::game::save::{Save, Load, CanSave, CanLoad};
 use crate::game::jsons::JsonValueExtra;
 
 #[derive(Clone, Debug)]
@@ -103,9 +103,10 @@ impl Locations {
         let mut state = self.index.get_mut(&obj_id).unwrap();
         state
     }
+}
 
-
-    pub fn save(&self, save: &mut impl Save) {
+impl CanSave for Locations {
+    fn save(&self, save: &mut impl Save) {
         use serde_json::json;
 
         for (k,v) in self.index.iter() {
@@ -134,8 +135,10 @@ impl Locations {
             }));
         }
     }
+}
 
-    pub fn load(&mut self, load: &mut impl Load) {
+impl CanLoad for Locations {
+    fn load(&mut self, load: &mut impl Load) {
         for (id, value) in load.get_components("location") {
             let location = {
                 if value["docket_at"].is_number() {

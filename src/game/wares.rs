@@ -1,9 +1,12 @@
 use std::collections::HashMap;
+use serde_json::json;
 
 use crate::game::save::{CanSave, CanLoad, Load, Save};
 use crate::utils::*;
 
 use super::objects::ObjId;
+use crate::game::jsons::JsonValueExtra;
+use std::borrow::Borrow;
 
 #[derive(Clone,Copy,PartialEq,Eq,Hash,Debug)]
 pub struct WareId(pub u32);
@@ -141,17 +144,15 @@ impl Cargos {
 
 impl CanSave for Cargos {
     fn save(&self, save: &mut impl Save) {
-        use serde_json::json;
+        for (obj_id,state) in self.index.iter() {
+            let wares_json: Vec<(u32, f32)> =
+                state.cargo.wares.iter().map(|(ware_id, amount)| {
+                    (ware_id.0, *amount)
+                }).collect();
 
-        for (k,v) in self.index.iter() {
-            let mut wares_json: HashMap<u32, f32> = HashMap::new();
-            for (ware_id, amount) in v.cargo.wares.iter() {
-                wares_json.insert(ware_id.0, *amount);
-            }
-
-            save.add(k.0, "cargo", json!({
-                "max": v.cargo.max,
-                "current": v.cargo.current,
+            save.add(obj_id.0, "cargo", json!({
+                "max": state.cargo.max,
+                "current": state.cargo.current,
                 "wares": wares_json
             }));
         }
@@ -160,6 +161,21 @@ impl CanSave for Cargos {
 
 impl CanLoad for Cargos {
     fn load(&mut self, load: &mut impl Load) {
-        unimplemented!()
+        for (k, v) in load.get_components("cargo") {
+            let wares: HashMap<WareId, f32> =
+                v["wares"].as_array().unwrap().iter().map(|i| {
+                    let ware_id = WareId(i.to_u32());
+                    let amount = i.to_f32();
+                    (ware_id, amount)
+                }).collect();
+
+            self.index.insert(ObjId(*k), State {
+                cargo: Cargo {
+                    max: v["max"].to_f32(),
+                    current: v["current"].to_f32(),
+                    wares
+                }
+            });
+        }
     }
 }
