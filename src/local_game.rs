@@ -82,6 +82,7 @@ fn new_ship_miner(game: &mut Game, docked_at: ObjId) -> ObjId {
             .with_ai()
     )
 }
+
 pub fn run() {
     let mut game = Game::new();
 

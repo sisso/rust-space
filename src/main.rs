@@ -26,9 +26,12 @@ macro_rules! get_or_return {
 mod game;
 mod utils;
 mod local_game;
+mod test_combat;
 
 fn main() {
-    local_game::run();
+//    local_game::run();
+    test_combat::run();
+
     println!("done")
 }
 
