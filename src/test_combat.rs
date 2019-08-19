@@ -102,7 +102,9 @@ pub fn run() {
         panic!();
     }
 
+    let ship_1_id = ShipInstanceId(0);
     let ship1 = ShipInstance {
+        id: ship_1_id,
         spec: ShipSpec {
             armor: armor.clone(),
             components: ship_components.clone(),
@@ -112,7 +114,9 @@ pub fn run() {
         component_damage: Default::default()
     };
 
+    let ship_2_id = ShipInstanceId(0);
     let ship2 = ShipInstance {
+        id: ship_2_id,
         spec: ShipSpec {
             armor: armor,
             components: ship_components,
@@ -122,5 +126,7 @@ pub fn run() {
         component_damage: Default::default()
     };
 
-    let combat = ShipCombat::new(ship1, ship2);
+    let mut combat = ShipCombat::new(ship1, ship2);
+    combat.set_distance(ship_1_id, ship_2_id, 1.0);
+    combat.tick(0.1, 0.1);
 }

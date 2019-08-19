@@ -1,3 +1,17 @@
+use crate::utils::*;
+
+use self::actions::*;
+use self::commands::*;
+use self::docking::Docking;
+use self::extractables::Extractables;
+use self::locations::Locations;
+use self::navigation::Navigations;
+use self::new_obj::NewObj;
+use self::objects::*;
+use self::save::{CanLoad, CanSave, Load, Save};
+use self::sectors::*;
+use self::wares::*;
+
 pub mod sectors;
 pub mod objects;
 pub mod wares;
@@ -13,20 +27,6 @@ pub mod new_obj;
 pub mod jsons;
 pub mod ship_internals;
 pub mod ship_combat;
-
-use crate::utils::*;
-
-use self::sectors::*;
-use self::objects::*;
-use self::wares::*;
-use self::commands::*;
-use self::actions::*;
-use crate::game::locations::{Locations, Location};
-use crate::game::extractables::{Extractables};
-use crate::game::navigation::Navigations;
-use crate::game::docking::Docking;
-use crate::game::save::{Save, Load, CanSave, CanLoad};
-use crate::game::new_obj::NewObj;
 
 pub struct Tick {
     total_time: Seconds,

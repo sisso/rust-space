@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+
 use crate::utils::{Log, NextId};
 
 #[derive(Clone,Debug)]
@@ -26,6 +27,9 @@ pub enum ComponentType {
 
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct ComponentId(pub u32);
+
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+pub struct ShipInstanceId(pub u32);
 
 
 #[derive(Clone,Debug)]
@@ -162,7 +166,9 @@ impl ShipSpec {
     }
 }
 
+#[derive(Debug,Clone)]
 pub struct ShipInstance {
+    pub id: ShipInstanceId,
     pub spec: ShipSpec,
     pub armor_damage: HashSet<u32>,
     pub component_damage: HashMap<u32, u32>,
