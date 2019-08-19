@@ -89,15 +89,83 @@ struct ComponentItem {
 }
 
 #[derive(Clone,Debug)]
-pub struct ShipInternal {
+pub struct ShipSpec {
     pub armor: Armor,
     pub components: HashMap<ComponentId, u32>,
     pub stats: ShipStats,
-    pub armor_damage: HashSet<u32>,
-    pub component_damage: HashMap<u32, u32>,
 }
 
-impl ShipInternal {
+impl ShipSpec {
+    pub fn compute_ship_stats(components: &Components, ship_components: &HashMap<ComponentId, u32>, armor: &Armor) -> ShipStats {
+        let mut has_bridge = false;
+
+        let mut power = 0.0;
+        let mut crew = 0.0;
+        let mut engineer = 0.0;
+        let mut thrust: f32 = 0.0;
+
+        let mut mapped: HashMap<ComponentId, (&u32, &Component)> = HashMap::new();
+        for (id, amount) in ship_components {
+            let famount = *amount as f32;
+            let component = components.get(id);
+
+            if let ComponentType::Bridge = component.component_type {
+                has_bridge = true;
+            }
+
+            power += component.power_generate * famount - component.power_require * famount;
+            crew += component.crew_provide * famount - component.crew_require * famount;
+            engineer += component.engineer_provide * famount - component.engineer_require * famount;
+            thrust += component.thrust * famount;
+
+            mapped.insert(*id, (amount, component));
+        }
+
+        let weight = compute_weight(components, ship_components, armor);
+
+        ShipStats {
+            bridge: has_bridge,
+            total_weight: weight,
+            total_width: compute_width(components, ship_components),
+            power_balance: power,
+            crew_balance: crew,
+            engineer_balance: engineer,
+            thrust: thrust,
+            speed: 10.0 * thrust / (weight as f32),
+        }
+    }
+
+    pub fn is_valid(stats: &ShipStats) -> Result<(), Vec<ShipComponentsValidation>>{
+        let mut errors = vec![];
+
+        if !stats.bridge {
+            errors.push(ShipComponentsValidation::NoBridge);
+        }
+
+        if stats.power_balance < 0.0 {
+            errors.push(ShipComponentsValidation::NeedPower { amount: -stats.power_balance });
+        }
+
+        if stats.crew_balance < 0.0 {
+            errors.push(ShipComponentsValidation::NeedCrew { amount: -stats.crew_balance });
+        }
+
+        if stats.engineer_balance < 0.0 {
+            errors.push(ShipComponentsValidation::NeedEngineer { amount: -stats.engineer_balance });
+        }
+
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
+    }
+}
+
+pub struct ShipInstance {
+    pub spec: ShipSpec,
+    pub armor_damage: HashSet<u32>,
+    pub component_damage: HashMap<u32, u32>,
 }
 
 pub struct Components {
@@ -141,7 +209,7 @@ mod tests {
     }
 }
 
-pub(crate) fn compute_width(components: &Components, ship_components: &HashMap<ComponentId, u32>) -> u32 {
+pub fn compute_width(components: &Components, ship_components: &HashMap<ComponentId, u32>) -> u32 {
     let sum = ship_components.iter().map(|(component_id, amount)| {
         components.get(component_id).width * *amount as f32
     }).sum();
@@ -170,70 +238,6 @@ pub struct ShipStats {
     pub speed: f32,
 }
 
-pub(crate) fn compute_ship_stats(components: &Components, ship_components: &HashMap<ComponentId, u32>, armor: &Armor) -> ShipStats {
-    let mut has_bridge = false;
-
-    let mut power = 0.0;
-    let mut crew = 0.0;
-    let mut engineer = 0.0;
-    let mut thrust: f32 = 0.0;
-
-    let mut mapped: HashMap<ComponentId, (&u32, &Component)> = HashMap::new();
-    for (id, amount) in ship_components {
-        let famount = *amount as f32;
-        let component = components.get(id);
-
-        if let ComponentType::Bridge = component.component_type {
-            has_bridge = true;
-        }
-
-        power += component.power_generate * famount - component.power_require * famount;
-        crew += component.crew_provide * famount - component.crew_require * famount;
-        engineer += component.engineer_provide * famount - component.engineer_require * famount;
-        thrust += component.thrust * famount;
-
-        mapped.insert(*id, (amount, component));
-    }
-
-    let weight = compute_weight(components, ship_components, armor);
-
-    ShipStats {
-        bridge: has_bridge,
-        total_weight: weight,
-        total_width: compute_width(components, ship_components),
-        power_balance: power,
-        crew_balance: crew,
-        engineer_balance: engineer,
-        thrust: thrust,
-        speed: 10.0 * thrust / (weight as f32),
-    }
-}
-
-pub(crate) fn is_valid(stats: &ShipStats) -> Result<(), Vec<ShipComponentsValidation>>{
-    let mut errors = vec![];
-
-    if !stats.bridge {
-        errors.push(ShipComponentsValidation::NoBridge);
-    }
-
-    if stats.power_balance < 0.0 {
-        errors.push(ShipComponentsValidation::NeedPower { amount: -stats.power_balance });
-    }
-
-    if stats.crew_balance < 0.0 {
-        errors.push(ShipComponentsValidation::NeedCrew { amount: -stats.crew_balance });
-    }
-
-    if stats.engineer_balance < 0.0 {
-        errors.push(ShipComponentsValidation::NeedEngineer { amount: -stats.engineer_balance });
-    }
-
-    if errors.is_empty() {
-        Ok(())
-    } else {
-        Err(errors)
-    }
-}
 
 fn compute_weight(components: &Components, ship_components: &HashMap<ComponentId, u32>, armor: &Armor) -> u32 {
     let sum: f32 = ship_components.iter().map(|(component_id, amount)| {

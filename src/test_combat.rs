@@ -92,24 +92,32 @@ pub fn run() {
         height: 3,
     };
 
-    let stats = compute_ship_stats(&components, &ship_components, &armor);
-    let valid = is_valid(&stats);
+    let stats = ShipSpec::compute_ship_stats(&components, &ship_components, &armor);
+    let valid = ShipSpec::is_valid(&stats);
 
     println!("stats: {:?}", stats);
     println!("valid: {:?}", valid);
 
-    let ship1 = ShipInternal {
-        armor: armor.clone(),
-        components: ship_components.clone(),
-        stats: stats.clone(),
+    if valid.is_err() {
+        panic!();
+    }
+
+    let ship1 = ShipInstance {
+        spec: ShipSpec {
+            armor: armor.clone(),
+            components: ship_components.clone(),
+            stats: stats.clone(),
+        },
         armor_damage: Default::default(),
         component_damage: Default::default()
     };
 
-    let ship2 = ShipInternal {
-        armor: armor,
-        components: ship_components,
-        stats,
+    let ship2 = ShipInstance {
+        spec: ShipSpec {
+            armor: armor,
+            components: ship_components,
+            stats,
+        },
         armor_damage: Default::default(),
         component_damage: Default::default()
     };
