@@ -103,7 +103,7 @@ pub fn run() {
     }
 
     let ship_1_id = ShipInstanceId(0);
-    let ship1 = ShipInstance {
+    let mut ship1 = ShipInstance {
         id: ship_1_id,
         spec: ShipSpec {
             armor: armor.clone(),
@@ -114,8 +114,8 @@ pub fn run() {
         component_damage: Default::default()
     };
 
-    let ship_2_id = ShipInstanceId(0);
-    let ship2 = ShipInstance {
+    let ship_2_id = ShipInstanceId(1);
+    let mut ship2 = ShipInstance {
         id: ship_2_id,
         spec: ShipSpec {
             armor: armor,
@@ -126,7 +126,20 @@ pub fn run() {
         component_damage: Default::default()
     };
 
-    let mut combat = ShipCombat::new(ship1, ship2);
-    combat.set_distance(ship_1_id, ship_2_id, 1.0);
-    combat.tick(0.1, 0.1);
+//    let mut combat = ShipCombat::new(&mut ship1, &mut ship2);
+//    combat.set_distance(ship_1_id, ship_2_id, 1.0);
+//    combat.tick(0.1, 0.1);
+
+    let mut combat_ctx = CombatContext::new();
+    combat_ctx.add_ship(&mut ship1);
+    combat_ctx.add_ship(&mut ship2);
+    combat_ctx.set_time(1.0, 1.0);
+    combat_ctx.set_distance(ship_1_id, ship_2_id, 1.0);
+
+    let logs = Combat::execute(&mut combat_ctx);
+
+    println!("Combat result");
+    for log in logs {
+        println!("- {:?}", log);
+    }
 }

@@ -1,40 +1,38 @@
 use crate::game::ship_internals::*;
 
 use std::collections::HashMap;
+use rand::Rng;
 
-// TODO: ship instances can not be owner
-pub struct ShipCombat {
-    ship1: ShipInstance,
-    ship2: ShipInstance,
-    distances: HashMap<(ShipInstanceId, ShipInstanceId), f32>,
-    logs: Vec<CombatLog>,
-}
-
-pub trait ShipCombatInstanceProvider<'a> {
-    fn get_mut(id: ShipInstanceId) -> &'a mut ShipInstance;
-    fn get(id: ShipInstanceId) -> &'a ShipInstance;
-}
-
+#[derive(Clone,Debug)]
 pub enum CombatLog {
-
+    NoTarget { id: ShipInstanceId },
+    Recharging { id: ShipInstanceId },
+    Miss { id: ShipInstanceId, target_id: ShipInstanceId },
+    Hit { id: ShipInstanceId, target_id: ShipInstanceId, damage: u32 },
 }
 
-impl ShipCombat {
-    pub fn new(ship1: ShipInstance, ship2: ShipInstance) -> Self {
-        ShipCombat { 
-            ship1, 
-            ship2,
+pub struct CombatContext<'a> {
+    delta_time: f32,
+    total_time: f32,
+    ships: HashMap<ShipInstanceId, &'a mut ShipInstance>,
+    distances: HashMap<(ShipInstanceId, ShipInstanceId), f32>,
+}
+
+impl<'a> CombatContext<'a> {
+    pub fn new() -> Self {
+        CombatContext {
+            delta_time: 0.0,
+            total_time: 0.0,
+            ships: HashMap::new(),
             distances: HashMap::new(),
-            logs: vec![]
         }
     }
 
-    pub fn tick(&mut self, delta_time: f32, total_time: f32) -> Vec<CombatLog> {
-        let mut log = vec![];
-//        ShipCombat::tick_fire(&mut log, delta_time, total_time, &mut self.ship1, &mut self.ship2);
-//        ShipCombat::tick_fire(&mut log, delta_time, total_time, &mut self.ship2, &mut self.ship1);
-        self.tick_fire(delta_time, total_time, self.ship1.id, self.ship2.id);
-        log
+    pub fn add_ship(&mut self, ship: &'a mut ShipInstance) {
+        if self.ships.contains_key(&ship.id) {
+            panic!();
+        }
+        self.ships.insert(ship.id, ship);
     }
 
     pub fn set_distance(&mut self, id0: ShipInstanceId, id1: ShipInstanceId, distance: f32) {
@@ -42,11 +40,81 @@ impl ShipCombat {
         self.distances.insert((id1, id0), distance);
     }
 
-    fn tick_fire(&mut self, delta_time: f32, total_time: f32, attacker_id: ShipInstanceId, target_id: ShipInstanceId) {
+    pub fn set_time(&mut self, delta_time: f32, total_time: f32) {
+        self.delta_time = delta_time;
+        self.total_time = total_time;
+    }
+}
 
+pub struct Combat {
+
+}
+
+impl Combat {
+
+    pub fn execute(ctx: &mut CombatContext) -> Vec<CombatLog> {
+        let mut logs = vec![];
+        let ship_sequence = Combat::roll_order(&ctx.ships);
+
+        for ship_id in ship_sequence {
+            Combat::execute_attack(ctx, &mut logs, ship_id);
+        }
+
+        logs
     }
 
-//    fn tick_fire(log: &mut Vec<CombatLog>, delta_time: f32, total_time: f32, ship1: &mut ShipInstance, ship2: &mut ShipInstance) {
-//
-//    }
+    fn execute_attack(ctx: &mut CombatContext, logs: &mut Vec<CombatLog>, attacker_id: ShipInstanceId) {
+        if !Combat::is_weapon_ready(ctx, attacker_id) {
+            logs.push(CombatLog::Recharging { id: attacker_id });
+            return;
+        }
+
+        let target_id = match Combat::search_best_target(ctx, attacker_id) {
+            Some(target_id) => target_id,
+            None => {
+                logs.push(CombatLog::NoTarget { id: attacker_id });
+                return;
+            }
+        };
+
+        Combat::execute_fire_at(ctx, logs, attacker_id, target_id);
+    }
+
+    fn execute_fire_at(ctx: &mut CombatContext, logs: &mut Vec<CombatLog>, attacker_id: ShipInstanceId, target_id: ShipInstanceId) {
+        let hit_chance = Combat::compute_hit_chance(ctx, attacker_id, target_id);
+        if Combat::roll(hit_chance) {
+            logs.push(CombatLog::Hit { id: attacker_id, target_id: target_id, damage: 1 });
+        } else {
+            logs.push(CombatLog::Miss { id: attacker_id, target_id: target_id });
+        }
+    }
+
+    fn compute_hit_chance(ctx: &mut CombatContext, attacker_id: ShipInstanceId, target_id: ShipInstanceId) -> f32 {
+        0.5
+    }
+
+    fn roll(chance: f32) -> bool {
+        let mut rng = rand::thread_rng();
+        let value: f32 = rng.gen();
+        value <= chance
+    }
+
+    fn is_weapon_ready(ctx: &mut CombatContext, attacker_id: ShipInstanceId) -> bool {
+        let _ship = ctx.ships.get(&attacker_id).unwrap();
+        true
+    }
+
+    fn search_best_target(ctx: &mut CombatContext, attacker_id: ShipInstanceId) -> Option<ShipInstanceId> {
+        for candidate_id in ctx.ships.keys() {
+            if *candidate_id != attacker_id {
+                return Some(*candidate_id);
+            }
+        }
+
+        None
+    }
+
+    fn roll_order(ships: &HashMap<ShipInstanceId, &mut ShipInstance>) -> Vec<ShipInstanceId> {
+        ships.keys().map(|i| *i).collect()
+    }
 }
