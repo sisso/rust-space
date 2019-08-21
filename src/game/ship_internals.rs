@@ -9,6 +9,10 @@ pub struct Armor {
 }
 
 impl Armor {
+    pub fn new(width: u32, height: u32) -> Self {
+        Armor { width, height }
+    }
+
     pub fn weight(&self) -> f32 {
         self.width as f32 * self.height as f32  * 0.5
     }
@@ -100,6 +104,30 @@ pub struct ShipSpec {
 }
 
 impl ShipSpec {
+    pub fn new(components: &Components, ship_components: HashMap<ComponentId, u32>, armor_height: u32) -> Self {
+        let armor = Armor::new(compute_width(components, &ship_components), armor_height);
+        let stats = ShipSpec::compute_ship_stats(components, &ship_components, &armor);
+        ShipSpec { armor: armor, components: ship_components, stats: stats }
+    }
+
+    pub fn amount(&self, component_id: &ComponentId) -> Option<&u32> {
+        self.components.get(component_id)
+    }
+
+    pub fn find_weapons<'b>(&self, components: &'b Components) -> Vec<(&ComponentId, &u32, &'b Component, &'b Weapon)> {
+        self.components
+            .iter()
+            .map(|(id, amount)| {
+                let component = components.get(id);
+                (id, amount, component, component.weapon.as_ref())
+            })
+            .filter(|(_, _, _, weapon)| weapon.is_some())
+            .map(|(id, amount, component, some_weapon)| {
+                (id, amount, component, some_weapon.unwrap())
+            })
+            .collect()
+    }
+
     pub fn compute_ship_stats(components: &Components, ship_components: &HashMap<ComponentId, u32>, armor: &Armor) -> ShipStats {
         let mut has_bridge = false;
 
@@ -139,7 +167,9 @@ impl ShipSpec {
         }
     }
 
-    pub fn is_valid(stats: &ShipStats) -> Result<(), Vec<ShipComponentsValidation>>{
+    pub fn is_valid(&self) -> Result<(), Vec<ShipComponentsValidation>>{
+        let stats = &self.stats;
+
         let mut errors = vec![];
 
         if !stats.bridge {
@@ -167,11 +197,39 @@ impl ShipSpec {
 }
 
 #[derive(Debug,Clone)]
+pub struct WeaponState {
+    pub recharge: f32,
+}
+
+impl WeaponState {
+    pub fn new() -> Self {
+        WeaponState { recharge: 0.0 }
+    }
+}
+
+#[derive(Debug,Clone)]
 pub struct ShipInstance {
     pub id: ShipInstanceId,
     pub spec: ShipSpec,
     pub armor_damage: HashSet<u32>,
     pub component_damage: HashMap<u32, u32>,
+    pub weapons_state: HashMap<ComponentId, Vec<WeaponState>>,
+}
+
+impl ShipInstance {
+    pub fn new(components: &Components, id: ShipInstanceId, spec: ShipSpec) -> Self {
+        let mut weapons_state = HashMap::new();
+
+        for (weapon_id, amount, _, _) in spec.find_weapons(components) {
+            let mut vec = vec![];
+            for _ in 0..amount.clone() {
+                vec.push(WeaponState::new());
+            }
+            weapons_state.insert(weapon_id.clone(), vec);
+        }
+
+        ShipInstance { id, spec, armor_damage: Default::default(), component_damage: Default::default(), weapons_state: weapons_state }
+    }
 }
 
 pub struct Components {
@@ -215,7 +273,7 @@ mod tests {
     }
 }
 
-pub fn compute_width(components: &Components, ship_components: &HashMap<ComponentId, u32>) -> u32 {
+fn compute_width(components: &Components, ship_components: &HashMap<ComponentId, u32>) -> u32 {
     let sum = ship_components.iter().map(|(component_id, amount)| {
         components.get(component_id).width * *amount as f32
     }).sum();

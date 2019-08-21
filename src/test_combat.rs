@@ -85,17 +85,10 @@ pub fn run() {
     ship_components.insert(engine_room_id, 2);
     ship_components.insert(quarters_id, 1);
 
-    let width = compute_width(&components, &ship_components);
+    let specs = ShipSpec::new(&components, ship_components, 2);
+    let valid = specs.is_valid();
 
-    let armor = Armor {
-        width: width,
-        height: 3,
-    };
-
-    let stats = ShipSpec::compute_ship_stats(&components, &ship_components, &armor);
-    let valid = ShipSpec::is_valid(&stats);
-
-    println!("stats: {:?}", stats);
+    println!("stats: {:?}", specs);
     println!("valid: {:?}", valid);
 
     if valid.is_err() {
@@ -103,34 +96,13 @@ pub fn run() {
     }
 
     let ship_1_id = ShipInstanceId(0);
-    let mut ship1 = ShipInstance {
-        id: ship_1_id,
-        spec: ShipSpec {
-            armor: armor.clone(),
-            components: ship_components.clone(),
-            stats: stats.clone(),
-        },
-        armor_damage: Default::default(),
-        component_damage: Default::default()
-    };
+    let mut ship1 = ShipInstance::new(&components, ship_1_id, specs.clone());
+    println!("ship 1: {:?}", ship1);
 
     let ship_2_id = ShipInstanceId(1);
-    let mut ship2 = ShipInstance {
-        id: ship_2_id,
-        spec: ShipSpec {
-            armor: armor,
-            components: ship_components,
-            stats,
-        },
-        armor_damage: Default::default(),
-        component_damage: Default::default()
-    };
+    let mut ship2 = ShipInstance::new(&components, ship_2_id, specs.clone());
 
-//    let mut combat = ShipCombat::new(&mut ship1, &mut ship2);
-//    combat.set_distance(ship_1_id, ship_2_id, 1.0);
-//    combat.tick(0.1, 0.1);
-
-    let mut combat_ctx = CombatContext::new();
+    let mut combat_ctx = CombatContext::new(&components);
     combat_ctx.add_ship(&mut ship1);
     combat_ctx.add_ship(&mut ship2);
     combat_ctx.set_time(1.0, 1.0);

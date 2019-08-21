@@ -41,7 +41,7 @@ impl Extractables {
             let mut state = self.index.get_mut(&obj_id).unwrap();
             state.extractable = extractable;
         } else {
-            let mut state = State { extractable };
+            let state = State { extractable };
 
             self.index.insert(*obj_id, state);
         }
