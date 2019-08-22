@@ -68,7 +68,7 @@ pub fn run() {
     gaus_weapon.power_require = 1.0;
     gaus_weapon.weapon = Some(
         Weapon {
-            damage: 1.0,
+            damage: Damage(1),
             reload: 1.0,
             rounds: 1,
             damage_type: WeaponDamageType::Explosive,

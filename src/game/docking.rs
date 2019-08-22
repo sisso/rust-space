@@ -27,13 +27,16 @@ impl Docking {
     }
 
     pub fn init(&mut self, obj_id: &ObjId) {
+        unimplemented!();
+
         Log::info("docking", &format!("init {:?}", obj_id));
         self.index.insert(*obj_id, State::new());
     }
 
     pub fn set(&mut self, obj_id: &ObjId) {
-        let mut state = self.index.get_mut(&obj_id).unwrap();
-        Log::info("docking", &format!("set {:?}", obj_id));
+        unimplemented!();
+//        let mut state = self.index.get_mut(&obj_id).unwrap();
+//        Log::info("docking", &format!("set {:?}", obj_id));
     }
 
     pub fn save(&self, save: &mut impl Save) {}

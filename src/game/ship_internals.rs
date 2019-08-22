@@ -35,6 +35,9 @@ pub struct ComponentId(pub u32);
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct ShipInstanceId(pub u32);
 
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+pub struct Damage(pub u32);
+
 
 #[derive(Clone,Debug)]
 pub enum WeaponDamageType {
@@ -44,7 +47,7 @@ pub enum WeaponDamageType {
 
 #[derive(Clone,Debug)]
 pub struct Weapon {
-    pub damage: f32,
+    pub damage: Damage,
     pub reload: f32,
     pub rounds: u32,
     pub damage_type: WeaponDamageType
@@ -114,16 +117,15 @@ impl ShipSpec {
         self.components.get(component_id)
     }
 
-    pub fn find_weapons<'b>(&self, components: &'b Components) -> Vec<(&ComponentId, &u32, &'b Component, &'b Weapon)> {
+    pub fn find_weapons(&self, components: &Components) -> Vec<ComponentId> {
         self.components
             .iter()
-            .map(|(id, amount)| {
+            .filter(|(id, _)| {
                 let component = components.get(id);
-                (id, amount, component, component.weapon.as_ref())
+                component.weapon.is_some()
             })
-            .filter(|(_, _, _, weapon)| weapon.is_some())
-            .map(|(id, amount, component, some_weapon)| {
-                (id, amount, component, some_weapon.unwrap())
+            .map(|(id, _)| {
+                id.clone()
             })
             .collect()
     }
@@ -220,15 +222,20 @@ impl ShipInstance {
     pub fn new(components: &Components, id: ShipInstanceId, spec: ShipSpec) -> Self {
         let mut weapons_state = HashMap::new();
 
-        for (weapon_id, amount, _, _) in spec.find_weapons(components) {
+        for weapon_id in spec.find_weapons(components) {
+            let amount = *spec.amount(&weapon_id).unwrap();
             let mut vec = vec![];
-            for _ in 0..amount.clone() {
+            for _ in 0..amount {
                 vec.push(WeaponState::new());
             }
             weapons_state.insert(weapon_id.clone(), vec);
         }
 
         ShipInstance { id, spec, armor_damage: Default::default(), component_damage: Default::default(), weapons_state: weapons_state }
+    }
+
+    pub fn get_weapon_state(&mut self, id: &ComponentId, index: u32) -> &mut WeaponState {
+        self.weapons_state.get_mut(id).unwrap().get_mut(index as usize).unwrap()
     }
 }
 

@@ -73,7 +73,7 @@ impl LoadFromFile {
             components: HashMap::new(),
         };
 
-        let mut file = File::open(file_path).expect(&format!("failed to open file {:?}", file_path));
+        let file = File::open(file_path).expect(&format!("failed to open file {:?}", file_path));
 
         for line in BufReader::new(file).lines() {
             let line = line.expect(&format!("failed to read line from {:?}", file_path));

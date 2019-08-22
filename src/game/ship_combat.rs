@@ -6,9 +6,9 @@ use rand::Rng;
 #[derive(Clone,Debug)]
 pub enum CombatLog {
     NoTarget { id: ShipInstanceId },
-    Recharging { id: ShipInstanceId },
-    Miss { id: ShipInstanceId, target_id: ShipInstanceId },
-    Hit { id: ShipInstanceId, target_id: ShipInstanceId, damage: u32 },
+    Recharging { id: ShipInstanceId, weapon_id: ComponentId },
+    Miss { id: ShipInstanceId, target_id: ShipInstanceId, weapon_id: ComponentId},
+    Hit { id: ShipInstanceId, target_id: ShipInstanceId, damage: Damage, weapon_id: ComponentId },
 }
 
 /// Short-lived context used to run single combat run
@@ -67,11 +67,6 @@ impl Combat {
     }
 
     fn execute_attack(ctx: &mut CombatContext, logs: &mut Vec<CombatLog>, attacker_id: ShipInstanceId) {
-        if !Combat::is_weapon_ready(ctx, attacker_id) {
-            logs.push(CombatLog::Recharging { id: attacker_id });
-            return;
-        }
-
         let target_id = match Combat::search_best_target(ctx, attacker_id) {
             Some(target_id) => target_id,
             None => {
@@ -84,39 +79,50 @@ impl Combat {
     }
 
     fn execute_fire_at(ctx: &mut CombatContext, logs: &mut Vec<CombatLog>, attacker_id: ShipInstanceId, target_id: ShipInstanceId) {
-        let attacker = ctx.ships.get(&attacker_id).unwrap();
+        let mut attacker = ctx.ships.get_mut(&attacker_id).unwrap();
         let weapons = attacker.spec.find_weapons(ctx.components);
 
-        // fire all weapons
-        for (weapon_id, amount, component, weapon) in weapons {
-            for _ in 0..amount.clone() {
-                Combat::execute_fire_at_with(ctx, logs, attacker_id, *weapon_id, target_id);
+        for weapon_id in weapons {
+            let amount = *attacker.spec.amount(&weapon_id).unwrap();
+
+            for i in 0..amount {
+                let weapon_state = attacker.get_weapon_state(&weapon_id, i);
+                weapon_state.recharge -= ctx.delta_time;
+
+                let can_fire = weapon_state.recharge <= 0.0;
+                if can_fire {
+                    let weapon = ctx.components.get(&weapon_id).weapon.as_ref().unwrap();
+                    weapon_state.recharge += weapon.reload;
+
+                    for _ in 0..weapon.rounds {
+                        Combat::execute_fire_at_with(logs, attacker_id, weapon_id, target_id, weapon.damage);
+                    }
+                } else {
+                    logs.push(CombatLog::Recharging { id: attacker_id, weapon_id: weapon_id });
+                }
             }
         }
-
-//        // un-preapre all weapons
-//        let mut attacker = ctx.ships.get_mut(&attacker_id).unwrap();
-//        for (weapon_id, amount) in weapons {
-//            let mut state = attacker.weapons_state.get_mut(&weapon_id).unwrap();
-//            let weapon_spec = ctx.components.get(&weapon_id);
-//
-//            for i in 0..amount {
-//                state.get_mut(i as usize).unwrap().recharge = weapon_spec.weapon.unwrap().reload;
-//            }
-//        }
     }
 
-    fn execute_fire_at_with(ctx: &mut CombatContext, logs: &mut Vec<CombatLog>, attacker_id: ShipInstanceId, weapon_id: ComponentId, target_id: ShipInstanceId) {
-        let hit_chance = Combat::compute_hit_chance(ctx, attacker_id, target_id);
+    fn execute_fire_at_with(logs: &mut Vec<CombatLog>, attacker_id: ShipInstanceId, weapon_id: ComponentId, target_id: ShipInstanceId, damage: Damage) {
+        let hit_chance = Combat::compute_hit_chance(attacker_id, target_id);
         if Combat::roll(hit_chance) {
-            logs.push(CombatLog::Hit { id: attacker_id, target_id: target_id, damage: 1 });
+            logs.push(CombatLog::Hit {
+                id: attacker_id,
+                target_id: target_id,
+                damage: damage,
+                weapon_id: weapon_id
+            });
         } else {
-            logs.push(CombatLog::Miss { id: attacker_id, target_id: target_id });
-            return;
+            logs.push(CombatLog::Miss {
+                id: attacker_id,
+                target_id: target_id,
+                weapon_id: weapon_id
+            });
         }
     }
 
-    fn compute_hit_chance(ctx: &mut CombatContext, attacker_id: ShipInstanceId, target_id: ShipInstanceId) -> f32 {
+    fn compute_hit_chance(attacker_id: ShipInstanceId, target_id: ShipInstanceId) -> f32 {
         0.5
     }
 
