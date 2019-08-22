@@ -6,7 +6,7 @@ use rand::Rng;
 #[derive(Clone,Debug)]
 pub enum CombatLog {
     NoTarget { id: ShipInstanceId },
-    Recharging { id: ShipInstanceId, weapon_id: ComponentId },
+    Recharging { id: ShipInstanceId, weapon_id: ComponentId, wait_time: f32 },
     Miss { id: ShipInstanceId, target_id: ShipInstanceId, weapon_id: ComponentId},
     Hit { id: ShipInstanceId, target_id: ShipInstanceId, damage: Damage, weapon_id: ComponentId },
 }
@@ -36,6 +36,17 @@ impl<'a> CombatContext<'a> {
             panic!();
         }
         self.ships.insert(ship.id, ship);
+    }
+
+    pub fn get_ships(&self) -> Vec<ShipInstance> {
+        let mut vec = vec![];
+        for (_, ship) in &self.ships {
+            // remove clone
+            let instance: ShipInstance = ShipInstance::clone(ship);
+            vec.push(instance);
+        }
+
+        vec
     }
 
     pub fn set_distance(&mut self, id0: ShipInstanceId, id1: ShipInstanceId, distance: f32) {
@@ -87,7 +98,10 @@ impl Combat {
 
             for i in 0..amount {
                 let weapon_state = attacker.get_weapon_state(&weapon_id, i);
-                weapon_state.recharge -= ctx.delta_time;
+
+                if weapon_state.recharge > 0.0 {
+                    weapon_state.recharge -= ctx.delta_time;
+                }
 
                 let can_fire = weapon_state.recharge <= 0.0;
                 if can_fire {
@@ -98,7 +112,7 @@ impl Combat {
                         Combat::execute_fire_at_with(logs, attacker_id, weapon_id, target_id, weapon.damage);
                     }
                 } else {
-                    logs.push(CombatLog::Recharging { id: attacker_id, weapon_id: weapon_id });
+                    logs.push(CombatLog::Recharging { id: attacker_id, weapon_id: weapon_id, wait_time: weapon_state.recharge });
                 }
             }
         }

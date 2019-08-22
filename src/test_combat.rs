@@ -97,21 +97,35 @@ pub fn run() {
 
     let ship_1_id = ShipInstanceId(0);
     let mut ship1 = ShipInstance::new(&components, ship_1_id, specs.clone());
-    println!("ship 1: {:?}", ship1);
 
     let ship_2_id = ShipInstanceId(1);
     let mut ship2 = ShipInstance::new(&components, ship_2_id, specs.clone());
 
+    println!("ship: {:?}", ship1);
+    println!("ship: {:?}", ship2);
+
     let mut combat_ctx = CombatContext::new(&components);
     combat_ctx.add_ship(&mut ship1);
     combat_ctx.add_ship(&mut ship2);
-    combat_ctx.set_time(1.0, 1.0);
+    combat_ctx.set_time(0.5, 0.5);
     combat_ctx.set_distance(ship_1_id, ship_2_id, 1.0);
 
-    let logs = Combat::execute(&mut combat_ctx);
+    let mut time = 0.0;
+    let delta = 0.5;
 
-    println!("Combat result");
-    for log in logs {
-        println!("- {:?}", log);
+    for rounds in 0..5 {
+        time += delta;
+
+        combat_ctx.set_time(delta, time);
+        combat_ctx.set_distance(ship_1_id, ship_2_id, 1.0);
+
+        println!("round 1");
+        let logs = Combat::execute(&mut combat_ctx);
+        let ships = combat_ctx.get_ships();
+        println!("ship: {:?}", ships.get(0));
+        println!("ship: {:?}", ships.get(1));
+        for log in logs {
+            println!("- {:?}", log);
+        }
     }
 }
