@@ -1,7 +1,7 @@
 use crate::game::ship_internals::*;
 
 use std::collections::HashMap;
-use rand::Rng;
+use rand::{Rng, RngCore};
 
 #[derive(Clone,Debug)]
 pub enum CombatLog {
@@ -64,20 +64,73 @@ pub struct Combat {
 
 }
 
+struct DamageToApply {
+    target_id: ShipInstanceId,
+    amount: Damage,
+    damage_type: WeaponDamageType,
+}
+
 impl Combat {
 
     pub fn execute(ctx: &mut CombatContext) -> Vec<CombatLog> {
         let mut logs = vec![];
+        let mut damages = vec![];
         let ship_sequence = Combat::roll_order(&ctx.ships);
 
         for ship_id in ship_sequence {
-            Combat::execute_attack(ctx, &mut logs, ship_id);
+            Combat::execute_attack(ctx, &mut logs, &mut damages, ship_id);
+        }
+
+        for damage in damages {
+            Combat::apply_damage(ctx, &mut logs, damage);
         }
 
         logs
     }
 
-    fn execute_attack(ctx: &mut CombatContext, logs: &mut Vec<CombatLog>, attacker_id: ShipInstanceId) {
+    fn apply_damage(ctx: &mut CombatContext, logs: &mut Vec<CombatLog>, damage: DamageToApply) {
+        let mut ship = ctx.ships.get(&damage.target_id).unwrap();
+        let mut rng = rand::thread_rng();
+        let armor_width = ship.spec.armor.width;
+        let index = rng.next_u32() % armor_width;
+        let mut hull_damages = vec![];
+        let damage_indexes = Combat::generate_damage_indexes(&damage.damage_type, &damage.amount, index, armor_width);
+        for damage_index in damage_indexes {
+            if Combat::ship_apply_damage(logs, ship, damage_index) {
+                hull_damages.push(damage_index);
+            }
+        }
+
+        for hull_index in hull_damages {
+            Combat::ship_apply_hulldamage(logs, ship, hull_index);
+        }
+    }
+
+    // TODO: impl
+    fn generate_damage_indexes(damage_type: &WeaponDamageType, amount: &Damage, index: u32, armor_width: u32) -> Vec<u32> {
+        match damage_type {
+            WeaponDamageType::Explosive => {
+
+            },
+            WeaponDamageType::Penetration => {
+
+            },
+        }
+        vec![index]
+    }
+
+    /// return true if was not absorb by armor
+    // TODO: impl
+    fn ship_apply_damage(logs: &mut Vec<CombatLog>, ship: &&mut ShipInstance, damage_index: u32) -> bool {
+        false
+    }
+
+    // TODO: remove double reference
+    fn ship_apply_hulldamage(logs: &mut Vec<CombatLog>, ship: &&mut ShipInstance, hull_index: u32) {
+
+    }
+
+    fn execute_attack(ctx: &mut CombatContext, logs: &mut Vec<CombatLog>, damages: &mut Vec<DamageToApply>, attacker_id: ShipInstanceId) {
         let target_id = match Combat::search_best_target(ctx, attacker_id) {
             Some(target_id) => target_id,
             None => {
@@ -86,10 +139,10 @@ impl Combat {
             }
         };
 
-        Combat::execute_fire_at(ctx, logs, attacker_id, target_id);
+        Combat::execute_fire_at(ctx, logs, damages, attacker_id, target_id);
     }
 
-    fn execute_fire_at(ctx: &mut CombatContext, logs: &mut Vec<CombatLog>, attacker_id: ShipInstanceId, target_id: ShipInstanceId) {
+    fn execute_fire_at(ctx: &mut CombatContext, logs: &mut Vec<CombatLog>, damages: &mut Vec<DamageToApply>, attacker_id: ShipInstanceId, target_id: ShipInstanceId) {
         let mut attacker = ctx.ships.get_mut(&attacker_id).unwrap();
         let weapons = attacker.spec.find_weapons(ctx.components);
 
@@ -109,30 +162,33 @@ impl Combat {
                     weapon_state.recharge += weapon.reload;
 
                     for _ in 0..weapon.rounds {
-                        Combat::execute_fire_at_with(logs, attacker_id, weapon_id, target_id, weapon.damage);
+                        let hit_chance = Combat::compute_hit_chance(attacker_id, target_id);
+
+                        if Combat::roll(hit_chance) {
+                            logs.push(CombatLog::Hit {
+                                id: attacker_id,
+                                target_id: target_id,
+                                damage: weapon.damage,
+                                weapon_id: weapon_id
+                            });
+
+                            damages.push(DamageToApply {
+                                target_id,
+                                amount: weapon.damage,
+                                damage_type: weapon.damage_type.clone(),
+                            });
+                        } else {
+                            logs.push(CombatLog::Miss {
+                                id: attacker_id,
+                                target_id: target_id,
+                                weapon_id: weapon_id
+                            });
+                        }
                     }
                 } else {
                     logs.push(CombatLog::Recharging { id: attacker_id, weapon_id: weapon_id, wait_time: weapon_state.recharge });
                 }
             }
-        }
-    }
-
-    fn execute_fire_at_with(logs: &mut Vec<CombatLog>, attacker_id: ShipInstanceId, weapon_id: ComponentId, target_id: ShipInstanceId, damage: Damage) {
-        let hit_chance = Combat::compute_hit_chance(attacker_id, target_id);
-        if Combat::roll(hit_chance) {
-            logs.push(CombatLog::Hit {
-                id: attacker_id,
-                target_id: target_id,
-                damage: damage,
-                weapon_id: weapon_id
-            });
-        } else {
-            logs.push(CombatLog::Miss {
-                id: attacker_id,
-                target_id: target_id,
-                weapon_id: weapon_id
-            });
         }
     }
 
@@ -164,4 +220,62 @@ impl Combat {
     fn roll_order(ships: &HashMap<ShipInstanceId, &mut ShipInstance>) -> Vec<ShipInstanceId> {
         ships.keys().map(|i| *i).collect()
     }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn generate_damage_indexes_penetration_tests() {
+        fn test(damage: u32, expected: Vec<u32>) {
+            let value = Combat::generate_damage_indexes(&WeaponDamageType::Penetration, &Damage(damage), 1, 4);
+            assert_eq!(value, expected);
+        }
+
+        test(1, vec![1]);
+        test(2, vec![1, 1]);
+        test(3, vec![1, 1, 1]);
+        test(4, vec![1, 1, 1, 0]);
+        test(5, vec![1, 1, 1, 0, 2]);
+        test(6, vec![1, 1, 1, 0, 2, 1]);
+        test(7, vec![1, 1, 1, 0, 2, 1, 0]);
+        test(8, vec![1, 1, 1, 0, 2, 1, 0, 2]);
+        test(9, vec![1, 1, 1, 0, 2, 1, 0, 2, 1]);
+    }
+
+    #[test]
+    fn generate_damage_indexes_penetration_overflow_tests() {
+        fn test(index: u32, damage: u32, expected: Vec<u32>) {
+            let value = Combat::generate_damage_indexes(&WeaponDamageType::Penetration, &Damage(damage), index, 4);
+            assert_eq!(value, expected);
+        }
+
+        test(0, 9, vec![0, 0, 0, 3, 1, 0, 3, 1, 0]);
+        test(3, 9, vec![3, 3, 3, 2, 0, 3, 2, 0, 3]);
+    }
+
+    #[test]
+    fn generate_damage_indexes_explosion_tests() {
+        fn test(index: u32, damage: u32, expected: Vec<u32>) {
+            let value = Combat::generate_damage_indexes(&WeaponDamageType::Penetration, &Damage(1), index, 4);
+            assert_eq!(value, expected);
+        }
+
+        test(0, 1, vec![0]);
+        test(0, 2, vec![0, 3]);
+        test(0, 3, vec![0, 3, 1]);
+        test(0, 4, vec![0, 3, 1, 0]);
+        test(0, 5, vec![0, 3, 1, 0, 3]);
+        test(0, 6, vec![0, 3, 1, 0, 3, 1]);
+    }
+
+//    fn assert_vector<T: Eq>(v1: Vec<T>, v2: Vec<T>) {
+//        assert_eq!(v1.len(), v2.len());
+//
+//        for (a, b) in v1.into_iter().zip(v2.into_iter()) {
+//            assert_eq!(a, b);
+//        }
+//    }
 }

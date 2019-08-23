@@ -13,6 +13,7 @@ pub fn run() {
     let engine_room_id = components.next_id();
     let reactor_id = components.next_id();
     let gaus_weapon_id = components.next_id();
+    let lazer_weapon_id = components.next_id();
 
     let mut engine = Component::new(engine_id, ComponentType::Engine);
     engine.crew_require = 10.0;
@@ -70,36 +71,59 @@ pub fn run() {
         Weapon {
             damage: Damage(1),
             reload: 1.0,
-            rounds: 1,
+            rounds: 2,
             damage_type: WeaponDamageType::Explosive,
         }
     );
     components.add(gaus_weapon);
 
-    let mut ship_components = HashMap::new();
-    ship_components.insert(bridge_id, 1);
-    ship_components.insert(engine_id, 1);
-    ship_components.insert(fuel_tank_id, 1);
-    ship_components.insert(gaus_weapon_id, 3);
-    ship_components.insert(reactor_id, 1);
-    ship_components.insert(engine_room_id, 2);
-    ship_components.insert(quarters_id, 1);
+    let mut lazer_weapon = Component::new(lazer_weapon_id, ComponentType::Weapon);
+    lazer_weapon.crew_require = 5.0;
+    lazer_weapon.engineer_require = 1.0;
+    lazer_weapon.weight = 50.0;
+    lazer_weapon.width = 1.0;
+    lazer_weapon.power_require = 1.0;
+    lazer_weapon.weapon = Some(
+        Weapon {
+            damage: Damage(4),
+            reload: 2.0,
+            rounds: 1,
+            damage_type: WeaponDamageType::Penetration,
+        }
+    );
+    components.add(lazer_weapon);
 
-    let specs = ShipSpec::new(&components, ship_components, 2);
-    let valid = specs.is_valid();
+    let mut ship_components1 = HashMap::new();
+    ship_components1.insert(bridge_id, 1);
+    ship_components1.insert(engine_id, 1);
+    ship_components1.insert(fuel_tank_id, 1);
+    ship_components1.insert(gaus_weapon_id, 1);
+    ship_components1.insert(reactor_id, 1);
+    ship_components1.insert(engine_room_id, 2);
+    ship_components1.insert(quarters_id, 1);
 
-    println!("stats: {:?}", specs);
-    println!("valid: {:?}", valid);
+    let mut ship_components2 = ship_components1.clone();
+    ship_components2.remove(&gaus_weapon_id);
+    ship_components2.insert(lazer_weapon_id, 1);
 
-    if valid.is_err() {
+    let specs1 = ShipSpec::new(&components, ship_components1, 2);
+    let valid1 = specs1.is_valid();
+    println!("valid: {:?}", valid1);
+
+    let specs2 = ShipSpec::new(&components, ship_components2, 2);
+    let valid2 = specs2.is_valid();
+    println!("valid: {:?}", valid2);
+
+
+    if valid1.is_err() || valid2.is_err() {
         panic!();
     }
 
     let ship_1_id = ShipInstanceId(0);
-    let mut ship1 = ShipInstance::new(&components, ship_1_id, specs.clone());
+    let mut ship1 = ShipInstance::new(&components, ship_1_id, specs1);
 
     let ship_2_id = ShipInstanceId(1);
-    let mut ship2 = ShipInstance::new(&components, ship_2_id, specs.clone());
+    let mut ship2 = ShipInstance::new(&components, ship_2_id, specs2);
 
     println!("ship: {:?}", ship1);
     println!("ship: {:?}", ship2);

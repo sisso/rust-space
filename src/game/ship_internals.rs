@@ -270,16 +270,6 @@ impl Components {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn create_ship_test() {
-        assert!(true);
-    }
-}
-
 fn compute_width(components: &Components, ship_components: &HashMap<ComponentId, u32>) -> u32 {
     let sum = ship_components.iter().map(|(component_id, amount)| {
         components.get(component_id).width * *amount as f32
