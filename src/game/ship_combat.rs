@@ -2,6 +2,8 @@ use crate::game::ship_internals::*;
 
 use std::collections::HashMap;
 use rand::{Rng, RngCore};
+use std::borrow::BorrowMut;
+use crate::utils::Log;
 
 #[derive(Clone,Debug)]
 pub enum CombatLog {
@@ -64,6 +66,7 @@ pub struct Combat {
 
 }
 
+#[derive(Clone,Debug)]
 struct DamageToApply {
     target_id: ShipInstanceId,
     amount: Damage,
@@ -89,12 +92,13 @@ impl Combat {
     }
 
     fn apply_damage(ctx: &mut CombatContext, logs: &mut Vec<CombatLog>, damage: DamageToApply) {
-        let mut ship = ctx.ships.get(&damage.target_id).unwrap();
+        let mut ship = ctx.ships.get_mut(&damage.target_id).unwrap();
         let mut rng = rand::thread_rng();
         let armor_width = ship.spec.armor.width;
         let index = rng.next_u32() % armor_width;
         let mut hull_damages = vec![];
         let damage_indexes = Combat::generate_damage_indexes(&damage.damage_type, &damage.amount, index, armor_width);
+        Log::info("combat", &format!("{:?} check damage at {:?}", damage.target_id, damage));
         for damage_index in damage_indexes {
             if Combat::ship_apply_damage(logs, ship, damage_index) {
                 hull_damages.push(damage_index);
@@ -102,48 +106,125 @@ impl Combat {
         }
 
         for hull_index in hull_damages {
-            Combat::ship_apply_hulldamage(logs, ship, hull_index);
+            Combat::ship_apply_hulldamage(logs, ctx.components, ship, hull_index);
         }
     }
 
     // TODO: impl
     fn generate_damage_indexes(damage_type: &WeaponDamageType, amount: &Damage, index: u32, armor_width: u32) -> Vec<u32> {
-        let mut result = vec![];
-        println!("start {:?}", amount);
+        let index = index as i32;
+        let amount = amount.0 as i32;
+        let armor_width = armor_width as i32;
 
-        match damage_type {
-            WeaponDamageType::Explosive => {
-            },
-            WeaponDamageType::Penetration => {
-                for i in 0..amount.0 {
-                    let j =
-                        if i >= 3 {
-                            if i % 3 == 0 {
-                                index - 1
-                            } else if (i - 1) % 3 == 0 {
-                                index + 1
-                            } else {
-                                index
-                            }
-                        } else {
-                            index
-                        };
+        let mut result: Vec<u32> = vec![];
 
-                    result.push(j);
-                }
-            },
+        for i in 0..amount {
+            let mut j =
+                if i >= 3 {
+                    if i % 3 == 0 {
+                        index - 1
+                    } else if (i - 1) % 3 == 0 {
+                        index + 1
+                    } else {
+                        index
+                    }
+                } else {
+                    index
+                };
+
+            if j < 0 {
+                j += armor_width;
+            }
+
+            if j >= armor_width {
+                j -= armor_width;
+            }
+
+            result.push(j as u32);
         }
+//        match damage_type {
+//            WeaponDamageType::Explosive => {
+//                let layer = 0;
+//                let layer_width = 1;
+//
+//                for i in 0..amount.0 {
+//                    let index =  i + 1;
+//
+//                    let j =
+//                        if index == 1 {
+//                            0
+//                        } else if index == 2 {
+//                            -1
+//                        } else if index == 3 {
+//                            1
+//                        } else if index == 4 {
+//                            0
+//                        } else if index == 5 {
+//                            -2
+//                        } else if index == 6 {
+//                            -1
+//                        } else if index == 7 {
+//                            2
+//                        } else if index == 8 {
+//                            1
+//                        } else if index == 9 {
+//                            0
+//                        };
+//                    result.push(index + j);
+//                }
+//            },
+//            WeaponDamageType::Penetration => {
+//
+//            },
+//        }
         result
     }
 
     /// return true if was not absorb by armor
-    // TODO: impl
-    fn ship_apply_damage(logs: &mut Vec<CombatLog>, ship: &&mut ShipInstance, damage_index: u32) -> bool {
-        false
+    fn ship_apply_damage(logs: &mut Vec<CombatLog>, ship: &mut ShipInstance, damage_index: u32) -> bool {
+        let mut i = damage_index;
+        for layer in 0..ship.spec.armor.height {
+            if !ship.armor_damage.contains(&i) {
+                Log::info("combat", &format!("{:?} check damage at {:?}/{:?} hit armor", ship.id, damage_index, layer));
+                ship.armor_damage.insert(i);
+                return false;
+            }
+
+            i += ship.spec.armor.width;
+        }
+
+        Log::info("combat", &format!("{:?} check damage at {:?}:{:?} hit hull", ship.id, damage_index, ship.spec.armor.height));
+        true
     }
 
-    // TODO: remove double reference
-    fn ship_apply_hulldamage(logs: &mut Vec<CombatLog>, ship: &&mut ShipInstance, hull_index: u32) {
+    fn ship_apply_hulldamage(logs: &mut Vec<CombatLog>, components: &Components, ship: &mut ShipInstance, hull_index: u32) {
+        let component_table: Vec<(ComponentId, f32)> =
+            ship.spec.components.iter().map(|(id, amount)| {
+                let c = components.get(id);
+                let comp_width = c.width * (*amount as f32);
+                (c.id, comp_width)
+            }).collect();
+
+        let total: f32 = component_table.iter().map(|(_, i)| i).sum();
+
+        let mut rng = rand::thread_rng();
+        let mut hit = rng.next_u32() as f32 % total.ceil();
+
+        Log::debug("combat", &format!("{:?} component table, total {:?}, hit {:?}: {:?}", ship.id, total, hit, component_table));
+
+        for (id, width) in component_table {
+            hit -= width;
+
+            if hit <= 0.0 {
+                Log::debug("combat", &format!("{:?} hull hit at component {:?}", ship.id, id));
+
+                ship.component_damage.entry(id)
+                    .and_modify(|i| *i += 1)
+                    .or_insert(1);
+
+                break;
+            }
+        }
     }
 
     fn execute_attack(ctx: &mut CombatContext, logs: &mut Vec<CombatLog>, damages: &mut Vec<DamageToApply>, attacker_id: ShipInstanceId) {
@@ -261,16 +342,16 @@ mod tests {
         test(9, vec![1, 1, 1, 0, 2, 1, 0, 2, 1]);
     }
 
-//    #[test]
-//    fn generate_damage_indexes_penetration_overflow_tests() {
-//        fn test(index: u32, damage: u32, expected: Vec<u32>) {
-//            let value = Combat::generate_damage_indexes(&WeaponDamageType::Penetration, &Damage(damage), index, 4);
-//            assert_eq!(value, expected);
-//        }
-//
-//        test(0, 9, vec![0, 0, 0, 3, 1, 0, 3, 1, 0]);
-//        test(3, 9, vec![3, 3, 3, 2, 0, 3, 2, 0, 3]);
-//    }
+    #[test]
+    fn generate_damage_indexes_penetration_overflow_tests() {
+        fn test(index: u32, damage: u32, expected: Vec<u32>) {
+            let value = Combat::generate_damage_indexes(&WeaponDamageType::Penetration, &Damage(damage), index, 4);
+            assert_eq!(value, expected);
+        }
+
+        test(0, 9, vec![0, 0, 0, 3, 1, 0, 3, 1, 0]);
+        test(3, 9, vec![3, 3, 3, 2, 0, 3, 2, 0, 3]);
+    }
 //
 //    #[test]
 //    fn generate_damage_indexes_explosion_tests() {

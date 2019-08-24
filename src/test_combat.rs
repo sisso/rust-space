@@ -97,14 +97,14 @@ pub fn run() {
     ship_components1.insert(bridge_id, 1);
     ship_components1.insert(engine_id, 1);
     ship_components1.insert(fuel_tank_id, 1);
-    ship_components1.insert(gaus_weapon_id, 1);
+    ship_components1.insert(gaus_weapon_id, 3);
     ship_components1.insert(reactor_id, 1);
     ship_components1.insert(engine_room_id, 2);
     ship_components1.insert(quarters_id, 1);
 
     let mut ship_components2 = ship_components1.clone();
     ship_components2.remove(&gaus_weapon_id);
-    ship_components2.insert(lazer_weapon_id, 1);
+    ship_components2.insert(lazer_weapon_id, 2);
 
     let specs1 = ShipSpec::new(&components, ship_components1, 2);
     let valid1 = specs1.is_valid();

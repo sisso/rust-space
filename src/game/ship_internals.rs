@@ -214,7 +214,7 @@ pub struct ShipInstance {
     pub id: ShipInstanceId,
     pub spec: ShipSpec,
     pub armor_damage: HashSet<u32>,
-    pub component_damage: HashMap<u32, u32>,
+    pub component_damage: HashMap<ComponentId, u32>,
     pub weapons_state: HashMap<ComponentId, Vec<WeaponState>>,
 }
 
