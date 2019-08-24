@@ -38,6 +38,12 @@ pub struct ShipInstanceId(pub u32);
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct Damage(pub u32);
 
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+pub struct Amount(pub u32);
+
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+pub struct ArmorIndex(pub u32);
+
 
 #[derive(Clone,Debug)]
 pub enum WeaponDamageType {
@@ -252,7 +258,7 @@ pub struct ShipInstance {
     pub spec: ShipSpec,
     pub armor_damage: HashSet<u32>,
     pub component_damage: HashMap<ComponentId, u32>,
-//    pub component_destroyed: HashMap<ComponentId, Vec<u32>>,
+    pub component_destroyed: HashMap<ComponentId, u32>,
     pub weapons_state: HashMap<ComponentId, Vec<WeaponState>>,
 }
 
@@ -274,6 +280,7 @@ impl ShipInstance {
             spec,
             armor_damage: Default::default(),
             component_damage: Default::default(),
+            component_destroyed: Default::default(),
             weapons_state: weapons_state,
         }
     }

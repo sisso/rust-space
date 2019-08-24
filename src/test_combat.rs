@@ -72,7 +72,7 @@ pub fn run() {
         Weapon {
             damage: Damage(1),
             reload: 1.0,
-            rounds: 2,
+            rounds: 3,
             damage_type: WeaponDamageType::Explosive,
         }
     );
@@ -127,11 +127,11 @@ pub fn run() {
     ship_components2.insert(engine_room_id, 3);
     ship_components2.insert(quarters_id, 2);
 
-    let specs1 = ShipSpec::new(&components, ship_components1, 5);
+    let specs1 = ShipSpec::new(&components, ship_components1, 3);
     let valid1 = specs1.is_valid();
     println!("valid: {:?}", valid1);
 
-    let specs2 = ShipSpec::new(&components, ship_components2, 5);
+    let specs2 = ShipSpec::new(&components, ship_components2, 3);
     let valid2 = specs2.is_valid();
     println!("valid: {:?}", valid2);
 

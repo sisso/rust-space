@@ -11,6 +11,7 @@ pub enum CombatLog {
     Recharging { id: ShipInstanceId, weapon_id: ComponentId, wait_time: f32 },
     Miss { id: ShipInstanceId, target_id: ShipInstanceId, weapon_id: ComponentId},
     Hit { id: ShipInstanceId, target_id: ShipInstanceId, damage: Damage, weapon_id: ComponentId, armor_index: u32, hull_damage: bool },
+    ComponentDestroy { id: ShipInstanceId, component_id: ComponentId },
 }
 
 /// Short-lived context used to run single combat run
@@ -100,7 +101,7 @@ impl Combat {
         let index = rng.next_u32() % armor_width;
         let mut hull_damages = vec![];
         let damage_indexes = Combat::generate_damage_indexes(&damage.damage_type, &damage.amount, index, armor_width);
-        Log::info("combat", &format!("{:?} check damage at {:?}", damage.target_id, damage));
+//        Log::info("combat", &format!("{:?} check damage at {:?}", damage.target_id, damage));
         for damage_index in damage_indexes {
             let hull_damage = Combat::ship_apply_damage(logs, ship, damage_index);
             if hull_damage {
@@ -204,7 +205,7 @@ impl Combat {
         let mut i = damage_index;
         for layer in 0..ship.spec.armor.height {
             if !ship.armor_damage.contains(&i) {
-                Log::info("combat", &format!("{:?} check damage at {:?}/{:?} hit armor", ship.id, damage_index, layer));
+//                Log::info("combat", &format!("{:?} check damage at {:?}/{:?} hit armor", ship.id, damage_index, layer));
                 ship.armor_damage.insert(i);
                 return false;
             }
@@ -212,7 +213,7 @@ impl Combat {
             i += ship.spec.armor.width;
         }
 
-        Log::info("combat", &format!("{:?} check damage at {:?}:{:?} hit hull", ship.id, damage_index, ship.spec.armor.height));
+//        Log::info("combat", &format!("{:?} check damage at {:?}:{:?} hit hull", ship.id, damage_index, ship.spec.armor.height));
         true
     }
 
@@ -220,25 +221,35 @@ impl Combat {
         let mut rng = rand::thread_rng();
         let mut hit = rng.gen_range(0, ship.spec.component_table.total as i32);
 
-        Log::debug("combat", &format!("{:?} component table, total {:?}, hit {:?}: {:?}", ship.id, ship.spec.component_table.total, hit, ship.spec.component_table));
+//        Log::debug("combat", &format!("{:?} component table, total {:?}, hit {:?}: {:?}", ship.id, ship.spec.component_table.total, hit, ship.spec.component_table));
 
-        for (id, width) in ship.spec.component_table.sequence.iter() {
+        for (component_id, width) in ship.spec.component_table.sequence.iter() {
             hit -= *width as i32;
 
             if hit <= 0 {
-                Log::debug("combat", &format!("{:?} hull hit at component {:?}", ship.id, id));
+//                Log::debug("combat", &format!("{:?} hull hit at component {:?}", ship.id, component_id));
 
-                let total_damage = ship.component_damage.entry(*id)
+                let total_damage = ship.component_damage.entry(*component_id)
                     .and_modify(|i| *i += 1)
                     .or_insert(1);
 
-                let component = components.get(id);
+                let component = components.get(component_id);
+                let total_component_width = component.width * *ship.spec.components.get(component_id).unwrap();
+                let total_damage_percent = *total_damage as f32 / total_component_width as f32;
+                let mut rng = rand::thread_rng();
+                let chance = rng.gen::<f32>();
 
-                // TODO: destroy components
-//                if total_damage > *component.width {
-//                    // receive more damage that supported
-//                    ship.component_damage
-//                }
+                if chance < total_damage_percent {
+                    ship.component_damage
+                        .entry(*component_id)
+                        .and_modify(|amount| *amount += 1)
+                        .or_insert(1);
+
+                    logs.push(CombatLog::ComponentDestroy {
+                        id: ship.id,
+                        component_id: *component_id
+                    });
+                }
 
                 break;
             }
