@@ -110,10 +110,49 @@ impl Combat {
         }
     }
 
-    // TODO: impl
+    fn generate_explosive_damage_indexes(amount: u32, index: u32, armor_width: u32) -> Vec<u32> {
+        let armor_width = armor_width as i32;
+        let mut result: Vec<u32> = vec![];
+
+        let mut width = 0;
+        let mut left: bool = true;
+        let mut max_width = 0;
+        for i in 0..amount {
+            let mut relative;
+
+            if width == 0 {
+                left = true;
+                max_width += 1;
+                width = max_width;
+                relative = 0;
+            } else if left {
+                left = !left;
+                relative = -width;
+            } else {
+                left = !left;
+                relative = width;
+                width -= 1;
+            }
+
+            let next_index= Combat::normalize_width(index as i32 + relative, armor_width);
+            if let Some(next_index) = next_index {
+                result.push(next_index);
+            }
+        }
+
+        result
+    }
+
     fn generate_damage_indexes(damage_type: &WeaponDamageType, amount: &Damage, index: u32, armor_width: u32) -> Vec<u32> {
+        match damage_type {
+            WeaponDamageType::Penetration => Combat::generate_penetration_damage_indexes(amount.0, index,armor_width),
+            WeaponDamageType::Explosive => Combat::generate_explosive_damage_indexes(amount.0, index,armor_width),
+        }
+    }
+
+    fn generate_penetration_damage_indexes(amount: u32, index: u32, armor_width: u32) -> Vec<u32> {
         let index = index as i32;
-        let amount = amount.0 as i32;
+        let amount = amount as i32;
         let armor_width = armor_width as i32;
 
         let mut result: Vec<u32> = vec![];
@@ -132,52 +171,20 @@ impl Combat {
                     index
                 };
 
-            if j < 0 {
-                j += armor_width;
+            let next_index = Combat::normalize_width(j, armor_width);
+            if let Some(next_index) = next_index {
+                result.push(next_index);
             }
-
-            if j >= armor_width {
-                j -= armor_width;
-            }
-
-            result.push(j as u32);
         }
-//        match damage_type {
-//            WeaponDamageType::Explosive => {
-//                let layer = 0;
-//                let layer_width = 1;
-//
-//                for i in 0..amount.0 {
-//                    let index =  i + 1;
-//
-//                    let j =
-//                        if index == 1 {
-//                            0
-//                        } else if index == 2 {
-//                            -1
-//                        } else if index == 3 {
-//                            1
-//                        } else if index == 4 {
-//                            0
-//                        } else if index == 5 {
-//                            -2
-//                        } else if index == 6 {
-//                            -1
-//                        } else if index == 7 {
-//                            2
-//                        } else if index == 8 {
-//                            1
-//                        } else if index == 9 {
-//                            0
-//                        };
-//                    result.push(index + j);
-//                }
-//            },
-//            WeaponDamageType::Penetration => {
-//
-//            },
-//        }
         result
+    }
+
+    fn normalize_width(value: i32, max: i32) -> Option<u32> {
+        if value < 0 || value >= max {
+            None
+        } else {
+            Some(value as u32)
+        }
     }
 
     /// return true if was not absorb by armor
@@ -327,7 +334,7 @@ mod tests {
     #[test]
     fn generate_damage_indexes_penetration_tests() {
         fn test(damage: u32, expected: Vec<u32>) {
-            let value = Combat::generate_damage_indexes(&WeaponDamageType::Penetration, &Damage(damage), 1, 4);
+            let value = Combat::generate_penetration_damage_indexes(damage, 1, 4);
             assert_eq!(value, expected);
         }
 
@@ -345,26 +352,56 @@ mod tests {
     #[test]
     fn generate_damage_indexes_penetration_overflow_tests() {
         fn test(index: u32, damage: u32, expected: Vec<u32>) {
+            let value = Combat::generate_penetration_damage_indexes(damage, 1, 4);
             let value = Combat::generate_damage_indexes(&WeaponDamageType::Penetration, &Damage(damage), index, 4);
             assert_eq!(value, expected);
         }
 
-        test(0, 9, vec![0, 0, 0, 3, 1, 0, 3, 1, 0]);
-        test(3, 9, vec![3, 3, 3, 2, 0, 3, 2, 0, 3]);
+        test(0, 9, vec![0, 0, 0, 1, 0, 1, 0]);
+        test(3, 9, vec![3, 3, 3, 2, 3, 2, 3]);
     }
-//
-//    #[test]
-//    fn generate_damage_indexes_explosion_tests() {
-//        fn test(index: u32, damage: u32, expected: Vec<u32>) {
-//            let value = Combat::generate_damage_indexes(&WeaponDamageType::Penetration, &Damage(1), index, 4);
-//            assert_eq!(value, expected);
-//        }
-//
-//        test(0, 1, vec![0]);
-//        test(0, 2, vec![0, 3]);
-//        test(0, 3, vec![0, 3, 1]);
-//        test(0, 4, vec![0, 3, 1, 0]);
-//        test(0, 5, vec![0, 3, 1, 0, 3]);
-//        test(0, 6, vec![0, 3, 1, 0, 3, 1]);
-//    }
+
+    #[test]
+    fn generate_damage_indexes_explosion_tests() {
+        fn test(damage: u32, expected: Vec<u32>) {
+            let value = Combat::generate_explosive_damage_indexes(damage, 5, 10);
+            assert_eq!(value, expected);
+        }
+
+        test(1, vec![5]);
+        test(2, vec![5, 4]);
+        test(3, vec![5, 4, 6]);
+        test(4, vec![5, 4, 6, 5]);
+        test(5, vec![5, 4, 6, 5, 3]);
+        test(6, vec![5, 4, 6, 5, 3, 7]);
+        test(7, vec![5, 4, 6, 5, 3, 7, 4]);
+        test(8, vec![5, 4, 6, 5, 3, 7, 4, 6]);
+        test(9, vec![5, 4, 6, 5, 3, 7, 4, 6, 5]);
+    }
+
+    #[test]
+    fn generate_damage_indexes_explosion_tests_underflow() {
+        fn test(index: u32, damage: u32, expected: Vec<u32>) {
+            let value = Combat::generate_explosive_damage_indexes(damage, index, 4);
+            assert_eq!(value, expected);
+        }
+
+        test(0, 1, vec![0]);
+        test(0, 2, vec![0]);
+        test(0, 3, vec![0, 1]);
+        test(0, 4, vec![0, 1, 0]);
+    }
+
+    #[test]
+    fn generate_damage_indexes_explosion_tests_overflow() {
+        fn test(index: u32, damage: u32, expected: Vec<u32>) {
+            let value = Combat::generate_explosive_damage_indexes(damage, index, 4);
+            assert_eq!(value, expected);
+        }
+
+        test(3, 1, vec![3]);
+        test(3, 2, vec![3, 2]);
+        test(3, 3, vec![3, 2]);
+        test(3, 4, vec![3, 2, 3]);
+    }
 }
