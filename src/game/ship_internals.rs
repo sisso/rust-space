@@ -59,7 +59,7 @@ pub struct Component {
     pub component_type: ComponentType,
     pub weapon: Option<Weapon>,
     pub thrust: f32,
-    pub weight: f32,
+    pub weight: u32,
     pub crew_require: f32,
     pub crew_provide: f32,
     pub power_require: f32,
@@ -67,7 +67,7 @@ pub struct Component {
     pub engineer_provide: f32,
     pub engineer_require: f32,
     pub fuel_consume: f32,
-    pub width: f32,
+    pub width: u32,
     pub fuel_hold: f32,
 }
 
@@ -78,7 +78,7 @@ impl Component {
             component_type: component_type,
             weapon: None,
             thrust: 0.0,
-            weight: 0.0,
+            weight: 0,
             crew_require: 0.0,
             crew_provide: 0.0,
             power_require: 0.0,
@@ -86,7 +86,7 @@ impl Component {
             engineer_provide: 0.0,
             engineer_require: 0.0,
             fuel_consume: 0.0,
-            width: 0.0,
+            width: 0,
             fuel_hold: 0.0,
         }
     }
@@ -104,13 +104,21 @@ pub struct ShipSpec {
     pub armor: Armor,
     pub components: HashMap<ComponentId, u32>,
     pub stats: ShipStats,
+    pub component_table: ComponentTable,
 }
 
 impl ShipSpec {
     pub fn new(components: &Components, ship_components: HashMap<ComponentId, u32>, armor_height: u32) -> Self {
-        let armor = Armor::new(compute_width(components, &ship_components), armor_height);
+        let component_table = ComponentTable::new(components, &ship_components);
+        let armor = Armor::new(component_table.total, armor_height);
         let stats = ShipSpec::compute_ship_stats(components, &ship_components, &armor);
-        ShipSpec { armor: armor, components: ship_components, stats: stats }
+
+        ShipSpec {
+            armor: armor,
+            components: ship_components,
+            stats: stats,
+            component_table
+        }
     }
 
     pub fn amount(&self, component_id: &ComponentId) -> Option<&u32> {
@@ -137,6 +145,8 @@ impl ShipSpec {
         let mut crew = 0.0;
         let mut engineer = 0.0;
         let mut thrust: f32 = 0.0;
+        let mut weight: u32 = 0;
+        let mut width: u32 = 0;
 
         let mut mapped: HashMap<ComponentId, (&u32, &Component)> = HashMap::new();
         for (id, amount) in ship_components {
@@ -151,16 +161,19 @@ impl ShipSpec {
             crew += component.crew_provide * famount - component.crew_require * famount;
             engineer += component.engineer_provide * famount - component.engineer_require * famount;
             thrust += component.thrust * famount;
+            weight += component.weight * amount;
+            width  += component.width * amount;
 
             mapped.insert(*id, (amount, component));
         }
 
-        let weight = compute_weight(components, ship_components, armor);
+        let armor_weight = armor.width * armor.height * 10;
+        weight += armor_weight;
 
         ShipStats {
             bridge: has_bridge,
             total_weight: weight,
-            total_width: compute_width(components, ship_components),
+            total_width: width,
             power_balance: power,
             crew_balance: crew,
             engineer_balance: engineer,
@@ -209,12 +222,37 @@ impl WeaponState {
     }
 }
 
+#[derive(Clone,Debug)]
+pub struct ComponentTable {
+    pub total: u32,
+    pub sequence: Vec<(ComponentId, u32)>,
+}
+
+impl ComponentTable {
+    pub fn new(components: &Components, amounts: &HashMap<ComponentId, u32>) -> Self {
+        let sequence: Vec<(ComponentId, u32)> =
+            amounts.iter().map(|(id, amount)| {
+                let component = components.get(id);
+                let comp_width = component.width * *amount;
+                (component.id, comp_width)
+            }).collect();
+
+        let total: u32 = sequence.iter().map(|(_, i)| i).sum();
+
+        ComponentTable {
+            total: total,
+            sequence: sequence
+        }
+    }
+}
+
 #[derive(Debug,Clone)]
 pub struct ShipInstance {
     pub id: ShipInstanceId,
     pub spec: ShipSpec,
     pub armor_damage: HashSet<u32>,
     pub component_damage: HashMap<ComponentId, u32>,
+//    pub component_destroyed: HashMap<ComponentId, Vec<u32>>,
     pub weapons_state: HashMap<ComponentId, Vec<WeaponState>>,
 }
 
@@ -231,7 +269,13 @@ impl ShipInstance {
             weapons_state.insert(weapon_id.clone(), vec);
         }
 
-        ShipInstance { id, spec, armor_damage: Default::default(), component_damage: Default::default(), weapons_state: weapons_state }
+        ShipInstance {
+            id,
+            spec,
+            armor_damage: Default::default(),
+            component_damage: Default::default(),
+            weapons_state: weapons_state,
+        }
     }
 
     pub fn get_weapon_state(&mut self, id: &ComponentId, index: u32) -> &mut WeaponState {
@@ -270,14 +314,6 @@ impl Components {
     }
 }
 
-fn compute_width(components: &Components, ship_components: &HashMap<ComponentId, u32>) -> u32 {
-    let sum = ship_components.iter().map(|(component_id, amount)| {
-        components.get(component_id).width * *amount as f32
-    }).sum();
-
-    round_width(sum)
-}
-
 #[derive(Debug, Clone)]
 pub enum ShipComponentsValidation {
     NoBridge,
@@ -297,17 +333,6 @@ pub struct ShipStats {
     pub engineer_balance: f32,
     pub thrust: f32,
     pub speed: f32,
-}
-
-
-fn compute_weight(components: &Components, ship_components: &HashMap<ComponentId, u32>, armor: &Armor) -> u32 {
-    let sum: f32 = ship_components.iter().map(|(component_id, amount)| {
-        components.get(component_id).weight * *amount as f32
-    }).sum();
-
-    let armor_sum = (armor.width * armor.height * 10) as f32;
-
-    round_weight(sum + armor_sum)
 }
 
 fn round_width(value: f32) -> u32 {

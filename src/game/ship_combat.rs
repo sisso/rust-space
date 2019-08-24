@@ -10,7 +10,7 @@ pub enum CombatLog {
     NoTarget { id: ShipInstanceId },
     Recharging { id: ShipInstanceId, weapon_id: ComponentId, wait_time: f32 },
     Miss { id: ShipInstanceId, target_id: ShipInstanceId, weapon_id: ComponentId},
-    Hit { id: ShipInstanceId, target_id: ShipInstanceId, damage: Damage, weapon_id: ComponentId },
+    Hit { id: ShipInstanceId, target_id: ShipInstanceId, damage: Damage, weapon_id: ComponentId, armor_index: u32, hull_damage: bool },
 }
 
 /// Short-lived context used to run single combat run
@@ -68,8 +68,10 @@ pub struct Combat {
 
 #[derive(Clone,Debug)]
 struct DamageToApply {
+    attacker_id: ShipInstanceId,
     target_id: ShipInstanceId,
     amount: Damage,
+    weapon_id: ComponentId,
     damage_type: WeaponDamageType,
 }
 
@@ -100,9 +102,19 @@ impl Combat {
         let damage_indexes = Combat::generate_damage_indexes(&damage.damage_type, &damage.amount, index, armor_width);
         Log::info("combat", &format!("{:?} check damage at {:?}", damage.target_id, damage));
         for damage_index in damage_indexes {
-            if Combat::ship_apply_damage(logs, ship, damage_index) {
+            let hull_damage = Combat::ship_apply_damage(logs, ship, damage_index);
+            if hull_damage {
                 hull_damages.push(damage_index);
             }
+
+            logs.push(CombatLog::Hit {
+                id: damage.attacker_id,
+                target_id: damage.target_id,
+                damage: damage.amount,
+                weapon_id: damage.weapon_id,
+                armor_index: damage_index,
+                hull_damage: hull_damage
+            });
         }
 
         for hull_index in hull_damages {
@@ -205,29 +217,28 @@ impl Combat {
     }
 
     fn ship_apply_hulldamage(logs: &mut Vec<CombatLog>, components: &Components, ship: &mut ShipInstance, hull_index: u32) {
-        let component_table: Vec<(ComponentId, f32)> =
-            ship.spec.components.iter().map(|(id, amount)| {
-                let c = components.get(id);
-                let comp_width = c.width * (*amount as f32);
-                (c.id, comp_width)
-            }).collect();
-
-        let total: f32 = component_table.iter().map(|(_, i)| i).sum();
-
         let mut rng = rand::thread_rng();
-        let mut hit = rng.next_u32() as f32 % total.ceil();
+        let mut hit = rng.gen_range(0, ship.spec.component_table.total as i32);
 
-        Log::debug("combat", &format!("{:?} component table, total {:?}, hit {:?}: {:?}", ship.id, total, hit, component_table));
+        Log::debug("combat", &format!("{:?} component table, total {:?}, hit {:?}: {:?}", ship.id, ship.spec.component_table.total, hit, ship.spec.component_table));
 
-        for (id, width) in component_table {
-            hit -= width;
+        for (id, width) in ship.spec.component_table.sequence.iter() {
+            hit -= *width as i32;
 
-            if hit <= 0.0 {
+            if hit <= 0 {
                 Log::debug("combat", &format!("{:?} hull hit at component {:?}", ship.id, id));
 
-                ship.component_damage.entry(id)
+                let total_damage = ship.component_damage.entry(*id)
                     .and_modify(|i| *i += 1)
                     .or_insert(1);
+
+                let component = components.get(id);
+
+                // TODO: destroy components
+//                if total_damage > *component.width {
+//                    // receive more damage that supported
+//                    ship.component_damage
+//                }
 
                 break;
             }
@@ -269,16 +280,11 @@ impl Combat {
                         let hit_chance = Combat::compute_hit_chance(attacker_id, target_id);
 
                         if Combat::roll(hit_chance) {
-                            logs.push(CombatLog::Hit {
-                                id: attacker_id,
-                                target_id: target_id,
-                                damage: weapon.damage,
-                                weapon_id: weapon_id
-                            });
-
                             damages.push(DamageToApply {
+                                attacker_id,
                                 target_id,
                                 amount: weapon.damage,
+                                weapon_id,
                                 damage_type: weapon.damage_type.clone(),
                             });
                         } else {

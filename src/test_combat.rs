@@ -14,58 +14,59 @@ pub fn run() {
     let reactor_id = components.next_id();
     let gaus_weapon_id = components.next_id();
     let lazer_weapon_id = components.next_id();
+    let plasma_weapon_id = components.next_id();
 
     let mut engine = Component::new(engine_id, ComponentType::Engine);
     engine.crew_require = 10.0;
     engine.thrust = 200.0;
-    engine.weight = 1000.0;
+    engine.weight = 1000;
     engine.fuel_consume = 0.062;
-    engine.width = 10.0;
+    engine.width = 10;
     engine.engineer_require = 10.0;
     components.add(engine);
 
     let mut fuel_tank = Component::new(fuel_tank_id, ComponentType::FuelTank);
     fuel_tank.crew_require = 0.5;
-    fuel_tank.weight = 100.0;
+    fuel_tank.weight = 100;
     fuel_tank.fuel_hold = 5000.0;
-    fuel_tank.width = 1.0;
+    fuel_tank.width = 1;
     fuel_tank.engineer_require = 0.1;
     components.add(fuel_tank);
 
     let mut bridge = Component::new(bridge_id, ComponentType::Bridge);
     bridge.crew_require = 5.0;
     bridge.engineer_require = 1.0;
-    bridge.weight = 50.0;
-    bridge.width = 1.0;
+    bridge.weight = 50;
+    bridge.width = 1;
     components.add(bridge);
 
     let mut quarters = Component::new(quarters_id, ComponentType::Quarter);
     quarters.crew_provide = 50.0;
     quarters.engineer_require = 0.1;
-    quarters.weight = 50.0;
-    quarters.width = 1.0;
+    quarters.weight = 50;
+    quarters.width = 1;
     components.add(quarters);
 
     let mut enginer_room = Component::new(engine_room_id, ComponentType::Engineer);
     enginer_room.crew_require = 5.0;
     enginer_room.engineer_provide = 10.0;
-    enginer_room.weight = 50.0;
-    enginer_room.width = 1.0;
+    enginer_room.weight = 50;
+    enginer_room.width = 1;
     components.add(enginer_room);
 
     let mut reactor = Component::new(reactor_id, ComponentType::PowerGenerator);
     reactor.crew_require = 5.0;
     reactor.engineer_require = 5.0;
-    reactor.weight = 50.0;
+    reactor.weight = 50;
     reactor.power_generate = 5.0;
-    reactor.width = 1.0;
+    reactor.width = 1;
     components.add(reactor);
 
     let mut gaus_weapon = Component::new(gaus_weapon_id, ComponentType::Weapon);
     gaus_weapon.crew_require = 5.0;
     gaus_weapon.engineer_require = 1.0;
-    gaus_weapon.weight = 50.0;
-    gaus_weapon.width = 1.0;
+    gaus_weapon.weight = 50;
+    gaus_weapon.width = 1;
     gaus_weapon.power_require = 1.0;
     gaus_weapon.weapon = Some(
         Weapon {
@@ -80,8 +81,8 @@ pub fn run() {
     let mut lazer_weapon = Component::new(lazer_weapon_id, ComponentType::Weapon);
     lazer_weapon.crew_require = 5.0;
     lazer_weapon.engineer_require = 1.0;
-    lazer_weapon.weight = 50.0;
-    lazer_weapon.width = 1.0;
+    lazer_weapon.weight = 50;
+    lazer_weapon.width = 1;
     lazer_weapon.power_require = 1.0;
     lazer_weapon.weapon = Some(
         Weapon {
@@ -93,24 +94,44 @@ pub fn run() {
     );
     components.add(lazer_weapon);
 
-    let mut ship_components1 = HashMap::new();
-    ship_components1.insert(bridge_id, 1);
-    ship_components1.insert(engine_id, 1);
-    ship_components1.insert(fuel_tank_id, 1);
+    let mut plasma_weapon = Component::new(plasma_weapon_id, ComponentType::Weapon);
+    plasma_weapon.crew_require = 5.0;
+    plasma_weapon.engineer_require = 1.0;
+    plasma_weapon.weight = 50;
+    plasma_weapon.width = 1;
+    plasma_weapon.power_require = 3.0;
+    plasma_weapon.weapon = Some(
+        Weapon {
+            damage: Damage(4),
+            reload: 2.0,
+            rounds: 1,
+            damage_type: WeaponDamageType::Explosive,
+        }
+    );
+    components.add(plasma_weapon);
+
+    let mut base_components = HashMap::new();
+    base_components.insert(bridge_id, 1);
+    base_components.insert(engine_id, 1);
+    base_components.insert(fuel_tank_id, 1);
+    base_components.insert(reactor_id, 1);
+    base_components.insert(engine_room_id, 2);
+    base_components.insert(quarters_id, 1);
+
+    let mut ship_components1 = base_components.clone();
     ship_components1.insert(gaus_weapon_id, 3);
-    ship_components1.insert(reactor_id, 1);
-    ship_components1.insert(engine_room_id, 2);
-    ship_components1.insert(quarters_id, 1);
 
-    let mut ship_components2 = ship_components1.clone();
-    ship_components2.remove(&gaus_weapon_id);
-    ship_components2.insert(lazer_weapon_id, 2);
+    let mut ship_components2 = base_components.clone();
+    ship_components2.insert(plasma_weapon_id, 2);
+    ship_components2.insert(reactor_id, 2);
+    ship_components2.insert(engine_room_id, 3);
+    ship_components2.insert(quarters_id, 2);
 
-    let specs1 = ShipSpec::new(&components, ship_components1, 2);
+    let specs1 = ShipSpec::new(&components, ship_components1, 5);
     let valid1 = specs1.is_valid();
     println!("valid: {:?}", valid1);
 
-    let specs2 = ShipSpec::new(&components, ship_components2, 2);
+    let specs2 = ShipSpec::new(&components, ship_components2, 5);
     let valid2 = specs2.is_valid();
     println!("valid: {:?}", valid2);
 
@@ -135,9 +156,9 @@ pub fn run() {
     combat_ctx.set_distance(ship_1_id, ship_2_id, 1.0);
 
     let mut time = 0.0;
-    let delta = 0.5;
+    let delta = 1.0;
 
-    for rounds in 0..5 {
+    for rounds in 0..10 {
         time += delta;
 
         combat_ctx.set_time(delta, time);
@@ -147,9 +168,31 @@ pub fn run() {
         let logs = Combat::execute(&mut combat_ctx);
         let ships = combat_ctx.get_ships();
         println!("ship: {:?}", ships.get(0));
+        println!("{}", print_hull(ships.get(0).unwrap()));
         println!("ship: {:?}", ships.get(1));
+        println!("{}", print_hull(ships.get(1).unwrap()));
         for log in logs {
             println!("- {:?}", log);
         }
     }
+}
+
+fn print_hull(ship: &ShipInstance) -> String {
+    let mut buffer = String::new();
+    let mut index = 0;
+
+    for layer in 0..ship.spec.armor.height {
+        for i in 0..ship.spec.armor.width {
+            if ship.armor_damage.contains(&index) {
+                buffer.push('.');
+            } else {
+                buffer.push('#');
+            }
+
+            index += 1;
+        }
+        buffer.push('\n');
+    }
+
+    buffer
 }
