@@ -117,7 +117,7 @@ impl ShipSpec {
     pub fn new(components: &Components, ship_components: HashMap<ComponentId, u32>, armor_height: u32) -> Self {
         let component_table = ComponentTable::new(components, &ship_components);
         let armor = Armor::new(component_table.total, armor_height);
-        let stats = ShipSpec::compute_ship_stats(components, &ship_components, &armor);
+        let stats = ShipSpec::compute_ship_stats(components, &ship_components, &armor, &HashMap::new());
 
         ShipSpec {
             armor: armor,
@@ -144,7 +144,7 @@ impl ShipSpec {
             .collect()
     }
 
-    pub fn compute_ship_stats(components: &Components, ship_components: &HashMap<ComponentId, u32>, armor: &Armor) -> ShipStats {
+    pub fn compute_ship_stats(components: &Components, ship_components: &HashMap<ComponentId, u32>, armor: &Armor, destroyed_components: &HashMap<ComponentId, Amount>) -> ShipStats {
         let mut has_bridge = false;
 
         let mut power = 0.0;
@@ -154,23 +154,29 @@ impl ShipSpec {
         let mut weight: u32 = 0;
         let mut width: u32 = 0;
 
-        let mut mapped: HashMap<ComponentId, (&u32, &Component)> = HashMap::new();
         for (id, amount) in ship_components {
-            let famount = *amount as f32;
             let component = components.get(id);
+            let destroyed_amount = destroyed_components.get(id).unwrap_or(&Amount(0));
+
+            weight += component.weight * amount;
+            width  += component.width * amount;
+
+            if destroyed_amount.0 >= *amount {
+                // all components from this category were destroyed
+                continue;
+            }
+
+            let active_amount = *amount - destroyed_amount.0;
+            let active_amount_f32 = active_amount as f32;
 
             if let ComponentType::Bridge = component.component_type {
                 has_bridge = true;
             }
 
-            power += component.power_generate * famount - component.power_require * famount;
-            crew += component.crew_provide * famount - component.crew_require * famount;
-            engineer += component.engineer_provide * famount - component.engineer_require * famount;
-            thrust += component.thrust * famount;
-            weight += component.weight * amount;
-            width  += component.width * amount;
-
-            mapped.insert(*id, (amount, component));
+            power += component.power_generate * active_amount_f32 - component.power_require * active_amount_f32;
+            crew += component.crew_provide * active_amount_f32 - component.crew_require * active_amount_f32;
+            engineer += component.engineer_provide * active_amount_f32 - component.engineer_require * active_amount_f32;
+            thrust += component.thrust * active_amount_f32;
         }
 
         let armor_weight = armor.width * armor.height * 10;
@@ -256,9 +262,11 @@ impl ComponentTable {
 pub struct ShipInstance {
     pub id: ShipInstanceId,
     pub spec: ShipSpec,
-    pub armor_damage: HashSet<u32>,
-    pub component_damage: HashMap<ComponentId, u32>,
-    pub component_destroyed: HashMap<ComponentId, u32>,
+    /// instance ship stats considering current damaged components
+    pub current_stats: ShipStats,
+    pub armor_damage: HashSet<ArmorIndex>,
+    pub component_damage: HashMap<ComponentId, Damage>,
+    pub component_destroyed: HashMap<ComponentId, Amount>,
     pub weapons_state: HashMap<ComponentId, Vec<WeaponState>>,
 }
 
@@ -275,18 +283,26 @@ impl ShipInstance {
             weapons_state.insert(weapon_id.clone(), vec);
         }
 
+        let stats = spec.stats.clone();
+
         ShipInstance {
             id,
             spec,
+            current_stats: stats,
             armor_damage: Default::default(),
             component_damage: Default::default(),
             component_destroyed: Default::default(),
-            weapons_state: weapons_state,
+            weapons_state,
         }
     }
 
     pub fn get_weapon_state(&mut self, id: &ComponentId, index: u32) -> &mut WeaponState {
         self.weapons_state.get_mut(id).unwrap().get_mut(index as usize).unwrap()
+    }
+
+    pub fn update_stats(&mut self, components: &Components) {
+        let new_stats = ShipSpec::compute_ship_stats(components, &self.spec.components, &self.spec.armor, &self.component_destroyed);
+        self.current_stats = new_stats;
     }
 }
 
@@ -303,9 +319,9 @@ impl Components {
         }
     }
 
-    pub fn next_id(&mut self) -> ComponentId {
-        ComponentId(self.next_id.next())
-    }
+//    pub fn next_id(&mut self) -> ComponentId {
+//        ComponentId(self.next_id.next())
+//    }
 
     pub fn add(&mut self, component: Component) {
         if self.index.contains_key(&component.id) {

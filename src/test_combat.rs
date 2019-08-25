@@ -6,15 +6,15 @@ use crate::game::ship_combat::*;
 pub fn run() {
     let mut components = Components::new();
 
-    let engine_id = components.next_id();
-    let fuel_tank_id = components.next_id();
-    let bridge_id = components.next_id();
-    let quarters_id = components.next_id();
-    let engine_room_id = components.next_id();
-    let reactor_id = components.next_id();
-    let gaus_weapon_id = components.next_id();
-    let lazer_weapon_id = components.next_id();
-    let plasma_weapon_id = components.next_id();
+    let engine_id = ComponentId(0);
+    let fuel_tank_id = ComponentId(1);
+    let bridge_id = ComponentId(2);
+    let quarters_id = ComponentId(3);
+    let engine_room_id = ComponentId(4);
+    let reactor_id = ComponentId(5);
+    let gaus_weapon_id = ComponentId(6);
+    let lazer_weapon_id = ComponentId(7);
+    let plasma_weapon_id = ComponentId(8);
 
     let mut engine = Component::new(engine_id, ComponentType::Engine);
     engine.crew_require = 10.0;
@@ -158,22 +158,32 @@ pub fn run() {
     let mut time = 0.0;
     let delta = 1.0;
 
-    for rounds in 0..10 {
+    for round in 0..20 {
         time += delta;
 
         combat_ctx.set_time(delta, time);
         combat_ctx.set_distance(ship_1_id, ship_2_id, 1.0);
 
-        println!("round 1");
+        println!("-----------------------------------------------------------");
+        println!("round {}", round);
+        println!("-----------------------------------------------------------");
+
         let logs = Combat::execute(&mut combat_ctx);
         let ships = combat_ctx.get_ships();
+
         println!("ship: {:?}", ships.get(0));
-        println!("{}", print_hull(ships.get(0).unwrap()));
         println!("ship: {:?}", ships.get(1));
-        println!("{}", print_hull(ships.get(1).unwrap()));
+
         for log in logs {
             println!("- {:?}", log);
         }
+
+        println!("{}", print_hull(ships.get(0).unwrap()));
+        println!("{}", print_hull(ships.get(1).unwrap()));
+
+//        println!("<press to continue>");
+//        print!("{}[2J", 27 as char);
+//        let _ = std::io::stdin().read_line(&mut String::new());
     }
 }
 
@@ -183,7 +193,7 @@ fn print_hull(ship: &ShipInstance) -> String {
 
     for layer in 0..ship.spec.armor.height {
         for i in 0..ship.spec.armor.width {
-            if ship.armor_damage.contains(&index) {
+            if ship.armor_damage.contains(&ArmorIndex(index)) {
                 buffer.push('.');
             } else {
                 buffer.push('#');
