@@ -23,6 +23,8 @@
 //    };
 //}
 
+#![allow(warnings)]
+
 mod game;
 mod utils;
 mod local_game;

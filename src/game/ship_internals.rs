@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::utils::{Log, NextId};
+use crate::utils::{Log, NextId, Speed};
 
 #[derive(Clone,Debug)]
 pub struct Armor {
@@ -44,6 +44,12 @@ pub struct Amount(pub u32);
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct ArmorIndex(pub u32);
 
+// TODO: width in meters? 10 meters per width? normal ship 19?
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+pub struct Width(pub u32);
+
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+pub struct Tons(pub u32);
 
 #[derive(Clone,Debug)]
 pub enum WeaponDamageType {
@@ -190,7 +196,7 @@ impl ShipSpec {
             crew_balance: crew,
             engineer_balance: engineer,
             thrust: thrust,
-            speed: 10.0 * thrust / (weight as f32),
+            speed: Speed(10.0 * thrust / (weight as f32)),
         }
     }
 
@@ -355,7 +361,7 @@ pub struct ShipStats {
     pub crew_balance: f32,
     pub engineer_balance: f32,
     pub thrust: f32,
-    pub speed: f32,
+    pub speed: Speed,
 }
 
 fn round_width(value: f32) -> u32 {

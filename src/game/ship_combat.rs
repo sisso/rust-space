@@ -3,7 +3,7 @@ use crate::game::ship_internals::*;
 use std::collections::{HashMap, HashSet};
 use rand::{Rng, RngCore};
 use std::borrow::BorrowMut;
-use crate::utils::Log;
+use crate::utils::{Log, Speed};
 
 #[derive(Clone,Debug)]
 pub enum CombatLog {
@@ -283,11 +283,19 @@ impl Combat {
     }
 
     fn execute_fire_at(ctx: &mut CombatContext, logs: &mut Vec<CombatLog>, damages: &mut Vec<DamageToApply>, attacker_id: ShipInstanceId, target_id: ShipInstanceId) {
+        let defender_stats = {
+            let ship = ctx.ships.get(&target_id).unwrap();
+            (ship.current_stats.total_width, ship.current_stats.speed)
+        };
+
         let mut attacker = ctx.ships.get_mut(&attacker_id).unwrap();
         let weapons = attacker.spec.find_weapons(ctx.components);
 
         for weapon_id in weapons {
+            let weapon = ctx.components.get(&weapon_id).weapon.as_ref().unwrap();
             let amount = *attacker.spec.amount(&weapon_id).unwrap();
+
+            let hit_chance = Combat::compute_hit_chance(weapon, attacker.current_stats.speed, defender_stats.0, defender_stats.1);
 
             for i in 0..amount {
                 let weapon_state = attacker.get_weapon_state(&weapon_id, i);
@@ -298,12 +306,9 @@ impl Combat {
 
                 let can_fire = weapon_state.recharge <= 0.0;
                 if can_fire {
-                    let weapon = ctx.components.get(&weapon_id).weapon.as_ref().unwrap();
                     weapon_state.recharge += weapon.reload;
 
                     for _ in 0..weapon.rounds {
-                        let hit_chance = Combat::compute_hit_chance(attacker_id, target_id);
-
                         if Combat::roll(hit_chance) {
                             damages.push(DamageToApply {
                                 attacker_id,
@@ -327,8 +332,18 @@ impl Combat {
         }
     }
 
-    fn compute_hit_chance(attacker_id: ShipInstanceId, target_id: ShipInstanceId) -> f32 {
-        0.5
+    // TODO: the ration should not be speed speed, but tracking speed vs difference in speed
+    /// =POW(0.5, B12/A12)+POW(0.1, 100 /C12)
+    fn compute_hit_chance(weapon: &Weapon, attack_speed: Speed, target_width: u32, target_speed: Speed) -> f32 {
+        let speed_ration: f32 = 0.5_f32.powf(target_speed.0 / attack_speed.0);
+        let size_bonus: f32 = 0.1_f32.powf(100.0 / target_width as f32);
+        let value = speed_ration + size_bonus;
+        if value < 0.01 || value > 0.99 {
+            Log::warn("combat", &format!("hit chance {:?}, target {:?}, width {:?}. speed_ration {:?}, size_bonus {:?}, value {:?}", attack_speed, target_speed, target_width, speed_ration, size_bonus, value));
+        } else {
+            Log::debug("combat", &format!("hit chance {:?}, target {:?}, width {:?}. speed_ration {:?}, size_bonus {:?}, value {:?}", attack_speed, target_speed, target_width, speed_ration, size_bonus, value));
+        }
+        value
     }
 
     fn roll(chance: f32) -> bool {
@@ -438,5 +453,25 @@ mod tests {
         test(3, 2, vec![3, 2]);
         test(3, 3, vec![3, 2]);
         test(3, 4, vec![3, 2, 3]);
+    }
+
+    #[test]
+    fn compute_hit_chance_test() {
+        fn test(attack_speed: f32, target_speed: f32, target_width: u32, expected: f32) {
+            let weapon = Weapon {
+                damage: Damage(1),
+                reload: 1.0,
+                rounds: 1,
+                damage_type: WeaponDamageType::Explosive
+            };
+
+            let hit_chance = Combat::compute_hit_chance(&weapon, Speed(attack_speed), target_width, Speed(target_speed));
+            assert_eq!(hit_chance, expected);
+        }
+
+        test(0.5, 0.5, 10, 0.5);
+        test(1.0, 2.0, 10, 0.25);
+        test(1.0, 10.0, 10, 0.0009765626);
+        test(1.0, 10.0, 100, 0.100976564);
     }
 }
