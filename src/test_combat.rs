@@ -158,7 +158,7 @@ pub fn run() {
     let mut time = 0.0;
     let delta = 1.0;
 
-    for round in 0..20 {
+    for round in 0..200 {
         time += delta;
 
         combat_ctx.set_time(delta, time);
@@ -174,12 +174,23 @@ pub fn run() {
         println!("ship: {:?}", ships.get(0));
         println!("ship: {:?}", ships.get(1));
 
+        let finish = logs.iter().find(|i| {
+           match i {
+               CombatLog::ShipDestroyed { .. } => true,
+               _ => false
+           }
+        }).is_some();
+
         for log in logs {
             println!("- {:?}", log);
         }
 
         println!("{}", print_hull(ships.get(0).unwrap()));
         println!("{}", print_hull(ships.get(1).unwrap()));
+
+        if finish {
+            break;
+        }
 
 //        println!("<press to continue>");
 //        print!("{}[2J", 27 as char);

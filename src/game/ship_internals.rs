@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::utils::{Log, NextId, Speed};
+use crate::game::ship_internals::WeaponDamageType::Penetration;
 
 #[derive(Clone,Debug)]
 pub struct Armor {
@@ -40,6 +41,9 @@ pub struct Damage(pub u32);
 
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct Amount(pub u32);
+
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+pub struct Hp(pub u32);
 
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct ArmorIndex(pub u32);
@@ -227,6 +231,21 @@ impl ShipSpec {
             Err(errors)
         }
     }
+
+    pub fn map_components<'a>(&self, components: &'a Components) -> Vec<(&'a Component, Amount)> {
+        self.components.iter().map(|(id, amount)| {
+            let component = components.get(id);
+            (component, Amount(*amount))
+        }).collect()
+    }
+
+    pub fn get_hull_hp(&self, components: &Components) -> Hp {
+        let total = self.map_components(components).iter().map(|(component, amount)| {
+            component.width * amount.0
+        }).sum();
+
+        Hp(total)
+    }
 }
 
 #[derive(Debug,Clone)]
@@ -274,6 +293,7 @@ pub struct ShipInstance {
     pub component_damage: HashMap<ComponentId, Damage>,
     pub component_destroyed: HashMap<ComponentId, Amount>,
     pub weapons_state: HashMap<ComponentId, Vec<WeaponState>>,
+    pub wreck: bool
 }
 
 impl ShipInstance {
@@ -299,6 +319,7 @@ impl ShipInstance {
             component_damage: Default::default(),
             component_destroyed: Default::default(),
             weapons_state,
+            wreck: false,
         }
     }
 
@@ -309,6 +330,14 @@ impl ShipInstance {
     pub fn update_stats(&mut self, components: &Components) {
         let new_stats = ShipSpec::compute_ship_stats(components, &self.spec.components, &self.spec.armor, &self.component_destroyed);
         self.current_stats = new_stats;
+    }
+
+    pub fn get_total_hull_damage(&self) -> Damage {
+        let total = self.component_damage.iter().map(|(_, damage)| {
+            damage.0
+        }).sum();
+
+        Damage(total)
     }
 }
 

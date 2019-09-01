@@ -4,6 +4,7 @@ use std::collections::{HashMap, HashSet};
 use rand::{Rng, RngCore};
 use std::borrow::BorrowMut;
 use crate::utils::{Log, Speed};
+use crate::game::ship_combat::CombatLog::ShipDestroyed;
 
 #[derive(Clone,Debug)]
 pub enum CombatLog {
@@ -12,6 +13,7 @@ pub enum CombatLog {
     Miss { id: ShipInstanceId, target_id: ShipInstanceId, weapon_id: ComponentId},
     Hit { id: ShipInstanceId, target_id: ShipInstanceId, damage: Damage, weapon_id: ComponentId, armor_index: ArmorIndex, hull_damage: bool },
     ComponentDestroy { id: ShipInstanceId, component_id: ComponentId },
+    ShipDestroyed { id: ShipInstanceId },
 }
 
 /// Short-lived context used to run single combat run
@@ -100,8 +102,18 @@ impl Combat {
             }).collect();
 
         for id in ships_with_hull_damage {
+            // compute ship destroy
             let ship = ctx.ships.get_mut(&id).unwrap();
-            println!("------------------------- UPODATE STAST");
+
+            let total_hull = ship.spec.get_hull_hp(ctx.components);
+            let total_hull_damage = ship.get_total_hull_damage();
+
+            if Combat::wreck_check(total_hull, total_hull_damage) {
+                logs.push(ShipDestroyed { id: ship.id });
+                ship.wreck = true;
+            }
+
+            // update stats
             ship.update_stats(ctx.components);
         }
 
@@ -134,6 +146,25 @@ impl Combat {
 
         for hull_index in hull_damages {
             Combat::ship_apply_hulldamage(logs, ctx.components, ship, hull_index);
+        }
+    }
+
+    fn wreck_check(total_hull: Hp, total_damage: Damage) -> bool {
+        if total_hull.0 / 2 > total_damage.0 {
+            Log::debug("combat", &format!("wreck check not require, hp: {:?} / 2 > damage: {:?}", total_hull, total_damage));
+            false
+        } else {
+            let ration = total_damage.0 as f32 / total_hull.0 as f32;
+            let chance = ration.powi(2);
+            let mut rng = rand::thread_rng();
+            let dice: f32 = rng.gen();
+            if chance >= dice {
+                Log::debug("combat", &format!("wreck check success, ship destroy chance: {:?} >= dice: {:?}, ", chance, dice));
+                true
+            } else {
+                Log::debug("combat", &format!("wreck check fail, ship still functional chance: {:?} >= dice: {:?}, ", chance, dice));
+                false
+            }
         }
     }
 
