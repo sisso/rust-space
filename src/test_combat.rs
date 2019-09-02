@@ -168,7 +168,8 @@ pub fn run() {
         println!("round {}", round);
         println!("-----------------------------------------------------------");
 
-        let logs = Combat::execute(&mut combat_ctx);
+        let mut logs = vec![];
+        let damages_to_apply = Combat::execute(&mut combat_ctx, &mut logs);
         let ships = combat_ctx.get_ships();
 
         println!("ship: {:?}", ships.get(0));
