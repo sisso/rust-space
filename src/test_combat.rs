@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use crate::game::ship_internals::*;
-use crate::game::ship_combat::*;
+use crate::game::ship::ship_internals::*;
+use crate::game::ship::ship_combat::*;
 
 pub fn run() {
     let mut components = Components::new();

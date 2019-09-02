@@ -1,10 +1,9 @@
-use crate::game::ship_internals::*;
+use super::ship_internals::*;
 
 use std::collections::{HashMap, HashSet};
 use rand::{Rng, RngCore};
 use std::borrow::BorrowMut;
 use crate::utils::{Log, Speed};
-use crate::game::ship_combat::CombatLog::ShipDestroyed;
 
 #[derive(Clone,Debug)]
 pub enum CombatLog {
@@ -109,7 +108,7 @@ impl Combat {
             let total_hull_damage = ship.get_total_hull_damage();
 
             if Combat::wreck_check(total_hull, total_hull_damage) {
-                logs.push(ShipDestroyed { id: ship.id });
+                logs.push(CombatLog::ShipDestroyed { id: ship.id });
                 ship.wreck = true;
             }
 

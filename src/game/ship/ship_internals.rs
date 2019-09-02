@@ -1,7 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::utils::{Log, NextId, Speed};
-use crate::game::ship_internals::WeaponDamageType::Penetration;
 
 #[derive(Clone,Debug)]
 pub struct Armor {

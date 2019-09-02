@@ -25,8 +25,7 @@ pub mod docking;
 pub mod save;
 pub mod new_obj;
 pub mod jsons;
-pub mod ship_internals;
-pub mod ship_combat;
+pub mod ship;
 
 pub struct Tick {
     total_time: Seconds,
