@@ -1,9 +1,17 @@
 [package]
-name = "rust-space"
+name = "space"
 version = "0.1.0"
 authors = ["sisso <sisso@sisso.com.br>"]
 edition = "2018"
 
+#[lib]
+#name="space"
+#crate-type = ["cdylib"]
+
 [dependencies]
 serde_json = "1.0"
 rand = "0.7"
+libc = "*"
+
+[[example]]
+name = "combat"

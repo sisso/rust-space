@@ -25,10 +25,10 @@
 
 #![allow(warnings)]
 
-mod game;
-mod utils;
-mod local_game;
-mod test_combat;
+pub mod game;
+pub mod utils;
+pub mod local_game;
+pub mod test_combat;
 
 fn main() {
 //    local_game::run();
