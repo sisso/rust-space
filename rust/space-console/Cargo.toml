@@ -1,13 +1,8 @@
 [package]
-name = "space-lib"
+name = "space-console"
 version = "0.1.0"
 authors = ["sisso <sisso@sisso.com.br>"]
 edition = "2018"
 
-[lib]
-name="space"
-crate-type = ["cdylib"]
-
 [dependencies]
-libc = "*"
 space-domain = { version = "*", path = "../space-domain" }

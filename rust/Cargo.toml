@@ -1,6 +1,6 @@
 [workspace]
 members = [
+  "space-domain",
   "space-lib",
-  "space-main",
-  "space-cdylib"
+  "space-console",
 ]

@@ -24,11 +24,11 @@
 //}
 
 #![allow(warnings)]
-extern crate space_lib;
+extern crate space_domain;
 
 fn main() {
 //    local_game::run();
-    space_lib::test_combat::run();
+    space_domain::test_combat::run();
 
     println!("done")
 }

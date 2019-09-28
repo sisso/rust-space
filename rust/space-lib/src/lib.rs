@@ -1,6 +1,4 @@
-#![allow(warnings)]
-
-pub mod game;
-pub mod utils;
-pub mod local_game;
-pub mod test_combat;
+#[no_mangle]
+pub extern fn add_numbers(number1: i32, number2: i32) -> i32 {
+    number1 + number2
+}
