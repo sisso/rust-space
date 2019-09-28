@@ -11,4 +11,4 @@ echo "export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}"
 ls $LD_LIBRARY_PATH
 
 [[ $(rm -v /tmp/ffi.log) ]] || true
-unity-editor -projectPath unity-space
+unity-editor -projectPath unity-space $@
