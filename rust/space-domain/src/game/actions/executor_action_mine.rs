@@ -37,7 +37,7 @@ pub fn execute(tick: &Tick,
                         continue;
                     };
 
-                cargo.add_to_max(&ext.ware_id, 1.0);
+                cargo.add_to_max(ext.ware_id, 1.0);
                 Log::debug("executor_action_mine", &format!("{:?} new cargo {:?}", obj_id, cargo));
 
                 if cargo.is_full() {

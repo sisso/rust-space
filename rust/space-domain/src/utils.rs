@@ -58,9 +58,30 @@ pub struct Speed(pub f32);
 pub struct Seconds(pub f32);
 
 impl Seconds {
-
+    pub fn value(&self) -> f32 {
+        self.0
+    }
 }
 
+#[derive(Clone,Copy,Debug)]
+pub struct DeltaTime(pub f32);
+
+#[derive(Clone,Copy,Debug)]
+pub struct TotalTime(pub f32);
+
+impl TotalTime {
+    pub fn value(&self) -> f32 {
+        self.0
+    }
+
+    pub fn is_after(&self, time: TotalTime) -> bool {
+        self.0 >= time.0
+    }
+
+    pub fn add(&self, seconds: Seconds) -> TotalTime {
+        TotalTime(self.0 + seconds.0)
+    }
+}
 
 pub struct NextId {
     next: u32,

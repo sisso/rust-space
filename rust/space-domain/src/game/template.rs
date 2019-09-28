@@ -32,21 +32,19 @@ impl Templates {
         }
     }
 
-    pub fn init(&mut self, obj_id: &ObjId) {
-        self.index.insert(*obj_id, State::new());
+    pub fn init(&mut self, obj_id: ObjId) {
+        self.index.insert(obj_id, State::new());
     }
 
-    pub fn set(&mut self, obj_id: &ObjId, value: Value) {
+    pub fn set(&mut self, obj_id: ObjId, value: Value) {
         let mut state = self.index.get_mut(&obj_id).unwrap();
         Log::info("template", &format!("set {:?}: {:?}", obj_id, value));
         state.value = value;
     }
 
 
-    pub fn get(&self, id: &ObjId) -> &Value {
-        let state = self.index.get(id).unwrap();
+    pub fn get(&self, id: ObjId) -> &Value {
+        let state = self.index.get(&id).unwrap();
         &state.value
     }
-
-    pub fn save(&self, save: &mut impl Save) {}
 }

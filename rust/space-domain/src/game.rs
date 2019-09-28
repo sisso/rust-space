@@ -26,6 +26,7 @@ pub mod save;
 pub mod new_obj;
 pub mod jsons;
 pub mod ship;
+pub mod factory;
 
 pub struct Tick {
     total_time: Seconds,
