@@ -1,7 +1,12 @@
 from ctypes import cdll
 
-lib = cdll.LoadLibrary("target/release/libspace_lib.so")
+lib = cdll.LoadLibrary("rust/target/debug/libspace.so")
 
-r = lib.process(3)
+r = lib.add_numbers(3, 2)
 
-print("done! %s" % str(r))
+print("FFI working: %s" % str(r))
+
+print("Running sample");
+
+lib.execute();
+

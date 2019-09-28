@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 
-cargo build --release
+$(cd rust && cargo build)
 python python/test1.py
