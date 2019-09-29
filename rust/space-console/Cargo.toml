@@ -6,3 +6,6 @@ edition = "2018"
 
 [dependencies]
 space-domain = { version = "*", path = "../space-domain" }
+tui = "0.6.*"
+termion = "*"
+rand = "0.7"

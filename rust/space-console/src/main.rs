@@ -26,6 +26,8 @@
 #![allow(warnings)]
 extern crate space_domain;
 
+pub mod gui;
+
 fn main() {
 //    local_game::run();
     space_domain::test_combat::run();
