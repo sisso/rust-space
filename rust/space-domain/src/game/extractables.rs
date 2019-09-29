@@ -47,9 +47,8 @@ impl Extractables {
         }
     }
 
-    pub fn get_extractable(&self, id: &ObjId) -> &Extractable {
-        let state = self.index.get(id).unwrap();
-        &state.extractable
+    pub fn get_extractable(&self, id: &ObjId) -> Option<&Extractable> {
+        self.index.get(id).map(|state| &state.extractable)
     }
 
     pub fn list<'a>(&'a self) -> impl Iterator<Item = &ObjId> + 'a {

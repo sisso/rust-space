@@ -83,6 +83,11 @@ fn new_ship_miner(game: &mut Game, docked_at: ObjId) -> ObjId {
     )
 }
 
+pub fn init_new_game(game: &mut Game) {
+    load_sectors(game);
+    load_objects(game);
+}
+
 pub fn run() {
     let mut game = Game::new();
 
@@ -95,8 +100,7 @@ pub fn run() {
             load_from_save(&mut game, file);
         },
         None => {
-            load_sectors(&mut game);
-            load_objects(&mut game);
+            init_new_game(&mut game);
         }
     }
 

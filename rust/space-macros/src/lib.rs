@@ -29,13 +29,13 @@ macro_rules! get_or_return {
 #[macro_export]
 macro_rules! debug {
     ($ctx:expr, $msg:expr) => (
-        println!("DEBUG {location} - {ctx} - {msg}",
+        debugf!("DEBUG {location} - {ctx} - {msg}",
              location=file!(),
              ctx=$ctx,
              msg=$msg);
     );
     ($ctx:expr, $fmt:expr, $($arg:tt)*) => (
-        println!("DEBUG {location} - {ctx} - {msg}",
+        debugf!("DEBUG {location} - {ctx} - {msg}",
                  location=file!(),
                  ctx=$ctx,
                  msg=format!($fmt, $($arg)*).as_str());
@@ -45,13 +45,13 @@ macro_rules! debug {
 #[macro_export]
 macro_rules! info {
     ($ctx:expr, $msg:expr) => (
-        println!("INFO {location} - {ctx} - {msg}",
+        debugf!("INFO {location} - {ctx} - {msg}",
              location=file!(),
              ctx=$ctx,
              msg=$msg);
     );
     ($ctx:expr, $fmt:expr, $($arg:tt)*) => (
-        println!("INFO {location} - {ctx} - {msg}",
+        debugf!("INFO {location} - {ctx} - {msg}",
                  location=file!(),
                  ctx=$ctx,
                  msg=format!($fmt, $($arg)*).as_str());
@@ -61,13 +61,13 @@ macro_rules! info {
 #[macro_export]
 macro_rules! warn {
     ($ctx:expr, $msg:expr) => (
-        println!("WARN {location} - {ctx} - {msg}",
+        debugf!("WARN {location} - {ctx} - {msg}",
              location=file!(),
              ctx=$ctx,
              msg=$msg);
     );
     ($ctx:expr, $fmt:expr, $($arg:tt)*) => (
-        println!("WARN {location} - {ctx} - {msg}",
+        debugf!("WARN {location} - {ctx} - {msg}",
                  location=file!(),
                  ctx=$ctx,
                  msg=format!($fmt, $($arg)*).as_str());

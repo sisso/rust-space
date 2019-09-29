@@ -99,6 +99,17 @@ impl Locations {
         })
     }
 
+    pub fn find_at_sector(&self, search_sector_id: SectorId) -> Vec<ObjId> {
+        self.index.iter().filter_map(|(obj_id, state)| {
+            match state.location {
+                Some(Location::Space { sector_id, .. }) if sector_id == search_sector_id => {
+                    Some(obj_id.clone())
+                },
+                _ => None
+            }
+        }).collect()
+    }
+
     fn get_create_state(&mut self, obj_id: &&ObjId) -> &mut State {
         let mut state = self.index.get_mut(&obj_id).unwrap();
         state

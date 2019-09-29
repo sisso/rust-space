@@ -64,6 +64,13 @@ impl Sectors {
         self.index.get(sector_id).unwrap()
     }
 
+    pub fn list(&self) -> Vec<SectorId> {
+        self.index.keys()
+            .into_iter()
+            .map(|i| *i)
+            .collect()
+    }
+
     // TODO: support more that one jump
     pub fn find_jump_at(&self, sector_id: &SectorId, jump_position: &Position) -> Option<&Jump> {
         let sector = self.get(sector_id);

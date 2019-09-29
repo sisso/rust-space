@@ -26,7 +26,7 @@ pub fn execute(tick: &Tick,
                     }
                 };
 
-                let ext = extractables.get_extractable(&target);
+                let ext = extractables.get_extractable(&target).unwrap();
                 debug!("executor_action_mine", &format!("{:?} mine complete, extracted {:?}", obj_id, ext.ware_id));
 
                 let cargo = cargos.get_cargo_mut(obj_id);
@@ -52,7 +52,7 @@ pub fn execute(tick: &Tick,
                 state.action_delay = Some(Seconds(delay.0 - tick.delta_time.0));
             },
             (Action::Mine { target }, None) => {
-                let ext = extractables.get_extractable(&target);
+                let ext = extractables.get_extractable(&target).unwrap();
                 debug!("executor_action_mine", &format!("{:?} set mine time delay {:?}", obj_id, ext.time));
                 state.action_delay = Some(ext.time);
             },

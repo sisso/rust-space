@@ -34,15 +34,15 @@ pub struct Tick {
 }
 
 pub struct Game {
-    commands: Commands,
-    actions: Actions,
-    sectors: Sectors,
-    objects: ObjRepo,
-    locations: Locations,
-    extractables: Extractables,
-    cargos: Cargos,
-    navigations: Navigations,
-    docking: Docking,
+    pub commands: Commands,
+    pub actions: Actions,
+    pub sectors: Sectors,
+    pub objects: ObjRepo,
+    pub locations: Locations,
+    pub extractables: Extractables,
+    pub cargos: Cargos,
+    pub navigations: Navigations,
+    pub docking: Docking,
 }
 
 impl Game {
