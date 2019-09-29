@@ -92,7 +92,7 @@ impl Factory {
 
     fn try_start_production(time: TotalTime, cargo: &mut Cargo, production: &mut Production, state: &mut ProductionState) {
         let has_enough_input = production.input.iter().all(|(ware_id, require_amount)| {
-            cargo.get_amount(*ware_id).unwrap_or(0.0) >= *require_amount
+            cargo.get_amount(*ware_id) >= *require_amount
         });
 
         if !has_enough_input {
@@ -252,30 +252,30 @@ mod test {
 
         factory.update(TotalTime(0.0), &mut cargo);
         assert_eq!(factory.is_producing(0), true);
-        assert_eq!(cargo.get_amount(WARE_ORE), Some(9.0));
-        assert_eq!(cargo.get_amount(WARE_IRON), None);
+        assert_eq!(cargo.get_amount(WARE_ORE), 9.0);
+        assert_eq!(cargo.get_amount(WARE_IRON), 0.0);
 
         factory.update(TotalTime(1.0), &mut cargo);
         assert_eq!(factory.is_producing(0), true);
-        assert_eq!(cargo.get_amount(WARE_ORE), Some(8.0));
-        assert_eq!(cargo.get_amount(WARE_IRON), Some(1.0));
+        assert_eq!(cargo.get_amount(WARE_ORE), 8.0);
+        assert_eq!(cargo.get_amount(WARE_IRON), 1.0);
 
         for time in 2..9 {
             factory.update(TotalTime(time as f32), &mut cargo);
             assert_eq!(factory.is_producing(0), true);
-            assert_eq!(cargo.get_amount(WARE_ORE), Some(9.0 - time as f32));
-            assert_eq!(cargo.get_amount(WARE_IRON), Some(time as f32));
+            assert_eq!(cargo.get_amount(WARE_ORE), 9.0 - time as f32);
+            assert_eq!(cargo.get_amount(WARE_IRON), time as f32);
         }
 
         factory.update(TotalTime(10.0), &mut cargo);
         assert_eq!(factory.is_producing(0), true);
-        assert_eq!(cargo.get_amount(WARE_ORE), None);
-        assert_eq!(cargo.get_amount(WARE_IRON), Some(9.0));
+        assert_eq!(cargo.get_amount(WARE_ORE), 0.0);
+        assert_eq!(cargo.get_amount(WARE_IRON), 9.0);
 
         factory.update(TotalTime(11.0), &mut cargo);
         assert_eq!(factory.is_producing(0), false);
-        assert_eq!(cargo.get_amount(WARE_ORE), None);
-        assert_eq!(cargo.get_amount(WARE_IRON), Some(10.0));
+        assert_eq!(cargo.get_amount(WARE_ORE), 0.0);
+        assert_eq!(cargo.get_amount(WARE_IRON), 10.0);
     }
 
     #[test]
@@ -292,22 +292,22 @@ mod test {
 
         factory.update(TotalTime(0.0), &mut cargo);
         assert_eq!(factory.is_producing(0), true);
-        assert_eq!(cargo.get_amount(WARE_ORE), Some(4.0));
-        assert_eq!(cargo.get_amount(WARE_IRON), None);
+        assert_eq!(cargo.get_amount(WARE_ORE), 4.0);
+        assert_eq!(cargo.get_amount(WARE_IRON), 0.0);
 
         // production should be complete, but get stuck by not enough space in cargo
         for time in 1..5 {
             factory.update(TotalTime(time as f32), &mut cargo);
             assert_eq!(factory.is_producing(0), true);
-            assert_eq!(cargo.get_amount(WARE_ORE), Some(4.0));
-            assert_eq!(cargo.get_amount(WARE_IRON), None);
+            assert_eq!(cargo.get_amount(WARE_ORE), 4.0);
+            assert_eq!(cargo.get_amount(WARE_IRON), 0.0);
         }
 
         // free space to enable production to complete
         cargo.remove(WARE_ORE, 4.0);
         factory.update(TotalTime(5.1), &mut cargo);
         assert_eq!(factory.is_producing(0), false);
-        assert_eq!(cargo.get_amount(WARE_ORE), None);
-        assert_eq!(cargo.get_amount(WARE_IRON), Some(3.0));
+        assert_eq!(cargo.get_amount(WARE_ORE), 0.0);
+        assert_eq!(cargo.get_amount(WARE_IRON), 3.0);
     }
 }

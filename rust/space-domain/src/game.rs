@@ -88,7 +88,8 @@ impl Game {
         });
 
         if new_obj.cargo_size > 0.0 {
-            self.cargos.init(&id, new_obj.cargo_size);
+            let cargo = Cargo::new(new_obj.cargo_size);
+            self.cargos.init(&id, cargo);
         }
 
         id
