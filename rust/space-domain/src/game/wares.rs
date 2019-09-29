@@ -21,7 +21,6 @@ pub struct Cargo {
     current: f32,
     // TODO: back to hashset? since operations order can change depending of the order, should we keep tree?
     wares: BTreeMap<WareId, f32>,
-    whitelist: Option<HashMap<WareId, f32>>,
 }
 
 impl Cargo {
@@ -30,7 +29,6 @@ impl Cargo {
             max,
             current: 0.0,
             wares: BTreeMap::new(),
-            whitelist: None,
         }
     }
 
@@ -113,13 +111,6 @@ impl Cargo {
     pub fn get_amount(&self, ware_id: WareId) -> f32 {
         self.wares.get(&ware_id).map(|i| *i).unwrap_or(0.0)
     }
-
-    pub fn set_whitelist(&mut self, wares_id: Vec<WareId>) {
-        let max_per_ware = self.max / wares_id.len() as f32;
-        self.whitelist = Some(
-            wares_id.into_iter().map(|ware_id| (ware_id, max_per_ware)).collect()
-        );
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -196,7 +187,6 @@ impl CanLoad for Cargos {
                     max: v["max"].to_f32(),
                     current: v["current"].to_f32(),
                     wares,
-                    whitelist: None
                 }
             });
         }
@@ -247,37 +237,5 @@ mod test {
         let amount = cargo.add_to_max(WARE0, 2.0);
         assert_eq!(0.0, amount);
         assert_eq!(1.0, cargo.get_current());
-    }
-
-    #[test]
-    fn test_cargo_whilelist_should_reject_others() {
-        let ware_0 = WARE0;
-        let ware_1 = WARE1;
-        let invalid_ware_0 = WARE2;
-
-        let mut cargo = Cargo::new(10.0);
-        cargo.set_whitelist(vec![ware_0, ware_1]);
-
-        // move to max return 0
-        assert_eq!(cargo.add_to_max(invalid_ware_0, 2.0), 0.0);
-
-        // add fail
-        assert!(cargo.add(invalid_ware_0, 2.0).is_err());
-
-        // move all to max ignore those wares
-        let mut cargo2 = Cargo::new(10.0);
-        cargo2.add(invalid_ware_0, 1.0);
-        cargo2.add(ware_0, 3.0);
-        cargo2.add(ware_1, 2.0);
-        Cargo::move_all_to_max(&mut cargo2, &mut cargo);
-
-        assert_eq!(cargo.get_current(), 5.0);
-        assert_eq!(cargo.get_amount(invalid_ware_0), 0.0);
-        assert_eq!(cargo.get_amount(ware_0), 3.0);
-        assert_eq!(cargo.get_amount(ware_1), 2.0);
-
-        assert_eq!(cargo2.get_amount(invalid_ware_0), 1.0);
-        assert_eq!(cargo2.get_amount(ware_0), 0.0);
-        assert_eq!(cargo2.get_amount(ware_1), 0.0);
     }
 }
