@@ -17,7 +17,7 @@ pub fn execute(actions: &mut Actions, locations: &mut Locations, sectors: &Secto
 
                         match jump {
                             Some(jump) => {
-                                Log::debug("executor_action_jump", &format!("{:?} jump to {:?}", obj_id, jump.to));
+                                debug!("executor_action_jump", &format!("{:?} jump to {:?}", obj_id, jump.to));
 
                                 let location = Location::Space {
                                     sector_id: jump.to,
@@ -28,12 +28,12 @@ pub fn execute(actions: &mut Actions, locations: &mut Locations, sectors: &Secto
                                 locations.set_location(obj_id, location);
                             },
                             None => {
-                                Log::warn("executor_action_jump", &format!("{:?} fail to jump, no jump at {:?} {:?}", obj_id, sector_id, pos));
+                                warn!("executor_action_jump", &format!("{:?} fail to jump, no jump at {:?} {:?}", obj_id, sector_id, pos));
                             }
                         }
                     },
                     _ => {
-                        Log::warn("executor_action_jump", &format!("{:?} fail to jump, unknown location {:?}", obj_id, location));
+                        warn!("executor_action_jump", &format!("{:?} fail to jump, unknown location {:?}", obj_id, location));
                     }
                 }
             },

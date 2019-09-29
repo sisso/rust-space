@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::utils::{Log, NextId, Speed};
+use crate::utils::{NextId, Speed};
 
 #[derive(Clone,Debug)]
 pub struct Armor {
@@ -362,7 +362,7 @@ impl Components {
             panic!();
         }
 
-        Log::info("components", &format!("{:?} added {:?}", component.id, component));
+        info!("components", &format!("{:?} added {:?}", component.id, component));
         self.index.insert(component.id, component);
     }
 

@@ -148,7 +148,7 @@ impl Cargos {
         let cargo_from = self.index.get_mut(from).unwrap();
         Cargo::move_all_to_max(&mut cargo_from.cargo, &mut cargo_to.cargo);
         self.index.insert(*to, cargo_to);
-        Log::info("Cargos", &format!("move_all {:?} to {:?}, new cargos {:?} and {:?}", from, to, self.index.get(from), self.index.get(to)));
+        info!("Cargos", &format!("move_all {:?} to {:?}, new cargos {:?} and {:?}", from, to, self.index.get(from), self.index.get(to)));
     }
 }
 

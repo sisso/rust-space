@@ -38,7 +38,7 @@ impl Templates {
 
     pub fn set(&mut self, obj_id: ObjId, value: Value) {
         let mut state = self.index.get_mut(&obj_id).unwrap();
-        Log::info("template", &format!("set {:?}: {:?}", obj_id, value));
+        info!("template", &format!("set {:?}: {:?}", obj_id, value));
         state.value = value;
     }
 

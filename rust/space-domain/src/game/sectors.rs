@@ -1,5 +1,7 @@
 use crate::utils::*;
 
+use space_macros::*;
+
 use serde_json::json;
 use std::collections::HashMap;
 use crate::game::jsons;
@@ -53,7 +55,7 @@ impl Sectors {
             }).collect()
         };
 
-        Log::info("sectors", &format!("adding {:?}", sector));
+        info!("sectors", "adding {:?}", sector);
 
         self.index.insert(sector.id, sector);
     }

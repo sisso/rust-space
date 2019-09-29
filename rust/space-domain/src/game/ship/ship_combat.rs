@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 
 use rand::{Rng, RngCore};
 
-use crate::utils::{Log, Speed};
+use crate::utils::{Speed};
 
 use super::damages;
 use super::ship_internals::*;
@@ -159,9 +159,9 @@ impl Combat {
         let size_bonus: f32 = 0.1_f32.powf(100.0 / target_width as f32);
         let value = speed_ration + size_bonus;
         if value < 0.01 || value > 0.99 {
-            Log::warn("combat", &format!("hit chance {:?}, target {:?}, width {:?}. speed_ration {:?}, size_bonus {:?}, value {:?}", attack_speed, target_speed, target_width, speed_ration, size_bonus, value));
+            warn!("combat", &format!("hit chance {:?}, target {:?}, width {:?}. speed_ration {:?}, size_bonus {:?}, value {:?}", attack_speed, target_speed, target_width, speed_ration, size_bonus, value));
         } else {
-            Log::debug("combat", &format!("hit chance {:?}, target {:?}, width {:?}. speed_ration {:?}, size_bonus {:?}, value {:?}", attack_speed, target_speed, target_width, speed_ration, size_bonus, value));
+            debug!("combat", &format!("hit chance {:?}, target {:?}, width {:?}. speed_ration {:?}, size_bonus {:?}, value {:?}", attack_speed, target_speed, target_width, speed_ration, size_bonus, value));
         }
         value
     }

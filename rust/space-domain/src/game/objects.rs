@@ -42,7 +42,7 @@ impl ObjRepo {
             has_dock,
         };
 
-        Log::info("objects", &format!("adding object {:?}", obj));
+        info!("objects", &format!("adding object {:?}", obj));
 
         if self.index.insert(obj.id, obj).is_some() {
             panic!("can not add already existent obj")

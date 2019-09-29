@@ -137,7 +137,7 @@ impl Factories {
 
     pub fn set(&mut self, obj_id: ObjId, value: Factory) {
         let mut state = self.index.get_mut(&obj_id).unwrap();
-        Log::info("template", &format!("set {:?}: {:?}", obj_id, value));
+        info!("Factories", &format!("set {:?}: {:?}", obj_id, value));
         state.factory = value;
     }
 

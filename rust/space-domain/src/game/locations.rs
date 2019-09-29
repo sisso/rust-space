@@ -77,13 +77,13 @@ impl Locations {
 
     pub fn set_location(&mut self, obj_id: &ObjId, location: Location) {
         let state = self.get_create_state(&obj_id);
-        Log::info("locations", &format!("set location {:?}: {:?}", obj_id, location));
+        info!("locations", &format!("set location {:?}: {:?}", obj_id, location));
         state.location = Some(location);
     }
 
     pub fn set_moveable(&mut self, obj_id: &ObjId, speed: Speed) {
         let state = self.get_create_state(&obj_id);
-        Log::info("locations", &format!("set moveable {:?}: {:?}", obj_id, speed));
+        info!("locations", &format!("set moveable {:?}: {:?}", obj_id, speed));
         state.movement = Some(Moveable { speed, });
     }
 

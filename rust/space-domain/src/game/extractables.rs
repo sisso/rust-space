@@ -35,7 +35,7 @@ impl Extractables {
     }
 
     pub fn set_extractable(&mut self, obj_id: &ObjId, extractable: Extractable) {
-        Log::info("extractable", &format!("set {:?}: {:?}", obj_id, extractable));
+        info!("extractable", &format!("set {:?}: {:?}", obj_id, extractable));
 
         if self.index.contains_key(obj_id) {
             let mut state = self.index.get_mut(&obj_id).unwrap();

@@ -21,30 +21,30 @@ pub fn execute(tick: &Tick,
                 let cargo = match cargo {
                     Some(cargo) => { cargo },
                     None => {
-                        Log::warn("executor_action_mine", &format!("{:?} can not mine, has no cargo", obj_id));
+                        warn!("executor_action_mine", &format!("{:?} can not mine, has no cargo", obj_id));
                         continue;
                     }
                 };
 
                 let ext = extractables.get_extractable(&target);
-                Log::debug("executor_action_mine", &format!("{:?} mine complete, extracted {:?}", obj_id, ext.ware_id));
+                debug!("executor_action_mine", &format!("{:?} mine complete, extracted {:?}", obj_id, ext.ware_id));
 
                 let cargo = cargos.get_cargo_mut(obj_id);
                 let cargo =
                     if let Some(cargo) = cargo { cargo }
                     else {
-                        Log::warn("executor_action_mine", &format!("{:?} has no cargo", obj_id));
+                        warn!("executor_action_mine", &format!("{:?} has no cargo", obj_id));
                         continue;
                     };
 
                 cargo.add_to_max(ext.ware_id, 1.0);
-                Log::debug("executor_action_mine", &format!("{:?} new cargo {:?}", obj_id, cargo));
+                debug!("executor_action_mine", &format!("{:?} new cargo {:?}", obj_id, cargo));
 
                 if cargo.is_full() {
-                    Log::debug("executor_action_mine", &format!("{:?} cargo is full", obj_id));
+                    debug!("executor_action_mine", &format!("{:?} cargo is full", obj_id));
                     state.action = Action::Idle;
                 } else {
-                    Log::debug("executor_action_mine", &format!("{:?} set mine time delay {:?}", obj_id, ext.time));
+                    debug!("executor_action_mine", &format!("{:?} set mine time delay {:?}", obj_id, ext.time));
                     state.action_delay = Some(ext.time);
                 }
             },
@@ -53,7 +53,7 @@ pub fn execute(tick: &Tick,
             },
             (Action::Mine { target }, None) => {
                 let ext = extractables.get_extractable(&target);
-                Log::debug("executor_action_mine", &format!("{:?} set mine time delay {:?}", obj_id, ext.time));
+                debug!("executor_action_mine", &format!("{:?} set mine time delay {:?}", obj_id, ext.time));
                 state.action_delay = Some(ext.time);
             },
             _ => {},

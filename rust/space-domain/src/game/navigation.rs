@@ -28,7 +28,7 @@ impl Navigations {
     }
 
     pub fn init(&mut self, id: &ObjId) {
-        Log::info("navigations", &format!("init {:?}", id));
+        info!("navigations", &format!("init {:?}", id));
         self.index.insert(*id, State::new());
     }
 
@@ -37,7 +37,7 @@ impl Navigations {
 //
 //    pub fn set_location(&mut self, obj_id: &ObjId, value: Value) {
 //        let mut state = self.index.get_mut(&obj_id).unwrap();
-//        Log::info("template", &format!("set {:?}: {:?}", obj_id, value));
+//        info!("template", &format!("set {:?}: {:?}", obj_id, value));
 //        state.value = value;
 //    }
 //

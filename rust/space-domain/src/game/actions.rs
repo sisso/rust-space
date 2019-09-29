@@ -1,4 +1,4 @@
-use crate::utils::{V2, Position, Log, Seconds};
+use crate::utils::{V2, Position, Seconds};
 use super::objects::{ObjRepo, ObjId};
 use super::locations::{Location};
 use super::sectors::Sectors;
@@ -54,7 +54,7 @@ impl Actions {
     }
 
     pub fn init(&mut self, obj_id: ObjId) {
-        Log::info("actions", &format!("init {:?}", obj_id));
+        info!("actions", &format!("init {:?}", obj_id));
         self.states.insert(obj_id, ActionState::new());
     }
 
@@ -71,7 +71,7 @@ impl Actions {
 
     pub fn set_action(&mut self, obj_id: &ObjId, action: Action) {
         let mut state = self.states.get_mut(&obj_id).expect(&format!("{:?} action not found", obj_id));
-        Log::info("actions", &format!("set action {:?}: {:?}", obj_id, action));
+        info!("actions", &format!("set action {:?}: {:?}", obj_id, action));
         state.action = action;
     }
 

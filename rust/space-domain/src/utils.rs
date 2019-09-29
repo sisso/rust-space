@@ -106,19 +106,3 @@ impl NextId {
         v
     }
 }
-
-pub struct Log {
-
-}
-
-impl Log {
-    pub fn info(ctx: &str, s: &str) {
-        println!("INFO  {: <25} - {}", ctx, s);
-    }
-    pub fn debug(ctx: &str, s: &str) {
-        println!("DEBUG {: <25} - {}", ctx, s);
-    }
-    pub fn warn(ctx: &str, s: &str) {
-        println!("WARN  {: <25} - {}", ctx, s);
-    }
-}

@@ -114,7 +114,7 @@ impl Commands {
     }
 
     pub fn init(&mut self, obj_id: ObjId) {
-        Log::info("commands", &format!("init {:?}", obj_id));
+        info!("commands", &format!("init {:?}", obj_id));
         self.state.insert(obj_id, CommandState::new());
     }
 
@@ -125,7 +125,7 @@ impl Commands {
 
     pub fn set_command(&mut self, obj_id: ObjId, command: Command) {
         let mut state = self.get_state_mut(&obj_id);
-        Log::info("commands", &format!("set command {:?}: {:?}", obj_id, command));
+        info!("commands", &format!("set command {:?}: {:?}", obj_id, command));
         state.command = command;
     }
 

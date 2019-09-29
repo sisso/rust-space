@@ -19,7 +19,7 @@ pub fn execute(actions: &mut Actions, locations: &mut Locations) {
                         locations.set_location(obj_id, Location::Docked { docked_id: target });
                     },
                     _ => {
-                        Log::warn("executor_action_dockundock", &format!("{:?} {:?} can not dock at {:?} {:?} has no location", obj_id, location, target, target_location));
+                        warn!("executor_action_dockundock", "{:?} {:?} can not dock at {:?} {:?} has no location", obj_id, location, target, target_location);
                     }
                 }
 
@@ -36,7 +36,7 @@ pub fn execute(actions: &mut Actions, locations: &mut Locations) {
                                 (sector_id.clone(), pos.clone())
                             },
                             _ => {
-                                Log::warn("executor_action_dockundock", &format!("{:?} can not undock, {:?} has no location", obj_id, station_id));
+                                warn!("executor_action_dockundock", &format!("{:?} can not undock, {:?} has no location", obj_id, station_id));
                                 continue;
                             }
                         };
@@ -53,7 +53,7 @@ pub fn execute(actions: &mut Actions, locations: &mut Locations) {
                         state.action = Action::Idle;
                     },
                     None => {
-                        Log::warn("executor_action_dockundock", &format!("{:?} can not undock, has no location", obj_id));
+                        warn!("executor_action_dockundock", &format!("{:?} can not undock, has no location", obj_id));
                     }
                 }
             },

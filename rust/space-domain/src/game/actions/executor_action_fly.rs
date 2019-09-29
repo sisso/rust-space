@@ -17,7 +17,7 @@ pub fn execute(tick: &Tick, actions: &mut Actions, locations: &mut Locations, se
                         execute_fly(tick, locations, sectors, obj_id, state, *pos, *sector_id, to);
                     },
                     _ => {
-                        Log::debug("executor_actions_fly", &format!("{:?} can not fly, invalid {:?} location", obj_id, location));
+                        debug!("executor_actions_fly", &format!("{:?} can not fly, invalid {:?} location", obj_id, location));
                     }
                 }
 
@@ -48,7 +48,7 @@ fn execute_fly(tick: &Tick,
 
     // if current move distance is bigger that distance to arrive, move to the position
     if length_sqr.is_nan() || length_sqr <= max_distance {
-        Log::debug("actions", &format!("{:?} arrive at {:?}", obj_id, to));
+        debug!("actions", &format!("{:?} arrive at {:?}", obj_id, to));
 
         let location = Location::Space {
             sector_id: sector_id,
@@ -60,7 +60,7 @@ fn execute_fly(tick: &Tick,
     } else {
 
         let new_position = pos.add(&mov);
-        Log::debug("actions", &format!("{:?} move to {:?}", obj_id, new_position));
+        debug!("actions", &format!("{:?} move to {:?}", obj_id, new_position));
 
         let location = Location::Space {
             sector_id: sector_id,

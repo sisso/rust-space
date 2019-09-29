@@ -13,7 +13,7 @@ pub fn execute(commands: &mut Commands, actions: &mut Actions) {
                         // ignore
                     },
                     other => {
-                        Log::info("command", &format!("{:?} setting idle action", obj_id));
+                        info!("command", &format!("{:?} setting idle action", obj_id));
                         actions.set_action(obj_id, Action::Idle);
                     }
                 }

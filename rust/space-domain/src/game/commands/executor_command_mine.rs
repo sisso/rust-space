@@ -46,7 +46,7 @@ fn do_command_mine(
     let location = match locations.get_location(obj_id) {
         Some(location) => location,
         None => {
-            Log::warn("executor_command_mine", &format!("{:?} has no location", obj_id));
+            warn!("executor_command_mine", &format!("{:?} has no location", obj_id));
             return;
         }
     };
@@ -56,7 +56,7 @@ fn do_command_mine(
 
     match (action, location) {
         (Action::Idle, Location::Docked { docked_id: target_id }) if is_cargo_full => {
-            Log::info("executor_command_mine", &format!("{:?} deliver cargo", obj_id));
+            info!("executor_command_mine", &format!("{:?} deliver cargo", obj_id));
             cargos.move_all(obj_id, target_id);
         },
         (Action::Idle, Location::Docked { .. }) => {
@@ -75,7 +75,7 @@ fn do_command_mine(
             );
         },
         (Action::Idle, Location::Space { .. }) if is_mining => {
-            Log::warn("executor_command_mine", &format!("{:?} unexpected state, action is idle and mining state is mining", obj_id));
+            warn!("executor_command_mine", &format!("{:?} unexpected state, action is idle and mining state is mining", obj_id));
         },
         (Action::Idle, Location::Space { .. }) => {
             execute_mine_idle(extractables, actions, locations, sectors, obj_id, state, location, cargos)
@@ -90,7 +90,7 @@ fn do_command_mine(
             // ignore
         },
         (a, b) => {
-            Log::warn("executor_command_mine", &format!("unknown {:?}", obj_id));
+            warn!("executor_command_mine", &format!("unknown {:?}", obj_id));
         }
     }
 }
@@ -119,12 +119,12 @@ fn execute_mine_idle(extractables: &Extractables,
 
         state.navigation = Some(navigation);
 
-        Log::info("executor_command_mine", &format!("{:?} set mining state {:?}, navigation {:?}", obj_id, state.mine, state.navigation));
+        info!("executor_command_mine", &format!("{:?} set mining state {:?}, navigation {:?}", obj_id, state.mine, state.navigation));
     }
 
     let nav = state.navigation.as_mut().unwrap();
     if nav.is_complete() {
-        Log::info("executor_command_mine", &format!("{:?} arrive to mine location", obj_id));
+        info!("executor_command_mine", &format!("{:?} arrive to mine location", obj_id));
 
         let mine_state = state.mine.as_mut().unwrap();
         mine_state.mining = true;
@@ -192,7 +192,7 @@ fn find_path(sectors: &Sectors, from: &LocationSpace, to: &LocationSpace) -> Vec
         }
     }
 
-    Log::debug("executor_command_mine", &format!("navigation path from {:?} to {:?}: {:?}", from, to, path));
+    debug!("executor_command_mine", &format!("navigation path from {:?} to {:?}: {:?}", from, to, path));
 
     path
 }
@@ -211,7 +211,7 @@ fn execute_mine_deliver_resources(
         let target = match search_deliver_target(objects, obj_id) {
             Some(target) => target,
             None => {
-                Log::warn("executor_command_mine", &format!("{:?} fail to find deliver target", obj_id));
+                warn!("executor_command_mine", &format!("{:?} fail to find deliver target", obj_id));
                 return;
             },
         };
@@ -231,13 +231,13 @@ fn execute_mine_deliver_resources(
                     nav
                 });
 
-        Log::info("executor_command_mine", &format!("{:?} set deliver state {:?}, navigation {:?}", obj_id, state.deliver, state.navigation));
+        info!("executor_command_mine", &format!("{:?} set deliver state {:?}, navigation {:?}", obj_id, state.deliver, state.navigation));
     }
 
     // println!("{:?}", state);
     let nav = state.navigation.as_mut().unwrap();
     if nav.is_complete() {
-        Log::info("executor_command_mine", &format!("{:?} arrive to deliver location", obj_id));
+        info!("executor_command_mine", &format!("{:?} arrive to deliver location", obj_id));
     } else {
         let action = nav.navigation_next_action();
         actions.set_action(obj_id, action);
