@@ -77,6 +77,13 @@ impl Sectors {
         sector.jumps.get(0)
     }
 
+    pub fn find_target_jump(&self, sector_id: SectorId, target_sector_id: SectorId) -> Jump {
+        self.get(&sector_id).jumps.iter()
+            .find(|jump| jump.to == target_sector_id)
+            .map(|jump| jump.clone())
+            .unwrap()
+    }
+
     pub fn save(&self, save: &mut impl Save) {
         for (sector_id,sector) in self.index.iter() {
             let jumps: Vec<serde_json::Value> = sector.jumps.iter().map(|jump| {

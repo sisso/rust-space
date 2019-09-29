@@ -1,3 +1,4 @@
 # TODO
 
-[ ] Allow whitelist cargo
+- fix multiples actions per tick
+- refactory the everything
