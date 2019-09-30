@@ -11,6 +11,7 @@ use self::objects::*;
 use self::save::{CanLoad, CanSave, Load, Save};
 use self::sectors::*;
 use self::wares::*;
+use crate::game::events::{Events, ObjEvent, EventKind};
 
 pub mod sectors;
 pub mod objects;
@@ -27,6 +28,7 @@ pub mod new_obj;
 pub mod jsons;
 pub mod ship;
 pub mod factory;
+pub mod events;
 
 pub struct Tick {
     total_time: Seconds,
@@ -43,6 +45,7 @@ pub struct Game {
     pub cargos: Cargos,
     pub navigations: Navigations,
     pub docking: Docking,
+    pub events: Events,
 }
 
 impl Game {
@@ -57,6 +60,7 @@ impl Game {
             cargos: Cargos::new(),
             navigations: Navigations::new(),
             docking: Docking::new(),
+            events: Events::new(),
         }
     }
 
@@ -92,6 +96,8 @@ impl Game {
             self.cargos.init(&id, cargo);
         }
 
+        self.events.add_obj_event(ObjEvent::new(id, EventKind::Add));
+
         id
     }
 
@@ -103,7 +109,7 @@ impl Game {
         info!("game", &format!("tick delta {} total {}", delta_time.0, total_time.0));
         let tick = Tick { total_time, delta_time };
         self.commands.execute(&tick, &self.objects, &self.extractables, &mut self.actions, &self.locations, &self.sectors, &mut self.cargos);
-        self.actions.execute(&tick, &self.sectors, &mut self.locations, &self.extractables, &mut self.cargos);
+        self.actions.execute(&tick, &self.sectors, &mut self.locations, &self.extractables, &mut self.cargos, &mut self.events);
     }
 
     pub fn save(&self, save: &mut impl Save) {

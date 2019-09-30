@@ -1,0 +1,39 @@
+namespace space_data;
+
+struct V2 {
+  x: float;
+  y: float;
+}
+
+enum EntityKind : short{
+  Fleet = 0,
+  Asteroid,
+  Station,
+  Jump
+}
+
+struct NewEntity {
+  id: uint;
+  pos: V2;
+  sector_id: uint;
+  kind: EntityKind;
+}
+
+struct EntityMove {
+  id: uint;
+  pos: V2;
+}
+
+struct EntityJump {
+  id: uint;
+  to_sector_id: uint;
+  to_pos: V2;
+}
+
+table Outputs {
+  entities_new: [NewEntity];
+  entities_move: [EntityMove];
+  entities_jump: [EntityJump];
+}
+
+root_type Outputs;

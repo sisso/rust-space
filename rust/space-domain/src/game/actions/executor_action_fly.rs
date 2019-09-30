@@ -5,8 +5,9 @@ use crate::utils::*;
 use crate::game::locations::*;
 use crate::game::sectors::{Sector, Sectors, SectorId};
 use crate::game::Tick;
+use crate::game::events::{Events, ObjEvent, EventKind};
 
-pub fn execute(tick: &Tick, actions: &mut Actions, locations: &mut Locations, sectors: &Sectors) {
+pub fn execute(tick: &Tick, actions: &mut Actions, locations: &mut Locations, sectors: &Sectors, events: &mut Events) {
     for (obj_id, state) in actions.list_mut() {
         match state.action {
             Action::Fly { to } => {
@@ -21,6 +22,7 @@ pub fn execute(tick: &Tick, actions: &mut Actions, locations: &mut Locations, se
                     }
                 }
 
+                events.add_obj_event(ObjEvent::new(*obj_id, EventKind::Move));
             },
             _ => {},
         }

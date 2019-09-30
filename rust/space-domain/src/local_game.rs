@@ -9,6 +9,7 @@ use crate::game::save::*;
 use crate::utils::*;
 use crate::game::extractables::Extractable;
 use crate::game::new_obj::NewObj;
+use rand::Rng;
 
 const WARE_ORE: WareId = WareId(0);
 
@@ -45,9 +46,14 @@ fn load_objects(game: &mut Game) {
     let station_id = new_station(game, SECTOR_0, V2::new(5.0, -5.0));
 
     // miner
-    let ship_id = new_ship_miner(game, station_id);
-
+    let ship_id = new_ship_miner(game, station_id, 2.0);
     game.set_command(ship_id, Command::Mine);
+
+//    for _ in 0..10 {
+//        let speed: f32 = rand::thread_rng().gen_range(1.0, 3.0);
+//        let ship_id = new_ship_miner(game, station_id, speed);
+//        game.set_command(ship_id, Command::Mine);
+//    }
 }
 
 fn new_asteroid(game: &mut Game, sector_id: SectorId, pos: V2) -> ObjId {
@@ -72,11 +78,11 @@ fn new_station(game: &mut Game, sector_id: SectorId, pos: V2) -> ObjId {
     )
 }
 
-fn new_ship_miner(game: &mut Game, docked_at: ObjId) -> ObjId {
+fn new_ship_miner(game: &mut Game, docked_at: ObjId, speed: f32) -> ObjId {
     game.add_object(
         NewObj::new()
             .with_cargo(2.0)
-            .with_speed(Speed(2.0))
+            .with_speed(Speed(speed))
             .at_dock(docked_at)
             .can_dock()
             .with_ai()

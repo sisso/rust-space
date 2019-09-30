@@ -9,6 +9,7 @@ use crate::game::extractables::Extractables;
 use crate::game::wares::Cargos;
 use crate::game::save::{Save, Load};
 use crate::game::jsons::JsonValueExtra;
+use crate::game::events::Events;
 
 mod executor_action_dockundock;
 mod executor_action_jump;
@@ -62,12 +63,12 @@ impl Actions {
         self.states.iter_mut()
     }
 
-    pub fn execute(&mut self, tick: &Tick, sectors: &Sectors, locations: &mut Locations, extractables: &Extractables, cargos: &mut Cargos) {
+    pub fn execute(&mut self, tick: &Tick, sectors: &Sectors, locations: &mut Locations, extractables: &Extractables, cargos: &mut Cargos, events: &mut Events) {
         // TODO: if each action update to a new action, a object can run N actions per tick
         //       the order of executor was re-order to minimize for now
         executor_action_dockundock::execute(self, locations);
-        executor_action_jump::execute(self, locations, sectors);
-        executor_action_fly::execute(tick, self, locations, sectors);
+        executor_action_jump::execute(self, locations, sectors, events);
+        executor_action_fly::execute(tick, self, locations, sectors, events);
         executor_action_mine::execute(tick, self, locations, extractables, cargos);
     }
 

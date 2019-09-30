@@ -1,0 +1,5 @@
+namespace space_data;
+
+table Inputs {
+  new_game: bool;
+}
