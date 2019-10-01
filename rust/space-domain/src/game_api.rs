@@ -1,8 +1,11 @@
 use crate::game::Game;
 use std::time::Duration;
 use crate::utils::Seconds;
-use crate::game::events::EventKind;
+use crate::game::events::{EventKind, Events, ObjEvent};
 use crate::game::locations::Location;
+use crate::space_outputs_generated::space_data;
+use flatbuffers::FlatBufferBuilder;
+use crate::space_outputs_generated::space_data::NewEntity;
 
 pub struct GameApi {
     game: Game,
@@ -77,6 +80,102 @@ impl GameApi {
             }
         }
         false
+    }
+}
+
+struct OutpusBuilder<'a> {
+    builder: FlatBufferBuilder<'a>,
+    finish: bool,
+    entities_new: Vec<NewEntity>,
+}
+
+impl<'a> OutpusBuilder<'a> {
+    pub fn new() -> Self {
+        OutpusBuilder {
+            builder: FlatBufferBuilder::new(),
+            finish: false,
+            entities_new: vec![]
+        }
+    }
+
+    pub fn push_entity_new(&mut self, id: u32, pos: space_data::V2, sector_id: u32, kind: space_data::EntityKind) {
+        let entity = space_data::NewEntity::new(
+            id,
+            &pos,
+            sector_id,
+            kind
+        );
+
+        self.entities_new.push(entity);
+    }
+
+    pub fn finish(&mut self) -> &[u8] {
+        if !self.finish {
+            self.finish = true;
+
+            let entities_new =
+                if self.entities_new.is_empty() { None } else {
+                    Some(self.builder.create_vector(std::mem::replace(&mut self.entities_new, vec![]).as_ref()))
+                };
+
+            let root_args = space_data::OutputsArgs {
+                entities_new,
+                entities_move: None,
+                entities_jump: None
+            };
+
+            let root = space_data::Outputs::create(&mut self.builder, &root_args);
+            self.builder.finish_minimal(root);
+        }
+        self.builder.finished_data()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::space_outputs_generated::space_data;
+    use crate::game::events::{ObjEvent, EventKind};
+    use crate::game::objects::ObjId;
+    use crate::game_api::OutpusBuilder;
+
+    #[test]
+    fn test_events_to_flatoutputs_empty() {
+        let mut builder = OutpusBuilder::new();
+        let bytes = builder.finish();
+        let root = space_data::get_root_as_outputs(bytes);
+        assert!(root.entities_new().is_none());
+        assert!(root.entities_jump().is_none());
+        assert!(root.entities_move().is_none());
+    }
+
+    #[test]
+    fn test_events_to_flatoutputs_objects_added() {
+        let mut builder = OutpusBuilder::new();
+        builder.push_entity_new(0, space_data::V2::new(22.0, 35.0), 4, space_data::EntityKind::Fleet);
+        builder.push_entity_new(1, space_data::V2::new(2.0, 5.0), 2, space_data::EntityKind::Station);
+        let bytes = builder.finish();
+        let root = space_data::get_root_as_outputs(bytes);
+        assert!(root.entities_jump().is_none());
+        assert!(root.entities_move().is_none());
+        match root.entities_new() {
+            Some(new_entities) => {
+                assert_eq!(new_entities.len(), 2);
+                assert_eq!(new_entities[0].id(), 0);
+                assert_eq!(new_entities[0].pos().x(), 22.0);
+                assert_eq!(new_entities[0].pos().y(), 35.0);
+                assert_eq!(new_entities[0].sector_id(), 4);
+                assert_eq!(new_entities[0].kind(), space_data::EntityKind::Fleet);
+
+                assert_eq!(new_entities[1].id(), 1);
+                assert_eq!(new_entities[1].pos().x(), 2.0);
+                assert_eq!(new_entities[1].pos().y(), 5.0);
+                assert_eq!(new_entities[1].sector_id(), 2);
+                assert_eq!(new_entities[1].kind(), space_data::EntityKind::Station);
+            },
+            None => {
+                panic!();
+            }
+        }
     }
 }
 
