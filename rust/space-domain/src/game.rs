@@ -64,10 +64,6 @@ impl Game {
         }
     }
 
-    pub fn add_sector(&mut self, sector: NewSector) {
-        self.sectors.add_sector(sector);
-    }
-
     pub fn add_object(&mut self, new_obj: NewObj) -> ObjId {
         let id = self.objects.create(new_obj.has_dock);
 

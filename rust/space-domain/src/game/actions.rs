@@ -10,6 +10,7 @@ use crate::game::wares::Cargos;
 use crate::game::save::{Save, Load};
 use crate::game::jsons::JsonValueExtra;
 use crate::game::events::Events;
+use crate::game::sectors::JumpId;
 
 mod executor_action_dockundock;
 mod executor_action_jump;
@@ -22,7 +23,7 @@ pub enum Action {
     Undock,
     Dock { target: ObjId },
     Fly { to: Position },
-    Jump,
+    Jump { jump_id: JumpId },
     Mine { target: ObjId },
 }
 
@@ -91,7 +92,7 @@ impl Actions {
                     Action::Idle => ("idle", None, None),
                     Action::Mine { target } => ("mine", Some(target.0), None),
                     Action::Dock { target } => ("dock", Some(target.0), None),
-                    Action::Jump => ("jump", None, None),
+                    Action::Jump { jump_id } => ("jump", Some(jump_id.0), None),
                     Action::Undock => ("undock", None, None),
                     Action::Fly { to } => ("fly", None, Some((to.x, to.y))),
                 };
@@ -113,7 +114,7 @@ impl Actions {
                 ("idle", _, _) => Action::Idle,
                 ("mine", Some(target_id), _) => Action::Mine { target: ObjId(target_id as u32) },
                 ("dock", Some(target_id), _) => Action::Dock { target: ObjId(target_id as u32) },
-                ("jump", _, _) => Action::Jump,
+                ("jump", Some(target_id), _) => Action::Jump { jump_id: JumpId(target_id as u32) },
                 ("undock", _, _) => Action::Undock,
                 ("fly", _, Some(target_pos)) => Action::Fly { to: target_pos },
                 _ => panic!("unexpected action")

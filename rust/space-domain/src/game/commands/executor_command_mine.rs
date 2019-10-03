@@ -171,23 +171,15 @@ fn find_path(sectors: &Sectors, from: &LocationSpace, to: &LocationSpace) -> Vec
             path.push_back(NavigationStateStep::MoveTo { pos: to.pos });
             break;
         } else {
-            let current_sector = sectors.get(&current.sector_id);
-            let jump = current_sector.jumps.iter().find(|jump| {
-                jump.to == to.sector_id
-            }).unwrap();
+            debug!("executor_command_mine", "search jump from {:?} to {:?}", current.sector_id, to.sector_id);
+            let jump = sectors.find_jump(current.sector_id, to.sector_id).unwrap();
 
             path.push_back(NavigationStateStep::MoveTo { pos: jump.pos });
-            path.push_back(NavigationStateStep::Jump { sector_id: jump.to });
-
-            let arrival_sector = sectors.get(&jump.to);
-            let arrival_jump = arrival_sector.jumps.iter().find(|jump| {
-                jump.to == current_sector.id
-            }).unwrap();
-            let arrival_position = arrival_jump.pos;
+            path.push_back(NavigationStateStep::Jump { jump_id: jump.id });
 
             current = LocationSpace {
-                sector_id: jump.to,
-                pos: arrival_position
+                sector_id: jump.to_sector_id,
+                pos: jump.to_pos,
             }
         }
     }

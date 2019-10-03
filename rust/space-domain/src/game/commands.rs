@@ -37,7 +37,7 @@ struct DeliverState {
 #[derive(Debug, Clone)]
 enum NavigationStateStep {
     MoveTo { pos: Position, },
-    Jump { sector_id: SectorId },
+    Jump { jump_id: JumpId },
     Dock { target: ObjId },
 }
 
@@ -59,8 +59,8 @@ impl NavigationState {
             Some(NavigationStateStep::MoveTo { pos}) => {
                 Action::Fly { to: pos }
             },
-            Some(NavigationStateStep::Jump { .. }) => {
-                Action::Jump
+            Some(NavigationStateStep::Jump { jump_id }) => {
+                Action::Jump { jump_id }
             },
             Some(NavigationStateStep::Dock { target }) => {
                 Action::Dock { target }
@@ -167,22 +167,21 @@ impl CanSave for Commands {
 
             let navigation_state: Option<Value> = state.navigation.as_ref().map(|state| {
                 let path: Vec<Value> = state.path.iter().map(|i| {
-                    let (step, pos, sector_id, target) = match i {
+                    let (step, pos, target) = match i {
                         NavigationStateStep::MoveTo { pos } => {
-                            ("moveto", Some(jsons::from_v2(pos)), None, None)
+                            ("moveto", Some(jsons::from_v2(pos)), None)
                         },
-                        NavigationStateStep::Jump { sector_id } => {
-                            ("jump", None, Some(sector_id.0), None)
+                        NavigationStateStep::Jump { jump_id } => {
+                            ("jump", None, Some(jump_id.0))
                         },
                         NavigationStateStep::Dock { target } => {
-                            ("dock", None, None, Some(target.0))
+                            ("dock", None, Some(target.0))
                         },
                     };
 
                     json!({
                         "step": step,
                         "pos": pos,
-                        "sector_id": sector_id,
                         "target": target,
                     })
                 }).collect();
@@ -240,9 +239,9 @@ impl CanLoad for Commands {
                                 pos: pos.to_v2()
                             }
                         },
-                        ("jump", None, Some(sector_id), None) => {
+                        ("jump", None, None, Some(jump_id)) => {
                             NavigationStateStep::Jump {
-                                sector_id: SectorId(sector_id as u32)
+                                jump_id: JumpId(jump_id as u32)
                             }
                         },
                         ("dock", None, None, Some(target_id)) => {

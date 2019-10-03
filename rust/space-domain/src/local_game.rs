@@ -17,24 +17,23 @@ const SECTOR_0: SectorId = SectorId(0);
 const SECTOR_1: SectorId = SectorId(1);
 
 fn load_sectors(game: &mut Game) {
-    game.add_sector(NewSector {
-        id: SECTOR_0,
-        jumps: vec![
-            NewJump {
-                to_sector_id: SECTOR_1,
-                pos: Position { x: -5.0, y: 5.0 }
-            }
-        ]
+    game.sectors.add_sector(Sector { id: SECTOR_0, });
+    game.sectors.add_sector(Sector { id: SECTOR_1, });
+
+    game.sectors.add_jump(Jump {
+        id: JumpId(0),
+        sector_id: SECTOR_0,
+        pos: Position { x: -5.0, y: 5.0 },
+        to_sector_id: SECTOR_1,
+        to_pos: Position { x:  5.0, y: -5.0 }
     });
 
-    game.add_sector(NewSector {
-        id: SECTOR_1,
-        jumps: vec![
-            NewJump {
-                to_sector_id: SECTOR_0,
-                pos: Position { x: 5.0, y: -5.0 }
-            }
-        ]
+    game.sectors.add_jump(Jump {
+        id: JumpId(1),
+        sector_id: SECTOR_1,
+        pos: Position { x: 5.0, y: -5.0 },
+        to_sector_id: SECTOR_0,
+        to_pos: Position { x:  -5.0, y: 5.0 }
     });
 }
 

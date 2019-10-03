@@ -9,26 +9,18 @@ use crate::game::events::{Events, ObjEvent, EventKind};
 pub fn execute(actions: &mut Actions, locations: &mut Locations, sectors: &Sectors, events: &mut Events) {
     for (obj_id, state) in actions.list_mut() {
         match state.action {
-            Action::Jump => {
+            Action::Jump { jump_id } => {
                 let location = locations.get_location(obj_id);
 
                 match location {
                     Some(Location::Space { sector_id, pos}) => {
-                        let jump = match sectors.find_jump_at(sector_id, pos) {
-                            Some(jump) => jump,
-                            None => {
-                                warn!("executor_action_jump", &format!("{:?} fail to jump, no jump at {:?} {:?}", obj_id, sector_id, pos));
-                                continue;
-                            }
-                        };
+                        let jump = sectors.get_jump(jump_id).unwrap();
 
-                        let target_jump = sectors.find_target_jump(jump.to, *sector_id);
-
-                        debug!("executor_action_jump", &format!("{:?} jump from {:?} at {:?} to {:?} at {:?}", obj_id, sector_id, pos, jump.to, target_jump.pos));
+                        debug!("executor_action_jump", &format!("{:?} jump from {:?} at {:?} to {:?} at {:?}", obj_id, sector_id, pos, jump.to_sector_id, jump.to_pos));
 
                         let location = Location::Space {
-                            sector_id: jump.to,
-                            pos: target_jump.pos
+                            sector_id: jump.to_sector_id,
+                            pos: jump.to_pos
                         };
 
                         state.action = Action::Idle;
