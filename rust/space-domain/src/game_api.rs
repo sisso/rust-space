@@ -5,7 +5,6 @@ use crate::game::events::{EventKind, Events, ObjEvent};
 use crate::game::locations::Location;
 use crate::space_outputs_generated::space_data;
 use flatbuffers::FlatBufferBuilder;
-use crate::space_outputs_generated::space_data::NewEntity;
 
 pub struct GameApi {
     game: Game,
@@ -86,7 +85,9 @@ impl GameApi {
 struct OutpusBuilder<'a> {
     builder: FlatBufferBuilder<'a>,
     finish: bool,
-    entities_new: Vec<NewEntity>,
+    entities_new: Vec<space_data::EntityNew>,
+    entities_moved: Vec<space_data::EntityMove>,
+    entities_jumped: Vec<space_data::EntityJump>,
 }
 
 impl<'a> OutpusBuilder<'a> {
@@ -94,34 +95,55 @@ impl<'a> OutpusBuilder<'a> {
         OutpusBuilder {
             builder: FlatBufferBuilder::new(),
             finish: false,
-            entities_new: vec![]
+            entities_new: vec![],
+            entities_moved: vec![],
+            entities_jumped: vec![],
         }
     }
 
     pub fn push_entity_new(&mut self, id: u32, pos: space_data::V2, sector_id: u32, kind: space_data::EntityKind) {
-        let entity = space_data::NewEntity::new(
+        self.entities_new.push(space_data::EntityNew::new(
             id,
             &pos,
             sector_id,
             kind
-        );
+        ));
+    }
 
-        self.entities_new.push(entity);
+    pub fn push_entity_move(&mut self, id: u32, pos: space_data::V2) {
+        self.entities_moved.push(space_data::EntityMove::new(
+            id,
+            &pos,
+        ));
+    }
+
+    pub fn push_entity_jump(&mut self, id: u32, sector_id: u32, pos: space_data::V2) {
+        self.entities_jumped.push(space_data::EntityJump::new(
+            id,
+            sector_id,
+            &pos,
+        ));
     }
 
     pub fn finish(&mut self) -> &[u8] {
+        #[macro_export]
+        macro_rules! create_vector {
+            ($field:expr) => {
+                if $field.is_empty() {
+                    None
+                } else {
+                    Some(self.builder.create_vector(std::mem::replace(&mut $field, vec![]).as_ref()))
+                }
+            };
+        }
+
         if !self.finish {
             self.finish = true;
 
-            let entities_new =
-                if self.entities_new.is_empty() { None } else {
-                    Some(self.builder.create_vector(std::mem::replace(&mut self.entities_new, vec![]).as_ref()))
-                };
-
             let root_args = space_data::OutputsArgs {
-                entities_new,
-                entities_move: None,
-                entities_jump: None
+                entities_new: create_vector!(self.entities_new),
+                entities_move: create_vector!(self.entities_moved),
+                entities_jump: create_vector!(self.entities_jumped),
             };
 
             let root = space_data::Outputs::create(&mut self.builder, &root_args);
@@ -154,12 +176,14 @@ mod test {
         builder.push_entity_new(0, space_data::V2::new(22.0, 35.0), 4, space_data::EntityKind::Fleet);
         builder.push_entity_new(1, space_data::V2::new(2.0, 5.0), 2, space_data::EntityKind::Station);
         let bytes = builder.finish();
+
         let root = space_data::get_root_as_outputs(bytes);
         assert!(root.entities_jump().is_none());
         assert!(root.entities_move().is_none());
         match root.entities_new() {
             Some(new_entities) => {
                 assert_eq!(new_entities.len(), 2);
+
                 assert_eq!(new_entities[0].id(), 0);
                 assert_eq!(new_entities[0].pos().x(), 22.0);
                 assert_eq!(new_entities[0].pos().y(), 35.0);
@@ -171,6 +195,64 @@ mod test {
                 assert_eq!(new_entities[1].pos().y(), 5.0);
                 assert_eq!(new_entities[1].sector_id(), 2);
                 assert_eq!(new_entities[1].kind(), space_data::EntityKind::Station);
+            },
+            None => {
+                panic!();
+            }
+        }
+    }
+
+    #[test]
+    fn test_events_to_flatoutputs_entities_moved() {
+        let mut builder = OutpusBuilder::new();
+        builder.push_entity_move(0, space_data::V2::new(22.0, 35.0));
+        builder.push_entity_move(1, space_data::V2::new(-1.0, 0.0));
+        let bytes = builder.finish();
+
+        let root = space_data::get_root_as_outputs(bytes);
+        assert!(root.entities_new().is_none());
+        assert!(root.entities_jump().is_none());
+        match root.entities_move() {
+            Some(entity_moved) => {
+                assert_eq!(entity_moved.len(), 2);
+
+                assert_eq!(entity_moved[0].id(), 0);
+                assert_eq!(entity_moved[0].pos().x(), 22.0);
+                assert_eq!(entity_moved[0].pos().y(), 35.0);
+
+                assert_eq!(entity_moved[1].id(), 1);
+                assert_eq!(entity_moved[1].pos().x(), -1.0);
+                assert_eq!(entity_moved[1].pos().y(), 0.0);
+            },
+            None => {
+                panic!();
+            }
+        }
+    }
+
+    #[test]
+    fn test_events_to_flatoutputs_entities_jumped() {
+        let mut builder = OutpusBuilder::new();
+        builder.push_entity_jump(0, 3, space_data::V2::new(22.0, 35.0));
+        builder.push_entity_jump(1, 4, space_data::V2::new(-1.0, 0.0));
+        let bytes = builder.finish();
+
+        let root = space_data::get_root_as_outputs(bytes);
+        assert!(root.entities_new().is_none());
+        assert!(root.entities_move().is_none());
+        match root.entities_jump() {
+            Some(e) => {
+                assert_eq!(e.len(), 2);
+
+                assert_eq!(e[0].id(), 0);
+                assert_eq!(e[0].sector_id(), 3);
+                assert_eq!(e[0].pos().x(), 22.0);
+                assert_eq!(e[0].pos().y(), 35.0);
+
+                assert_eq!(e[1].id(), 1);
+                assert_eq!(e[1].sector_id(), 4);
+                assert_eq!(e[1].pos().x(), -1.0);
+                assert_eq!(e[1].pos().y(), 0.0);
             },
             None => {
                 panic!();

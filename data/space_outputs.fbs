@@ -12,7 +12,7 @@ enum EntityKind : short{
   Jump
 }
 
-struct NewEntity {
+struct EntityNew {
   id: uint;
   pos: V2;
   sector_id: uint;
@@ -26,12 +26,12 @@ struct EntityMove {
 
 struct EntityJump {
   id: uint;
-  to_sector_id: uint;
-  to_pos: V2;
+  sector_id: uint;
+  pos: V2;
 }
 
 table Outputs {
-  entities_new: [NewEntity];
+  entities_new: [EntityNew];
   entities_move: [EntityMove];
   entities_jump: [EntityJump];
 }
