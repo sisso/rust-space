@@ -14,6 +14,18 @@ pub struct Jump {
     pub pos: V2,
 }
 
+#[derive(Clone,Debug)]
+pub struct Jump2Sector {
+    pub sector_id: SectorId,
+    pub pos: V2,
+}
+
+#[derive(Clone,Debug)]
+pub struct Jump2 {
+    pub a: Jump2Sector,
+    pub b: Jump2Sector,
+}
+
 #[derive(Clone,Copy,PartialEq,Eq,Hash,Debug)]
 pub struct SectorId(pub u32);
 
@@ -90,6 +102,10 @@ impl Sectors {
             .unwrap()
     }
 
+    pub fn get_jumps(&self) -> Vec<Jump2> {
+        vec![]
+    }
+
     pub fn save(&self, save: &mut impl Save) {
         for (sector_id,sector) in self.index.iter() {
             let jumps: Vec<serde_json::Value> = sector.jumps.iter().map(|jump| {
@@ -123,5 +139,46 @@ impl Sectors {
 
             self.add_sector(ns);
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_sectors_jumps() {
+        let mut sectors = Sectors::new();
+
+        sectors.add_sector(NewSector {
+            id: SectorId(0),
+            jumps: vec![
+                NewJump {
+                    to_sector_id: SectorId(1),
+                    pos: V2::new(1.0, 0.0)
+                }
+            ]
+        });
+
+        sectors.add_sector(NewSector {
+            id: SectorId(1),
+            jumps: vec![
+                NewJump {
+                    to_sector_id: SectorId(0),
+                    pos: V2::new(0.0, 1.0)
+                }
+            ]
+        });
+
+        let jumps = sectors.get_jumps();
+
+        assert_eq!(jumps.len(), 1);
+
+        let jump = jumps.get(0).unwrap();
+        assert_eq!(jump.a.sector_id, SectorId(0));
+        assert_eq!(jump.a.pos, V2::new(1.0, 0.0));
+
+        assert_eq!(jump.b.sector_id, SectorId(1));
+        assert_eq!(jump.b.pos, V2::new(0.0, 1.0));
     }
 }

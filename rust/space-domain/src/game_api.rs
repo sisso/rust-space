@@ -57,6 +57,16 @@ impl GameApi {
 
         let mut builder = OutpusBuilder::new();
 
+        for sector_id in self.game.sectors.list() {
+            builder.sectors_new.push(space_data::SectorNew::new(sector_id.value()));
+        }
+
+        for jump in self.game.sectors.get_jumps() {
+//            builder.jumps_new.push(space_data::JumpNew::new(
+//            ));
+        }
+
+        // process events
         for event in events {
             match event.kind {
                 EventKind::Add => {
@@ -103,9 +113,11 @@ impl GameApi {
 struct OutpusBuilder<'a> {
     builder: FlatBufferBuilder<'a>,
     finish: bool,
-    entities_new: Vec<space_data::EntityNew>,
-    entities_moved: Vec<space_data::EntityMove>,
-    entities_jumped: Vec<space_data::EntityJump>,
+    pub entities_new: Vec<space_data::EntityNew>,
+    pub entities_moved: Vec<space_data::EntityMove>,
+    pub entities_jumped: Vec<space_data::EntityJump>,
+    pub sectors_new: Vec<space_data::SectorNew>,
+    pub jumps_new: Vec<space_data::JumpNew>,
 }
 
 impl<'a> OutpusBuilder<'a> {
@@ -116,6 +128,8 @@ impl<'a> OutpusBuilder<'a> {
             entities_new: vec![],
             entities_moved: vec![],
             entities_jumped: vec![],
+            sectors_new: vec![],
+            jumps_new: vec![]
         }
     }
 
@@ -162,6 +176,8 @@ impl<'a> OutpusBuilder<'a> {
                 entities_new: create_vector!(self.entities_new),
                 entities_move: create_vector!(self.entities_moved),
                 entities_jump: create_vector!(self.entities_jumped),
+                sectors: create_vector!(self.sectors_new),
+                jumps: create_vector!(self.jumps_new),
             };
 
             let root = space_data::Outputs::create(&mut self.builder, &root_args);

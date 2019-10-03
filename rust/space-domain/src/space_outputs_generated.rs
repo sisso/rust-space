@@ -144,6 +144,138 @@ impl V2 {
   }
 }
 
+// struct SectorNew, aligned to 4
+#[repr(C, align(4))]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct SectorNew {
+  id_: u32,
+} // pub struct SectorNew
+impl flatbuffers::SafeSliceAccess for SectorNew {}
+impl<'a> flatbuffers::Follow<'a> for SectorNew {
+  type Inner = &'a SectorNew;
+  #[inline]
+  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    <&'a SectorNew>::follow(buf, loc)
+  }
+}
+impl<'a> flatbuffers::Follow<'a> for &'a SectorNew {
+  type Inner = &'a SectorNew;
+  #[inline]
+  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    flatbuffers::follow_cast_ref::<SectorNew>(buf, loc)
+  }
+}
+impl<'b> flatbuffers::Push for SectorNew {
+    type Output = SectorNew;
+    #[inline]
+    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
+        let src = unsafe {
+            ::std::slice::from_raw_parts(self as *const SectorNew as *const u8, Self::size())
+        };
+        dst.copy_from_slice(src);
+    }
+}
+impl<'b> flatbuffers::Push for &'b SectorNew {
+    type Output = SectorNew;
+
+    #[inline]
+    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
+        let src = unsafe {
+            ::std::slice::from_raw_parts(*self as *const SectorNew as *const u8, Self::size())
+        };
+        dst.copy_from_slice(src);
+    }
+}
+
+
+impl SectorNew {
+  pub fn new<'a>(_id: u32) -> Self {
+    SectorNew {
+      id_: _id.to_little_endian(),
+
+    }
+  }
+  pub fn id<'a>(&'a self) -> u32 {
+    self.id_.from_little_endian()
+  }
+}
+
+// struct JumpNew, aligned to 4
+#[repr(C, align(4))]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct JumpNew {
+  id_: u32,
+  sector_id_1_: u32,
+  pos_1_: V2,
+  sector_id_2_: u32,
+  pos_2_: V2,
+} // pub struct JumpNew
+impl flatbuffers::SafeSliceAccess for JumpNew {}
+impl<'a> flatbuffers::Follow<'a> for JumpNew {
+  type Inner = &'a JumpNew;
+  #[inline]
+  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    <&'a JumpNew>::follow(buf, loc)
+  }
+}
+impl<'a> flatbuffers::Follow<'a> for &'a JumpNew {
+  type Inner = &'a JumpNew;
+  #[inline]
+  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    flatbuffers::follow_cast_ref::<JumpNew>(buf, loc)
+  }
+}
+impl<'b> flatbuffers::Push for JumpNew {
+    type Output = JumpNew;
+    #[inline]
+    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
+        let src = unsafe {
+            ::std::slice::from_raw_parts(self as *const JumpNew as *const u8, Self::size())
+        };
+        dst.copy_from_slice(src);
+    }
+}
+impl<'b> flatbuffers::Push for &'b JumpNew {
+    type Output = JumpNew;
+
+    #[inline]
+    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
+        let src = unsafe {
+            ::std::slice::from_raw_parts(*self as *const JumpNew as *const u8, Self::size())
+        };
+        dst.copy_from_slice(src);
+    }
+}
+
+
+impl JumpNew {
+  pub fn new<'a>(_id: u32, _sector_id_1: u32, _pos_1: &'a V2, _sector_id_2: u32, _pos_2: &'a V2) -> Self {
+    JumpNew {
+      id_: _id.to_little_endian(),
+      sector_id_1_: _sector_id_1.to_little_endian(),
+      pos_1_: *_pos_1,
+      sector_id_2_: _sector_id_2.to_little_endian(),
+      pos_2_: *_pos_2,
+
+    }
+  }
+  pub fn id<'a>(&'a self) -> u32 {
+    self.id_.from_little_endian()
+  }
+  pub fn sector_id_1<'a>(&'a self) -> u32 {
+    self.sector_id_1_.from_little_endian()
+  }
+  pub fn pos_1<'a>(&'a self) -> &'a V2 {
+    &self.pos_1_
+  }
+  pub fn sector_id_2<'a>(&'a self) -> u32 {
+    self.sector_id_2_.from_little_endian()
+  }
+  pub fn pos_2<'a>(&'a self) -> &'a V2 {
+    &self.pos_2_
+  }
+}
+
 // struct EntityNew, aligned to 4
 #[repr(C, align(4))]
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -373,6 +505,8 @@ impl<'a> Outputs<'a> {
         _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
         args: &'args OutputsArgs<'args>) -> flatbuffers::WIPOffset<Outputs<'bldr>> {
       let mut builder = OutputsBuilder::new(_fbb);
+      if let Some(x) = args.jumps { builder.add_jumps(x); }
+      if let Some(x) = args.sectors { builder.add_sectors(x); }
       if let Some(x) = args.entities_jump { builder.add_entities_jump(x); }
       if let Some(x) = args.entities_move { builder.add_entities_move(x); }
       if let Some(x) = args.entities_new { builder.add_entities_new(x); }
@@ -382,6 +516,8 @@ impl<'a> Outputs<'a> {
     pub const VT_ENTITIES_NEW: flatbuffers::VOffsetT = 4;
     pub const VT_ENTITIES_MOVE: flatbuffers::VOffsetT = 6;
     pub const VT_ENTITIES_JUMP: flatbuffers::VOffsetT = 8;
+    pub const VT_SECTORS: flatbuffers::VOffsetT = 10;
+    pub const VT_JUMPS: flatbuffers::VOffsetT = 12;
 
   #[inline]
   pub fn entities_new(&self) -> Option<&'a [EntityNew]> {
@@ -395,12 +531,22 @@ impl<'a> Outputs<'a> {
   pub fn entities_jump(&self) -> Option<&'a [EntityJump]> {
     self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<EntityJump>>>(Outputs::VT_ENTITIES_JUMP, None).map(|v| v.safe_slice() )
   }
+  #[inline]
+  pub fn sectors(&self) -> Option<&'a [SectorNew]> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<SectorNew>>>(Outputs::VT_SECTORS, None).map(|v| v.safe_slice() )
+  }
+  #[inline]
+  pub fn jumps(&self) -> Option<&'a [JumpNew]> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<JumpNew>>>(Outputs::VT_JUMPS, None).map(|v| v.safe_slice() )
+  }
 }
 
 pub struct OutputsArgs<'a> {
     pub entities_new: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a , EntityNew>>>,
     pub entities_move: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a , EntityMove>>>,
     pub entities_jump: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a , EntityJump>>>,
+    pub sectors: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a , SectorNew>>>,
+    pub jumps: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a , JumpNew>>>,
 }
 impl<'a> Default for OutputsArgs<'a> {
     #[inline]
@@ -409,6 +555,8 @@ impl<'a> Default for OutputsArgs<'a> {
             entities_new: None,
             entities_move: None,
             entities_jump: None,
+            sectors: None,
+            jumps: None,
         }
     }
 }
@@ -428,6 +576,14 @@ impl<'a: 'b, 'b> OutputsBuilder<'a, 'b> {
   #[inline]
   pub fn add_entities_jump(&mut self, entities_jump: flatbuffers::WIPOffset<flatbuffers::Vector<'b , EntityJump>>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Outputs::VT_ENTITIES_JUMP, entities_jump);
+  }
+  #[inline]
+  pub fn add_sectors(&mut self, sectors: flatbuffers::WIPOffset<flatbuffers::Vector<'b , SectorNew>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Outputs::VT_SECTORS, sectors);
+  }
+  #[inline]
+  pub fn add_jumps(&mut self, jumps: flatbuffers::WIPOffset<flatbuffers::Vector<'b , JumpNew>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Outputs::VT_JUMPS, jumps);
   }
   #[inline]
   pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> OutputsBuilder<'a, 'b> {

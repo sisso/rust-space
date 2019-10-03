@@ -5,6 +5,24 @@ struct V2 {
   y: float;
 }
 
+//----------------------------------------------------
+
+struct SectorNew {
+  id: uint;
+}
+
+struct JumpNew {
+  id: uint;
+
+  sector_id_1: uint;
+  pos_1: V2;
+
+  sector_id_2: uint;
+  pos_2: V2;
+}
+
+//----------------------------------------------------
+
 enum EntityKind : short{
   Fleet = 0,
   Asteroid,
@@ -30,10 +48,14 @@ struct EntityJump {
   pos: V2;
 }
 
+//----------------------------------------------------
+
 table Outputs {
   entities_new: [EntityNew];
   entities_move: [EntityMove];
   entities_jump: [EntityJump];
+  sectors: [SectorNew];
+  jumps: [JumpNew];
 }
 
 root_type Outputs;
