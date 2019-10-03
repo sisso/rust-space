@@ -9,6 +9,7 @@ use flatbuffers::FlatBufferBuilder;
 pub struct GameApi {
     game: Game,
     total_time: f32,
+    first_outputs: bool,
 }
 
 impl From<V2> for space_data::V2 {
@@ -28,7 +29,8 @@ impl GameApi {
     pub fn new() -> Self {
         GameApi {
             game: Game::new(),
-            total_time: 0.0
+            total_time: 0.0,
+            first_outputs: true,
         }
     }
 
@@ -57,13 +59,22 @@ impl GameApi {
 
         let mut builder = OutpusBuilder::new();
 
-        for sector_id in self.game.sectors.list() {
-            builder.sectors_new.push(space_data::SectorNew::new(sector_id.value()));
-        }
+        if self.first_outputs {
+            self.first_outputs = false;
 
-        for jump in self.game.sectors.get_jumps() {
-//            builder.jumps_new.push(space_data::JumpNew::new(
-//            ));
+            for sector_id in self.game.sectors.list() {
+                builder.sectors_new.push(space_data::SectorNew::new(sector_id.value()));
+            }
+
+            for jump in self.game.sectors.get_jumps() {
+                builder.jumps_new.push(space_data::JumpNew::new(
+                    jump.id.0,
+                    jump.sector_id.0,
+                    &jump.pos.into(),
+                    jump.to_sector_id.0,
+                    &jump.to_pos.into()
+                ));
+            }
         }
 
         // process events

@@ -205,10 +205,10 @@ impl SectorNew {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct JumpNew {
   id_: u32,
-  sector_id_1_: u32,
-  pos_1_: V2,
-  sector_id_2_: u32,
-  pos_2_: V2,
+  sector_id_: u32,
+  pos_: V2,
+  to_sector_id_: u32,
+  to_pos_: V2,
 } // pub struct JumpNew
 impl flatbuffers::SafeSliceAccess for JumpNew {}
 impl<'a> flatbuffers::Follow<'a> for JumpNew {
@@ -249,30 +249,30 @@ impl<'b> flatbuffers::Push for &'b JumpNew {
 
 
 impl JumpNew {
-  pub fn new<'a>(_id: u32, _sector_id_1: u32, _pos_1: &'a V2, _sector_id_2: u32, _pos_2: &'a V2) -> Self {
+  pub fn new<'a>(_id: u32, _sector_id: u32, _pos: &'a V2, _to_sector_id: u32, _to_pos: &'a V2) -> Self {
     JumpNew {
       id_: _id.to_little_endian(),
-      sector_id_1_: _sector_id_1.to_little_endian(),
-      pos_1_: *_pos_1,
-      sector_id_2_: _sector_id_2.to_little_endian(),
-      pos_2_: *_pos_2,
+      sector_id_: _sector_id.to_little_endian(),
+      pos_: *_pos,
+      to_sector_id_: _to_sector_id.to_little_endian(),
+      to_pos_: *_to_pos,
 
     }
   }
   pub fn id<'a>(&'a self) -> u32 {
     self.id_.from_little_endian()
   }
-  pub fn sector_id_1<'a>(&'a self) -> u32 {
-    self.sector_id_1_.from_little_endian()
+  pub fn sector_id<'a>(&'a self) -> u32 {
+    self.sector_id_.from_little_endian()
   }
-  pub fn pos_1<'a>(&'a self) -> &'a V2 {
-    &self.pos_1_
+  pub fn pos<'a>(&'a self) -> &'a V2 {
+    &self.pos_
   }
-  pub fn sector_id_2<'a>(&'a self) -> u32 {
-    self.sector_id_2_.from_little_endian()
+  pub fn to_sector_id<'a>(&'a self) -> u32 {
+    self.to_sector_id_.from_little_endian()
   }
-  pub fn pos_2<'a>(&'a self) -> &'a V2 {
-    &self.pos_2_
+  pub fn to_pos<'a>(&'a self) -> &'a V2 {
+    &self.to_pos_
   }
 }
 

@@ -13,12 +13,10 @@ struct SectorNew {
 
 struct JumpNew {
   id: uint;
-
-  sector_id_1: uint;
-  pos_1: V2;
-
-  sector_id_2: uint;
-  pos_2: V2;
+  sector_id: uint;
+  pos: V2;
+  to_sector_id: uint;
+  to_pos: V2;
 }
 
 //----------------------------------------------------
