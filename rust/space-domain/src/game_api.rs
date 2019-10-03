@@ -1,6 +1,6 @@
 use crate::game::Game;
 use std::time::Duration;
-use crate::utils::Seconds;
+use crate::utils::{Seconds, V2};
 use crate::game::events::{EventKind, Events, ObjEvent};
 use crate::game::locations::Location;
 use crate::space_outputs_generated::space_data;
@@ -9,6 +9,18 @@ use flatbuffers::FlatBufferBuilder;
 pub struct GameApi {
     game: Game,
     total_time: f32,
+}
+
+impl From<V2> for space_data::V2 {
+    fn from(v2: V2) -> Self {
+        space_data::V2::new(v2.x, v2.y)
+    }
+}
+
+impl From<&V2> for space_data::V2 {
+    fn from(v2: &V2) -> Self {
+        space_data::V2::new(v2.x, v2.y)
+    }
 }
 
 /// Represent same interface we intend to use through FFI
@@ -39,29 +51,31 @@ impl GameApi {
         false
     }
 
-    pub fn get_inputs<F>(&mut self, f: F) -> bool where F: FnOnce(Vec<u8>) {
+    pub fn get_inputs<F>(&mut self, callback: F) -> bool where F: FnOnce(Vec<u8>) {
         info!("game_api", "get_inputs");
         let events = self.game.events.take();
+
+        let mut builder = OutpusBuilder::new();
 
         for event in events {
             match event.kind {
                 EventKind::Add => {
                     let kind =
                         if self.game.extractables.get_extractable(&event.id).is_some() {
-                            "asteroid"
+                            space_data::EntityKind::Asteroid
                         } else if self.game.objects.get(&event.id).has_dock {
-                            "station"
+                            space_data::EntityKind::Station
                         } else {
-                            "fleet"
+                            space_data::EntityKind::Fleet
                         };
 
                     match self.game.locations.get_location(&event.id) {
                         Some(Location::Space { sector_id, pos} ) => {
-                            info!("game_api", "{:?} {:?} added at {:?}/{:?}", kind, event, sector_id, pos);
+                            builder.push_entity_new(event.id.value(), pos.into(), sector_id.value(), kind);
                         },
                         Some(Location::Docked { docked_id } ) => {
                             let docked_location = self.game.locations.get_location(docked_id).unwrap().get_space();
-                            info!("game_api", "{:?} {:?} added and docked at {:?}/{:?}", kind, event, docked_location.sector_id, docked_location.pos);
+                            builder.push_entity_new(event.id.value(), docked_location.pos.into(), docked_location.sector_id.value(), kind);
                         },
                         None => {
                             warn!("game_api", "Added {:?}, but has no location", event);
@@ -70,15 +84,19 @@ impl GameApi {
                 }
                 EventKind::Jump => {
                     let location = self.game.locations.get_location(&event.id).unwrap().get_space();
-                    info!("game_api", "{:?} jump to {:?}/{:?}", event, location.sector_id, location.pos);
+                    builder.push_entity_jump(event.id.value(), location.sector_id.value(), location.pos.into());
                 },
                 EventKind::Move => {
                     let location = self.game.locations.get_location(&event.id).unwrap().get_space();
-                    info!("game_api", "{:?} move to {:?}", event, location.pos);
+                    builder.push_entity_move(event.id.value(), location.pos.into());
                 }
             }
         }
-        false
+
+        let bytes = builder.finish();
+        // TODO: remove copy
+        callback(Vec::from(bytes));
+        true
     }
 }
 

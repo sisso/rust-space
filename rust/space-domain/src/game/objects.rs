@@ -12,6 +12,12 @@ use crate::game::save::{Save, Load};
 #[derive(Clone,Copy,PartialEq,Eq,Hash,Debug)]
 pub struct ObjId(pub u32);
 
+impl ObjId {
+    pub fn value(&self) -> u32 {
+        self.0
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Obj {
     pub id: ObjId,

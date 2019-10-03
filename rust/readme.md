@@ -16,6 +16,9 @@
 
 - game api uses plain structures
 - game api uses flatbuffers
+- send docked state
+
+## GUI
 
 # Forum
 

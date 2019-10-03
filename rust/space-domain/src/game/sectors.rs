@@ -17,6 +17,12 @@ pub struct Jump {
 #[derive(Clone,Copy,PartialEq,Eq,Hash,Debug)]
 pub struct SectorId(pub u32);
 
+impl SectorId {
+    pub fn value(&self) -> u32 {
+        self.0
+    }
+}
+
 pub struct NewJump {
     pub to_sector_id: SectorId,
     pub pos: Position,
