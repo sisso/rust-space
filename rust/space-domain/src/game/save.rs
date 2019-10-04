@@ -111,3 +111,52 @@ impl Load for LoadFromFile {
             .unwrap_or(Vec::new())
     }
 }
+
+#[derive(Debug)]
+pub struct LoadSaveBuffer {
+    headers: Vec<(String, Value)>,
+    components: Vec<(String, (u32, Value))>,
+}
+
+impl LoadSaveBuffer {
+    pub fn new() -> Self {
+        LoadSaveBuffer { headers: vec![], components: vec![] }
+    }
+}
+
+impl Save for LoadSaveBuffer {
+    fn add_header(&mut self, header_name: &str, value: Value) {
+        self.headers.push((header_name.to_string(), value));
+    }
+
+    fn add(&mut self, id: u32, component: &str, value: Value) {
+        self.components.push((component.to_string(), (id, value)));
+    }
+
+    fn close(&mut self) {
+    }
+}
+
+impl Load for LoadSaveBuffer {
+    fn get_headers(&mut self, header: &str) -> Vec<&Value> {
+        self.headers.iter()
+            .filter_map(|(i_header, value)| {
+                if i_header.as_str().eq(header) {
+                    Some(value)
+                } else {
+                    None
+                }
+            }).collect()
+    }
+
+    fn get_components(&mut self, component: &str) -> Vec<&(u32, Value)> {
+        self.components.iter()
+            .filter_map(|(i_component, pair)| {
+                if i_component.as_str().eq(component) {
+                    Some(pair)
+                } else {
+                    None
+                }
+            }).collect()
+    }
+}

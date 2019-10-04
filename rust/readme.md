@@ -1,9 +1,7 @@
 # TODO
 
 - fix multiples actions per tick
-- refactory the everything
-    - jump gates be entities
-    
+      
 ## Configuration files
 
 - use hacon to bootstrap and configuration
@@ -19,6 +17,10 @@
 - send docked state
 
 ## GUI
+
+## refactorying
+
+- remove reference for simple values
 
 # Forum
 

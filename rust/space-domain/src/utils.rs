@@ -1,4 +1,6 @@
-#[derive(Clone,Copy,PartialEq,Debug)]
+use serde::{Serialize, Deserialize};
+
+#[derive(Clone,Copy,PartialEq,Debug,Serialize,Deserialize)]
 pub struct V2 {
     pub x: f32,
     pub y: f32,
@@ -51,10 +53,10 @@ impl V2 {
 
 pub type Position = V2;
 
-#[derive(Clone,Copy,Debug)]
+#[derive(Clone,Copy,Debug,Serialize,Deserialize)]
 pub struct Speed(pub f32);
 
-#[derive(Clone,Copy,Debug)]
+#[derive(Clone,Copy,Debug,Serialize,Deserialize)]
 pub struct Seconds(pub f32);
 
 impl Seconds {
@@ -63,10 +65,10 @@ impl Seconds {
     }
 }
 
-#[derive(Clone,Copy,Debug)]
+#[derive(Clone,Copy,Debug,Serialize,Deserialize)]
 pub struct DeltaTime(pub f32);
 
-#[derive(Clone,Copy,Debug)]
+#[derive(Clone,Copy,Debug,Serialize,Deserialize)]
 pub struct TotalTime(pub f32);
 
 impl TotalTime {

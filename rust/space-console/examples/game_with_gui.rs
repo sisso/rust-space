@@ -56,7 +56,7 @@ impl SectorViewsImpl {
 
         for e in outputs.entities_move().unwrap_or(&vec![]) {
             let sector_id = self.obj_index.get(&e.id()).unwrap();
-            let mut gui_sector = self.sectors.get_mut(&sector_id).unwrap();
+            let gui_sector = self.sectors.get_mut(&sector_id).unwrap();
 
             for gui_obj in gui_sector.objects.iter_mut() {
                 if gui_obj.id == e.id() {
@@ -68,7 +68,7 @@ impl SectorViewsImpl {
 
         for i in outputs.entities_jump().unwrap_or(&vec![]) {
             let sector_id = self.obj_index.get(&i.id()).unwrap();
-            let mut gui_sector = self.sectors.get_mut(&sector_id).unwrap();
+            let gui_sector = self.sectors.get_mut(&sector_id).unwrap();
 
             let index = gui_sector.objects.iter().position(|j| j.id == i.id()).unwrap();
             let mut gui_obj = gui_sector.objects.remove(index);

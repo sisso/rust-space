@@ -7,8 +7,10 @@ use std::collections::HashMap;
 use crate::game::jsons;
 use crate::game::save::{Save, Load};
 use crate::game::jsons::JsonValueExtra;
+use serde::{Serialize, Deserialize};
+use std::any::Any;
 
-#[derive(Clone,Debug)]
+#[derive(Clone,Debug,Serialize,Deserialize)]
 pub struct Jump {
     pub id: JumpId,
     pub sector_id: SectorId,
@@ -17,10 +19,10 @@ pub struct Jump {
     pub to_pos: Position,
 }
 
-#[derive(Clone,Copy,PartialEq,Eq,Hash,Debug)]
+#[derive(Clone,Copy,PartialEq,Eq,Hash,Debug,Serialize,Deserialize)]
 pub struct SectorId(pub u32);
 
-#[derive(Clone,Copy,PartialEq,Eq,Hash,Debug)]
+#[derive(Clone,Copy,PartialEq,Eq,Hash,Debug,Serialize,Deserialize)]
 pub struct JumpId(pub u32);
 
 impl SectorId {
@@ -29,7 +31,7 @@ impl SectorId {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone,Debug,Serialize,Deserialize)]
 pub struct Sector {
     pub id: SectorId,
 }
@@ -67,8 +69,8 @@ impl Sectors {
         self.jumps.insert(jump.id, jump);
     }
 
-    pub fn get(&self, sector_id: &SectorId) -> &Sector {
-        self.sectors.get(sector_id).unwrap()
+    pub fn get(&self, sector_id: SectorId) -> &Sector {
+        self.sectors.get(&sector_id).unwrap()
     }
 
     pub fn list<'a>(&self) -> Vec<SectorId> {
@@ -103,47 +105,56 @@ impl Sectors {
     }
 
     pub fn save(&self, save: &mut impl Save) {
-//        for (sector_id,sector) in self.index.iter() {
-//            let jumps: Vec<serde_json::Value> = sector.jumps.iter().map(|jump| {
-//                json!({
-//                    "to_sector_id": jump.to.0,
-//                    "pos": jsons::from_v2(&jump.pos)
-//                })
-//            }).collect();
-//
-//            save.add(sector_id.0, "sector", json!({
-//                "jumps": jumps
-//            }));
-//        }
+        for (id, sector) in &self.sectors {
+            save.add(sector.id.0, "sector", json!({}));
+        }
+
+        for (id, jump) in &self.jumps {
+            save.add(jump.id.0, "jump", serde_json::to_value(jump).unwrap());
+        }
     }
 
     pub fn load(&mut self, load: &mut impl Load) {
-//        for (id, value) in load.get_components("sector") {
-//            let mut jumps = vec![];
-//
-//            for i in value["jumps"].as_array().unwrap().iter() {
-//                let to_sector_id = SectorId(i["to_sector_id"].as_i64().unwrap() as u32);
-//                let pos = i["pos"].to_v2();
-//
-//                jumps.push(NewJump { to_sector_id, pos});
-//            }
-//
-//            let ns = NewSector {
-//                id: SectorId(*id),
-//                jumps: jumps
-//            };
-//
-//            self.add_sector(ns);
-//        }
+        for (id, value) in load.get_components("sector") {
+            self.add_sector(Sector { id: SectorId(*id) });
+        }
+
+        for (id, value) in load.get_components("jump") {
+            let jump: Jump = <Jump as Deserialize>::deserialize(value).unwrap();
+            self.add_jump(jump);
+        }
     }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::game::save::LoadSaveBuffer;
 
     #[test]
     fn test_sectors() {
+        let mut buffer = LoadSaveBuffer::new();
 
+        {
+            let mut sectors = Sectors::new();
+            sectors.add_sector(Sector { id: SectorId(0) });
+            sectors.add_sector(Sector { id: SectorId(1) });
+            sectors.add_jump(Jump {
+                id: JumpId(0),
+                sector_id: SectorId(0),
+                pos: V2 { x: 0.0, y: 5.0 },
+                to_sector_id: SectorId(1),
+                to_pos: V2 { x: 3.1, y: 2.2 }
+            });
+            sectors.save(&mut buffer);
+        }
+
+        println!("{:?}", buffer);
+
+        let mut sector = Sectors::new();
+        sector.load(&mut buffer);
+
+        sector.get(SectorId(0));
+        sector.get(SectorId(1));
     }
 }
