@@ -95,50 +95,12 @@ impl SectorViewsImpl {
 }
 
 impl ShowSectorView for SectorViewsImpl {
-    fn get_sectors_len(&self) -> usize {
-        self.sectors.len()
+    fn get_sectors_id(&self) -> Vec<u32> {
+        self.sectors.keys().map(|i| *i).collect()
     }
 
-    fn get_sector(&self, sector_index: usize) -> &GuiSector {
-//        let game = self.api.get_game();
-//        let sector_id = game.sectors.list().get(sector_index).unwrap().clone();
-//
-//        let objects = game.locations.find_at_sector(sector_id);
-//
-//        let mut gui_objects: Vec<GuiObj> = objects.into_iter().map(|obj_id| {
-//            let pos = game.locations.get_location(&obj_id).unwrap().get_space().pos;
-//
-//            let kind =
-//                if game.extractables.get_extractable(&obj_id).is_some() {
-//                    GuiObjKind::ASTEROID
-//                } else if game.objects.get(&obj_id).has_dock {
-//                    GuiObjKind::STATION
-//                } else {
-//                    GuiObjKind::SHIP
-//                };
-//
-//            GuiObj {
-//                kind,
-//                pos
-//            }
-//        }).collect();
-//
-//        for jump in game.sectors.get_jumps(sector_id) {
-//            gui_objects.push(
-//                GuiObj {
-//                    kind: GuiObjKind::JUMP,
-//                    pos: jump.pos,
-//                }
-//            );
-//        }
-//
-//        let sector_id = self.outputs.sectors().unwrap().get(sector_index).unwrap().id();
-//        GuiSector {
-//            label: format!("Sector {}", sector_id),
-//            objects: vec![]
-//        }
-
-        self.sectors.values().collect::<Vec<_>>().get(sector_index).unwrap()
+    fn get_sector(&self, sector_id: u32) -> &GuiSector {
+        self.sectors.get(&sector_id).unwrap()
     }
 }
 

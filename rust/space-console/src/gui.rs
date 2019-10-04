@@ -61,9 +61,9 @@ pub struct Gui {
 }
 
 pub trait ShowSectorView {
-    fn get_sectors_len(&self) -> usize;
+    fn get_sectors_id(&self) -> Vec<u32>;
 
-    fn get_sector(&self, sector_index: usize) -> &GuiSector;
+    fn get_sector(&self, sector_id: u32) -> &GuiSector;
 }
 
 impl Gui {
@@ -90,18 +90,20 @@ impl Gui {
 
     pub fn show_sectors(&mut self, view: &dyn ShowSectorView) {
         self.terminal.draw(|mut f| {
-            let percentage_per_sector = (100.0 / view.get_sectors_len() as f32) as u16;
+            let sectors_id = view.get_sectors_id();
+
+            let percentage_per_sector = (100.0 / sectors_id.len() as f32) as u16;
 
             let mut layout_constraint = vec![];
-            layout_constraint.resize(view.get_sectors_len(), Constraint::Percentage(percentage_per_sector));
+            layout_constraint.resize(sectors_id.len(), Constraint::Percentage(percentage_per_sector));
 
             let chunks = Layout::default()
                 .direction(Direction::Horizontal)
                 .constraints(layout_constraint)
                 .split(f.size());
 
-            for index in 0..view.get_sectors_len() {
-                let sector = view.get_sector(index);
+            for (index, sector_id) in sectors_id.iter().enumerate() {
+                let sector = view.get_sector(*sector_id);
 
                 Canvas::default()
                     .block(Block::default().borders(Borders::ALL).title(sector.label.as_str()))
