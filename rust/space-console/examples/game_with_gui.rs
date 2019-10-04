@@ -5,25 +5,26 @@ use space_domain::game_api::GameApi;
 use space_domain::space_outputs_generated::space_data;
 
 use std::time::Duration;
-use space_domain::game::sectors::SectorId;
 use std::collections::HashMap;
 use space_domain::utils::V2;
 
 struct SectorViewsImpl {
-    sectors: HashMap<SectorId, GuiSector>,
+    sectors: HashMap<u32, GuiSector>,
+    obj_index: HashMap<u32, u32>,
 }
 
 impl SectorViewsImpl {
     pub fn new() -> Self {
         SectorViewsImpl {
-            sectors: Default::default()
+            sectors: Default::default(),
+            obj_index: Default::default()
         }
     }
 
     fn update(&mut self, outputs: space_data::Outputs) {
         if let Some(sectors) = outputs.sectors() {
             for sector in sectors {
-                self.sectors.insert(SectorId(sector.id()), GuiSector {
+                self.sectors.insert(sector.id(), GuiSector {
                     id: sector.id(),
                     label: format!("Sector {}", sector.id()),
                     objects: vec![]
@@ -32,7 +33,7 @@ impl SectorViewsImpl {
         }
 
         for i in outputs.jumps().unwrap_or(&vec![]) {
-            let v = self.sectors.get_mut(&SectorId(i.sector_id())).unwrap();
+            let v = self.sectors.get_mut(&i.sector_id()).unwrap();
             v.objects.push(GuiObj {
                 id: i.id(),
                 kind: GuiObjKind::JUMP,
@@ -41,40 +42,41 @@ impl SectorViewsImpl {
         }
 
         for i in outputs.entities_new().unwrap_or(&vec![]) {
-            let v = self.sectors.get_mut(&SectorId(i.sector_id())).unwrap();
-            v.objects.push(GuiObj {
+            let sector_id = i.sector_id();
+
+            let gui_sector = self.sectors.get_mut(&sector_id).unwrap();
+            gui_sector.objects.push(GuiObj {
                 id: i.id(),
                 kind: SectorViewsImpl::from_kind(i.kind()),
                 pos: SectorViewsImpl::from_v2(i.pos())
             });
+
+            self.obj_index.insert(i.id(), sector_id);
         }
 
-        for i in outputs.entities_move().unwrap_or(&vec![]) {
-            for (_, s) in self.sectors.iter_mut() {
-                for e in s.objects.iter_mut() {
-                    if e.id == i.id() {
-                        e.pos = SectorViewsImpl::from_v2(i.pos());
-                    }
+        for e in outputs.entities_move().unwrap_or(&vec![]) {
+            let sector_id = self.obj_index.get(&e.id()).unwrap();
+            let mut gui_sector = self.sectors.get_mut(&sector_id).unwrap();
+
+            for gui_obj in gui_sector.objects.iter_mut() {
+                if gui_obj.id == e.id() {
+                    gui_obj.pos = SectorViewsImpl::from_v2(e.pos());
+                    break;
                 }
             }
         }
 
         for i in outputs.entities_jump().unwrap_or(&vec![]) {
-            let mut obj: Option<GuiObj> = None;
+            let sector_id = self.obj_index.get(&i.id()).unwrap();
+            let mut gui_sector = self.sectors.get_mut(&sector_id).unwrap();
 
-            for (_, s) in self.sectors.iter_mut() {
-                let index = s.objects.iter().position(|e| e.id == i.id());
-                match index {
-                    Some(index) => obj = Some(s.objects.remove(index)),
-                    None => {}
-                }
-            }
+            let index = gui_sector.objects.iter().position(|j| j.id == i.id()).unwrap();
+            let mut gui_obj = gui_sector.objects.remove(index);
+            gui_obj.pos = SectorViewsImpl::from_v2(i.pos());
 
-            let mut obj = obj.unwrap();
-            obj.pos = SectorViewsImpl::from_v2(i.pos());
-
-            let v = self.sectors.get_mut(&SectorId(i.sector_id())).unwrap();
-            v.objects.push(obj);
+            let gui_sector = self.sectors.get_mut(&i.sector_id()).unwrap();
+            gui_sector.objects.push(gui_obj);
+            self.obj_index.insert(i.id(), i.sector_id());
         }
     }
 
