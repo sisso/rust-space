@@ -46,7 +46,7 @@ fn load_objects(game: &mut Game) {
 
     // miner
     let ship_id = new_ship_miner(game, station_id, 2.0);
-    game.set_command(ship_id, Command::Mine);
+    game.commands.set_command(ship_id, Command::Mine);
 
 //    for _ in 0..10 {
 //        let speed: f32 = rand::thread_rng().gen_range(1.0, 3.0);

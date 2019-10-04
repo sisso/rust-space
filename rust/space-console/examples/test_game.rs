@@ -4,7 +4,6 @@ extern crate space_macros;
 
 use space_domain::game_api::GameApi;
 use std::time::Duration;
-use space_console::gui::Gui;
 
 fn main() -> Result<(), std::io::Error> {
 //    space_domain::local_game::run();

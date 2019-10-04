@@ -97,10 +97,6 @@ impl Game {
         id
     }
 
-    pub fn set_command(&mut self, obj_id: ObjId, command: Command) {
-        self.commands.set_command(obj_id, command);
-    }
-
     pub fn tick(&mut self, total_time: Seconds, delta_time: Seconds) {
         info!("game", &format!("tick delta {} total {}", delta_time.0, total_time.0));
         let tick = Tick { total_time, delta_time };

@@ -35,24 +35,27 @@ pub struct ComponentId(pub u32);
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct ShipInstanceId(pub u32);
 
-#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub struct Damage(pub u32);
 
-#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub struct Amount(pub u32);
 
-#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub struct Hp(pub u32);
 
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct ArmorIndex(pub u32);
 
 // TODO: width in meters? 10 meters per width? normal ship 19?
-#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub struct Width(pub u32);
 
-#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq,  Debug)]
 pub struct Tons(pub u32);
+
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+pub struct TeamId(pub u32);
 
 #[derive(Clone,Debug)]
 pub enum WeaponDamageType {
@@ -89,8 +92,8 @@ pub struct Component {
 impl Component {
     pub fn new(id: ComponentId, component_type: ComponentType) -> Self {
         Component {
-            id: id,
-            component_type: component_type,
+            id,
+            component_type,
             weapon: None,
             thrust: 0.0,
             weight: 0,
@@ -292,11 +295,12 @@ pub struct ShipInstance {
     pub component_damage: HashMap<ComponentId, Damage>,
     pub component_destroyed: HashMap<ComponentId, Amount>,
     pub weapons_state: HashMap<ComponentId, Vec<WeaponState>>,
-    pub wreck: bool
+    pub wreck: bool,
+    pub team_id: TeamId,
 }
 
 impl ShipInstance {
-    pub fn new(components: &Components, id: ShipInstanceId, spec: ShipSpec) -> Self {
+    pub fn new(components: &Components, id: ShipInstanceId, spec: ShipSpec, team_id: TeamId) -> Self {
         let mut weapons_state = HashMap::new();
 
         for weapon_id in spec.find_weapons(components) {
@@ -319,6 +323,7 @@ impl ShipInstance {
             component_destroyed: Default::default(),
             weapons_state,
             wreck: false,
+            team_id
         }
     }
 

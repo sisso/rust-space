@@ -140,11 +140,14 @@ pub fn run() {
         panic!();
     }
 
+    let team_red = TeamId(0);
+    let team_blue = TeamId(1);
+
     let ship_1_id = ShipInstanceId(0);
-    let mut ship1 = ShipInstance::new(&components, ship_1_id, specs1);
+    let mut ship1 = ShipInstance::new(&components, ship_1_id, specs1, team_red);
 
     let ship_2_id = ShipInstanceId(1);
-    let mut ship2 = ShipInstance::new(&components, ship_2_id, specs2);
+    let mut ship2 = ShipInstance::new(&components, ship_2_id, specs2, team_blue);
 
     println!("ship: {:?}", ship1);
     println!("ship: {:?}", ship2);

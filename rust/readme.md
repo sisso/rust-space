@@ -28,3 +28,8 @@
 
 The plan is to have at least 3/4 serialization: Configuration files, save games, FFI, network. Not all are the same, 
 but probably will better to have same structure for all. 
+
+## Layers
+
+Better abstraction between storage/indexing/consistency and game logic. For instance, commands hold references and is
+responsible to run logic in tick.
