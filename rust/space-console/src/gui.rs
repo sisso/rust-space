@@ -18,7 +18,8 @@ use space_domain::utils::V2;
 
 mod events;
 
-type TTerminal = Terminal<TermionBackend<AlternateScreen<RawTerminal<Stdout>>>>;
+//type TTerminal = Terminal<TermionBackend<AlternateScreen<RawTerminal<Stdout>>>>;
+type TTerminal = Terminal<TermionBackend<RawTerminal<Stdout>>>;
 
 #[derive(Debug, Copy, Clone)]
 pub enum GuiObjKind {
@@ -41,12 +42,14 @@ impl GuiObjKind {
 
 #[derive(Debug, Clone)]
 pub struct GuiObj {
+    pub id: u32,
     pub kind: GuiObjKind,
     pub pos: V2,
 }
 
 #[derive(Debug, Clone)]
 pub struct GuiSector {
+    pub id: u32,
     pub label: String,
     pub objects: Vec<GuiObj>,
 }
@@ -60,13 +63,13 @@ pub struct Gui {
 pub trait ShowSectorView {
     fn get_sectors_len(&self) -> usize;
 
-    fn get_sector(&self, sector_index: usize) -> GuiSector;
+    fn get_sector(&self, sector_index: usize) -> &GuiSector;
 }
 
 impl Gui {
     pub fn new(time_rate: Duration) -> Result<Self, std::io::Error> {
         let stdout = std::io::stdout().into_raw_mode()?;
-        let stdout = AlternateScreen::from(stdout);
+//        let stdout = AlternateScreen::from(stdout);
         let backend = TermionBackend::new(stdout);
         let mut terminal  = Terminal::new(backend)?;
         terminal.hide_cursor()?;

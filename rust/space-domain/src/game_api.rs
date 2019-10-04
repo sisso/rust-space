@@ -44,11 +44,6 @@ impl GameApi {
         self.game.tick(Seconds(self.total_time), Seconds(delta))
     }
 
-    /// TODO: remove this method, should not be used directly
-    pub fn get_game(&self) -> &Game {
-        &self.game
-    }
-
     pub fn set_inputs(&mut self, bytes: &Vec<u8>) -> bool {
         false
     }
