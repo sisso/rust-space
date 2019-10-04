@@ -66,7 +66,7 @@ impl GameApi {
                 builder.sectors_new.push(space_data::SectorNew::new(sector_id.value()));
             }
 
-            for jump in self.game.sectors.get_jumps() {
+            for jump in self.game.sectors.list_jumps() {
                 builder.jumps_new.push(space_data::JumpNew::new(
                     jump.id.0,
                     jump.sector_id.0,

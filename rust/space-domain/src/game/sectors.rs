@@ -79,20 +79,27 @@ impl Sectors {
     }
 
     pub fn find_jump(&self, from: SectorId, to: SectorId) -> Option<&Jump> {
-        self.jumps_by_sector.get(&from)
-            .and_then(|jumps| {
-                jumps.iter()
-                    .flat_map(|jump_id| self.jumps.get(jump_id))
-                    .find(|jump| to == jump.to_sector_id)
-            })
+        self.get_jumps(from)
+            .into_iter()
+            .find(|jump| jump.to_sector_id == to)
     }
 
     pub fn get_jump(&self, jump_id: JumpId) -> Option<&Jump> {
         self.jumps.get(&jump_id)
     }
 
-    pub fn get_jumps(&self) -> Vec<&Jump> {
+    pub fn list_jumps(&self) -> Vec<&Jump> {
         self.jumps.values().into_iter().collect()
+    }
+
+    pub fn get_jumps(&self, sector_id: SectorId) -> Vec<&Jump> {
+        self.jumps_by_sector.get(&sector_id)
+            .map(|jumps| {
+                jumps.iter()
+                    .flat_map(|jump_id| self.jumps.get(jump_id))
+                    .collect()
+            })
+            .unwrap_or(vec![])
     }
 
     pub fn save(&self, save: &mut impl Save) {

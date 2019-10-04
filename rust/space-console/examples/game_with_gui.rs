@@ -43,16 +43,14 @@ impl<'a> ShowSectorView for SectorViewsImpl<'a> {
             }
         }).collect();
 
-        // append jump gates
-        // TODO uncomment
-//        for jump in game.sectors.get(&sector_id).jumps.iter() {
-//            gui_objects.push(
-//                GuiObj {
-//                    kind: GuiObjKind::JUMP,
-//                    pos: jump.pos,
-//                }
-//            );
-//        }
+        for jump in game.sectors.get_jumps(sector_id) {
+            gui_objects.push(
+                GuiObj {
+                    kind: GuiObjKind::JUMP,
+                    pos: jump.pos,
+                }
+            );
+        }
 
         GuiSector {
             label: format!("Sector {}", sector_id.0),
