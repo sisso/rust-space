@@ -1,6 +1,7 @@
 use crate::game::wares::{WareId, WareAmount};
 use crate::game::objects::ObjId;
-use std::collections::HashMap;
+use std::mem;
+use std::collections::{HashMap, HashSet};
 use specs::{World, Component, VecStorage, WorldExt, DenseVecStorage, Builder, System, ReadStorage, Entities, Read, LazyUpdate, WriteStorage};
 
 ///
@@ -74,15 +75,20 @@ impl<'a> System<'a> for AssignMinersSystem {
 
     fn run(&mut self, (entities, ids, roles, infos, mut orders): Self::SystemData) {
         use specs::Join;
-        for (e, id, role, info) in (&entities, &ids, &roles, &infos).join() {
+
+        let mut to_add = vec![];
+
+        for (e, id, role, info, _) in (&entities, &ids, &roles, &infos, !&orders).join() {
             match (role, info) {
                 (Role::Miner, Info::Idle) => {},
                 _ => continue,
             }
 
-            if orders.get(e).is_none() {
-                orders.insert(e, Order::Mine);
-            }
+            to_add.push(e);
+        }
+
+        for e in to_add {
+            orders.insert(e, Order::Mine);
         }
     }
 }
@@ -183,11 +189,161 @@ impl AiHigh {
     pub fn execute(&mut self) {
         use specs::RunNow;
         self.system_assign_miner.run_now(&self.world);
-        self.collect_orders.run_now(&self.world);
     }
 
     pub fn take_orders(&mut self) -> Vec<ObjOrder> {
+        use specs::RunNow;
+        self.collect_orders.run_now(&self.world);
         self.collect_orders.take_orders()
+    }
+}
+
+#[derive(Clone,Debug)]
+struct Trader {
+    obj_id: ObjId,
+    amount: f32,
+    can_move: bool,
+}
+
+impl Trader {
+    pub fn new(obj_id: ObjId, amount: f32, can_move: bool) -> Self {
+        Trader {
+            obj_id,
+            amount,
+            can_move
+        }
+    }
+}
+
+#[derive(Clone,Debug)]
+struct Transaction {
+    ware_id: WareId,
+    requests: Vec<Trader>,
+    offers: Vec<Trader>,
+}
+
+impl Transaction {
+    pub fn new(ware_id: WareId) -> Self {
+        Transaction {
+            ware_id,
+            requests: Vec::new(),
+            offers: Vec::new()
+        }
+    }
+}
+
+#[derive(Clone,Debug)]
+struct HighAi2 {
+    idle_miners: Vec<ObjId>,
+    offers_by_ware: HashMap<WareId, Transaction>,
+    orders: Vec<ObjOrder>,
+}
+
+impl HighAi2 {
+    pub fn new() -> Self {
+        HighAi2 {
+            idle_miners: Vec::new(),
+            offers_by_ware: HashMap::new(),
+            orders: Vec::new()
+        }
+    }
+
+    pub fn set_info(&mut self, id: ObjId, role: Role, info: Info) {
+        let can_move = match role {
+            Role::Factory => false,
+            Role::Miner | Role::Cargo => true,
+        };
+
+        match (role, info) {
+            (Role::Miner, Info::Idle) => {
+                self.idle_miners.push(id);
+            },
+            (_, Info::OfferResource { ware }) => {
+                self.add_trade(ware.0, can_move, true, id, ware.1);
+            },
+            (_, Info::RequestResource { ware }) => {
+                self.add_trade(ware.0, can_move, false, id, ware.1);
+            },
+            other =>{
+                panic!(format!("unexpected {:?}", other));
+            }
+        }
+    }
+
+    pub fn execute(&mut self) {
+        // put lazy miners to work
+        for obj_id in mem::replace(&mut self.idle_miners, Vec::new()) {
+            self.orders.push(ObjOrder {
+                id: obj_id,
+                order: Order::Mine
+            });
+        }
+
+        // fulfill the requests
+        let mut removes = vec![];
+        for (ware_id, trade) in &mut self.offers_by_ware.iter_mut() {
+            let complete = HighAi2::find_orders_from_trade(trade, &mut self.orders);
+            if complete {
+                removes.push(*ware_id);
+            }
+        }
+
+        for ware_id in removes {
+            self.offers_by_ware.remove(&ware_id);
+        }
+    }
+
+    pub fn take_orders(&mut self) -> Vec<ObjOrder> {
+        mem::replace(&mut self.orders, Vec::new())
+    }
+
+    fn add_trade(&mut self, ware_id: WareId, can_move: bool, is_offer: bool, obj_id: ObjId, amount: f32) {
+        let add = |trade: &mut Transaction| {
+            let trader = Trader::new(obj_id, amount, can_move);
+
+            if is_offer {
+                trade.offers.push(trader);
+            } else {
+                trade.requests.push(trader);
+            }
+        };
+
+        self.offers_by_ware.entry(ware_id)
+            .and_modify(add).or_insert_with(|| {
+                let mut trade = Transaction::new(ware_id);
+                add(&mut trade);
+                trade
+            });
+    }
+
+    fn find_orders_from_trade(transaction: &mut Transaction, orders: &mut Vec<ObjOrder>) -> bool {
+        println!("{:?} {:?}", transaction, orders);
+
+        // find a movable offer
+        let offer = transaction.offers.iter()
+            .find(|trader| trader.can_move);
+
+        // find a static request
+        let request = transaction.requests.iter()
+            .find(|trader| !trader.can_move);
+
+        if offer.is_none() || request.is_none() {
+            return false;
+        }
+
+        let offer = offer.unwrap();
+        let request = request.unwrap();
+        let amount = offer.amount.min(request.amount);
+
+        orders.push(ObjOrder {
+            id: offer.obj_id,
+            order: Order::Deliver {
+                to: request.obj_id,
+                ware: WareAmount(transaction.ware_id, amount)
+            }
+        });
+
+        true
     }
 }
 
@@ -198,7 +354,7 @@ mod test {
 
     #[test]
     pub fn test_ai_high_should_allocate_idle_miners_to_mine() {
-        let mut ai = AiHigh::new();
+        let mut ai = HighAi2::new();
         let miner_id  = ObjId(0);
         ai.set_info(miner_id, Role::Miner, Info::Idle);
         ai.execute();
@@ -215,7 +371,7 @@ mod test {
 
     #[test]
     pub fn test_ai_high_should_send_miner_to_deliver_ore() {
-        let mut ai = AiHigh::new();
+        let mut ai = HighAi2::new();
         let ore_id = WareId(0);
         let miner_id  = ObjId(0);
         let ore_processor_id = ObjId(1);
