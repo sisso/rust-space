@@ -20,6 +20,8 @@
 
 ## refactorying
 
+- change TotalTime and DeltaTime to u64
+- change Seconds to DeltaTime
 - remove reference for simple values
 
 # Forum

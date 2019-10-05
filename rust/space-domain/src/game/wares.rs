@@ -11,9 +11,8 @@ use std::borrow::Borrow;
 #[derive(Clone,Copy,PartialEq,Eq,Hash,Debug,PartialOrd,Ord)]
 pub struct WareId(pub u32);
 
-//#[derive(Clone,Copy)]
-//pub struct WareAmount(pub WareId, pub f32);
-type WareAmount = (WareId, f32);
+#[derive(Debug,Clone,Copy)]
+pub struct WareAmount(pub WareId, pub f32);
 
 #[derive(Debug, Clone)]
 pub struct Cargo {

@@ -8,7 +8,7 @@ use crate::game::wares::*;
 pub struct Production {
     pub input: HashMap<WareId, f32>,
     pub output: HashMap<WareId, f32>,
-    pub time: Seconds,
+    pub time: DeltaTime,
 }
 
 #[derive(Clone, Debug)]
@@ -43,12 +43,12 @@ impl Factory {
     pub fn get_percentage(&self, index: usize, time: TotalTime) -> f32 {
         self.production.get(index).and_then(|(production, state)| {
             state.complete_time.map(|complete_time| {
-                let require_time = complete_time.value() - time.value();
+                let require_time = complete_time.sub(time);
 
-                if require_time <= 0.0 {
+                if require_time.as_f32() <= 0.0 {
                     0.0
                 } else {
-                    1.0 - require_time / production.time.value()
+                    1.0 - require_time.as_f32() / production.time.as_f32()
                 }
             })
         }).unwrap_or(0.0)
@@ -163,13 +163,13 @@ mod test {
         let ore_production = Production {
             input: vec![(WARE_ORE, 1.0), (WARE_POWER, 2.0)].into_iter().collect(),
             output: vec![(WARE_IRON, 1.0), (WARE_COPPER, 0.25)].into_iter().collect(),
-            time: Seconds(2.0),
+            time: DeltaTime(2.0),
         };
 
         let plate_production = Production {
             input: vec![(WARE_IRON, 1.0)].into_iter().collect(),
             output: vec![(WARE_PLATE, 2.0)].into_iter().collect(),
-            time: Seconds(1.0),
+            time: DeltaTime(1.0),
         };
         
         let mut factory = Factory::new(vec![ore_production, plate_production]);
@@ -243,7 +243,7 @@ mod test {
         let ore_production = Production {
             input: vec![(WARE_ORE, 1.0)].into_iter().collect(),
             output: vec![(WARE_IRON, 1.0)].into_iter().collect(),
-            time: Seconds(1.0),
+            time: DeltaTime(1.0),
         };
 
         let mut factory = Factory::new(vec![ore_production]);
@@ -261,7 +261,7 @@ mod test {
         assert_eq!(cargo.get_amount(WARE_IRON), 1.0);
 
         for time in 2..9 {
-            factory.update(TotalTime(time as f32), &mut cargo);
+            factory.update(TotalTime(time as f64), &mut cargo);
             assert_eq!(factory.is_producing(0), true);
             assert_eq!(cargo.get_amount(WARE_ORE), 9.0 - time as f32);
             assert_eq!(cargo.get_amount(WARE_IRON), time as f32);
@@ -283,7 +283,7 @@ mod test {
         let ore_production = Production {
             input: vec![(WARE_ORE, 1.0)].into_iter().collect(),
             output: vec![(WARE_IRON, 3.0)].into_iter().collect(),
-            time: Seconds(1.0),
+            time: DeltaTime(1.0),
         };
 
         let mut factory = Factory::new(vec![ore_production]);
@@ -297,7 +297,7 @@ mod test {
 
         // production should be complete, but get stuck by not enough space in cargo
         for time in 1..5 {
-            factory.update(TotalTime(time as f32), &mut cargo);
+            factory.update(TotalTime(time as f64), &mut cargo);
             assert_eq!(factory.is_producing(0), true);
             assert_eq!(cargo.get_amount(WARE_ORE), 4.0);
             assert_eq!(cargo.get_amount(WARE_IRON), 0.0);

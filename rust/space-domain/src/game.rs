@@ -29,6 +29,7 @@ pub mod jsons;
 pub mod ship;
 pub mod factory;
 pub mod events;
+pub mod ai_high;
 
 pub struct Tick {
     total_time: Seconds,

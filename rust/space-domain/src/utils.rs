@@ -1,4 +1,5 @@
 use serde::{Serialize, Deserialize};
+use std::time::Duration;
 
 #[derive(Clone,Copy,PartialEq,Debug,Serialize,Deserialize)]
 pub struct V2 {
@@ -68,20 +69,36 @@ impl Seconds {
 #[derive(Clone,Copy,Debug,Serialize,Deserialize)]
 pub struct DeltaTime(pub f32);
 
+impl DeltaTime {
+    pub fn as_f32(&self) -> f32 {
+        self.0
+    }
+}
+
+impl Into<Seconds> for DeltaTime {
+    fn into(self) -> Seconds {
+        Seconds(self.0)
+    }
+}
+
 #[derive(Clone,Copy,Debug,Serialize,Deserialize)]
-pub struct TotalTime(pub f32);
+pub struct TotalTime(pub f64);
 
 impl TotalTime {
-    pub fn value(&self) -> f32 {
-        self.0
+    pub fn as_f64(&self) -> f64 {
+        self.0 as f64
     }
 
     pub fn is_after(&self, time: TotalTime) -> bool {
         self.0 >= time.0
     }
 
-    pub fn add(&self, seconds: Seconds) -> TotalTime {
-        TotalTime(self.0 + seconds.0)
+    pub fn add(&self, delta: DeltaTime) -> TotalTime {
+        TotalTime(self.0 + delta.0 as f64)
+    }
+
+    pub fn sub(&self, other: TotalTime) -> DeltaTime {
+        DeltaTime((self.0 - other.0) as f32)
     }
 }
 
@@ -107,4 +124,17 @@ impl NextId {
         self.next += 1;
         v
     }
+}
+
+#[test]
+fn test_total_time_give_us_hundred_years_game_60_fps_precision() {
+    let total = TotalTime(100.0 * 360.0 * 24.0 * 60.0 * 60.0);
+    let change = DeltaTime(1.0 / 60.0);
+    let new_total = total.add(change.into());
+    let diff = new_total.sub(total);
+    println!("{:?}", total);
+    println!("{:?}", change);
+    println!("{:?}", new_total);
+    println!("{:?}", diff);
+    assert_eq!(diff.0, change.0);
 }
