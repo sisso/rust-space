@@ -13,3 +13,4 @@ rand = "0.7"
 flatbuffers = "*"
 space-macros = { version = "*", path = "../space-macros" }
 specs = { version = "0.15.*", features = ["serde"] }
+specs-derive = "0.4.0"

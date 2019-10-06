@@ -1,27 +1,30 @@
-use specs::{Builder, Component as SpecComponent, DenseVecStorage, Entities, Entity, HashMapStorage, LazyUpdate, Read, ReadStorage, System, VecStorage, World, WorldExt, WriteStorage, EntityBuilder, SystemData};
+use std::collections::HashMap;
 
+use specs::{Builder, Component as SpecComponent, DenseVecStorage, Entities, Entity, EntityBuilder, HashMapStorage, LazyUpdate, Read, ReadStorage, System, SystemData, VecStorage, World, WorldExt, WriteStorage};
+use specs::world::Generation;
+
+use crate::specs_extras::*;
+
+
+use crate::game::extractables::Extractable;
+use crate::game::locations::{LocationDock, LocationSpace, Moveable, Locations};
 use crate::utils::*;
 
+use self::events::{EventKind, Events, ObjEvent};
 //use self::actions::*;
 //use self::commands::*;
 use self::extractables::Extractables;
-use self::locations::{Locations, Location};
 use self::new_obj::NewObj;
 use self::objects::*;
 use self::save::{CanLoad, CanSave, Load, Save};
 use self::sectors::*;
 use self::wares::*;
-use self::events::{Events, ObjEvent, EventKind};
-use crate::game::extractables::Extractable;
-use std::collections::HashMap;
-use crate::game::locations::{Moveable, LocationSpace, LocationDock};
-use specs::world::Generation;
 
 pub mod sectors;
 pub mod objects;
 pub mod wares;
-//pub mod actions;
-//pub mod commands;
+pub mod actions;
+pub mod commands;
 pub mod locations;
 pub mod extractables;
 pub mod save;
@@ -50,34 +53,14 @@ pub struct Game {
     pub events: Events,
 }
 
-trait BuilderExtra {
-    fn set<C: SpecComponent + Send + Sync>(&mut self, c: C) ;
-}
-
-impl<'a> BuilderExtra for EntityBuilder<'a> {
-    /// Inserts a component for this entity.
-    ///
-    /// If a component was already associated with the entity, it will
-    /// overwrite the previous component.
-    #[inline]
-    fn set<T: SpecComponent>(&mut self, c: T)  {
-        {
-            let mut storage: WriteStorage<T> = SystemData::fetch(&self.world);
-            // This can't fail.  This is guaranteed by the lifetime 'a
-            // in the EntityBuilder.
-            storage.insert(self.entity, c).unwrap();
-        }
-    }
-}
-
 impl Game {
     pub fn new() -> Self {
         let mut world = World::new();
 
-        locations::init_world(&mut world);
-        extractables::init_world(&mut world);
-        objects::init_world(&mut world);
-        wares::init_world(&mut world);
+        Locations::init_world(&mut world);
+        Extractables::init_world(&mut world);
+        Objects::init_world(&mut world);
+        Cargos::init_world(&mut world);
 
         Game {
             world,
@@ -105,16 +88,13 @@ impl Game {
 //            self.actions.init(id);
 //        }
 
-        for location in new_obj.location {
-            match location {
-                Location::Space { sector_id, pos} => {
-                    builder.set(LocationSpace { sector_id: sector_id, pos: pos });
-                },
-                Location::Docked { docked_id } => {
-                    builder.set(LocationDock { docked_id: docked_id });
-                },
-            }
-        };
+        for location_space in new_obj.location_space {
+            builder.set(location_space);
+        }
+
+        for location_dock in new_obj.location_dock {
+            builder.set(location_dock);
+        }
 
         for speed in new_obj.speed {
             builder.set(Moveable { speed });
@@ -144,21 +124,21 @@ impl Game {
     }
 
     pub fn save(&self, save: &mut impl Save) {
-        self.sectors.save(save);
+//        self.sectors.save(save);
 //        self.objects.save(save);
-        self.locations.save(save);
-        self.extractables.save(save);
-        self.cargos.save(save);
+//        self.locations.save(save);
+//        self.extractables.save(save);
+//        self.cargos.save(save);
 //        self.actions.save(save);
 //        self.commands.save(save);
     }
 
     pub fn load(&mut self, load: &mut impl Load) {
-        self.sectors.load(load);
+//        self.sectors.load(load);
 //        self.objects.load(load);
-        self.locations.load(load);
-        self.extractables.load(load);
-        self.cargos.load(load);
+//        self.locations.load(load);
+//        self.extractables.load(load);
+//        self.cargos.load(load);
 //        self.commands.load(load);
 //        self.actions.load(load);
     }

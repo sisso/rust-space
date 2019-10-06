@@ -2,7 +2,6 @@ use crate::game::Game;
 use std::time::Duration;
 use crate::utils::{Seconds, V2, DeltaTime, TotalTime};
 use crate::game::events::{EventKind, Events, ObjEvent};
-use crate::game::locations::Location;
 use crate::space_outputs_generated::space_data;
 use flatbuffers::FlatBufferBuilder;
 

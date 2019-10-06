@@ -1,129 +1,88 @@
-use crate::utils::{V2, Position, Seconds};
-use super::objects::{ObjRepo, ObjId};
-use super::locations::{Location};
+use specs::{Builder, Component as SpecComponent, DenseVecStorage, Entities, Entity, HashMapStorage, LazyUpdate, Read, ReadStorage, System, VecStorage, World, WorldExt, WriteStorage, NullStorage};
+use crate::utils::{V2, Position, Seconds, DeltaTime};
+use super::objects::*;
 use super::sectors::Sectors;
 use super::Tick;
 use std::collections::HashMap;
 use crate::game::locations::Locations;
 use crate::game::extractables::Extractables;
 use crate::game::wares::Cargos;
-use crate::game::save::{Save, Load};
 use crate::game::jsons::JsonValueExtra;
 use crate::game::events::Events;
 use crate::game::sectors::JumpId;
 
-mod executor_action_dockundock;
-mod executor_action_jump;
-mod executor_action_fly;
-mod executor_action_mine;
-
-#[derive(Clone,Debug)]
-pub enum Action {
-    Idle,
-    Undock,
-    Dock { target: ObjId },
-    Fly { to: Position },
-    Jump { jump_id: JumpId },
-    Mine { target: ObjId },
-}
-
 pub const MIN_DISTANCE: f32 = 0.01;
 pub const MIN_DISTANCE_SQR: f32 = MIN_DISTANCE * MIN_DISTANCE;
 
-pub struct ActionState {
-    pub action: Action,
-    pub action_delay: Option<Seconds>,
+#[derive(Clone,Debug)]
+pub struct ActionProgress {
+    pub action_delay: DeltaTime,
 }
 
-impl ActionState {
-    fn new() -> Self {
-        ActionState {
-            action: Action::Idle,
-            action_delay: None,
-        }
-    }
+impl SpecComponent for ActionProgress {
+    type Storage = DenseVecStorage<Self>;
 }
 
+#[derive(Clone,Debug)]
+pub struct HasAction;
+
+impl SpecComponent for HasAction {
+    type Storage = DenseVecStorage<Self>;
+}
+
+#[derive(Clone,Debug)]
+pub struct ActionUndock;
+
+impl SpecComponent for ActionUndock {
+    type Storage = DenseVecStorage<Self>;
+}
+
+#[derive(Clone,Debug)]
+pub struct ActionDock { target: ObjId }
+
+impl SpecComponent for ActionDock {
+    type Storage = DenseVecStorage<Self>;
+}
+
+#[derive(Clone,Debug)]
+pub struct ActionFly { to: Position }
+
+impl SpecComponent for ActionFly {
+    type Storage = DenseVecStorage<Self>;
+}
+
+#[derive(Clone,Debug)]
+pub struct ActionJump { jump_id: JumpId }
+
+impl SpecComponent for ActionJump {
+    type Storage = DenseVecStorage<Self>;
+}
+
+#[derive(Clone,Debug)]
+pub struct ActionMine { target: ObjId }
+
+impl SpecComponent for ActionMine {
+    type Storage = DenseVecStorage<Self>;
+}
+
+#[derive(Clone,Debug)]
 pub struct Actions {
-    states: HashMap<ObjId, ActionState>
+
 }
 
 impl Actions {
+    pub fn init_world(world: &mut World) {
+        world.register::<HasAction>();
+        world.register::<ActionUndock>();
+        world.register::<ActionDock>();
+        world.register::<ActionFly>();
+        world.register::<ActionJump>();
+        world.register::<ActionMine>();
+        world.register::<ActionProgress>();
+    }
+
     pub fn new() -> Self {
         Actions {
-            states: HashMap::new(),
-        }
-    }
-
-    pub fn init(&mut self, obj_id: ObjId) {
-        info!("actions", &format!("init {:?}", obj_id));
-        self.states.insert(obj_id, ActionState::new());
-    }
-
-    pub fn list_mut<'a>(&'a mut self) -> impl Iterator<Item = (&ObjId, &mut ActionState)> + 'a {
-        self.states.iter_mut()
-    }
-
-    pub fn execute(&mut self, tick: &Tick, sectors: &Sectors, locations: &mut Locations, extractables: &Extractables, cargos: &mut Cargos, events: &mut Events) {
-        // TODO: if each action update to a new action, a object can run N actions per tick
-        //       the order of executor was re-order to minimize for now
-        executor_action_dockundock::execute(self, locations);
-        executor_action_jump::execute(self, locations, sectors, events);
-        executor_action_fly::execute(tick, self, locations, sectors, events);
-        executor_action_mine::execute(tick, self, locations, extractables, cargos);
-    }
-
-    pub fn set_action(&mut self, obj_id: &ObjId, action: Action) {
-        let mut state = self.states.get_mut(&obj_id).expect(&format!("{:?} action not found", obj_id));
-        info!("actions", &format!("set action {:?}: {:?}", obj_id, action));
-        state.action = action;
-    }
-
-    pub fn get_action(&self, obj_id: &ObjId) -> &Action {
-        &self.states.get(&obj_id).unwrap().action
-    }
-
-    pub fn save(&self, save: &mut impl Save) {
-        use serde_json::json;
-
-        for (k,v) in self.states.iter() {
-            let (action, target_id, target_pos) =
-                match v.action {
-                    Action::Idle => ("idle", None, None),
-                    Action::Mine { target } => ("mine", Some(target.0), None),
-                    Action::Dock { target } => ("dock", Some(target.0), None),
-                    Action::Jump { jump_id } => ("jump", Some(jump_id.0), None),
-                    Action::Undock => ("undock", None, None),
-                    Action::Fly { to } => ("fly", None, Some((to.x, to.y))),
-                };
-
-            save.add(k.0, "action", json!({
-                "action": action,
-                "target_id": target_id,
-                "target_pos": target_pos,
-            }));
-        }
-    }
-    pub fn load(&mut self, load: &mut impl Load) {
-        for (id, value) in load.get_components("action") {
-            let action = value["action"].as_str().unwrap();
-            let target_id = value["target_id"].as_u64();
-            let target_pos = value["target_pos"].as_v2();
-
-            let action = match (action.as_ref(), target_id, target_pos) {
-                ("idle", _, _) => Action::Idle,
-                ("mine", Some(target_id), _) => Action::Mine { target: ObjId(target_id as u32) },
-                ("dock", Some(target_id), _) => Action::Dock { target: ObjId(target_id as u32) },
-                ("jump", Some(target_id), _) => Action::Jump { jump_id: JumpId(target_id as u32) },
-                ("undock", _, _) => Action::Undock,
-                ("fly", _, Some(target_pos)) => Action::Fly { to: target_pos },
-                _ => panic!("unexpected action")
-            };
-
-            self.states.insert(ObjId(*id), ActionState {
-                action,
-                action_delay: None
-            });
         }
     }
 }

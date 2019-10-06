@@ -1,6 +1,5 @@
 use crate::game::actions::*;
-use crate::game::objects::{ObjId, Obj};
-use crate::game::commands::*;
+use crate::game::objects::{ObjId};
 use crate::utils::*;
 use crate::game::locations::*;
 use crate::game::sectors::{Sector, Sectors};

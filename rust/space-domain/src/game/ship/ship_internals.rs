@@ -346,14 +346,12 @@ impl ShipInstance {
 }
 
 pub struct Components {
-    next_id: NextId,
     index: HashMap<ComponentId, Component>
 }
 
 impl Components {
     pub fn new() -> Self {
         Components {
-            next_id: NextId::new(),
             index: Default::default()
         }
     }

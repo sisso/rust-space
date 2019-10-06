@@ -13,14 +13,14 @@ impl SpecComponent for HasDock {
     type Storage = HashMapStorage<Self>;
 }
 
-pub fn init_world(world: &mut World) {
-    world.register::<HasDock>();
-}
-
 pub struct Objects;
 
 impl Objects {
     pub fn new() -> Self {
         Objects {}
+    }
+
+    pub fn init_world(world: &mut World) {
+        world.register::<HasDock>();
     }
 }

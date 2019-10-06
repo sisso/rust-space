@@ -1,8 +1,11 @@
-#![allow(warnings)]
+//#![allow(warnings)]
 
 #[macro_use]
 extern crate space_macros;
+#[macro_use]
+extern crate specs_derive;
 
+pub mod specs_extras;
 pub mod game;
 pub mod game_api;
 pub mod utils;
