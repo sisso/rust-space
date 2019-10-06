@@ -132,9 +132,10 @@ fn test_total_time_give_us_hundred_years_game_60_fps_precision() {
     let change = DeltaTime(1.0 / 60.0);
     let new_total = total.add(change.into());
     let diff = new_total.sub(total);
+    let diff_expected = (change.0 - diff.0).abs();
     println!("{:?}", total);
     println!("{:?}", change);
     println!("{:?}", new_total);
     println!("{:?}", diff);
-    assert_eq!(diff.0, change.0);
+    assert!(diff_expected < 0.0166666);
 }
