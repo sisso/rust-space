@@ -2,10 +2,8 @@ use crate::utils::*;
 
 use self::actions::*;
 use self::commands::*;
-use self::docking::Docking;
 use self::extractables::Extractables;
 use self::locations::Locations;
-use self::navigation::Navigations;
 use self::new_obj::NewObj;
 use self::objects::*;
 use self::save::{CanLoad, CanSave, Load, Save};
@@ -21,8 +19,6 @@ pub mod commands;
 pub mod locations;
 pub mod template;
 pub mod extractables;
-pub mod navigation;
-pub mod docking;
 pub mod save;
 pub mod new_obj;
 pub mod jsons;
@@ -44,8 +40,6 @@ pub struct Game {
     pub locations: Locations,
     pub extractables: Extractables,
     pub cargos: Cargos,
-    pub navigations: Navigations,
-    pub docking: Docking,
     pub events: Events,
 }
 
@@ -59,8 +53,6 @@ impl Game {
             locations: Locations::new(),
             extractables: Extractables::new(),
             cargos: Cargos::new(),
-            navigations: Navigations::new(),
-            docking: Docking::new(),
             events: Events::new(),
         }
     }
@@ -81,7 +73,6 @@ impl Game {
 
         new_obj.speed.iter().for_each(|speed| {
             self.locations.set_moveable(&id, speed.clone());
-            self.navigations.init(&id);
         });
 
         new_obj.extractable.iter().for_each(|i| {
