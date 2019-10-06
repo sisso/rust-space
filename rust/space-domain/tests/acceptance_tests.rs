@@ -2,7 +2,7 @@ extern crate space_domain;
 
 use space_domain::game::Game;
 use space_domain::game::objects::ObjId;
-use space_domain::utils::{Seconds, V2};
+use space_domain::utils::{Seconds, V2, DeltaTime, TotalTime};
 use space_domain::game::locations::Location;
 use space_domain::game::sectors::SectorId;
 
@@ -13,18 +13,19 @@ struct BasicScenary {
 impl BasicScenary {
     pub fn new() -> Self {
         let mut game = Game::new();
-        space_domain::local_game::init_new_game(&mut game);
+//        space_domain::local_game::init_new_game(&mut game);
         BasicScenary {
             game
         }
     }
 
     pub fn get_ship(&self) -> ObjId {
-        let mut ships: Vec<ObjId> = self.game.objects.list().filter_map(|obj| {
-            self.game.locations.get_speed(&obj.id).map(|_| obj.id.clone())
-        }).collect();
-
-        ships.remove(0)
+//        let mut ships: Vec<ObjId> = self.game.objects.list().filter_map(|obj| {
+//            self.game.locations.get_speed(&obj.id).map(|_| obj.id.clone())
+//        }).collect();
+//
+//        ships.remove(0)
+        unimplemented!();
     }
 }
 
@@ -33,8 +34,8 @@ fn test_jump_should_warp_into_correct_position() {
     let mut scenary = BasicScenary::new();
     let obj_id = scenary.get_ship();
     for i in 0..100 {
-        let total_time = Seconds(i as f32);
-        scenary.game.tick(total_time, Seconds(0.5));
+        let total_time = TotalTime(i as f64);
+        scenary.game.tick(total_time, DeltaTime(0.5));
 
         let location = scenary.game.locations.get_location(&obj_id);
 

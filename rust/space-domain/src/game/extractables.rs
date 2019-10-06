@@ -1,7 +1,10 @@
+use std::collections::HashMap;
+
+use specs::{Builder, Component as SpecComponent, DenseVecStorage, Entities, Entity, HashMapStorage, LazyUpdate, Read, ReadStorage, System, VecStorage, World, WorldExt, WriteStorage};
+
 use super::objects::{ObjId};
 use crate::utils::*;
 
-use std::collections::HashMap;
 use crate::game::wares::WareId;
 use crate::game::save::{Save, Load};
 use crate::game::jsons::*;
@@ -13,7 +16,6 @@ pub struct Extractable {
     pub time: Seconds,
 }
 
-
 #[derive(Clone, Debug)]
 struct State {
     extractable: Extractable
@@ -23,6 +25,14 @@ pub struct Extractables {
     index: HashMap<ObjId, State>,
 }
 
+impl SpecComponent for Extractable {
+    type Storage = HashMapStorage<Self>;
+}
+
+pub fn init_world(world: &mut World) {
+    world.register::<Extractable>();
+}
+
 impl Extractables {
     pub fn new() -> Self {
         Extractables {
@@ -30,8 +40,13 @@ impl Extractables {
         }
     }
 
-    pub fn init(&mut self, id: &ObjId, extractable: Extractable) {
+    pub fn init_world(world: &mut World) {
+        world.register::<Extractable>();
+    }
+
+    pub fn init(&mut self, world: &mut World, id: &ObjId, extractable: Extractable) {
         self.set_extractable(id, extractable);
+
     }
 
     pub fn set_extractable(&mut self, obj_id: &ObjId, extractable: Extractable) {
@@ -56,27 +71,27 @@ impl Extractables {
     }
 
     pub fn save(&self, save: &mut impl Save) {
-        use serde_json::json;
-
-        for (k,v) in self.index.iter() {
-            let ware_id = v.extractable.ware_id.0;
-            let seconds = v.extractable.time.0;
-
-            save.add(k.0, "extractable", json!({
-                "ware_id": ware_id,
-                "seconds": seconds,
-            }));
-        }
+//        use serde_json::json;
+//
+//        for (k,v) in self.index.iter() {
+//            let ware_id = v.extractable.ware_id.0;
+//            let seconds = v.extractable.time.0;
+//
+//            save.add(k.0, "extractable", json!({
+//                "ware_id": ware_id,
+//                "seconds": seconds,
+//            }));
+//        }
     }
 
     pub fn load(&mut self, load: &mut impl Load) {
-        for (id, value) in load.get_components("extractable") {
-            let extractable = Extractable {
-                ware_id: WareId(value["ware_id"].to_u32()),
-                time: Seconds(value["seconds"].to_f32()),
-            };
-
-            self.set_extractable(&ObjId(*id), extractable);
-        }
+//        for (id, value) in load.get_components("extractable") {
+//            let extractable = Extractable {
+//                ware_id: WareId(value["ware_id"].to_u32()),
+//                time: Seconds(value["seconds"].to_f32()),
+//            };
+//
+//            self.set_extractable(&ObjId(*id), extractable);
+//        }
     }
 }

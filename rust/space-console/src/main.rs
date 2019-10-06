@@ -29,7 +29,7 @@ extern crate space_domain;
 pub mod gui;
 
 fn main() {
-    space_domain::local_game::run();
+//    space_domain::local_game::run();
 //    space_domain::test_combat::run();
 
     println!("done")

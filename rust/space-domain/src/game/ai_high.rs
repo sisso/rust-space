@@ -39,10 +39,6 @@ enum Order {
     Pickup { to: ObjId, ware: WareAmount },
 }
 
-impl Component for ObjId {
-    type Storage = VecStorage<Self>;
-}
-
 impl Component for Role {
     type Storage = DenseVecStorage<Self>;
 }

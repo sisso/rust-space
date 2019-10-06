@@ -110,8 +110,8 @@ pub fn run() {
     }
 
     for i in 0..50 {
-        let total_time = Seconds(i as f32);
-        game.tick(total_time, Seconds(1.0));
+        let total_time = TotalTime(i as f64);
+        game.tick(total_time, DeltaTime(1.0));
         assert_saves(&game, i);
     }
 }

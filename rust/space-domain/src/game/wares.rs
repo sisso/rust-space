@@ -1,3 +1,5 @@
+use specs::{Builder, Component as SpecComponent, DenseVecStorage, Entities, Entity, HashMapStorage, LazyUpdate, Read, ReadStorage, System, VecStorage, World, WorldExt, WriteStorage};
+
 use std::collections::{HashMap, BTreeMap, HashSet};
 use serde_json::{json, Value};
 
@@ -112,83 +114,70 @@ impl Cargo {
     }
 }
 
-#[derive(Clone, Debug)]
-struct State {
-    cargo: Cargo
+impl SpecComponent for Cargo {
+    type Storage = VecStorage<Self>;
 }
 
-pub struct Cargos {
-    index: HashMap<ObjId, State>,
+pub fn init_world(world: &mut World) {
+    world.register::<Cargo>();
 }
+
+pub struct Cargos;
 
 impl Cargos {
     pub fn new() -> Self {
         Cargos {
-            index: HashMap::new()
         }
     }
+    pub fn move_all(from: &ObjId, to: &ObjId) {
+        unimplemented!();
 
-    pub fn init(&mut self, id: &ObjId, cargo: Cargo) {
-        self.index.insert(*id, State {
-            cargo
-        });
-    }
-
-    pub fn get_cargo(&self, id: &ObjId) -> Option<&Cargo> {
-        self.index.get(id).map(|i| &i.cargo)
-    }
-
-    pub fn get_cargo_mut(&mut self, id: &ObjId) -> Option<&mut Cargo> {
-        self.index.get_mut(id).map(|i| &mut i.cargo)
-    }
-
-    pub fn move_all(&mut self, from: &ObjId, to: &ObjId) {
-        let mut cargo_to= self.index.remove(to).unwrap();
-        let cargo_from = self.index.get_mut(from).unwrap();
-        Cargo::move_all_to_max(&mut cargo_from.cargo, &mut cargo_to.cargo);
-        self.index.insert(*to, cargo_to);
-        info!("Cargos", &format!("move_all {:?} to {:?}, new cargos {:?} and {:?}", from, to, self.index.get(from), self.index.get(to)));
+//        let mut cargo_to= self.index.remove(to).unwrap();
+//        let cargo_from = self.index.get_mut(from).unwrap();
+//        Cargo::move_all_to_max(&mut cargo_from.cargo, &mut cargo_to.cargo);
+//        self.index.insert(*to, cargo_to);
+//        info!("Cargos", &format!("move_all {:?} to {:?}, new cargos {:?} and {:?}", from, to, self.index.get(from), self.index.get(to)));
     }
 }
 
 impl CanSave for Cargos {
     fn save(&self, save: &mut impl Save) {
-        for (obj_id,state) in self.index.iter() {
-            let wares_json: Vec<Value> =
-                state.cargo.wares.iter().map(|(ware_id, amount)| {
-                    json!({
-                        "ware_id": ware_id.0,
-                        "amount": *amount,
-                    })
-                }).collect();
-
-            save.add(obj_id.0, "cargo", json!({
-                "max": state.cargo.max,
-                "current": state.cargo.current,
-                "wares": wares_json
-            }));
-        }
+//        for (obj_id,state) in self.index.iter() {
+//            let wares_json: Vec<Value> =
+//                state.cargo.wares.iter().map(|(ware_id, amount)| {
+//                    json!({
+//                        "ware_id": ware_id.0,
+//                        "amount": *amount,
+//                    })
+//                }).collect();
+//
+//            save.add(obj_id.0, "cargo", json!({
+//                "max": state.cargo.max,
+//                "current": state.cargo.current,
+//                "wares": wares_json
+//            }));
+//        }
     }
 }
 
 impl CanLoad for Cargos {
     fn load(&mut self, load: &mut impl Load) {
-        for (k, v) in load.get_components("cargo") {
-            let wares: BTreeMap<WareId, f32> =
-                v["wares"].as_array().unwrap().iter().map(|i| {
-                    let ware_id = WareId(i["ware_id"].to_u32());
-                    let amount = i["amount"].to_f32();
-                    (ware_id, amount)
-                }).collect();
-
-            self.index.insert(ObjId(*k), State {
-                cargo: Cargo {
-                    max: v["max"].to_f32(),
-                    current: v["current"].to_f32(),
-                    wares,
-                }
-            });
-        }
+//        for (k, v) in load.get_components("cargo") {
+//            let wares: BTreeMap<WareId, f32> =
+//                v["wares"].as_array().unwrap().iter().map(|i| {
+//                    let ware_id = WareId(i["ware_id"].to_u32());
+//                    let amount = i["amount"].to_f32();
+//                    (ware_id, amount)
+//                }).collect();
+//
+//            self.index.insert(ObjId(*k), State {
+//                cargo: Cargo {
+//                    max: v["max"].to_f32(),
+//                    current: v["current"].to_f32(),
+//                    wares,
+//                }
+//            });
+//        }
     }
 }
 

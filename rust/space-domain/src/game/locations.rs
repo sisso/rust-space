@@ -1,8 +1,11 @@
+use std::collections::HashMap;
+
+use specs::{Builder, Component as SpecComponent, DenseVecStorage, Entities, Entity, HashMapStorage, LazyUpdate, Read, ReadStorage, System, VecStorage, World, WorldExt, WriteStorage};
+
 use super::objects::*;
 use super::sectors::*;
 use crate::utils::*;
 
-use std::collections::HashMap;
 use crate::game::save::{Save, Load, CanSave, CanLoad};
 use crate::game::jsons::JsonValueExtra;
 
@@ -16,6 +19,11 @@ pub enum Location {
 pub struct LocationSpace {
     pub sector_id: SectorId,
     pub pos: Position
+}
+
+#[derive(Clone, Debug)]
+pub struct LocationDock {
+    pub docked_id: ObjId
 }
 
 #[derive(Clone, Debug)]
@@ -38,12 +46,38 @@ impl Location {
         }
     }
 
+    pub fn get_docked_opt(&self) -> Option<ObjId> {
+        match self {
+            Location::Docked { docked_id } => Some(*docked_id),
+            _ => None,
+        }
+    }
+
     pub fn get_docked(&self) -> ObjId {
         match self {
             Location::Docked { docked_id } => *docked_id,
             _ => panic!("unexpected state for get_docked")
         }
     }
+}
+
+
+impl SpecComponent for LocationSpace {
+    type Storage = VecStorage<Self>;
+}
+
+impl SpecComponent for LocationDock {
+    type Storage = DenseVecStorage<Self>;
+}
+
+impl SpecComponent for Moveable {
+    type Storage = DenseVecStorage<Self>;
+}
+
+pub fn init_world(world: &mut World) {
+    world.register::<LocationSpace>();
+    world.register::<LocationDock>();
+    world.register::<Moveable>();
 }
 
 struct State {
@@ -118,68 +152,68 @@ impl Locations {
 
 impl CanSave for Locations {
     fn save(&self, save: &mut impl Save) {
-        use serde_json::json;
-
-        for (k,v) in self.index.iter() {
-            let speed: Option<f32> = match v.movement {
-                Some(Moveable{ speed }) => Some(speed.0),
-                None => None
-            };
-
-            let (sector_id, docket_at, pos) = match v.location {
-                Some(Location::Space { sector_id, pos })=> {
-                    (Some(sector_id.0), None, Some((pos.x, pos.y)))
-                }
-                Some(Location::Docked { docked_id }) => {
-                    (None, Some(docked_id.0), None)
-                }
-                None => {
-                    (None, None, None)
-                }
-            };
-
-            save.add(k.0, "location", json!({
-                "sector_id": sector_id,
-                "docket_at": docket_at,
-                "pos": pos,
-                "speed": speed,
-            }));
-        }
+//        use serde_json::json;
+//
+//        for (k,v) in self.index.iter() {
+//            let speed: Option<f32> = match v.movement {
+//                Some(Moveable{ speed }) => Some(speed.0),
+//                None => None
+//            };
+//
+//            let (sector_id, docket_at, pos) = match v.location {
+//                Some(Location::Space { sector_id, pos })=> {
+//                    (Some(sector_id.0), None, Some((pos.x, pos.y)))
+//                }
+//                Some(Location::Docked { docked_id }) => {
+//                    (None, Some(docked_id.0), None)
+//                }
+//                None => {
+//                    (None, None, None)
+//                }
+//            };
+//
+//            save.add(k.0, "location", json!({
+//                "sector_id": sector_id,
+//                "docket_at": docket_at,
+//                "pos": pos,
+//                "speed": speed,
+//            }));
+//        }
     }
 }
 
 impl CanLoad for Locations {
     fn load(&mut self, load: &mut impl Load) {
-        for (id, value) in load.get_components("location") {
-            let location = {
-                if value["docket_at"].is_number() {
-                    Some(Location::Docked {
-                        docked_id: ObjId(value["docket_at"].to_u32())
-                    })
-                } else if value["sector_id"].is_number() && value["pos"].is_array() {
-                    Some(Location::Space {
-                        sector_id: SectorId(value["sector_id"].to_u32()),
-                        pos: value["pos"].to_v2(),
-                    })
-                } else {
-                    None
-                }
-            };
-
-            let movement = {
-                if value["speed"].is_number() {
-                    Some(Moveable {
-                        speed: Speed(value["speed"].to_f32())
-                    })
-                } else {
-                    None
-                }
-            };
-
-            self.index.insert(ObjId(*id), State {
-                location,
-                movement
-            });
-        }
+//        for (id, value) in load.get_components("location") {
+//            let location = {
+//                if value["docket_at"].is_number() {
+//                    Some(Location::Docked {
+//                        docked_id: ObjId(value["docket_at"].to_u32())
+//                    })
+//                } else if value["sector_id"].is_number() && value["pos"].is_array() {
+//                    Some(Location::Space {
+//                        sector_id: SectorId(value["sector_id"].to_u32()),
+//                        pos: value["pos"].to_v2(),
+//                    })
+//                } else {
+//                    None
+//                }
+//            };
+//
+//            let movement = {
+//                if value["speed"].is_number() {
+//                    Some(Moveable {
+//                        speed: Speed(value["speed"].to_f32())
+//                    })
+//                } else {
+//                    None
+//                }
+//            };
+//
+//            self.index.insert(ObjId(*id), State {
+//                location,
+//                movement
+//            });
+//        }
     }
 }

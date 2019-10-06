@@ -1,6 +1,6 @@
 use crate::game::Game;
 use std::time::Duration;
-use crate::utils::{Seconds, V2};
+use crate::utils::{Seconds, V2, DeltaTime, TotalTime};
 use crate::game::events::{EventKind, Events, ObjEvent};
 use crate::game::locations::Location;
 use crate::space_outputs_generated::space_data;
@@ -8,7 +8,7 @@ use flatbuffers::FlatBufferBuilder;
 
 pub struct GameApi {
     game: Game,
-    total_time: f32,
+    total_time: TotalTime,
     first_outputs: bool,
 }
 
@@ -29,19 +29,19 @@ impl GameApi {
     pub fn new() -> Self {
         GameApi {
             game: Game::new(),
-            total_time: 0.0,
+            total_time: TotalTime(0.0),
             first_outputs: true,
         }
     }
 
     pub fn new_game(&mut self) {
-        crate::local_game::init_new_game(&mut self.game);
+//        crate::local_game::init_new_game(&mut self.game);
     }
 
     pub fn update(&mut self, elapsed: Duration) {
-        let delta = (elapsed.as_millis() as f32) / 1000.0;
-        self.total_time += delta;
-        self.game.tick(Seconds(self.total_time), Seconds(delta))
+        let delta = DeltaTime((elapsed.as_millis() as f32) / 1000.0);
+        self.total_time = self.total_time.add(delta);
+        self.game.tick(self.total_time, delta)
     }
 
     pub fn set_inputs(&mut self, bytes: &Vec<u8>) -> bool {
@@ -49,70 +49,71 @@ impl GameApi {
     }
 
     pub fn get_inputs<F>(&mut self, callback: F) -> bool where F: FnOnce(Vec<u8>) {
-        info!("game_api", "get_inputs");
-        let events = self.game.events.take();
-
-        let mut builder = OutpusBuilder::new();
-
-        if self.first_outputs {
-            self.first_outputs = false;
-
-            for sector_id in self.game.sectors.list() {
-                builder.sectors_new.push(space_data::SectorNew::new(sector_id.value()));
-            }
-
-            for jump in self.game.sectors.list_jumps() {
-                builder.jumps_new.push(space_data::JumpNew::new(
-                    jump.id.0,
-                    jump.sector_id.0,
-                    &jump.pos.into(),
-                    jump.to_sector_id.0,
-                    &jump.to_pos.into()
-                ));
-            }
-        }
-
-        // process events
-        for event in events {
-            match event.kind {
-                EventKind::Add => {
-                    let kind =
-                        if self.game.extractables.get_extractable(&event.id).is_some() {
-                            space_data::EntityKind::Asteroid
-                        } else if self.game.objects.get(&event.id).has_dock {
-                            space_data::EntityKind::Station
-                        } else {
-                            space_data::EntityKind::Fleet
-                        };
-
-                    match self.game.locations.get_location(&event.id) {
-                        Some(Location::Space { sector_id, pos} ) => {
-                            builder.push_entity_new(event.id.value(), pos.into(), sector_id.value(), kind);
-                        },
-                        Some(Location::Docked { docked_id } ) => {
-                            let docked_location = self.game.locations.get_location(docked_id).unwrap().get_space();
-                            builder.push_entity_new(event.id.value(), docked_location.pos.into(), docked_location.sector_id.value(), kind);
-                        },
-                        None => {
-                            warn!("game_api", "Added {:?}, but has no location", event);
-                        }
-                    }
-                }
-                EventKind::Jump => {
-                    let location = self.game.locations.get_location(&event.id).unwrap().get_space();
-                    builder.push_entity_jump(event.id.value(), location.sector_id.value(), location.pos.into());
-                },
-                EventKind::Move => {
-                    let location = self.game.locations.get_location(&event.id).unwrap().get_space();
-                    builder.push_entity_move(event.id.value(), location.pos.into());
-                }
-            }
-        }
-
-        let bytes = builder.finish();
-        // TODO: remove copy
-        callback(Vec::from(bytes));
-        true
+//        info!("game_api", "get_inputs");
+//        let events = self.game.events.take();
+//
+//        let mut builder = OutpusBuilder::new();
+//
+//        if self.first_outputs {
+//            self.first_outputs = false;
+//
+//            for sector_id in self.game.sectors.list() {
+//                builder.sectors_new.push(space_data::SectorNew::new(sector_id.value()));
+//            }
+//
+//            for jump in self.game.sectors.list_jumps() {
+//                builder.jumps_new.push(space_data::JumpNew::new(
+//                    jump.id.0,
+//                    jump.sector_id.0,
+//                    &jump.pos.into(),
+//                    jump.to_sector_id.0,
+//                    &jump.to_pos.into()
+//                ));
+//            }
+//        }
+//
+//        // process events
+//        for event in events {
+//            match event.kind {
+//                EventKind::Add => {
+//                    let kind =
+//                        if self.game.extractables.get_extractable(&event.id).is_some() {
+//                            space_data::EntityKind::Asteroid
+//                        } else if self.game.objects.get(&event.id).has_dock {
+//                            space_data::EntityKind::Station
+//                        } else {
+//                            space_data::EntityKind::Fleet
+//                        };
+//
+//                    match self.game.locations.get_location(&event.id) {
+//                        Some(Location::Space { sector_id, pos} ) => {
+//                            builder.push_entity_new(event.id.value(), pos.into(), sector_id.value(), kind);
+//                        },
+//                        Some(Location::Docked { docked_id } ) => {
+//                            let docked_location = self.game.locations.get_location(docked_id).unwrap().get_space();
+//                            builder.push_entity_new(event.id.value(), docked_location.pos.into(), docked_location.sector_id.value(), kind);
+//                        },
+//                        None => {
+//                            warn!("game_api", "Added {:?}, but has no location", event);
+//                        }
+//                    }
+//                }
+//                EventKind::Jump => {
+//                    let location = self.game.locations.get_location(&event.id).unwrap().get_space();
+//                    builder.push_entity_jump(event.id.value(), location.sector_id.value(), location.pos.into());
+//                },
+//                EventKind::Move => {
+//                    let location = self.game.locations.get_location(&event.id).unwrap().get_space();
+//                    builder.push_entity_move(event.id.value(), location.pos.into());
+//                }
+//            }
+//        }
+//
+//        let bytes = builder.finish();
+//        // TODO: remove copy
+//        callback(Vec::from(bytes));
+//        true
+        false
     }
 }
 
