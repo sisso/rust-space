@@ -14,3 +14,5 @@ flatbuffers = "*"
 space-macros = { version = "*", path = "../space-macros" }
 specs = { version = "0.15.*", features = ["serde"] }
 specs-derive = "0.4.0"
+shred = { version = "0.9.3", default-features = false }
+shred-derive = "0.6.1"

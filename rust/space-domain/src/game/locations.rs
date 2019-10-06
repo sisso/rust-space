@@ -1,3 +1,5 @@
+mod index_per_sector_system;
+
 use std::collections::HashMap;
 
 use specs::{Builder, Component as SpecComponent, DenseVecStorage, Entities, Entity, HashMapStorage, LazyUpdate, Read, ReadStorage, System, VecStorage, World, WorldExt, WriteStorage};
@@ -37,6 +39,31 @@ impl SpecComponent for Moveable {
     type Storage = DenseVecStorage<Self>;
 }
 
+#[derive(Clone,Debug,Default)]
+pub struct EntityPerSectorIndex {
+    pub index: HashMap<SectorId, Vec<ObjId>>,
+    pub index_extractables: HashMap<SectorId, Vec<ObjId>>,
+}
+
+impl EntityPerSectorIndex {
+    pub fn clear(&mut self) {
+        self.index.clear();
+        self.index_extractables.clear();
+    }
+
+    pub fn add(&mut self, sector_id: SectorId, obj_id: ObjId) {
+        self.index.entry(sector_id)
+            .and_modify(|list| list.push(obj_id))
+            .or_insert(vec![obj_id]);
+    }
+
+    pub fn add_extractable(&mut self, sector_id: SectorId, obj_id: ObjId) {
+        self.index_extractables.entry(sector_id)
+            .and_modify(|list| list.push(obj_id))
+            .or_insert(vec![obj_id]);
+    }
+}
+
 pub struct Locations {
 }
 
@@ -50,5 +77,9 @@ impl Locations {
         world.register::<LocationSpace>();
         world.register::<LocationDock>();
         world.register::<Moveable>();
+    }
+
+    pub fn execute(&mut self, world: &mut World) {
+
     }
 }

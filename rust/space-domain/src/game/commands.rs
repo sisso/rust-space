@@ -1,6 +1,6 @@
 use std::collections::{HashMap, VecDeque};
 
-use specs::{Builder, Component, VecStorage, DenseVecStorage, Entities, Entity, EntityBuilder, HashMapStorage, LazyUpdate, Read, ReadStorage, System, SystemData, World, WorldExt, WriteStorage};
+use specs::prelude::*;
 
 use crate::game::extractables::Extractables;
 use crate::game::locations::{ Locations, LocationSpace};
@@ -19,26 +19,23 @@ use crate::game::jsons::JsonValueExtra;
 //mod executor_command_idle;
 //mod executor_command_mine;
 
-#[derive(Debug, Clone, Component)]
-struct HasCommand;
+mod command_mine_system;
 
 #[derive(Debug, Clone, Component)]
-struct CommandMine;
+pub struct HasCommand;
 
 #[derive(Debug, Clone, Component)]
-pub enum Command {
-    Idle,
-    Mine,
-}
+pub struct CommandMine;
 
 #[derive(Debug, Clone, Component)]
-struct MineState {
+pub struct MineState {
+    // TODO: remove?
     mining: bool,
     target_obj_id: ObjId,
 }
 
 #[derive(Debug, Clone, Component)]
-struct DeliverState {
+pub struct DeliverState {
     target_obj_id: ObjId,
 }
 
@@ -85,12 +82,26 @@ impl NavigationState {
 }
 
 pub struct Commands {
+    command_mine_system: command_mine_system::CommandMineSystem
 }
 
 impl Commands {
     pub fn new() -> Self {
         Commands {
+            command_mine_system: command_mine_system::CommandMineSystem,
         }
     }
 
+    pub fn init_world(world: &mut World) {
+        world.register::<HasCommand>();
+        world.register::<CommandMine>();
+        world.register::<MineState>();
+        world.register::<DeliverState>();
+        world.register::<NavigationState>();
+    }
+
+    pub fn execute(&mut self, world: &mut World) {
+        self.command_mine_system.run_now(world);
+    }
 }
+

@@ -4,6 +4,8 @@
 extern crate space_macros;
 #[macro_use]
 extern crate specs_derive;
+#[macro_use]
+extern crate shred_derive;
 
 pub mod specs_extras;
 pub mod game;
