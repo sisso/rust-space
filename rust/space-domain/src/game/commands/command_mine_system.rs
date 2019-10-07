@@ -12,11 +12,10 @@ pub struct SearchMineTargetsData<'a> {
     entities: Entities<'a>,
     navigation_index: Read<'a, EntityPerSectorIndex>,
     locations: ReadStorage<'a, LocationSpace>,
-    extractables: ReadStorage<'a, Extractable>,
     states: WriteStorage<'a, MineState>,
 }
 
-struct SearchMineTargetsSystem;
+pub struct SearchMineTargetsSystem;
 
 impl<'a> System<'a> for SearchMineTargetsSystem {
     type SystemData = SearchMineTargetsData<'a>;
@@ -33,7 +32,7 @@ impl<'a> System<'a> for SearchMineTargetsSystem {
                 _ => continue,
             };
 
-            // TODO: search for nearest
+            // search for nearest?
             let first = candidates.first().unwrap();
 
             let state = MineState {
@@ -50,6 +49,33 @@ impl<'a> System<'a> for SearchMineTargetsSystem {
     }
 }
 
+
+#[derive(SystemData)]
+pub struct UndockMinersData<'a> {
+    entities: Entities<'a>,
+    states: ReadStorage<'a, MineState>,
+    locations: ReadStorage<'a, LocationDock>,
+    has_actions: WriteStorage<'a, HasAction>,
+    undock_actions: WriteStorage<'a, ActionUndock>,
+}
+
+pub struct UndockMinersSystem;
+impl<'a> System<'a> for UndockMinersSystem {
+    type SystemData = UndockMinersData<'a>;
+
+    fn run(&mut self, mut data: UndockMinersData) {
+        use specs::Join;
+
+        let mut to_add = vec![];
+        for (entity, _, _, _) in (&data.entities, &data.states, !&data.has_actions, &data.locations).join() {
+            to_add.push(entity.clone());
+        }
+
+        for entity in to_add {
+            data.undock_actions.insert(entity, ActionUndock);
+        }
+    }
+}
 
 pub struct CommandMineSystem;
 
@@ -68,6 +94,8 @@ impl<'a> System<'a> for CommandMineSystem {
 
     fn run(&mut self, data: CommandMineData) {
         use specs::Join;
+
+
 
 //        // generate plans
 //        for (_, _, _) in (&mine_commands, !&mine_states, !&actions) {

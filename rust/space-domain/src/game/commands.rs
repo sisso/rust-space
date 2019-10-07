@@ -20,6 +20,7 @@ use crate::game::jsons::JsonValueExtra;
 //mod executor_command_mine;
 
 mod command_mine_system;
+use command_mine_system::*;
 
 #[derive(Debug, Clone, Component)]
 pub struct HasCommand;
@@ -81,14 +82,24 @@ impl NavigationState {
 //    }
 }
 
+struct CommandsMineSystems {
+    search_targets_system: SearchMineTargetsSystem,
+    undock_miners_system: UndockMinersSystem,
+    mine_system: CommandMineSystem,
+}
+
 pub struct Commands {
-    command_mine_system: command_mine_system::CommandMineSystem
+    command_mine: CommandsMineSystems,
 }
 
 impl Commands {
     pub fn new() -> Self {
         Commands {
-            command_mine_system: command_mine_system::CommandMineSystem,
+            command_mine: CommandsMineSystems {
+                search_targets_system: SearchMineTargetsSystem,
+                undock_miners_system: UndockMinersSystem,
+                mine_system: CommandMineSystem,
+            }
         }
     }
 
@@ -101,7 +112,8 @@ impl Commands {
     }
 
     pub fn execute(&mut self, world: &mut World) {
-        self.command_mine_system.run_now(world);
+        self.command_mine.search_targets_system.run_now(world);
+        self.command_mine.undock_miners_system.run_now(world);
     }
 }
 
