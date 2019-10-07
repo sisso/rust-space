@@ -1,14 +1,33 @@
-use crate::utils::*;
+use std::any::Any;
+use std::collections::HashMap;
+
+use serde::{Deserialize, Serialize};
+use serde_json::json;
+use shred::{Read, ResourceId, SystemData, World, Write};
+use specs::prelude::*;
+use specs_derive::*;
 
 use space_macros::*;
 
-use serde_json::json;
-use std::collections::HashMap;
 use crate::game::jsons;
-use crate::game::save::{Save, Load};
 use crate::game::jsons::JsonValueExtra;
-use serde::{Serialize, Deserialize};
-use std::any::Any;
+use crate::game::save::{Load, Save};
+use crate::utils::*;
+
+#[derive(Debug, Clone, Component)]
+pub struct SectorsIndex {
+
+}
+
+impl Default for SectorsIndex {
+    fn default() -> Self {
+        SectorsIndex {}
+    }
+}
+
+impl SectorsIndex {
+
+}
 
 #[derive(Clone,Debug,Serialize,Deserialize)]
 pub struct Jump {
@@ -128,8 +147,9 @@ impl Sectors {
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use crate::game::save::LoadSaveBuffer;
+
+    use super::*;
 
     #[test]
     fn test_sectors() {

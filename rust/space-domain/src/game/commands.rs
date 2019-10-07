@@ -23,14 +23,12 @@ mod command_mine_system;
 use command_mine_system::*;
 
 #[derive(Debug, Clone, Component)]
-pub struct HasCommand;
+pub enum HasCommand {
+    Mine
+}
 
 #[derive(Debug, Clone, Component)]
-pub struct CommandMine;
-
-#[derive(Debug, Clone, Component)]
-pub struct MineState {
-    // TODO: remove?
+pub struct CommandMine {
     mining: bool,
     target_obj_id: ObjId,
 }
@@ -40,25 +38,25 @@ pub struct DeliverState {
     target_obj_id: ObjId,
 }
 
-#[derive(Debug, Clone)]
-enum NavigationStateStep {
-    MoveTo { pos: Position, },
-    Jump { jump_id: JumpId },
-    Dock { target: ObjId },
-}
-
-#[derive(Debug, Clone, Component)]
-struct NavigationState {
-    target_obj_id: ObjId,
-    target_sector_id: SectorId,
-    target_position: V2,
-    path: VecDeque<NavigationStateStep>
-}
-
-impl NavigationState {
-    fn is_complete(&self) -> bool {
-        self.path.is_empty()
-    }
+//#[derive(Debug, Clone)]
+//enum NavigationStateStep {
+//    MoveTo { pos: Position, },
+//    Jump { jump_id: JumpId },
+//    Dock { target: ObjId },
+//}
+//
+//#[derive(Debug, Clone, Component)]
+//struct NavigationState {
+//    target_obj_id: ObjId,
+//    target_sector_id: SectorId,
+//    target_position: V2,
+//    path: VecDeque<NavigationStateStep>
+//}
+//
+//impl NavigationState {
+//    fn is_complete(&self) -> bool {
+//        self.path.is_empty()
+//    }
 
 //    fn navigation_next_action(&mut self) -> Action {
 //        match self.path.pop_front() {
@@ -80,11 +78,10 @@ impl NavigationState {
 //            target
 //        })
 //    }
-}
+//}
 
 struct CommandsMineSystems {
     search_targets_system: SearchMineTargetsSystem,
-    undock_miners_system: UndockMinersSystem,
     mine_system: CommandMineSystem,
 }
 
@@ -97,7 +94,6 @@ impl Commands {
         Commands {
             command_mine: CommandsMineSystems {
                 search_targets_system: SearchMineTargetsSystem,
-                undock_miners_system: UndockMinersSystem,
                 mine_system: CommandMineSystem,
             }
         }
@@ -106,14 +102,11 @@ impl Commands {
     pub fn init_world(world: &mut World) {
         world.register::<HasCommand>();
         world.register::<CommandMine>();
-        world.register::<MineState>();
         world.register::<DeliverState>();
-        world.register::<NavigationState>();
     }
 
     pub fn execute(&mut self, world: &mut World) {
         self.command_mine.search_targets_system.run_now(world);
-        self.command_mine.undock_miners_system.run_now(world);
     }
 }
 

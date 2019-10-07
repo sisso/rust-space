@@ -8,7 +8,6 @@ use super::objects::*;
 use super::sectors::*;
 use crate::utils::*;
 
-use crate::game::save::{Save, Load, CanSave, CanLoad};
 use crate::game::jsons::JsonValueExtra;
 
 #[derive(Clone, Debug)]

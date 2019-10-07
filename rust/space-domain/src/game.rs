@@ -19,12 +19,15 @@ use self::objects::*;
 use self::save::{CanLoad, CanSave, Load, Save};
 use self::sectors::*;
 use self::wares::*;
+use crate::game::navigations::Navigations;
+use crate::game::commands::Commands;
 
 pub mod sectors;
 pub mod objects;
 pub mod wares;
 pub mod actions;
 pub mod commands;
+pub mod navigations;
 pub mod locations;
 pub mod extractables;
 pub mod save;
@@ -43,7 +46,7 @@ pub struct Tick {
 
 pub struct Game {
     world: World,
-//    pub commands: Commands,
+    pub commands: Commands,
 //    pub actions: Actions,
     pub sectors: Sectors,
     pub objects: Objects,
@@ -51,6 +54,7 @@ pub struct Game {
     pub extractables: Extractables,
     pub cargos: Cargos,
     pub events: Events,
+    pub navigations: Navigations,
 }
 
 impl Game {
@@ -61,10 +65,11 @@ impl Game {
         Extractables::init_world(&mut world);
         Objects::init_world(&mut world);
         Cargos::init_world(&mut world);
+        Navigations::init_world(&mut world);
 
         Game {
             world,
-//            commands: Commands::new(),
+            commands: Commands::new(),
 //            actions: Actions::new(),
             sectors: Sectors::new(),
             objects: Objects::new(),
@@ -72,6 +77,7 @@ impl Game {
             extractables: Extractables::new(),
             cargos: Cargos::new(),
             events: Events::new(),
+            navigations: Navigations::new(),
         }
     }
 
@@ -119,6 +125,8 @@ impl Game {
     pub fn tick(&mut self, total_time: TotalTime, delta_time: DeltaTime) {
         info!("game", &format!("tick delta {} total {}", delta_time.0, total_time.0));
         let tick = Tick { total_time, delta_time };
+        self.commands.execute(&mut self.world);
+        self.navigations.execute(&mut self.world);
 //        self.commands.execute(&tick, &self.objects, &self.extractables, &mut self.actions, &self.locations, &self.sectors, &mut self.cargos);
 //        self.actions.execute(&tick, &self.sectors, &mut self.locations, &self.extractables, &mut self.cargos, &mut self.events);
     }
