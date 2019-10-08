@@ -19,11 +19,11 @@ pub struct SectorsIndex {
 
 }
 
-impl Default for SectorsIndex {
-    fn default() -> Self {
-        SectorsIndex {}
-    }
-}
+//impl Default for SectorsIndex {
+//    fn default() -> Self {
+//        SectorsIndex {}
+//    }
+//}
 
 impl SectorsIndex {
 

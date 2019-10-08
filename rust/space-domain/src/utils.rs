@@ -57,8 +57,7 @@ pub type Position = V2;
 #[derive(Clone,Copy,Debug,Serialize,Deserialize)]
 pub struct Speed(pub f32);
 
-#[derive(Clone,Copy,Debug,Serialize,Deserialize)]
-pub struct Seconds(pub f32);
+pub type Seconds = DeltaTime;
 
 impl Seconds {
     pub fn value(&self) -> f32 {
@@ -72,12 +71,6 @@ pub struct DeltaTime(pub f32);
 impl DeltaTime {
     pub fn as_f32(&self) -> f32 {
         self.0
-    }
-}
-
-impl Into<Seconds> for DeltaTime {
-    fn into(self) -> Seconds {
-        Seconds(self.0)
     }
 }
 

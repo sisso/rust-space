@@ -33,29 +33,32 @@ pub struct NavigationMoveTo {
     plan: NavigationPlan
 }
 
+/// create navigation plans for new miners
+///
+///
+//pub struct CreateNavigationSystem;
+//
 //#[derive(SystemData)]
-//pub struct UndockMinersData<'a> {
+//pub struct CreateNavigationData<'a> {
 //    entities: Entities<'a>,
-//    states: ReadStorage<'a, MineState>,
-//    locations: ReadStorage<'a, LocationDock>,
-//    has_actions: WriteStorage<'a, HasAction>,
-//    undock_actions: WriteStorage<'a, ActionUndock>,
+//    sectors_index: Read<'a, SectorsIndex>,
+//    commands_mine: ReadStorage<'a, CommandMine>,
+//    actions_mine: ReadStorage<'a, ActionMine>,
+//    navigations: WriteStorage<'a, Navigation>,
+//    navigations_move_to: WriteStorage<'a, NavigationMoveTo>,
 //}
 //
-//pub struct UndockMinersSystem;
-//impl<'a> System<'a> for UndockMinersSystem {
-//    type SystemData = UndockMinersData<'a>;
+//impl<'a> System<'a> for CreateNavigationSystem {
+//    type SystemData = CreateNavigationData<'a>;
 //
-//    fn run(&mut self, mut data: UndockMinersData) {
+//    fn run(&mut self, mut data: CreateNavigationData) {
 //        use specs::Join;
 //
-//        let mut to_add = vec![];
-//        for (entity, _, _, _) in (&data.entities, &data.states, !&data.has_actions, &data.locations).join() {
-//            to_add.push(entity.clone());
-//        }
+//        let sector_index = data.sectors_index.borrow();
 //
-//        for entity in to_add {
-//            data.undock_actions.insert(entity, ActionUndock);
+//
+//        for (commands_mine) in (&data.commands_mine, !&data.navigations, !&data.actions_mine).join() {
+//
 //        }
 //    }
 //}

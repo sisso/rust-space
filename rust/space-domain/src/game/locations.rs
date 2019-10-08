@@ -1,8 +1,7 @@
 mod index_per_sector_system;
 
+use specs::prelude::*;
 use std::collections::HashMap;
-
-use specs::{Builder, Component as SpecComponent, DenseVecStorage, Entities, Entity, HashMapStorage, LazyUpdate, Read, ReadStorage, System, VecStorage, World, WorldExt, WriteStorage};
 
 use super::objects::*;
 use super::sectors::*;
@@ -10,32 +9,24 @@ use crate::utils::*;
 
 use crate::game::jsons::JsonValueExtra;
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone, Component)]
 pub struct LocationSpace {
-    pub sector_id: SectorId,
     pub pos: Position
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone, Component)]
 pub struct LocationDock {
     pub docked_id: ObjId
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone, Component)]
+pub struct LocationSector {
+    pub sector_id: SectorId
+}
+
+#[derive(Debug, Clone, Component)]
 pub struct Moveable {
     pub speed: Speed
-}
-
-impl SpecComponent for LocationSpace {
-    type Storage = VecStorage<Self>;
-}
-
-impl SpecComponent for LocationDock {
-    type Storage = DenseVecStorage<Self>;
-}
-
-impl SpecComponent for Moveable {
-    type Storage = DenseVecStorage<Self>;
 }
 
 #[derive(Clone,Debug,Default)]
@@ -45,6 +36,13 @@ pub struct EntityPerSectorIndex {
 }
 
 impl EntityPerSectorIndex {
+    pub fn new() -> Self {
+        EntityPerSectorIndex {
+            index: Default::default(),
+            index_extractables: Default::default(),
+        }
+    }
+
     pub fn clear(&mut self) {
         self.index.clear();
         self.index_extractables.clear();
@@ -75,6 +73,7 @@ impl Locations {
     pub fn init_world(world: &mut World) {
         world.register::<LocationSpace>();
         world.register::<LocationDock>();
+        world.register::<LocationSector>();
         world.register::<Moveable>();
     }
 

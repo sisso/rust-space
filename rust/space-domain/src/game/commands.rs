@@ -13,8 +13,6 @@ use super::objects::*;
 use super::sectors::*;
 use super::Tick;
 use super::jsons;
-use serde_json::Value;
-use crate::game::jsons::JsonValueExtra;
 
 //mod executor_command_idle;
 //mod executor_command_mine;
@@ -23,13 +21,16 @@ mod command_mine_system;
 use command_mine_system::*;
 
 #[derive(Debug, Clone, Component)]
-pub enum HasCommand {
+pub enum Command {
     Mine
 }
 
 #[derive(Debug, Clone, Component)]
 pub struct CommandMine {
-    mining: bool,
+}
+
+#[derive(Debug, Clone, Component)]
+pub struct CommandMineTarget {
     target_obj_id: ObjId,
 }
 
@@ -100,8 +101,9 @@ impl Commands {
     }
 
     pub fn init_world(world: &mut World) {
-        world.register::<HasCommand>();
+        world.register::<Command>();
         world.register::<CommandMine>();
+        world.register::<CommandMineTarget>();
         world.register::<DeliverState>();
     }
 

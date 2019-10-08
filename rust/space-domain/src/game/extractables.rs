@@ -13,7 +13,7 @@ use crate::game::jsons::*;
 #[derive(Clone,Debug)]
 pub struct Extractable {
     pub ware_id: WareId,
-    pub time: Seconds,
+    pub time: DeltaTime,
 }
 
 #[derive(Clone, Debug)]

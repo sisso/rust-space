@@ -8,6 +8,7 @@ pub struct NewObj {
     pub speed: Option<Speed>,
     pub cargo_size: f32,
     pub extractable: Option<Extractable>,
+    pub location_sector_id: Option<LocationSector>,
     pub location_space: Option<LocationSpace>,
     pub location_dock: Option<LocationDock>,
     pub can_dock: bool,
@@ -21,6 +22,7 @@ impl NewObj {
             speed: None,
             cargo_size: 0.0,
             extractable: None,
+            location_sector_id: None,
             location_space: None,
             location_dock: None,
             can_dock: false,
@@ -39,8 +41,13 @@ impl NewObj {
         self
     }
 
-    pub fn at_position(mut self, sector_id: SectorId, pos: Position) -> Self {
-        self.location_space = Some(LocationSpace { sector_id, pos });
+    pub fn at_sector(mut self, sector_id: SectorId) -> Self {
+        self.location_sector_id = Some(LocationSector { sector_id });
+        self
+    }
+
+    pub fn at_position(mut self, pos: Position) -> Self {
+        self.location_space = Some(LocationSpace { pos });
         self
     }
 

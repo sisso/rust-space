@@ -3,7 +3,6 @@ use specs::{Builder, Component as SpecComponent, DenseVecStorage, Entities, Enti
 use std::collections::{HashMap, BTreeMap, HashSet};
 use serde_json::{json, Value};
 
-use crate::game::save::{CanSave, CanLoad, Load, Save};
 use crate::utils::*;
 
 use super::objects::ObjId;
