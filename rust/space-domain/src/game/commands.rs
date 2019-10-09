@@ -26,8 +26,7 @@ pub enum Command {
 }
 
 #[derive(Debug, Clone, Component)]
-pub struct CommandMine {
-}
+pub struct CommandMine;
 
 #[derive(Debug, Clone, Component)]
 pub struct CommandMineTarget {
@@ -83,7 +82,6 @@ pub struct DeliverState {
 
 struct CommandsMineSystems {
     search_targets_system: SearchMineTargetsSystem,
-    mine_system: CommandMineSystem,
 }
 
 pub struct Commands {
@@ -95,7 +93,6 @@ impl Commands {
         Commands {
             command_mine: CommandsMineSystems {
                 search_targets_system: SearchMineTargetsSystem,
-                mine_system: CommandMineSystem,
             }
         }
     }

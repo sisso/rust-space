@@ -1,7 +1,7 @@
 use specs::prelude::*;
 use specs_derive::*;
 use specs::Entity;
-use crate::game::sectors::SectorId;
+use crate::game::sectors::{SectorId, Sectors};
 use crate::utils::Position;
 use std::collections::VecDeque;
 use crate::game::objects::ObjId;
@@ -12,7 +12,7 @@ pub enum Navigation {
 }
 
 #[derive(Debug, Clone)]
-enum NavigationPlanStep {
+pub enum NavigationPlanStep {
     MoveTo { pos: Position, },
     Jump { jump_id: ObjId },
     Dock { target: ObjId },
@@ -21,16 +21,15 @@ enum NavigationPlanStep {
 
 #[derive(Debug, Clone)]
 pub struct NavigationPlan {
-    target_obj_id: ObjId,
-    target_sector_id: SectorId,
-    target_position: Position,
-    path: VecDeque<NavigationPlanStep>
+    pub target_sector_id: SectorId,
+    pub target_position: Position,
+    pub path: VecDeque<NavigationPlanStep>
 }
 
 #[derive(Debug, Clone, Component)]
 pub struct NavigationMoveTo {
-    target: Entity,
-    plan: NavigationPlan
+    pub target: Entity,
+    pub plan: NavigationPlan
 }
 
 /// create navigation plans for new miners
@@ -78,6 +77,10 @@ impl Navigations {
     }
 
     pub fn execute(&mut self, world: &mut World) {
+    }
+
+    pub fn create_plan(sectors: &Sectors, from_sector_id: SectorId, from_pos: Position, to_sector_id: SectorId, to_pos: Position) -> NavigationPlan {
+        unimplemented!()
     }
 }
 

@@ -143,7 +143,7 @@ fn generate_penetration_damage_indexes(amount: Damage, index: ArmorIndex, armor_
     let mut result: Vec<ArmorIndex> = vec![];
 
     for i in 0..amount {
-        let mut j =
+        let j =
             if i >= 3 {
                 if i % 3 == 0 {
                     index - 1

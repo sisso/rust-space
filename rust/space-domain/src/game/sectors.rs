@@ -19,14 +19,16 @@ pub struct SectorsIndex {
 
 }
 
-//impl Default for SectorsIndex {
-//    fn default() -> Self {
-//        SectorsIndex {}
-//    }
-//}
+impl Default for SectorsIndex {
+    fn default() -> Self {
+        SectorsIndex {}
+    }
+}
 
 impl SectorsIndex {
+    pub fn add_jump(&mut self, sector_1: SectorId, sector_2: SectorId) {
 
+    }
 }
 
 #[derive(Clone,Debug,Serialize,Deserialize)]
@@ -55,10 +57,17 @@ pub struct Sector {
     pub id: SectorId,
 }
 
+#[derive(Debug, Clone, Component)]
 pub struct Sectors {
     sectors: HashMap<SectorId, Sector>,
     jumps: HashMap<JumpId, Jump>,
     jumps_by_sector: HashMap<SectorId, Vec<JumpId>>,
+}
+
+impl Default for Sectors {
+    fn default() -> Self {
+        Sectors::new()
+    }
 }
 
 impl Sectors {
