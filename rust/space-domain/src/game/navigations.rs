@@ -116,4 +116,40 @@ impl Navigations {
     }
 }
 
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::game::sectors::test_scenery::*;
 
+    #[test]
+    fn create_plan() {
+        let sectors = new_test_sectors();
+
+        let plan = Navigations::create_plan(
+            &sectors,
+            SECTOR_0,
+            Position::new(10.0, 0.0),
+            SECTOR_1,
+            Position::new(0.0, 10.0)
+        );
+
+        assert_eq!(plan.target_sector_id, SECTOR_1);
+        assert_eq!(plan.target_position, Position::new(0.0, 10.0));
+        assert_eq!(plan.path.len(), 3);
+
+        match plan.path.get(0).unwrap() {
+            NavigationPlanStep::MoveTo { pos } => assert_eq!(pos.clone(), JUMP_0_TO_1.pos),
+            other => panic!(),
+        }
+
+        match plan.path.get(1).unwrap() {
+            NavigationPlanStep::Jump { jump_id } => assert_eq!(jump_id.clone(), JUMP_0_TO_1.id),
+            other => panic!(),
+        }
+
+        match plan.path.get(2).unwrap() {
+            NavigationPlanStep::MoveTo { pos } => assert_eq!(pos.clone(), Position::new(0.0, 10.0)),
+            other => panic!(),
+        }
+    }
+}

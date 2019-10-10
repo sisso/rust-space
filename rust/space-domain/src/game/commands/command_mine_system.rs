@@ -156,6 +156,8 @@ impl<'a> System<'a> for SetupNavigationForMinersSystem {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::game::sectors::test_scenery;
+    use crate::game::sectors::test_scenery::{SECTOR_0, SECTOR_1};
     use specs::DispatcherBuilder;
     use crate::game::wares::WareId;
     use crate::game::locations::LocationSector;
@@ -168,22 +170,6 @@ mod test {
         asteroid: ObjId,
     }
 
-    const SECTOR_0: SectorId = SectorId(0);
-    const SECTOR_1: SectorId = SectorId(1);
-    const JUMP_0_TO_1: Jump = Jump {
-        id: JumpId(0),
-        sector_id: SECTOR_0,
-        pos: Position { x: 5.0, y: 0.0 },
-        to_sector_id: SECTOR_1,
-        to_pos: Position { x: 0.0, y: 5.0 },
-    };
-    const JUMP_1_TO_0: Jump = Jump {
-        id: JumpId(1),
-        sector_id: SECTOR_0,
-        pos: Position { x: 5.0, y: 0.0 },
-        to_sector_id: SECTOR_1,
-        to_pos: Position { x: 0.0, y: 5.0 },
-    };
     const WARE_0: WareId = WareId(0);
     const EXTRACTABLE: Extractable = Extractable { ware_id: WARE_0, time: DeltaTime(1.0) };
 
@@ -285,21 +271,10 @@ mod test {
         assert!(action.is_some());
     }
 
-    fn setup_sectors() -> Sectors {
-        let mut sectors = Sectors::new();
-
-        sectors.add_sector(Sector { id: SECTOR_0 });
-        sectors.add_sector(Sector { id: SECTOR_1 });
-        sectors.add_jump(JUMP_0_TO_1.clone());
-        sectors.add_jump(JUMP_1_TO_0.clone());
-
-        sectors
-    }
-
     #[test]
     fn test_command_mine_with_target_should_set_navigation() {
         let mut world = World::new();
-        world.insert(setup_sectors());
+        world.insert(test_scenery::new_test_sectors());
 
         let mut dispatcher = DispatcherBuilder::new()
             .with(SetupNavigationForMinersSystem, "", &[])

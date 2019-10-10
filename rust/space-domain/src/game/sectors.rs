@@ -155,10 +155,43 @@ impl Sectors {
 }
 
 #[cfg(test)]
+pub mod test_scenery {
+    use super::*;
+
+    pub const SECTOR_0: SectorId = SectorId(0);
+    pub const SECTOR_1: SectorId = SectorId(1);
+    pub const JUMP_0_TO_1: Jump = Jump {
+        id: JumpId(0),
+        sector_id: SECTOR_0,
+        pos: Position { x: 5.0, y: 0.0 },
+        to_sector_id: SECTOR_1,
+        to_pos: Position { x: 0.0, y: 5.0 },
+    };
+    pub const JUMP_1_TO_0: Jump = Jump {
+        id: JumpId(1),
+        sector_id: SECTOR_0,
+        pos: Position { x: 5.0, y: 0.0 },
+        to_sector_id: SECTOR_1,
+        to_pos: Position { x: 0.0, y: 5.0 },
+    };
+
+    pub fn new_test_sectors() -> Sectors {
+        let mut sectors = Sectors::new();
+
+        sectors.add_sector(Sector { id: SECTOR_0 });
+        sectors.add_sector(Sector { id: SECTOR_1 });
+        sectors.add_jump(JUMP_0_TO_1.clone());
+        sectors.add_jump(JUMP_1_TO_0.clone());
+
+        sectors
+    }
+}
+
+#[cfg(test)]
 mod test {
     use crate::game::save::LoadSaveBuffer;
-
     use super::*;
+    use super::test_scenery::*;
 
     #[test]
     fn test_sectors() {
