@@ -1,7 +1,7 @@
 use specs::prelude::*;
 use specs_derive::*;
 use specs::Entity;
-use crate::game::sectors::{SectorId, Sectors};
+use crate::game::sectors::{SectorId, Sectors, JumpId};
 use crate::utils::Position;
 use std::collections::VecDeque;
 use crate::game::objects::ObjId;
@@ -14,7 +14,7 @@ pub enum Navigation {
 #[derive(Debug, Clone)]
 pub enum NavigationPlanStep {
     MoveTo { pos: Position, },
-    Jump { jump_id: ObjId },
+    Jump { jump_id: JumpId },
     Dock { target: ObjId },
 }
 
@@ -80,7 +80,39 @@ impl Navigations {
     }
 
     pub fn create_plan(sectors: &Sectors, from_sector_id: SectorId, from_pos: Position, to_sector_id: SectorId, to_pos: Position) -> NavigationPlan {
-        unimplemented!()
+        let safe = 100;
+        let mut path = VecDeque::new();
+
+        let mut current_pos = from_pos;
+        let mut current_sector = from_sector_id;
+
+        for i in 0..safe {
+            if i + 1 == safe {
+                panic!();
+            }
+
+            if current_sector == to_sector_id {
+                path.push_back(NavigationPlanStep::MoveTo { pos: to_pos });
+                break;
+            } else {
+                let jump = sectors.find_jump(current_sector, to_sector_id).unwrap();
+
+                path.push_back(NavigationPlanStep::MoveTo { pos: jump.pos });
+                path.push_back(NavigationPlanStep::Jump { jump_id: jump.id });
+
+                current_sector = jump.to_sector_id;
+                current_pos = jump.to_pos;
+            }
+        }
+
+        info!("create_plan", "navigation path from {:?}/{:?} to {:?}/{:?}: {:?}",
+            from_sector_id, from_pos, to_sector_id, to_pos, path);
+
+        NavigationPlan {
+            target_sector_id: to_sector_id,
+            target_position: to_pos,
+            path,
+        }
     }
 }
 

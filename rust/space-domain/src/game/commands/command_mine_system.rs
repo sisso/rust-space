@@ -147,7 +147,7 @@ impl<'a> System<'a> for SetupNavigationForMinersSystem {
             data.navigations.insert(entity, Navigation::MoveTo);
             data.navigations_move_to.insert(entity, NavigationMoveTo {
                 target: target.target_obj_id,
-                plan: plan,
+                plan,
             });
         }
     }
@@ -327,6 +327,6 @@ mod test {
         let plan = &nav.plan;
         assert_eq!(plan.target_sector_id, SECTOR_1);
         assert_eq!(plan.target_position, Position::new(10.0, 0.0));
-        assert_eq!(plan.path.len(), 5);
+        assert_eq!(plan.path.len(), 4);
     }
 }
