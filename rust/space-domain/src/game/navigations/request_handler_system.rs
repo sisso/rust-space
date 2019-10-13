@@ -51,7 +51,7 @@ impl<'a> System<'a> for NavRequestHandlerSystem {
 
                     processed_requests.push(entity);
                 },
-                _ => panic!("unsuported"),
+                _ => panic!("unsupported"),
             }
         }
 

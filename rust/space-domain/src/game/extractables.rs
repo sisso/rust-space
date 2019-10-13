@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use specs::{Builder, Component as SpecComponent, DenseVecStorage, Entities, Entity, HashMapStorage, LazyUpdate, Read, ReadStorage, System, VecStorage, World, WorldExt, WriteStorage};
 
-use super::objects::{ObjId};
+use super::objects::ObjId;
 use crate::utils::*;
 
 use crate::game::wares::WareId;

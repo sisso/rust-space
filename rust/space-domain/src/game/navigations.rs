@@ -5,8 +5,16 @@ use crate::game::sectors::{SectorId, Sectors, JumpId};
 use crate::utils::Position;
 use std::collections::VecDeque;
 use crate::game::objects::ObjId;
+use crate::game::actions::*;
 
-mod nav_request_handler_system;
+mod request_handler_system;
+mod navigation_system;
+
+///
+/// Systems:
+/// - set navigation plan from request
+/// - execute navigation by create actions
+///
 
 #[derive(Debug, Clone, Component, PartialEq)]
 pub enum Navigation {
@@ -21,23 +29,22 @@ pub enum NavRequest {
 }
 
 #[derive(Debug, Clone)]
-pub enum NavigationPlanStep {
-    MoveTo { pos: Position, },
-    Jump { jump_id: JumpId },
-    Dock { target: ObjId },
-}
-
-#[derive(Debug, Clone)]
 pub struct NavigationPlan {
     pub target_sector_id: SectorId,
     pub target_position: Position,
-    pub path: VecDeque<NavigationPlanStep>
+    pub path: VecDeque<ActionRequest>
 }
 
 #[derive(Debug, Clone, Component)]
 pub struct NavigationMoveTo {
     pub target: Entity,
     pub plan: NavigationPlan
+}
+
+impl NavigationMoveTo {
+    pub fn next(&mut self) -> Option<ActionRequest> {
+        self.plan.path.pop_front()
+    }
 }
 
 pub struct Navigations {
@@ -70,13 +77,13 @@ impl Navigations {
             }
 
             if current_sector == to_sector_id {
-                path.push_back(NavigationPlanStep::MoveTo { pos: to_pos });
+                path.push_back(ActionRequest::MoveTo { pos: to_pos });
                 break;
             } else {
                 let jump = sectors.find_jump(current_sector, to_sector_id).unwrap();
 
-                path.push_back(NavigationPlanStep::MoveTo { pos: jump.pos });
-                path.push_back(NavigationPlanStep::Jump { jump_id: jump.id });
+                path.push_back(ActionRequest::MoveTo { pos: jump.pos });
+                path.push_back(ActionRequest::Jump { jump_id: jump.id });
 
                 current_sector = jump.to_sector_id;
                 current_pos = jump.to_pos;
@@ -116,17 +123,17 @@ mod test {
         assert_eq!(plan.path.len(), 3);
 
         match plan.path.get(0).unwrap() {
-            NavigationPlanStep::MoveTo { pos } => assert_eq!(pos.clone(), JUMP_0_TO_1.pos),
+            ActionRequest::MoveTo { pos } => assert_eq!(pos.clone(), JUMP_0_TO_1.pos),
             other => panic!(),
         }
 
         match plan.path.get(1).unwrap() {
-            NavigationPlanStep::Jump { jump_id } => assert_eq!(jump_id.clone(), JUMP_0_TO_1.id),
+            ActionRequest::Jump { jump_id } => assert_eq!(jump_id.clone(), JUMP_0_TO_1.id),
             other => panic!(),
         }
 
         match plan.path.get(2).unwrap() {
-            NavigationPlanStep::MoveTo { pos } => assert_eq!(pos.clone(), Position::new(0.0, 10.0)),
+            ActionRequest::MoveTo { pos } => assert_eq!(pos.clone(), Position::new(0.0, 10.0)),
             other => panic!(),
         }
     }
