@@ -17,8 +17,9 @@ use super::*;
 use crate::game::locations::{LocationDock, EntityPerSectorIndex, LocationSector};
 use std::borrow::{Borrow, BorrowMut};
 use crate::game::extractables::Extractable;
-use crate::game::navigations::{Navigation, NavigationMoveTo, Navigations};
+use crate::game::navigations::{Navigation, NavigationMoveTo, Navigations, NavRequest};
 
+/// For miners without target, search nearest one and create a navigation request
 pub struct SearchMineTargetsSystem;
 
 #[derive(SystemData)]
@@ -28,6 +29,7 @@ pub struct SearchMineTargetsData<'a> {
     locations_sector_id: ReadStorage<'a, LocationSector>,
     commands_mine: WriteStorage<'a, CommandMine>,
     commands_mine_target: WriteStorage<'a, CommandMineTarget>,
+    nav_request: WriteStorage<'a, NavRequest>,
 }
 
 impl<'a> System<'a> for SearchMineTargetsSystem {
@@ -56,99 +58,16 @@ impl<'a> System<'a> for SearchMineTargetsSystem {
                 target_obj_id: target.clone()
             };
 
-            selected.push((entity, command));
+            let request = NavRequest::MoveToTarget {
+                target: target.clone()
+            };
+
+            selected.push((entity, command, request));
         }
 
-        for (entity, state) in selected {
-            data.commands_mine_target.insert(entity, state).unwrap();
-        }
-    }
-}
-
-/////
-///// Undock all docked miners that have a target
-/////
-//pub struct UndockMinersWithTargetSystem;
-//
-//#[derive(SystemData)]
-//pub struct UndockMinersWithTargetData<'a> {
-//    entities: Entities<'a>,
-//    locations_dock: ReadStorage<'a, LocationDock>,
-//    commands_mine_target: ReadStorage<'a, CommandMineTarget>,
-//    actions_undock: WriteStorage<'a, ActionUndock>,
-//}
-//
-//impl<'a> System<'a> for UndockMinersWithTargetSystem {
-//    type SystemData = UndockMinersWithTargetData<'a>;
-//
-//    fn run(&mut self, mut data: UndockMinersWithTargetData) {
-//        use specs::Join;
-//
-//        let mut to_add = vec![];
-//
-//        for (e, _, _, _) in (&*data.entities, &data.locations_dock, &data.commands_mine_target, !&data.actions_undock).join() {
-//            to_add.push(e);
-//        }
-//
-//        for e in to_add {
-//            data.actions_undock.insert(e, ActionUndock);
-//        }
-//    }
-//}
-
-pub struct SetupNavigationForMinersSystem;
-
-///
-/// Setup navigation for all undocked miners with target
-///
-#[derive(SystemData)]
-pub struct SetupNavigationForMinersData<'a> {
-    entities: Entities<'a>,
-    sectors: Read<'a, Sectors>,
-    locations_sector_id: ReadStorage<'a, LocationSector>,
-    locations_positions: ReadStorage<'a, LocationSpace>,
-    commands_mine_target: ReadStorage<'a, CommandMineTarget>,
-    navigations: WriteStorage<'a, Navigation>,
-    navigations_move_to: WriteStorage<'a, NavigationMoveTo>,
-}
-
-impl<'a> System<'a> for SetupNavigationForMinersSystem {
-    type SystemData = SetupNavigationForMinersData<'a>;
-
-    fn run(&mut self, mut data: SetupNavigationForMinersData) {
-        use specs::Join;
-
-        let mut to_add = BitSet::new();
-        let mut targets = BitSet::new();
-
-        for (e, target, _) in (&data.entities, &data.commands_mine_target, !&data.navigations).join() {
-            to_add.add(e.id());
-            targets.add(target.target_obj_id.id());
-        }
-
-        let mut targets_by_pos = HashMap::new();
-        for (id, entity, sector, pos) in (&targets, &data.entities, &data.locations_sector_id, &data.locations_positions).join() {
-            targets_by_pos.insert(id, (sector.sector_id, pos.pos));
-        }
-
-        let sectors = data.sectors.borrow();
-
-        for (_, entity, target, sector, position) in (&to_add, &data.entities, &data.commands_mine_target, &data.locations_sector_id, &data.locations_positions).join() {
-            let (target_sector_id, target_pos) = targets_by_pos.get(&target.target_obj_id.id()).unwrap();
-
-            let plan = Navigations::create_plan(
-                sectors,
-                sector.sector_id,
-                position.pos.clone(),
-                *target_sector_id,
-                target_pos.clone()
-            );
-
-            data.navigations.insert(entity, Navigation::MoveTo);
-            data.navigations_move_to.insert(entity, NavigationMoveTo {
-                target: target.target_obj_id,
-                plan,
-            });
+        for (entity, state, request) in selected {
+            let _ = data.commands_mine_target.insert(entity, state).unwrap();
+            let _ = data.nav_request.insert(entity, request).unwrap();
         }
     }
 }
@@ -243,65 +162,13 @@ mod test {
                 panic!("miner has no commandmine");
             }
         }
-    }
 
-//    #[test]
-//    fn test_command_mine_should_undock_entities_with_target() {
-//        let mut world = World::new();
-//        let mut dispatcher = DispatcherBuilder::new()
-//            .with(UndockMinersWithTargetSystem, "", &[])
-//            .build();
-//        dispatcher.setup(&mut world);
-//
-//        let asteroid = world.create_entity()
-//            .build();
-//
-//        let station = world.create_entity()
-//            .build();
-//
-//        let miner = world.create_entity()
-//            .with(LocationDock { docked_id: station })
-//            .with(CommandMineTarget { target_obj_id: asteroid })
-//            .build();
-//
-//        dispatcher.dispatch(&world);
-//
-//        let storage = world.read_component::<ActionUndock>();
-//        let action = storage.get(miner);
-//        assert!(action.is_some());
-//    }
-
-    #[test]
-    fn test_command_mine_with_target_should_set_navigation() {
-        let mut world = World::new();
-        world.insert(test_scenery::new_test_sectors());
-
-        let mut dispatcher = DispatcherBuilder::new()
-            .with(SetupNavigationForMinersSystem, "", &[])
-            .build();
-        dispatcher.setup(&mut world);
-
-        let asteroid = world.create_entity()
-            .with(LocationSpace { pos: Position::new(10.0, 0.0) })
-            .with(LocationSector{ sector_id: SECTOR_1 })
-            .build();
-
-        let miner = world.create_entity()
-            .with(LocationSpace { pos: Position::new(0.0, 0.0) })
-            .with(LocationSector{ sector_id: SECTOR_0 })
-            .with(CommandMineTarget { target_obj_id: asteroid })
-            .build();
-
-        dispatcher.dispatch(&world);
-
-        let storage = world.read_component::<NavigationMoveTo>();
-        let nav = storage.get(miner);
-        assert!(nav.is_some());
-        let nav = nav.unwrap();
-        assert_eq!(nav.target, asteroid);
-        let plan = &nav.plan;
-        assert_eq!(plan.target_sector_id, SECTOR_1);
-        assert_eq!(plan.target_position, Position::new(10.0, 0.0));
-        assert!(plan.path.len() > 0);
+        let request_storage = world.read_storage::<NavRequest>();
+        match request_storage.get(scenery.miner) {
+            Some(NavRequest::MoveToTarget { target }) => {
+                assert_eq!(target.clone(), scenery.asteroid);
+            },
+            _ => panic!(),
+        }
     }
 }

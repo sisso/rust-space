@@ -40,36 +40,6 @@ pub struct NavigationMoveTo {
     pub plan: NavigationPlan
 }
 
-/// create navigation plans for new miners
-///
-///
-//pub struct CreateNavigationSystem;
-//
-//#[derive(SystemData)]
-//pub struct CreateNavigationData<'a> {
-//    entities: Entities<'a>,
-//    sectors_index: Read<'a, SectorsIndex>,
-//    commands_mine: ReadStorage<'a, CommandMine>,
-//    actions_mine: ReadStorage<'a, ActionMine>,
-//    navigations: WriteStorage<'a, Navigation>,
-//    navigations_move_to: WriteStorage<'a, NavigationMoveTo>,
-//}
-//
-//impl<'a> System<'a> for CreateNavigationSystem {
-//    type SystemData = CreateNavigationData<'a>;
-//
-//    fn run(&mut self, mut data: CreateNavigationData) {
-//        use specs::Join;
-//
-//        let sector_index = data.sectors_index.borrow();
-//
-//
-//        for (commands_mine) in (&data.commands_mine, !&data.navigations, !&data.actions_mine).join() {
-//
-//        }
-//    }
-//}
-
 pub struct Navigations {
 }
 
