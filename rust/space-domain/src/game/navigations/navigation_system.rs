@@ -37,12 +37,12 @@ impl<'a> System<'a> for NavigationSystem {
 
         let requests_storage = data.action_request.borrow_mut();
         for (entity, action) in requests {
-            requests_storage.insert(entity, action);
+            let _ = requests_storage.insert(entity, action).unwrap();
         }
 
         let navigation_move_to_storage = data.navigation_move_to.borrow_mut();
         for entity in completed {
-            navigation_move_to_storage.remove(entity);
+            let _ = navigation_move_to_storage.remove(entity).unwrap();
         }
     }
 }

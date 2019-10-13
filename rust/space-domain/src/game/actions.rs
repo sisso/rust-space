@@ -4,6 +4,9 @@ use crate::utils::{Position, Seconds, DeltaTime};
 use super::objects::ObjId;
 use crate::game::sectors::JumpId;
 
+mod action_request_handler_system;
+mod action_undock_system;
+
 #[derive(Debug, Clone, Component)]
 pub enum ActionRequest {
     Undock,
@@ -19,23 +22,23 @@ pub struct ActionProgress {
 
 #[derive(Debug, Clone, Component)]
 pub struct Action {
-
+    request: ActionRequest
 }
 
 #[derive(Debug, Clone, Component)]
 pub struct ActionUndock;
 
 #[derive(Debug, Clone, Component)]
-pub struct ActionDock { target: ObjId }
+pub struct ActionDock;
 
 #[derive(Debug, Clone, Component)]
-pub struct ActionFly { to: Position }
+pub struct ActionMoveTo;
 
 #[derive(Debug, Clone, Component)]
-pub struct ActionJump { jump_id: JumpId }
+pub struct ActionJump;
 
 #[derive(Debug, Clone, Component)]
-pub struct ActionMine { target: ObjId }
+pub struct ActionMine;
 
 #[derive(Clone,Debug)]
 pub struct Actions {

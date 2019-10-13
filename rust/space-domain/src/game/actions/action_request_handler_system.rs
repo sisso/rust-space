@@ -1,0 +1,70 @@
+use specs::prelude::*;
+
+use super::*;
+use super::super::locations::*;
+use std::borrow::{Borrow, BorrowMut};
+use crate::game::actions::*;
+
+pub struct ActionRequestHandlerSystem;
+
+#[derive(SystemData)]
+pub struct ActionRequestHandlerData<'a> {
+    entities: Entities<'a>,
+    requests: WriteStorage<'a, ActionRequest>,
+    actions: WriteStorage<'a, Action>,
+    actions_undock: WriteStorage<'a, ActionUndock>,
+    actions_dock: WriteStorage<'a, ActionDock>,
+    actions_move_to: WriteStorage<'a, ActionMoveTo>,
+    actions_jump: WriteStorage<'a, ActionJump>,
+}
+
+impl<'a> System<'a> for ActionRequestHandlerSystem {
+    type SystemData = ActionRequestHandlerData<'a>;
+
+    fn run(&mut self, mut data: ActionRequestHandlerData) {
+        let mut processed = vec![];
+
+        for (entity, request) in (&*data.entities, &data.requests).join() {
+            processed.push(entity);
+
+            let request = request.clone();
+
+            let _ = data.actions_undock.borrow_mut().remove(entity);
+            let _ = data.actions_dock.borrow_mut().remove(entity);
+            let _ = data.actions_dock.borrow_mut().remove(entity);
+            let _ = data.actions_move_to.borrow_mut().remove(entity);
+            let _ = data.actions_jump.borrow_mut().remove(entity);
+
+            match request {
+                ActionRequest::Undock {} => {
+                    let _ = data.actions_undock.borrow_mut().insert(entity, ActionUndock);
+                },
+                ActionRequest::Jump { jump_id } => {
+                    let _ = data.actions_jump.borrow_mut().insert(entity, ActionJump);
+                },
+                ActionRequest::Dock { target_id } => {
+                    let _ = data.actions_dock.borrow_mut().insert(entity, ActionDock);
+                },
+                ActionRequest::MoveTo { pos } => {
+                    let _ = data.actions_move_to.borrow_mut().insert(entity, ActionMoveTo);
+                },
+            }
+
+            data.actions.borrow_mut().insert(entity, Action { request });
+        }
+
+        let requests_storage = data.requests.borrow_mut();
+        for entity in processed {
+            let _ = requests_storage.remove(entity).unwrap();
+        }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_stuff() {
+    }
+}
