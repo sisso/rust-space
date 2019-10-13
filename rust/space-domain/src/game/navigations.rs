@@ -6,9 +6,18 @@ use crate::utils::Position;
 use std::collections::VecDeque;
 use crate::game::objects::ObjId;
 
-#[derive(Debug, Clone, Component)]
+mod nav_request_handler_system;
+
+#[derive(Debug, Clone, Component, PartialEq)]
 pub enum Navigation {
     MoveTo
+}
+
+#[derive(Debug, Clone, Component)]
+pub enum NavRequest {
+    MoveToTarget {
+        target: ObjId,
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -17,7 +26,6 @@ pub enum NavigationPlanStep {
     Jump { jump_id: JumpId },
     Dock { target: ObjId },
 }
-
 
 #[derive(Debug, Clone)]
 pub struct NavigationPlan {

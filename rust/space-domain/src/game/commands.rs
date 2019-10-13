@@ -4,7 +4,6 @@ use specs::prelude::*;
 
 use crate::game::extractables::Extractables;
 use crate::game::locations::{ Locations, LocationSpace};
-use crate::game::save::{Load, Save, CanSave, CanLoad};
 use crate::game::wares::Cargos;
 use crate::utils::*;
 
