@@ -65,6 +65,32 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_stuff() {
+    fn test_action_request() {
+        let mut world = World::new();
+
+        let mut dispatcher = DispatcherBuilder::new()
+            .with(ActionRequestHandlerSystem, "test", &[])
+            .build();
+        dispatcher.setup(&mut world);
+
+        let entity = world.create_entity()
+            .with(ActionRequest::Undock)
+            .build();
+
+        dispatcher.dispatch(&world);
+        world.maintain();
+
+        let action_storage = world.read_component::<Action>();
+        let action = action_storage.get(entity).unwrap();
+        match action.request {
+            ActionRequest::Undock => {},
+            _ => panic!(),
+        }
+
+        let action_undock_storage = world.read_component::<ActionUndock>();
+        assert!(action_undock_storage.get(entity).is_some());
+
+        let action_request_storage = world.read_component::<ActionRequest>();
+        assert!(action_request_storage.get(entity).is_none());
     }
 }
