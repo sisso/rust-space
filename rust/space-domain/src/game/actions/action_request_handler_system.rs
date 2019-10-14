@@ -63,22 +63,17 @@ impl<'a> System<'a> for ActionRequestHandlerSystem {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::test::test_system;
 
     #[test]
     fn test_action_request() {
-        let mut world = World::new();
+        let (world, entity) = test_system(ActionRequestHandlerSystem, |world| {
+            let entity = world.create_entity()
+                .with(ActionRequest::Undock)
+                .build();
 
-        let mut dispatcher = DispatcherBuilder::new()
-            .with(ActionRequestHandlerSystem, "test", &[])
-            .build();
-        dispatcher.setup(&mut world);
-
-        let entity = world.create_entity()
-            .with(ActionRequest::Undock)
-            .build();
-
-        dispatcher.dispatch(&world);
-        world.maintain();
+            entity
+        });
 
         let action_storage = world.read_component::<Action>();
         let action = action_storage.get(entity).unwrap();

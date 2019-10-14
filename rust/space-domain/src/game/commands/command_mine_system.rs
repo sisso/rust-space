@@ -80,6 +80,7 @@ mod test {
     use specs::DispatcherBuilder;
     use crate::game::wares::WareId;
     use crate::game::locations::LocationSector;
+    use crate::test::test_system;
 
     struct SceneryRequest {
     }
@@ -116,41 +117,10 @@ mod test {
     }
 
     #[test]
-    fn test_command_mine_search_targets() {
-        let mut world = World::new();
-        let mut dispatcher = DispatcherBuilder::new()
-            .with(SearchMineTargetsSystem, "miner_search_targets", &[])
-            .build();
-        dispatcher.setup(&mut world);
-
-        let scenery = setup_scenery(&mut world);
-
-        dispatcher.dispatch(&world);
-        world.maintain();
-
-        let command_storage = world.read_component::<CommandMineTarget>();
-        let command = command_storage.get(scenery.miner);
-        match command {
-            Some(command) => {
-                assert_eq!(command.target_obj_id, scenery.asteroid);
-            },
-            None => {
-                panic!("miner has no commandmine");
-            }
-        }
-    }
-
-    #[test]
     fn test_command_mine_should_setup_navigation() {
-        let mut world = World::new();
-        let mut dispatcher = DispatcherBuilder::new()
-            .with(SearchMineTargetsSystem, "miner_search_targets", &[])
-            .build();
-        dispatcher.setup(&mut world);
-
-        let scenery = setup_scenery(&mut world);
-
-        dispatcher.dispatch(&world);
+        let (world, scenery) = test_system(SearchMineTargetsSystem, |world| {
+            setup_scenery(world)
+        });
 
         let command_storage = world.read_component::<CommandMineTarget>();
         let command = command_storage.get(scenery.miner);

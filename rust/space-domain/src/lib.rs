@@ -8,6 +8,7 @@ extern crate specs_derive;
 extern crate shred_derive;
 
 pub mod specs_extras;
+pub mod test;
 pub mod game;
 pub mod game_api;
 pub mod utils;

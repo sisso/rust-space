@@ -66,30 +66,27 @@ impl<'a> System<'a> for NavRequestHandlerSystem {
 mod test {
     use super::*;
     use crate::game::sectors::test_scenery::*;
+    use crate::test::test_system;
 
     #[test]
     fn test_nav_request_handler_should_create_navigation_from_requests() {
-        let mut world = World::new();
-        world.insert(new_test_sectors());
+        let (world, (asteroid, miner)) =
+        test_system(NavRequestHandlerSystem, |world| {
+            world.insert(new_test_sectors());
 
-        let mut dispatcher = DispatcherBuilder::new()
-            .with(NavRequestHandlerSystem, "nav_request_handler_system", &[])
-            .build();
-        dispatcher.setup(&mut world);
+            let asteroid = world.create_entity()
+                .with(LocationSector { sector_id: SECTOR_1 })
+                .with(LocationSpace { pos: Position::new(1.0, 0.0) })
+                .build();
 
-        let asteroid = world.create_entity()
-            .with(LocationSector { sector_id: SECTOR_1 })
-            .with(LocationSpace { pos: Position::new(1.0, 0.0) })
-            .build();
+            let miner = world.create_entity()
+                .with(LocationSector { sector_id: SECTOR_0 })
+                .with(LocationSpace { pos: Position::new(0.0, 0.0) })
+                .with(NavRequest::MoveToTarget { target: asteroid })
+                .build();
 
-        let miner = world.create_entity()
-            .with(LocationSector { sector_id: SECTOR_0 })
-            .with(LocationSpace { pos: Position::new(0.0, 0.0) })
-            .with(NavRequest::MoveToTarget { target: asteroid })
-            .build();
-
-        dispatcher.dispatch(&world);
-        world.maintain();
+            (asteroid, miner)
+        });
 
         let nav_storage = world.read_component::<Navigation>();
         let nav = nav_storage.get(miner).unwrap();
