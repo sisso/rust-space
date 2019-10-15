@@ -151,8 +151,8 @@ mod test {
     #[test]
     fn test_cargo_transfer() {
         let mut cargo1 = Cargo::new(10.0);
-        cargo1.add(WARE0, 4.0);
-        cargo1.add(WARE1, 3.0);
+        let _ = cargo1.add(WARE0, 4.0);
+        let _ = cargo1.add(WARE1, 3.0);
 
         let mut cargo2 = Cargo::new(5.0);
 

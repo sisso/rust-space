@@ -10,8 +10,6 @@ pub struct V2 {
     pub y: f32,
 }
 
-const V2_ZERO: V2 = V2 { x: 0.0, y: 0.0 };
-
 impl V2 {
     pub fn new(x: f32, y: f32) -> Self {
         V2 { x, y }
@@ -60,16 +58,22 @@ pub type Position = V2;
 #[derive(Clone,Copy,Debug,Serialize,Deserialize)]
 pub struct Speed(pub f32);
 
-pub type Seconds = DeltaTime;
-
-impl Seconds {
-    pub fn value(&self) -> f32 {
+impl Speed {
+    pub fn as_f32(&self) -> f32 {
         self.0
     }
 }
 
+pub type Seconds = DeltaTime;
+
 #[derive(Clone,Copy,Debug,Serialize,Deserialize)]
 pub struct DeltaTime(pub f32);
+
+impl Default for DeltaTime {
+    fn default() -> Self {
+        DeltaTime(0.0)
+    }
+}
 
 impl DeltaTime {
     pub fn as_f32(&self) -> f32 {

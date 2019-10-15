@@ -1,4 +1,5 @@
-use std::io;
+#![allow(warnings)]
+
 use std::io::Stdout;
 use std::time::Duration;
 
@@ -74,7 +75,7 @@ impl Gui {
         let mut terminal  = Terminal::new(backend)?;
         terminal.hide_cursor()?;
 
-        let events = Events::with_config(Config {
+        let events = Events::new(Config {
             tick_rate: time_rate,
             ..Default::default()
         });

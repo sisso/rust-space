@@ -1,3 +1,5 @@
+#![allow(warnings)]
+
 use std::io;
 use std::sync::mpsc;
 use std::thread;
@@ -35,11 +37,7 @@ impl Default for Config {
 }
 
 impl Events {
-    pub fn new() -> Events {
-        Events::with_config(Config::default())
-    }
-
-    pub fn with_config(config: Config) -> Events {
+    pub fn new(config: Config) -> Events {
         let (tx, rx) = mpsc::channel();
         let input_handle = {
             let tx = tx.clone();

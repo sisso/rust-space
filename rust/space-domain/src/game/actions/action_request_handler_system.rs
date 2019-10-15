@@ -50,7 +50,7 @@ impl<'a> System<'a> for ActionRequestHandlerSystem {
                 },
             }
 
-            data.actions.borrow_mut().insert(entity, Action { request });
+            let _ = data.actions.borrow_mut().insert(entity, Action { request });
         }
 
         let requests_storage = data.requests.borrow_mut();
