@@ -84,6 +84,12 @@ impl DeltaTime {
 #[derive(Clone,Copy,Debug,Serialize,Deserialize)]
 pub struct TotalTime(pub f64);
 
+impl Default for TotalTime {
+    fn default() -> Self {
+        TotalTime(0.0)
+    }
+}
+
 impl TotalTime {
     pub fn as_f64(&self) -> f64 {
         self.0 as f64
@@ -91,6 +97,10 @@ impl TotalTime {
 
     pub fn is_after(&self, time: TotalTime) -> bool {
         self.0 >= time.0
+    }
+
+    pub fn is_before(&self, time: TotalTime) -> bool {
+        self.0 <= time.0
     }
 
     pub fn add(&self, delta: DeltaTime) -> TotalTime {

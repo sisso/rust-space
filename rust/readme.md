@@ -1,6 +1,7 @@
 # TODO
 
 - fix multiples actions per tick
+- switch movements to curves instead interact every frame
       
 ## Configuration files
 

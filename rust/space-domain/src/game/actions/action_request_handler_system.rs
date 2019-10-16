@@ -40,7 +40,7 @@ impl<'a> System<'a> for ActionRequestHandlerSystem {
                     let _ = data.actions_undock.borrow_mut().insert(entity, ActionUndock);
                 },
                 ActionRequest::Jump { jump_id } => {
-                    let _ = data.actions_jump.borrow_mut().insert(entity, ActionJump);
+                    let _ = data.actions_jump.borrow_mut().insert(entity, ActionJump::new());
                 },
                 ActionRequest::Dock { target_id } => {
                     let _ = data.actions_dock.borrow_mut().insert(entity, ActionDock);
