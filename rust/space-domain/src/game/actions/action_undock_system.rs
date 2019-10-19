@@ -10,7 +10,7 @@ pub struct UndockSystem;
 #[derive(SystemData)]
 pub struct UndockData<'a> {
     entities: Entities<'a>,
-    actions: WriteStorage<'a, Action>,
+    actions: WriteStorage<'a, ActionActive>,
     actions_undock: WriteStorage<'a, ActionUndock>,
     locations_dock: WriteStorage<'a, LocationDock>,
     locations_space: WriteStorage<'a, LocationSpace>,
@@ -63,7 +63,7 @@ mod test {
                 .build();
 
             let entity = world.create_entity()
-                .with(Action { request: ActionRequest::Undock })
+                .with(ActionActive(Action::Undock))
                 .with(ActionUndock)
                 .with(LocationDock { docked_id: station })
                 .build();
@@ -71,7 +71,7 @@ mod test {
             entity
         });
 
-        assert!(world.read_storage::<Action>().get(entity).is_none());
+        assert!(world.read_storage::<ActionActive>().get(entity).is_none());
         assert!(world.read_storage::<ActionUndock>().get(entity).is_none());
         assert!(world.read_storage::<LocationDock>().get(entity).is_none());
         let storage = world.read_storage::<LocationSpace>();
@@ -88,7 +88,7 @@ mod test {
     fn test_undock_system_should_ignore_undock_if_not_docked() {
         let (world, entity) = test_system(UndockSystem, |world| {
             let entity = world.create_entity()
-                .with(Action { request: ActionRequest::Undock })
+                .with(ActionActive(Action::Undock))
                 .with(ActionUndock)
                 .with(LocationSpace { pos: Position::new(0.0, 0.0) })
                 .build();
@@ -96,7 +96,7 @@ mod test {
             entity
         });
 
-        assert!(world.read_storage::<Action>().get(entity).is_none());
+        assert!(world.read_storage::<ActionActive>().get(entity).is_none());
         assert!(world.read_storage::<ActionUndock>().get(entity).is_none());
         assert!(world.read_storage::<LocationDock>().get(entity).is_none());
         let storage = world.read_storage::<LocationSpace>();

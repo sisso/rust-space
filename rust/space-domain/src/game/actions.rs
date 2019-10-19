@@ -20,8 +20,8 @@ mod action_dock_system;
 
 pub const ACTION_JUMP_TOTAL_TIME: DeltaTime = DeltaTime(2.0);
 
-#[derive(Debug, Clone, Component)]
-pub enum ActionRequest {
+#[derive(Debug, Clone)]
+pub enum Action {
     Undock,
     Jump { jump_id: JumpId },
     Dock { target_id: ObjId },
@@ -34,10 +34,22 @@ pub struct ActionProgress {
 }
 
 #[derive(Debug, Clone, Component)]
-pub struct Action {
-    request: ActionRequest
+pub struct ActionRequest(pub Action);
+
+impl ActionRequest {
+    pub fn get_action(&self) -> &Action {
+        &self.0
+    }
 }
 
+#[derive(Debug, Clone, Component)]
+pub struct ActionActive(pub  Action);
+
+impl ActionActive {
+    pub fn get_action(&self) -> &Action {
+        &self.0
+    }
+}
 #[derive(Debug, Clone, Component)]
 pub struct ActionUndock;
 

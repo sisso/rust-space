@@ -12,7 +12,7 @@ pub struct ActionMoveToData<'a> {
     entities: Entities<'a>,
     delta_time: Read<'a, DeltaTime>,
     moveable: ReadStorage<'a, Moveable>,
-    actions: WriteStorage<'a, Action>,
+    actions: WriteStorage<'a, ActionActive>,
     action_move_to: WriteStorage<'a, ActionMoveTo>,
     location_space: WriteStorage<'a, LocationSpace>,
 }
@@ -25,8 +25,8 @@ impl<'a> System<'a> for ActionMoveToSystem {
         let delta_time = data.delta_time.borrow();
 
         for (entity, moveable, action, _, position) in (&data.entities, &data.moveable, &data.actions, &data.action_move_to, &mut data.location_space).join() {
-            let to = match action.request {
-                ActionRequest::MoveTo { pos } => pos,
+            let to = match action.get_action() {
+                Action::MoveTo { pos } => pos.clone(),
                 _ => continue,
             };
 
@@ -68,7 +68,7 @@ mod test {
             world.insert(DeltaTime(1.0));
 
             let entity = world.create_entity()
-                .with(Action { request: ActionRequest::MoveTo { pos: Position::new(2.0, 0.0) } })
+                .with(ActionActive(Action::MoveTo { pos: Position::new(2.0, 0.0) }))
                 .with(ActionMoveTo)
                 .with(LocationSpace { pos: Position::new(0.0, 0.0) })
                 .with(Moveable { speed: Speed(1.0) })
@@ -77,7 +77,7 @@ mod test {
             entity
         });
 
-        assert!(world.read_storage::<Action>().get(entity).is_some());
+        assert!(world.read_storage::<ActionActive>().get(entity).is_some());
         assert!(world.read_storage::<ActionMoveTo>().get(entity).is_some());
         let storage = world.read_storage::<LocationSpace>();
         let location = storage.get(entity).unwrap();
@@ -90,7 +90,7 @@ mod test {
             world.insert(DeltaTime(1.0));
 
             let entity = world.create_entity()
-                .with(Action { request: ActionRequest::MoveTo { pos: Position::new(2.0, 0.0) } })
+                .with(ActionActive(Action::MoveTo { pos: Position::new(2.0, 0.0) }))
                 .with(ActionMoveTo)
                 .with(LocationSpace { pos: Position::new(1.0, 0.0) })
                 .with(Moveable { speed: Speed(1.5) })
@@ -99,7 +99,7 @@ mod test {
             entity
         });
 
-        assert!(world.read_storage::<Action>().get(entity).is_none());
+        assert!(world.read_storage::<ActionActive>().get(entity).is_none());
         assert!(world.read_storage::<ActionMoveTo>().get(entity).is_none());
         let storage = world.read_storage::<LocationSpace>();
         let location = storage.get(entity).unwrap();

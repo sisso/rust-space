@@ -11,7 +11,7 @@ pub struct ActionRequestHandlerSystem;
 pub struct ActionRequestHandlerData<'a> {
     entities: Entities<'a>,
     requests: WriteStorage<'a, ActionRequest>,
-    actions: WriteStorage<'a, Action>,
+    actions: WriteStorage<'a, ActionActive>,
     actions_undock: WriteStorage<'a, ActionUndock>,
     actions_dock: WriteStorage<'a, ActionDock>,
     actions_move_to: WriteStorage<'a, ActionMoveTo>,
@@ -27,7 +27,7 @@ impl<'a> System<'a> for ActionRequestHandlerSystem {
         for (entity, request) in (&*data.entities, &data.requests).join() {
             processed.push(entity);
 
-            let request = request.clone();
+            let action: Action = request.get_action().clone();
 
             let _ = data.actions_undock.borrow_mut().remove(entity);
             let _ = data.actions_dock.borrow_mut().remove(entity);
@@ -35,22 +35,22 @@ impl<'a> System<'a> for ActionRequestHandlerSystem {
             let _ = data.actions_move_to.borrow_mut().remove(entity);
             let _ = data.actions_jump.borrow_mut().remove(entity);
 
-            match request {
-                ActionRequest::Undock {} => {
+            match action {
+                Action::Undock {} => {
                     let _ = data.actions_undock.borrow_mut().insert(entity, ActionUndock);
                 },
-                ActionRequest::Jump { jump_id } => {
+                Action::Jump { jump_id } => {
                     let _ = data.actions_jump.borrow_mut().insert(entity, ActionJump::new());
                 },
-                ActionRequest::Dock { target_id } => {
+                Action::Dock { target_id } => {
                     let _ = data.actions_dock.borrow_mut().insert(entity, ActionDock);
                 },
-                ActionRequest::MoveTo { pos } => {
+                Action::MoveTo { pos } => {
                     let _ = data.actions_move_to.borrow_mut().insert(entity, ActionMoveTo);
                 },
             }
 
-            let _ = data.actions.borrow_mut().insert(entity, Action { request });
+            let _ = data.actions.borrow_mut().insert(entity, ActionActive(action));
         }
 
         let requests_storage = data.requests.borrow_mut();
@@ -69,16 +69,16 @@ mod test {
     fn test_action_request() {
         let (world, entity) = test_system(ActionRequestHandlerSystem, |world| {
             let entity = world.create_entity()
-                .with(ActionRequest::Undock)
+                .with(ActionRequest(Action::Undock))
                 .build();
 
             entity
         });
 
-        let action_storage = world.read_component::<Action>();
+        let action_storage = world.read_component::<ActionActive>();
         let action = action_storage.get(entity).unwrap();
-        match action.request {
-            ActionRequest::Undock => {},
+        match action.get_action() {
+            Action::Undock => {},
             _ => panic!(),
         }
 

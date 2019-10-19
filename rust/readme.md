@@ -1,7 +1,9 @@
 # TODO
 
+- add wait time globaly per action
 - fix multiples actions per tick
 - switch movements to curves instead interact every frame
+
       
 ## Configuration files
 

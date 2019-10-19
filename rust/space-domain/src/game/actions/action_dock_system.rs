@@ -11,7 +11,7 @@ pub struct DockSystem;
 #[derive(SystemData)]
 pub struct DockData<'a> {
     entities: Entities<'a>,
-    actions: WriteStorage<'a, Action>,
+    actions: WriteStorage<'a, ActionActive>,
     actions_dock: WriteStorage<'a, ActionDock>,
     locations_dock: WriteStorage<'a, LocationDock>,
     locations_space: WriteStorage<'a, LocationSpace>,
@@ -24,8 +24,8 @@ impl<'a> System<'a> for DockSystem {
         let mut processed: Vec<(Entity, LocationDock)> = vec![];
 
         for (entity, action, dock) in (&*data.entities, &data.actions, &data.actions_dock).join() {
-            let target_id = match action.request {
-                ActionRequest::Dock { target_id } => target_id,
+            let target_id = match action.get_action() {
+                Action::Dock { target_id } => target_id.clone(),
                 _ => continue,
             };
 
@@ -57,7 +57,7 @@ mod test {
                 .build();
 
             let entity = world.create_entity()
-                .with(Action { request: ActionRequest::Dock { target_id: station } })
+                .with(ActionActive(Action::Dock { target_id: station }))
                 .with(ActionDock)
                 .with(LocationSpace { pos: station_position })
                 .build();
@@ -65,7 +65,7 @@ mod test {
             (entity, station)
         });
 
-        assert!(world.read_storage::<Action>().get(entity).is_none());
+        assert!(world.read_storage::<ActionActive>().get(entity).is_none());
         assert!(world.read_storage::<ActionDock>().get(entity).is_none());
         let storage = world.read_storage::<LocationDock>();
         match storage.get(entity) {

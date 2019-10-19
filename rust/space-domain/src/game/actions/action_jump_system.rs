@@ -12,7 +12,7 @@ pub struct ActionJumpData<'a> {
     entities: Entities<'a>,
     total_time: Read<'a, TotalTime>,
     sectors: Read<'a, Sectors>,
-    actions: WriteStorage<'a, Action>,
+    actions: WriteStorage<'a, ActionActive>,
     actions_jump: WriteStorage<'a, ActionJump>,
     locations_sector: WriteStorage<'a, LocationSector>,
     locations_space: WriteStorage<'a, LocationSpace>,
@@ -27,8 +27,8 @@ impl<'a> System<'a> for ActionJumpSystem {
         let mut completed = vec![];
 
         for (entity, action, action_jump)  in (&*data.entities, &data.actions, &mut data.actions_jump).join() {
-            let to_jump_id = match action.request {
-                ActionRequest::Jump { jump_id } => jump_id,
+            let to_jump_id = match action.get_action() {
+                Action::Jump { jump_id } => jump_id.clone(),
                 _ => continue,
             };
 
@@ -66,7 +66,7 @@ mod test {
 
     fn create_jump_entity(world: &mut World, jump_time: Option<TotalTime>) -> Entity {
         let entity = world.create_entity()
-            .with(Action { request: ActionRequest::Jump { jump_id: test_scenery::JUMP_0_TO_1.id } })
+            .with(ActionActive(Action::Jump { jump_id: test_scenery::JUMP_0_TO_1.id }))
             .with(ActionJump { complete_time: jump_time })
             .with(LocationSpace { pos: test_scenery::JUMP_0_TO_1.pos })
             .with(LocationSector { sector_id: test_scenery::SECTOR_0 })
@@ -75,7 +75,7 @@ mod test {
     }
 
     fn assert_jumped(world: &World, entity: Entity) {
-        assert!(world.read_storage::<Action>().get(entity).is_none());
+        assert!(world.read_storage::<ActionActive>().get(entity).is_none());
         assert!(world.read_storage::<ActionJump>().get(entity).is_none());
         let storage = world.read_storage::<LocationSpace>();
         let location = storage.get(entity).unwrap();
@@ -86,7 +86,7 @@ mod test {
     }
 
     fn assert_not_jumped(world: &World, entity: Entity) {
-        assert!(world.read_storage::<Action>().get(entity).is_some());
+        assert!(world.read_storage::<ActionActive>().get(entity).is_some());
         assert!(world.read_storage::<ActionJump>().get(entity).is_some());
         let storage = world.read_storage::<LocationSpace>();
         let location = storage.get(entity).unwrap();

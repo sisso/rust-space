@@ -32,7 +32,7 @@ pub enum NavRequest {
 pub struct NavigationPlan {
     pub target_sector_id: SectorId,
     pub target_position: Position,
-    pub path: VecDeque<ActionRequest>
+    pub path: VecDeque<Action>
 }
 
 #[derive(Debug, Clone, Component)]
@@ -42,7 +42,7 @@ pub struct NavigationMoveTo {
 }
 
 impl NavigationMoveTo {
-    pub fn next(&mut self) -> Option<ActionRequest> {
+    pub fn next(&mut self) -> Option<Action> {
         self.plan.path.pop_front()
     }
 }
@@ -77,13 +77,13 @@ impl Navigations {
             }
 
             if current_sector == to_sector_id {
-                path.push_back(ActionRequest::MoveTo { pos: to_pos });
+                path.push_back(Action::MoveTo { pos: to_pos });
                 break;
             } else {
                 let jump = sectors.find_jump(current_sector, to_sector_id).unwrap();
 
-                path.push_back(ActionRequest::MoveTo { pos: jump.pos });
-                path.push_back(ActionRequest::Jump { jump_id: jump.id });
+                path.push_back(Action::MoveTo { pos: jump.pos });
+                path.push_back(Action::Jump { jump_id: jump.id });
 
                 current_sector = jump.to_sector_id;
                 current_pos = jump.to_pos;
@@ -123,17 +123,17 @@ mod test {
         assert_eq!(plan.path.len(), 3);
 
         match plan.path.get(0).unwrap() {
-            ActionRequest::MoveTo { pos } => assert_eq!(pos.clone(), JUMP_0_TO_1.pos),
+            Action::MoveTo { pos } => assert_eq!(pos.clone(), JUMP_0_TO_1.pos),
             other => panic!(),
         }
 
         match plan.path.get(1).unwrap() {
-            ActionRequest::Jump { jump_id } => assert_eq!(jump_id.clone(), JUMP_0_TO_1.id),
+            Action::Jump { jump_id } => assert_eq!(jump_id.clone(), JUMP_0_TO_1.id),
             other => panic!(),
         }
 
         match plan.path.get(2).unwrap() {
-            ActionRequest::MoveTo { pos } => assert_eq!(pos.clone(), Position::new(0.0, 10.0)),
+            Action::MoveTo { pos } => assert_eq!(pos.clone(), Position::new(0.0, 10.0)),
             other => panic!(),
         }
     }

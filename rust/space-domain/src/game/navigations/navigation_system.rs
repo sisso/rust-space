@@ -15,7 +15,7 @@ pub struct NavigationData<'a> {
     entities: Entities<'a>,
     navigation: WriteStorage<'a, Navigation>,
     navigation_move_to: WriteStorage<'a, NavigationMoveTo>,
-    action: ReadStorage<'a, Action>,
+    action: ReadStorage<'a, ActionActive>,
     action_request: WriteStorage<'a, ActionRequest>,
 }
 
@@ -29,7 +29,7 @@ impl<'a> System<'a> for NavigationSystem {
 
         for (entity, nav, _) in (&*data.entities, &mut data.navigation_move_to, !&data.action).join() {
             match nav.next() {
-                Some(action_request) => requests.push((entity, action_request)),
+                Some(action) => requests.push((entity, ActionRequest(action))),
                 None => completed.push(entity),
             }
         }
