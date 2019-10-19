@@ -1,4 +1,4 @@
-use specs::{Builder, Component as SpecComponent, DenseVecStorage, Entities, Entity, HashMapStorage, LazyUpdate, Read, ReadStorage, System, VecStorage, World, WorldExt, WriteStorage};
+use specs::prelude::*;
 
 use std::collections::{HashMap, BTreeMap, HashSet};
 use serde_json::{json, Value};
@@ -15,7 +15,7 @@ pub struct WareId(pub u32);
 #[derive(Debug,Clone,Copy)]
 pub struct WareAmount(pub WareId, pub f32);
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Component)]
 pub struct Cargo {
     max: f32,
     current: f32,
@@ -113,10 +113,6 @@ impl Cargo {
     }
 }
 
-impl SpecComponent for Cargo {
-    type Storage = VecStorage<Self>;
-}
-
 pub struct Cargos;
 
 impl Cargos {
@@ -125,7 +121,7 @@ impl Cargos {
         }
     }
 
-    pub fn init_world(world: &mut World) {
+    pub fn init_world(world: &mut World, dispatcher: &mut DispatcherBuilder) {
         world.register::<Cargo>();
     }
 

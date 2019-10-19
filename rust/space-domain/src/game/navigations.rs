@@ -56,8 +56,8 @@ impl Navigations {
         }
     }
 
-    pub fn init_world(world: &mut World) {
-        world.register::<Navigation>();
+    pub fn init_world(world: &mut World, dispatcher: &mut DispatcherBuilder) {
+        world.register::<NavRequest>();
         world.register::<NavigationMoveTo>();
     }
 

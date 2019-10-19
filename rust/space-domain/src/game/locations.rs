@@ -8,6 +8,7 @@ use super::sectors::*;
 use crate::utils::*;
 
 use crate::game::jsons::JsonValueExtra;
+use crate::game::locations::index_per_sector_system::*;
 
 #[derive(Debug, Clone, Component)]
 pub struct LocationSpace {
@@ -29,7 +30,7 @@ pub struct Moveable {
     pub speed: Speed
 }
 
-#[derive(Clone,Debug,Default)]
+#[derive(Clone,Debug,Default,Component)]
 pub struct EntityPerSectorIndex {
     pub index: HashMap<SectorId, Vec<ObjId>>,
     pub index_extractables: HashMap<SectorId, Vec<ObjId>>,
@@ -70,11 +71,9 @@ impl Locations {
         }
     }
 
-    pub fn init_world(world: &mut World) {
-        world.register::<LocationSpace>();
-        world.register::<LocationDock>();
-        world.register::<LocationSector>();
+    pub fn init_world(world: &mut World, dispatcher: &mut DispatcherBuilder) {
         world.register::<Moveable>();
+        dispatcher.add(IndexPerSectorSystem, "index_by_sector", &[]);
     }
 
     pub fn execute(&mut self, world: &mut World) {

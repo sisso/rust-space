@@ -7,8 +7,8 @@ use crate::game::events::{EventKind, Events, ObjEvent};
 use crate::space_outputs_generated::space_data;
 use flatbuffers::FlatBufferBuilder;
 
-pub struct GameApi {
-    game: Game,
+pub struct GameApi<'a, 'b> {
+    game: Game<'a, 'b>,
     total_time: TotalTime,
     first_outputs: bool,
 }
@@ -26,7 +26,7 @@ impl From<&V2> for space_data::V2 {
 }
 
 /// Represent same interface we intend to use through FFI
-impl GameApi {
+impl <'a, 'b> GameApi<'a, 'b> {
     pub fn new() -> Self {
         GameApi {
             game: Game::new(),

@@ -1,17 +1,11 @@
+use specs::prelude::*;
 use std::collections::HashMap;
-
-use specs::{Builder, Component as SpecComponent, DenseVecStorage, Entities, Entity, HashMapStorage, LazyUpdate, Read, ReadStorage, System, VecStorage, World, WorldExt, WriteStorage};
-
 use crate::utils::*;
 
 pub type ObjId = Entity;
 
-#[derive(Debug,Copy,Clone)]
+#[derive(Debug,Copy,Clone,Component)]
 pub struct HasDock;
-
-impl SpecComponent for HasDock {
-    type Storage = HashMapStorage<Self>;
-}
 
 pub struct Objects;
 
@@ -20,7 +14,7 @@ impl Objects {
         Objects {}
     }
 
-    pub fn init_world(world: &mut World) {
+    pub fn init_world(world: &mut World, dispatcher: &mut DispatcherBuilder) {
         world.register::<HasDock>();
     }
 }

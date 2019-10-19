@@ -154,7 +154,7 @@ impl Sectors {
     }
 }
 
-#[cfg(test)]
+//#[cfg(test)]
 pub mod test_scenery {
     use super::*;
 

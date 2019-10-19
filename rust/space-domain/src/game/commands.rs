@@ -10,7 +10,6 @@ use crate::utils::*;
 use super::actions::*;
 use super::objects::*;
 use super::sectors::*;
-use super::Tick;
 use super::jsons;
 
 //mod executor_command_idle;
@@ -42,27 +41,18 @@ struct CommandsMineSystems {
 }
 
 pub struct Commands {
-    command_mine: CommandsMineSystems,
 }
 
 impl Commands {
     pub fn new() -> Self {
         Commands {
-            command_mine: CommandsMineSystems {
-                search_targets_system: SearchMineTargetsSystem,
-            }
         }
     }
 
-    pub fn init_world(world: &mut World) {
+    pub fn init_world(world: &mut World, dispatcher: &mut DispatcherBuilder) {
+        // TODO: we should use it?
         world.register::<Command>();
-        world.register::<CommandMine>();
-        world.register::<CommandMineTarget>();
-        world.register::<DeliverState>();
-    }
-
-    pub fn execute(&mut self, world: &mut World) {
-        self.command_mine.search_targets_system.run_now(world);
+        dispatcher.add(SearchMineTargetsSystem, "command_mine_search_mine_targets", &[]);
     }
 }
 
