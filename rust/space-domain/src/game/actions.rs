@@ -1,3 +1,11 @@
+///
+/// Actions are setup by ActionRequest.
+///
+/// Systems:
+/// - convert request into current actions
+/// - execute actions
+///
+
 use specs::prelude::*;
 
 use crate::utils::{Position, Seconds, DeltaTime, TotalTime};
@@ -8,6 +16,7 @@ mod action_request_handler_system;
 mod action_undock_system;
 mod action_move_to_system;
 mod action_jump_system;
+mod action_dock_system;
 
 pub const ACTION_JUMP_TOTAL_TIME: DeltaTime = DeltaTime(2.0);
 

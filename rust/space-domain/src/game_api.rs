@@ -1,4 +1,4 @@
-#[allow(never_used, dead_code)]
+#[allow(dead_code)]
 
 use crate::game::Game;
 use std::time::Duration;
