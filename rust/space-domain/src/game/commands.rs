@@ -37,48 +37,6 @@ pub struct DeliverState {
     target_obj_id: ObjId,
 }
 
-//#[derive(Debug, Clone)]
-//enum NavigationStateStep {
-//    MoveTo { pos: Position, },
-//    Jump { jump_id: JumpId },
-//    Dock { target: ObjId },
-//}
-//
-//#[derive(Debug, Clone, Component)]
-//struct NavigationState {
-//    target_obj_id: ObjId,
-//    target_sector_id: SectorId,
-//    target_position: V2,
-//    path: VecDeque<NavigationStateStep>
-//}
-//
-//impl NavigationState {
-//    fn is_complete(&self) -> bool {
-//        self.path.is_empty()
-//    }
-
-//    fn navigation_next_action(&mut self) -> Action {
-//        match self.path.pop_front() {
-//            Some(NavigationStateStep::MoveTo { pos}) => {
-//                Action::Fly { to: pos }
-//            },
-//            Some(NavigationStateStep::Jump { jump_id }) => {
-//                Action::Jump { jump_id }
-//            },
-//            Some(NavigationStateStep::Dock { target }) => {
-//                Action::Dock { target }
-//            },
-//            None => Action::Idle,
-//        }
-//    }
-
-//    fn append_dock_at(&mut self, target: ObjId) {
-//        self.path.push_back(NavigationStateStep::Dock {
-//            target
-//        })
-//    }
-//}
-
 struct CommandsMineSystems {
     search_targets_system: SearchMineTargetsSystem,
 }
