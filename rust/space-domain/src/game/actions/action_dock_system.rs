@@ -21,6 +21,8 @@ impl<'a> System<'a> for DockSystem {
     type SystemData = DockData<'a>;
 
     fn run(&mut self, mut data: DockData) {
+        debug!("running");
+
         let mut processed: Vec<(Entity, LocationDock)> = vec![];
 
         for (entity, action, dock) in (&*data.entities, &data.actions, &data.actions_dock).join() {
@@ -29,6 +31,7 @@ impl<'a> System<'a> for DockSystem {
                 _ => continue,
             };
 
+            debug!("{:?} docked at {:?}", entity, target_id);
             processed.push((entity, LocationDock { docked_id: target_id } ));
         }
 

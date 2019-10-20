@@ -14,7 +14,7 @@ use shred::{Read, ResourceId, SystemData, World, Write};
 use specs_derive::*;
 
 use super::*;
-use crate::game::locations::{LocationDock, EntityPerSectorIndex, LocationSector};
+use crate::game::locations::{LocationDock, LocationSector};
 use std::borrow::{Borrow, BorrowMut};
 use crate::game::extractables::Extractable;
 use crate::game::navigations::{Navigation, NavigationMoveTo, Navigations, NavRequest};
@@ -36,10 +36,10 @@ impl<'a> System<'a> for SearchMineTargetsSystem {
     type SystemData = SearchMineTargetsData<'a>;
 
     fn run(&mut self, mut data: SearchMineTargetsData) {
-        use specs::Join;
-
         // search extractable
         let mut extractables = vec![];
+
+        debug!("running");
 
         for (entity, _) in (&data.entities, &data.extractables).join() {
             extractables.push(entity);
@@ -51,7 +51,9 @@ impl<'a> System<'a> for SearchMineTargetsSystem {
             let sector_id = location_sector_id.sector_id;
 
             // search for nearest?
-            let target: &ObjId = extractables.iter().next().unwrap();
+            let target: &ObjId = extractables.iter()
+                .next()
+                .unwrap();
 
             // set mine command
             let command = CommandMineTarget {
@@ -66,6 +68,7 @@ impl<'a> System<'a> for SearchMineTargetsSystem {
         }
 
         for (entity, state, request) in selected {
+            info!("{:?} setting mine target to {:?} and request navigation {:?}", entity, state, request);
             let _ = data.commands_mine_target.insert(entity, state).unwrap();
             let _ = data.nav_request.insert(entity, request).unwrap();
         }
@@ -106,9 +109,10 @@ mod test {
                 .with(CommandMine {})
                 .build();
 
-        let mut entitys_per_sector = EntityPerSectorIndex::new();
-        entitys_per_sector.add_extractable(SECTOR_1, asteroid);
-        world.insert(entitys_per_sector);
+        // TODO: use index
+//        let mut entitys_per_sector = EntityPerSectorIndex::new();
+//        entitys_per_sector.add_extractable(SECTOR_1, asteroid);
+//        world.insert(entitys_per_sector);
         
         SceneryResult {
             miner,

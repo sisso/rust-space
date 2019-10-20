@@ -4,6 +4,7 @@ use crate::utils::*;
 use crate::game::extractables::Extractable;
 use crate::game::objects::ObjId;
 
+#[derive(Debug, Clone)]
 pub struct NewObj {
     pub speed: Option<Speed>,
     pub cargo_size: f32,

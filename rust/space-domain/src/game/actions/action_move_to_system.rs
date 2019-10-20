@@ -21,6 +21,8 @@ impl<'a> System<'a> for ActionMoveToSystem {
     type SystemData = ActionMoveToData<'a>;
 
     fn run(&mut self, mut data: ActionMoveToData) {
+        debug!("running");
+
         let mut completed = vec![];
         let delta_time = data.delta_time.borrow();
 
@@ -40,10 +42,12 @@ impl<'a> System<'a> for ActionMoveToSystem {
 
             // if current move distance is bigger that distance to arrive, move to the position
             if length_sqr.is_nan() || length_sqr <= max_distance {
+                debug!("{:?} move complete", entity);
                 position.pos = to;
                 completed.push(entity.clone());
             } else {
                 let new_pos = position.pos.add(&mov);
+                debug!("{:?} moving to {:?}, new position is {:?}", entity, to, new_pos);
                 position.pos = new_pos;
             }
         }

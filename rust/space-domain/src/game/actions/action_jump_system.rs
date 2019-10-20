@@ -22,6 +22,8 @@ impl<'a> System<'a> for ActionJumpSystem {
     type SystemData = ActionJumpData<'a>;
 
     fn run(&mut self, mut data: ActionJumpData) {
+        debug!("running");
+
         let total_time: TotalTime = *data.total_time;
 
         let mut completed = vec![];
@@ -36,8 +38,11 @@ impl<'a> System<'a> for ActionJumpSystem {
                 Some(value) if value.is_before(total_time) => {
                     completed.push((entity, to_jump_id));
                 },
-                Some(_) => {},
+                Some(_) => {
+                    debug!("{:?} jumping", entity);
+                },
                 None => {
+                    debug!("{:?} start to jump", entity);
                     action_jump.complete_time = Some(total_time.add(ACTION_JUMP_TOTAL_TIME));
                 }
             }
@@ -47,6 +52,9 @@ impl<'a> System<'a> for ActionJumpSystem {
 
         for (entity, jump_id) in completed {
             let jump = sectors.get_jump(jump_id).unwrap();
+
+            debug!("{:?} jump complete to sector {:?} at position {:?}", entity, jump.to_sector_id, jump.to_pos);
+
             let _ = data.locations_space.borrow_mut().insert(entity, LocationSpace { pos: jump.to_pos });
             let _ = data.locations_sector.borrow_mut().insert(entity, LocationSector { sector_id: jump.to_sector_id });
             let _ = data.actions.borrow_mut().remove(entity);

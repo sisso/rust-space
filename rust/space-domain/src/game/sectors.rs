@@ -7,8 +7,6 @@ use shred::{Read, ResourceId, SystemData, World, Write};
 use specs::prelude::*;
 use specs_derive::*;
 
-use space_macros::*;
-
 use crate::game::jsons;
 use crate::game::jsons::JsonValueExtra;
 use crate::game::save::{Load, Save};
@@ -80,13 +78,13 @@ impl Sectors {
     }
 
     pub fn add_sector(&mut self, sector: Sector) {
-        info!("sectors", "adding sector {:?}", sector);
+        info!("adding sector {:?}", sector);
         assert!(!self.sectors.contains_key(&sector.id));
         self.sectors.insert(sector.id, sector);
     }
 
     pub fn add_jump(&mut self, jump: Jump) {
-        info!("sectors", "adding jump {:?}", jump);
+        info!("adding jump {:?}", jump);
         assert!(!self.jumps.contains_key(&jump.id));
 
         self.jumps_by_sector

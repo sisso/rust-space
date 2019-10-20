@@ -20,6 +20,8 @@ impl<'a> System<'a> for UndockSystem {
     type SystemData = UndockData<'a>;
 
     fn run(&mut self, mut data: UndockData) {
+        debug!("running");
+
         let mut processed: Vec<(Entity, Option<LocationSpace>)> = vec![];
 
         let location_space_storage = data.locations_space
@@ -35,6 +37,7 @@ impl<'a> System<'a> for UndockSystem {
                 None => None
             };
 
+            debug!("{:?} undocking", entity);
             processed.push((entity, location_space));
         }
 

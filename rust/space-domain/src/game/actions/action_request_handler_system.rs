@@ -22,6 +22,8 @@ impl<'a> System<'a> for ActionRequestHandlerSystem {
     type SystemData = ActionRequestHandlerData<'a>;
 
     fn run(&mut self, mut data: ActionRequestHandlerData) {
+        debug!("running");
+
         let mut processed = vec![];
 
         for (entity, request) in (&*data.entities, &data.requests).join() {

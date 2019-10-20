@@ -365,7 +365,7 @@ impl Components {
             panic!();
         }
 
-        info!("components", &format!("{:?} added {:?}", component.id, component));
+        info!(target: "components", "{:?} added {:?}", component.id, component);
         self.index.insert(component.id, component);
     }
 

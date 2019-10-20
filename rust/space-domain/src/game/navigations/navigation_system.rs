@@ -23,6 +23,7 @@ impl<'a> System<'a> for NavigationSystem {
     type SystemData = NavigationData<'a>;
 
     fn run(&mut self, mut data: NavigationData) {
+        debug!("running");
 
         let mut completed = vec![];
         let mut requests = vec![];
@@ -36,12 +37,15 @@ impl<'a> System<'a> for NavigationSystem {
 
         let requests_storage = data.action_request.borrow_mut();
         for (entity, action) in requests {
+            debug!("{:?} request next action {:?}", entity, action);
             let _ = requests_storage.insert(entity, action).unwrap();
         }
 
         let navigation = data.navigation.borrow_mut();
         let navigation_move_to_storage = data.navigation_move_to.borrow_mut();
         for entity in completed {
+            debug!("{:?} complete navigation", entity);
+
             let _ = navigation.remove(entity).unwrap();
             let _ = navigation_move_to_storage.remove(entity).unwrap();
         }

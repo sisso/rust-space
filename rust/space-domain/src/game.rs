@@ -14,7 +14,7 @@ use self::save::{CanLoad, CanSave, Load, Save};
 use self::sectors::*;
 use self::wares::*;
 use crate::game::navigations::Navigations;
-use crate::game::commands::{Commands, Command, CommandMine};
+use crate::game::commands::{Commands, CommandMine};
 use crate::game::actions::Actions;
 use std::borrow::BorrowMut;
 
@@ -55,14 +55,13 @@ impl <'a, 'b> Game <'a, 'b>{
         let mut world = World::new();
         let mut dispatcher_builder = DispatcherBuilder::new();
 
+        Locations::init_world(&mut world, &mut dispatcher_builder);
         Actions::init_world(&mut world, &mut dispatcher_builder);
         Commands::init_world(&mut world, &mut dispatcher_builder);
         Navigations::init_world(&mut world, &mut dispatcher_builder);
-        Locations::init_world(&mut world, &mut dispatcher_builder);
         Extractables::init_world(&mut world, &mut dispatcher_builder);
         Objects::init_world(&mut world, &mut dispatcher_builder);
         Cargos::init_world(&mut world, &mut dispatcher_builder);
-        Navigations::init_world(&mut world, &mut dispatcher_builder);
 
         let mut dispatcher = dispatcher_builder.build();
         dispatcher.setup(&mut world);
@@ -85,22 +84,29 @@ impl <'a, 'b> Game <'a, 'b>{
     pub fn add_object(&mut self, new_obj: NewObj) -> ObjId {
         let mut builder = self.world.create_entity();
 
+        let has_location = new_obj.location_space.is_some() || new_obj.location_dock.is_some();
+        if has_location && new_obj.location_sector_id.is_none() {
+            panic!(format!("fatal {:?}: entity with location should have a sector_id", new_obj));
+        }
+
+        if new_obj.can_dock && new_obj.speed.is_none() {
+            panic!(format!("fatal {:?}: entity that can dock should be moveable", new_obj));
+        }
+
         if new_obj.has_dock {
             builder.set(HasDock);
         }
-//        self.locations.init(&id);
-//
-//        if new_obj.ai {
-//            self.commands.init(id);
-//            self.actions.init(id);
-//        }
 
-        for location_space in new_obj.location_space {
-            builder.set(location_space);
+        for location_space in &new_obj.location_space {
+            builder.set(location_space.clone());
         }
 
-        for location_dock in new_obj.location_dock {
-            builder.set(location_dock);
+        for location_dock in &new_obj.location_dock {
+            builder.set(location_dock.clone());
+        }
+
+        for location_dock in &new_obj.location_sector_id {
+            builder.set(location_dock.clone());
         }
 
         for speed in new_obj.speed {
@@ -119,19 +125,15 @@ impl <'a, 'b> Game <'a, 'b>{
 //        self.events.add_obj_event(ObjEvent::new(id, EventKind::Add));
 
 
-        builder.build()
-    }
+        let entity = builder.build();
 
-    pub fn set_command(&mut self, entity: Entity, command: Command) {
-        let mut storage = self.world.write_storage::<Command>();
-        storage.borrow_mut().insert(entity, command);
+        info!("add_object {:?} from {:?}", entity, new_obj);
 
-        let mut storage = self.world.write_storage::<CommandMine>();
-        storage.borrow_mut().insert(entity, CommandMine);
+        entity
     }
 
     pub fn tick(&mut self, total_time: TotalTime, delta_time: DeltaTime) {
-        info!("game", &format!("tick delta {} total {}", delta_time.0, total_time.0));
+        info!("tick delta {} total {}", delta_time.0, total_time.0);
         self.world.insert(delta_time);
         self.world.insert(total_time);
         self.dispatcher.dispatch(&mut self.world);
@@ -146,6 +148,7 @@ impl <'a, 'b> Game <'a, 'b>{
 
     // TODO: make sense?
     pub fn set_sectors(&mut self, sectors: Sectors) {
+        info!("set_sectors");
         self.world.insert(sectors);
     }
 }

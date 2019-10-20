@@ -77,7 +77,7 @@ fn apply_damage(components: &Components, logs: &mut Vec<CombatLog>, ship: &mut S
 
 fn wreck_check(total_hull: Hp, total_damage: Damage) -> bool {
     if total_hull.0 / 2 > total_damage.0 {
-        debug!("combat", &format!("wreck check not require, hp: {:?} / 2 > damage: {:?}", total_hull, total_damage));
+        debug!(target: "combat", "wreck check not require, hp: {:?} / 2 > damage: {:?}", total_hull, total_damage);
         false
     } else {
         let ration = total_damage.0 as f32 / total_hull.0 as f32;
@@ -85,10 +85,10 @@ fn wreck_check(total_hull: Hp, total_damage: Damage) -> bool {
         let mut rng = rand::thread_rng();
         let dice: f32 = rng.gen();
         if chance >= dice {
-            debug!("combat", &format!("wreck check success, ship destroy chance: {:?} >= dice: {:?}, ", chance, dice));
+            debug!(target: "combat", "wreck check success, ship destroy chance: {:?} >= dice: {:?}, ", chance, dice);
             true
         } else {
-            debug!("combat", &format!("wreck check fail, ship still functional chance: {:?} >= dice: {:?}, ", chance, dice));
+            debug!(target: "combat", "wreck check fail, ship still functional chance: {:?} >= dice: {:?}, ", chance, dice);
             false
         }
     }

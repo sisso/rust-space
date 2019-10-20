@@ -72,7 +72,6 @@ impl Locations {
     }
 
     pub fn init_world(world: &mut World, dispatcher: &mut DispatcherBuilder) {
-        world.register::<Moveable>();
         dispatcher.add(IndexPerSectorSystem, "index_by_sector", &[]);
     }
 

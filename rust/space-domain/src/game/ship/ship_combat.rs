@@ -184,9 +184,9 @@ impl Combat {
         let size_bonus: f32 = 0.1_f32.powf(100.0 / target_width as f32);
         let value = speed_ration + size_bonus;
         if value < 0.01 || value > 0.99 {
-            warn!("combat", &format!("hit chance {:?}, target {:?}, width {:?}. speed_ration {:?}, size_bonus {:?}, value {:?}", attack_speed, target_speed, target_width, speed_ration, size_bonus, value));
+            warn!(target: "combat", "hit chance {:?}, target {:?}, width {:?}. speed_ration {:?}, size_bonus {:?}, value {:?}", attack_speed, target_speed, target_width, speed_ration, size_bonus, value);
         } else {
-            debug!("combat", &format!("hit chance {:?}, target {:?}, width {:?}. speed_ration {:?}, size_bonus {:?}, value {:?}", attack_speed, target_speed, target_width, speed_ration, size_bonus, value));
+            debug!(target: "combat", "hit chance {:?}, target {:?}, width {:?}. speed_ration {:?}, size_bonus {:?}, value {:?}", attack_speed, target_speed, target_width, speed_ration, size_bonus, value);
         }
         value
     }

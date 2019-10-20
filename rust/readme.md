@@ -27,6 +27,13 @@
 - change Seconds to DeltaTime
 - remove reference for simple values
 
+# Modules
+
+## factories
+## ship-internal
+## high-level-ai
+## game
+
 # Forum
 
 ## Actions and commands
@@ -47,6 +54,8 @@ Be centralized
 
 Each change in actions need to keep the state, so usually write at least into main Component and exclusive. 
 - what happens with previous one? will be leak? Or you need to access all containers to be removed?
+
+Execute one command or action is a real requirement?
 
 ### Solutions
 
@@ -79,3 +88,13 @@ but probably will better to have same structure for all.
 
 Better abstraction between storage/indexing/consistency and game logic. For instance, commands hold references and is
 responsible to run logic in tick.
+
+## Location
+
+While have 2 distinct allow better filtering and easy mainipulation in most of situations we know that things are in
+space. Its create a lot of boilerplate to remember to double check if entity is docked.
+
+- Should not be a problem, if you are filtering by space, you dont expected to be docked. If you want both you 
+  manually should query both components
+
+- Anyway Docked is never easy to use since require a new lookup into current position

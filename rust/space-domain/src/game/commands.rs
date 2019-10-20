@@ -12,16 +12,9 @@ use super::objects::*;
 use super::sectors::*;
 use super::jsons;
 
-//mod executor_command_idle;
-//mod executor_command_mine;
-
 mod command_mine_system;
 use command_mine_system::*;
-
-#[derive(Debug, Clone, Component)]
-pub enum Command {
-    Mine
-}
+use std::borrow::BorrowMut;
 
 #[derive(Debug, Clone, Component)]
 pub struct CommandMine;
@@ -50,9 +43,13 @@ impl Commands {
     }
 
     pub fn init_world(world: &mut World, dispatcher: &mut DispatcherBuilder) {
-        // TODO: we should use it?
-        world.register::<Command>();
-        dispatcher.add(SearchMineTargetsSystem, "command_mine_search_mine_targets", &[]);
+        dispatcher.add(SearchMineTargetsSystem, "command_mine_search_mine_targets", &["index_by_sector"]);
     }
 }
 
+pub fn set_command_mine(world: &mut World, entity: Entity) {
+    let mut storage = world.write_storage::<CommandMine>();
+    let _ = storage.borrow_mut().insert(entity, CommandMine);
+
+    info!("{:?} setting command to mine", entity);
+}
