@@ -50,7 +50,7 @@ impl<'a> System<'a> for SearchMineTargetsSystem {
         for (entity, _, _, location_sector_id) in (&data.entities, &data.commands_mine, !&data.commands_mine_target, &data.locations_sector_id).join() {
             let sector_id = location_sector_id.sector_id;
 
-            // search for nearest?
+            // TODO: search for nearest
             let target: &ObjId = extractables.iter()
                 .next()
                 .unwrap();
@@ -69,8 +69,8 @@ impl<'a> System<'a> for SearchMineTargetsSystem {
 
         for (entity, state, request) in selected {
             info!("{:?} setting mine target to {:?} and request navigation {:?}", entity, state, request);
-            let _ = data.commands_mine_target.insert(entity, state).unwrap();
-            let _ = data.nav_request.insert(entity, request).unwrap();
+            data.commands_mine_target.insert(entity, state).unwrap();
+            data.nav_request.insert(entity, request).unwrap();
         }
     }
 }

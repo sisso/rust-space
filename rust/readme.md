@@ -1,9 +1,13 @@
+# Specs
+
+Specs has a very confuse way to produce output. Looks like in Idea mostly of println
+in system are never output. 
+
 # TODO
 
 - add wait time globaly per action
 - fix multiples actions per tick
 - switch movements to curves instead interact every frame
-
       
 ## Configuration files
 

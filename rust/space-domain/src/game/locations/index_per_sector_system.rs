@@ -1,11 +1,14 @@
 use shred::{Read, ResourceId, SystemData, World, Write};
 use specs::prelude::*;
 use specs_derive::*;
-
 use super::*;
 use std::borrow::BorrowMut;
 use crate::game::extractables::Extractable;
 
+/// Index entities to provide fast look up like:
+/// - what ships are in sector 0?
+/// - what is nearest asteroid from sector 2?
+// TODO: optimize to only update elements that have changed. Add SectorChange flag
 pub struct IndexPerSectorSystem;
 
 #[derive(SystemData)]

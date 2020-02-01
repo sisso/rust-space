@@ -29,10 +29,6 @@ pub struct DeliverState {
     target_obj_id: ObjId,
 }
 
-struct CommandsMineSystems {
-    search_targets_system: SearchMineTargetsSystem,
-}
-
 pub struct Commands {
 }
 
@@ -49,7 +45,7 @@ impl Commands {
 
 pub fn set_command_mine(world: &mut World, entity: Entity) {
     let mut storage = world.write_storage::<CommandMine>();
-    let _ = storage.borrow_mut().insert(entity, CommandMine);
+    storage.borrow_mut().insert(entity, CommandMine).unwrap();
 
     info!("{:?} setting command to mine", entity);
 }

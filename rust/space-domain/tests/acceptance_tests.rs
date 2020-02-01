@@ -67,6 +67,13 @@ fn load_objects(game: &mut Game) -> (ObjId, ObjId) {
 }
 
 #[test]
+fn test_empty_game_should_run() {
+    let mut game = Game::new();
+    game.tick(TotalTime(0.5), DeltaTime(0.5));
+    panic!("not!");
+}
+
+#[test]
 fn test_game_should_run() {
     let mut game = Game::new();
 

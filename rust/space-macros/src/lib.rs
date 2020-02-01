@@ -27,12 +27,12 @@ macro_rules! get_or_return {
 #[macro_export]
 macro_rules! log {
     (target: $target:expr, $lvl:expr, $($arg:tt)+) => ({
-        println!("{} - {} - {}",
+        eprintln!("{} - {} - {}",
             $target,
             $lvl,
             format_args!($($arg)*));
     });
-    ($lvl:expr, $($arg:tt)+) => (log!(target: module_path!(), $lvl, $($arg)+))
+    ($lvl:expr, $($arg:tt)+) => (log!(target: file!(), $lvl, $($arg)+))
 }
 
 ///

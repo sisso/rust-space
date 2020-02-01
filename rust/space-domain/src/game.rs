@@ -132,6 +132,7 @@ impl <'a, 'b> Game <'a, 'b>{
         entity
     }
 
+    // TODO: rmeove total_time
     pub fn tick(&mut self, total_time: TotalTime, delta_time: DeltaTime) {
         info!("tick delta {} total {}", delta_time.0, total_time.0);
         self.world.insert(delta_time);
