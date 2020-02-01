@@ -21,7 +21,7 @@ impl<'a> System<'a> for ActionMoveToSystem {
     type SystemData = ActionMoveToData<'a>;
 
     fn run(&mut self, mut data: ActionMoveToData) {
-        debug!("running");
+        trace!("running");
 
         let mut completed = vec![];
         let delta_time = data.delta_time.borrow();
@@ -47,7 +47,7 @@ impl<'a> System<'a> for ActionMoveToSystem {
                 completed.push(entity.clone());
             } else {
                 let new_pos = position.pos.add(&mov);
-                debug!("{:?} moving to {:?}, new position is {:?}", entity, to, new_pos);
+                trace!("{:?} moving to {:?}, new position is {:?}", entity, to, new_pos);
                 position.pos = new_pos;
             }
         }

@@ -22,7 +22,7 @@ impl<'a> System<'a> for ActionRequestHandlerSystem {
     type SystemData = ActionRequestHandlerData<'a>;
 
     fn run(&mut self, mut data: ActionRequestHandlerData) {
-        debug!("running");
+        trace!("running");
 
         let mut processed = vec![];
 
@@ -39,20 +39,20 @@ impl<'a> System<'a> for ActionRequestHandlerSystem {
 
             match action {
                 Action::Undock {} => {
-                    let _ = data.actions_undock.borrow_mut().insert(entity, ActionUndock);
+                    data.actions_undock.borrow_mut().insert(entity, ActionUndock).unwrap();
                 },
                 Action::Jump { jump_id } => {
-                    let _ = data.actions_jump.borrow_mut().insert(entity, ActionJump::new());
+                    data.actions_jump.borrow_mut().insert(entity, ActionJump::new()).unwrap();
                 },
                 Action::Dock { target_id } => {
-                    let _ = data.actions_dock.borrow_mut().insert(entity, ActionDock);
+                    data.actions_dock.borrow_mut().insert(entity, ActionDock).unwrap();
                 },
                 Action::MoveTo { pos } => {
-                    let _ = data.actions_move_to.borrow_mut().insert(entity, ActionMoveTo);
+                    data.actions_move_to.borrow_mut().insert(entity, ActionMoveTo).unwrap();
                 },
             }
 
-            let _ = data.actions.borrow_mut().insert(entity, ActionActive(action));
+            data.actions.borrow_mut().insert(entity, ActionActive(action)).unwrap();
         }
 
         let requests_storage = data.requests.borrow_mut();

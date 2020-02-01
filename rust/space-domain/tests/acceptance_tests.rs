@@ -12,6 +12,7 @@ use specs::WorldExt;
 use space_domain::game::locations::{LocationSector, LocationSpace};
 use std::borrow::Borrow;
 use space_domain::test::assert_v2;
+use space_domain::game::navigations::Navigation;
 
 const WARE_ORE: WareId = WareId(0);
 
@@ -67,13 +68,6 @@ fn load_objects(game: &mut Game) -> (ObjId, ObjId) {
 }
 
 #[test]
-fn test_empty_game_should_run() {
-    let mut game = Game::new();
-    game.tick(TotalTime(0.5), DeltaTime(0.5));
-    panic!("not!");
-}
-
-#[test]
 fn test_game_should_run() {
     let mut game = Game::new();
 
@@ -82,12 +76,10 @@ fn test_game_should_run() {
 
     let (_station_id, ship_id) = load_objects(&mut game);
 
-    let mut total = TotalTime(0.0);
     let delta = DeltaTime(0.5);
 
     for _ in 0..100 {
-        game.tick(total, delta);
-        total = total.add(delta);
+        game.tick(delta);
     }
 
     let sector_id = game.world.read_storage::<LocationSector>().borrow().get(ship_id).unwrap().sector_id;

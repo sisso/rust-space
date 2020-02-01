@@ -5,6 +5,10 @@ in system are never output.
 
 # TODO
 
+- Mine
+- Back to station
+- Drop cargo
+
 - add wait time globaly per action
 - fix multiples actions per tick
 - switch movements to curves instead interact every frame

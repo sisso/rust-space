@@ -21,7 +21,7 @@ impl<'a> System<'a> for DockSystem {
     type SystemData = DockData<'a>;
 
     fn run(&mut self, mut data: DockData) {
-        debug!("running");
+        trace!("running");
 
         let mut processed: Vec<(Entity, LocationDock)> = vec![];
 

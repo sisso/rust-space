@@ -25,17 +25,17 @@ impl<'a> System<'a> for IndexPerSectorSystem {
     fn run(&mut self, mut data: IndexPerSectorData) {
         use specs::Join;
 
-        debug!("running");
+        trace!("running");
 
         let index = data.index.borrow_mut();
         index.clear();
 
         for (entity, location_sector) in (&data.entities, &data.locations_sector).join() {
-            debug!("indexing {:?} at {:?}", entity, location_sector.sector_id);
+            trace!("indexing {:?} at {:?}", entity, location_sector.sector_id);
             index.add(location_sector.sector_id, entity);
 
             if data.extractables.contains(entity) {
-                debug!("indexing extractable {:?} at {:?}", entity, location_sector.sector_id);
+                trace!("indexing extractable {:?} at {:?}", entity, location_sector.sector_id);
                 index.add_extractable(location_sector.sector_id, entity);
             }
         }

@@ -9,7 +9,6 @@ use flatbuffers::FlatBufferBuilder;
 
 pub struct GameApi<'a, 'b> {
     game: Game<'a, 'b>,
-    total_time: TotalTime,
     first_outputs: bool,
 }
 
@@ -30,7 +29,6 @@ impl <'a, 'b> GameApi<'a, 'b> {
     pub fn new() -> Self {
         GameApi {
             game: Game::new(),
-            total_time: TotalTime(0.0),
             first_outputs: true,
         }
     }
@@ -41,8 +39,7 @@ impl <'a, 'b> GameApi<'a, 'b> {
 
     pub fn update(&mut self, elapsed: Duration) {
         let delta = DeltaTime((elapsed.as_millis() as f32) / 1000.0);
-        self.total_time = self.total_time.add(delta);
-        self.game.tick(self.total_time, delta)
+        self.game.tick(delta)
     }
 
     pub fn set_inputs(&mut self, bytes: &Vec<u8>) -> bool {

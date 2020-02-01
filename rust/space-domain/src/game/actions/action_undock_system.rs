@@ -20,7 +20,7 @@ impl<'a> System<'a> for UndockSystem {
     type SystemData = UndockData<'a>;
 
     fn run(&mut self, mut data: UndockData) {
-        debug!("running");
+        trace!("running");
 
         let mut processed: Vec<(Entity, Option<LocationSpace>)> = vec![];
 

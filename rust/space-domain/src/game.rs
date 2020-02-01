@@ -37,6 +37,7 @@ pub mod events;
 // TODO: add tick to game field
 // TODO: remove most of fields?
 pub struct Game<'a, 'b> {
+    pub total_time: TotalTime,
     pub world: World,
     pub dispatcher: Dispatcher<'a, 'b>,
 //    pub commands: Commands,
@@ -67,6 +68,7 @@ impl <'a, 'b> Game <'a, 'b>{
         dispatcher.setup(&mut world);
 
         Game {
+            total_time: TotalTime(0.0),
             world,
             dispatcher,
 //            commands: Commands::new(),
@@ -132,11 +134,14 @@ impl <'a, 'b> Game <'a, 'b>{
         entity
     }
 
-    // TODO: rmeove total_time
-    pub fn tick(&mut self, total_time: TotalTime, delta_time: DeltaTime) {
-        info!("tick delta {} total {}", delta_time.0, total_time.0);
+    pub fn tick(&mut self, delta_time: DeltaTime) {
+        // update time
+        self.total_time = self.total_time.add(delta_time);
         self.world.insert(delta_time);
-        self.world.insert(total_time);
+        self.world.insert(self.total_time);
+        info!("tick delta {} total {}", delta_time.0, self.total_time.0);
+
+        // update systems
         self.dispatcher.dispatch(&mut self.world);
         self.world.maintain();
     }

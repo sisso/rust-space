@@ -26,7 +26,7 @@ impl<'a> System<'a> for NavRequestHandlerSystem {
     type SystemData = NavRequestHandlerData<'a>;
 
     fn run(&mut self, mut data: NavRequestHandlerData) {
-        debug!("running");
+        trace!("running");
 
         let sectors = data.sectors.borrow();
 

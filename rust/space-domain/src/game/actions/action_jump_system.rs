@@ -22,7 +22,7 @@ impl<'a> System<'a> for ActionJumpSystem {
     type SystemData = ActionJumpData<'a>;
 
     fn run(&mut self, mut data: ActionJumpData) {
-        debug!("running");
+        trace!("running");
 
         let total_time: TotalTime = *data.total_time;
 

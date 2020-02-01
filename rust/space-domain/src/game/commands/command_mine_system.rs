@@ -39,7 +39,7 @@ impl<'a> System<'a> for SearchMineTargetsSystem {
         // search extractable
         let mut extractables = vec![];
 
-        debug!("running");
+        trace!("running");
 
         for (entity, _) in (&data.entities, &data.extractables).join() {
             extractables.push(entity);
