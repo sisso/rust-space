@@ -1,16 +1,16 @@
-use specs::prelude::*;
-use specs_derive::*;
-use specs::Entity;
-use crate::game::sectors::{SectorId, Sectors, JumpId};
-use crate::utils::Position;
-use std::collections::VecDeque;
-use crate::game::objects::ObjId;
 use crate::game::actions::*;
 use crate::game::navigations::navigation_system::NavigationSystem;
 use crate::game::navigations::request_handler_system::NavRequestHandlerSystem;
+use crate::game::objects::ObjId;
+use crate::game::sectors::{JumpId, SectorId, Sectors};
+use crate::utils::Position;
+use specs::prelude::*;
+use specs::Entity;
+use specs_derive::*;
+use std::collections::VecDeque;
 
-mod request_handler_system;
 mod navigation_system;
+mod request_handler_system;
 
 ///
 /// Systems:
@@ -21,27 +21,25 @@ mod navigation_system;
 // TODO: rename to Idle, MoveTo?
 #[derive(Debug, Clone, Component, PartialEq)]
 pub enum Navigation {
-    MoveTo
+    MoveTo,
 }
 
 #[derive(Debug, Clone, Component)]
 pub enum NavRequest {
-    MoveToTarget {
-        target: ObjId,
-    }
+    MoveToTarget { target: ObjId },
 }
 
 #[derive(Debug, Clone)]
 pub struct NavigationPlan {
     pub target_sector_id: SectorId,
     pub target_position: Position,
-    pub path: VecDeque<Action>
+    pub path: VecDeque<Action>,
 }
 
 #[derive(Debug, Clone, Component)]
 pub struct NavigationMoveTo {
     pub target: Entity,
-    pub plan: NavigationPlan
+    pub plan: NavigationPlan,
 }
 
 impl NavigationMoveTo {
@@ -50,24 +48,32 @@ impl NavigationMoveTo {
     }
 }
 
-pub struct Navigations {
-}
+pub struct Navigations {}
 
 impl Navigations {
     pub fn new() -> Self {
-        Navigations {
-        }
+        Navigations {}
     }
 
     pub fn init_world(world: &mut World, dispatcher: &mut DispatcherBuilder) {
         dispatcher.add(NavRequestHandlerSystem, "navigation_request_handler", &[]);
-        dispatcher.add(NavigationSystem, "navigation", &["navigation_request_handler"]);
+        dispatcher.add(
+            NavigationSystem,
+            "navigation",
+            &["navigation_request_handler"],
+        );
     }
 
-    pub fn execute(&mut self, world: &mut World) {
-    }
+    pub fn execute(&mut self, world: &mut World) {}
 
-    pub fn create_plan(sectors: &Sectors, from_sector_id: SectorId, from_pos: Position, to_sector_id: SectorId, to_pos: Position, is_docked: bool) -> NavigationPlan {
+    pub fn create_plan(
+        sectors: &Sectors,
+        from_sector_id: SectorId,
+        from_pos: Position,
+        to_sector_id: SectorId,
+        to_pos: Position,
+        is_docked: bool,
+    ) -> NavigationPlan {
         let safe = 100;
         let mut path = VecDeque::new();
 
@@ -123,7 +129,7 @@ mod test {
             Position::new(10.0, 0.0),
             SECTOR_1,
             Position::new(0.0, 10.0),
-            true
+            true,
         );
 
         assert_eq!(plan.target_sector_id, SECTOR_1);
@@ -131,7 +137,7 @@ mod test {
         assert_eq!(plan.path.len(), 4);
 
         match plan.path.get(0).unwrap() {
-            Action::Undock => {},
+            Action::Undock => {}
             other => panic!(),
         }
 

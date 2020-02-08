@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use crate::utils::{NextId, Speed};
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct Armor {
     pub width: u32,
     pub height: u32,
@@ -14,11 +14,11 @@ impl Armor {
     }
 
     pub fn weight(&self) -> f32 {
-        self.width as f32 * self.height as f32  * 0.5
+        self.width as f32 * self.height as f32 * 0.5
     }
 }
 
-#[derive(Copy,Clone,Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum ComponentType {
     Engine,
     PowerGenerator,
@@ -51,27 +51,27 @@ pub struct ArmorIndex(pub u32);
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub struct Width(pub u32);
 
-#[derive(Copy, Clone, Eq, PartialEq,  Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub struct Tons(pub u32);
 
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct TeamId(pub u32);
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub enum WeaponDamageType {
     Explosive,
-    Penetration
+    Penetration,
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct Weapon {
     pub damage: Damage,
     pub reload: f32,
     pub rounds: u32,
-    pub damage_type: WeaponDamageType
+    pub damage_type: WeaponDamageType,
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct Component {
     pub id: ComponentId,
     pub component_type: ComponentType,
@@ -110,14 +110,14 @@ impl Component {
     }
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 struct ComponentItem {
     pub damage: u32,
     pub max_damage: u32,
     pub working: u32,
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct ShipSpec {
     pub armor: Armor,
     pub components: HashMap<ComponentId, u32>,
@@ -126,16 +126,21 @@ pub struct ShipSpec {
 }
 
 impl ShipSpec {
-    pub fn new(components: &Components, ship_components: HashMap<ComponentId, u32>, armor_height: u32) -> Self {
+    pub fn new(
+        components: &Components,
+        ship_components: HashMap<ComponentId, u32>,
+        armor_height: u32,
+    ) -> Self {
         let component_table = ComponentTable::new(components, &ship_components);
         let armor = Armor::new(component_table.total, armor_height);
-        let stats = ShipSpec::compute_ship_stats(components, &ship_components, &armor, &HashMap::new());
+        let stats =
+            ShipSpec::compute_ship_stats(components, &ship_components, &armor, &HashMap::new());
 
         ShipSpec {
             armor: armor,
             components: ship_components,
             stats: stats,
-            component_table
+            component_table,
         }
     }
 
@@ -150,13 +155,16 @@ impl ShipSpec {
                 let component = components.get(id);
                 component.weapon.is_some()
             })
-            .map(|(id, _)| {
-                id.clone()
-            })
+            .map(|(id, _)| id.clone())
             .collect()
     }
 
-    pub fn compute_ship_stats(components: &Components, ship_components: &HashMap<ComponentId, u32>, armor: &Armor, destroyed_components: &HashMap<ComponentId, Amount>) -> ShipStats {
+    pub fn compute_ship_stats(
+        components: &Components,
+        ship_components: &HashMap<ComponentId, u32>,
+        armor: &Armor,
+        destroyed_components: &HashMap<ComponentId, Amount>,
+    ) -> ShipStats {
         let mut has_bridge = false;
 
         let mut power = 0.0;
@@ -171,7 +179,7 @@ impl ShipSpec {
             let destroyed_amount = destroyed_components.get(id).unwrap_or(&Amount(0));
 
             weight += component.weight * amount;
-            width  += component.width * amount;
+            width += component.width * amount;
 
             if destroyed_amount.0 >= *amount {
                 // all components from this category were destroyed
@@ -185,9 +193,12 @@ impl ShipSpec {
                 has_bridge = true;
             }
 
-            power += component.power_generate * active_amount_f32 - component.power_require * active_amount_f32;
-            crew += component.crew_provide * active_amount_f32 - component.crew_require * active_amount_f32;
-            engineer += component.engineer_provide * active_amount_f32 - component.engineer_require * active_amount_f32;
+            power += component.power_generate * active_amount_f32
+                - component.power_require * active_amount_f32;
+            crew += component.crew_provide * active_amount_f32
+                - component.crew_require * active_amount_f32;
+            engineer += component.engineer_provide * active_amount_f32
+                - component.engineer_require * active_amount_f32;
             thrust += component.thrust * active_amount_f32;
         }
 
@@ -206,7 +217,7 @@ impl ShipSpec {
         }
     }
 
-    pub fn is_valid(&self) -> Result<(), Vec<ShipComponentsValidation>>{
+    pub fn is_valid(&self) -> Result<(), Vec<ShipComponentsValidation>> {
         let stats = &self.stats;
 
         let mut errors = vec![];
@@ -216,15 +227,21 @@ impl ShipSpec {
         }
 
         if stats.power_balance < 0.0 {
-            errors.push(ShipComponentsValidation::NeedPower { amount: -stats.power_balance });
+            errors.push(ShipComponentsValidation::NeedPower {
+                amount: -stats.power_balance,
+            });
         }
 
         if stats.crew_balance < 0.0 {
-            errors.push(ShipComponentsValidation::NeedCrew { amount: -stats.crew_balance });
+            errors.push(ShipComponentsValidation::NeedCrew {
+                amount: -stats.crew_balance,
+            });
         }
 
         if stats.engineer_balance < 0.0 {
-            errors.push(ShipComponentsValidation::NeedEngineer { amount: -stats.engineer_balance });
+            errors.push(ShipComponentsValidation::NeedEngineer {
+                amount: -stats.engineer_balance,
+            });
         }
 
         if errors.is_empty() {
@@ -235,22 +252,27 @@ impl ShipSpec {
     }
 
     pub fn map_components<'a>(&self, components: &'a Components) -> Vec<(&'a Component, Amount)> {
-        self.components.iter().map(|(id, amount)| {
-            let component = components.get(id);
-            (component, Amount(*amount))
-        }).collect()
+        self.components
+            .iter()
+            .map(|(id, amount)| {
+                let component = components.get(id);
+                (component, Amount(*amount))
+            })
+            .collect()
     }
 
     pub fn get_hull_hp(&self, components: &Components) -> Hp {
-        let total = self.map_components(components).iter().map(|(component, amount)| {
-            component.width * amount.0
-        }).sum();
+        let total = self
+            .map_components(components)
+            .iter()
+            .map(|(component, amount)| component.width * amount.0)
+            .sum();
 
         Hp(total)
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct WeaponState {
     pub recharge: f32,
 }
@@ -261,7 +283,7 @@ impl WeaponState {
     }
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct ComponentTable {
     pub total: u32,
     pub sequence: Vec<(ComponentId, u32)>,
@@ -269,23 +291,25 @@ pub struct ComponentTable {
 
 impl ComponentTable {
     pub fn new(components: &Components, amounts: &HashMap<ComponentId, u32>) -> Self {
-        let sequence: Vec<(ComponentId, u32)> =
-            amounts.iter().map(|(id, amount)| {
+        let sequence: Vec<(ComponentId, u32)> = amounts
+            .iter()
+            .map(|(id, amount)| {
                 let component = components.get(id);
                 let comp_width = component.width * *amount;
                 (component.id, comp_width)
-            }).collect();
+            })
+            .collect();
 
         let total: u32 = sequence.iter().map(|(_, i)| i).sum();
 
         ComponentTable {
             total: total,
-            sequence: sequence
+            sequence: sequence,
         }
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct ShipInstance {
     pub id: ShipInstanceId,
     pub spec: ShipSpec,
@@ -300,7 +324,12 @@ pub struct ShipInstance {
 }
 
 impl ShipInstance {
-    pub fn new(components: &Components, id: ShipInstanceId, spec: ShipSpec, team_id: TeamId) -> Self {
+    pub fn new(
+        components: &Components,
+        id: ShipInstanceId,
+        spec: ShipSpec,
+        team_id: TeamId,
+    ) -> Self {
         let mut weapons_state = HashMap::new();
 
         for weapon_id in spec.find_weapons(components) {
@@ -323,42 +352,53 @@ impl ShipInstance {
             component_destroyed: Default::default(),
             weapons_state,
             wreck: false,
-            team_id
+            team_id,
         }
     }
 
     pub fn get_weapon_state(&mut self, id: &ComponentId, index: u32) -> &mut WeaponState {
-        self.weapons_state.get_mut(id).unwrap().get_mut(index as usize).unwrap()
+        self.weapons_state
+            .get_mut(id)
+            .unwrap()
+            .get_mut(index as usize)
+            .unwrap()
     }
 
     pub fn update_stats(&mut self, components: &Components) {
-        let new_stats = ShipSpec::compute_ship_stats(components, &self.spec.components, &self.spec.armor, &self.component_destroyed);
+        let new_stats = ShipSpec::compute_ship_stats(
+            components,
+            &self.spec.components,
+            &self.spec.armor,
+            &self.component_destroyed,
+        );
         self.current_stats = new_stats;
     }
 
     pub fn get_total_hull_damage(&self) -> Damage {
-        let total = self.component_damage.iter().map(|(_, damage)| {
-            damage.0
-        }).sum();
+        let total = self
+            .component_damage
+            .iter()
+            .map(|(_, damage)| damage.0)
+            .sum();
 
         Damage(total)
     }
 }
 
 pub struct Components {
-    index: HashMap<ComponentId, Component>
+    index: HashMap<ComponentId, Component>,
 }
 
 impl Components {
     pub fn new() -> Self {
         Components {
-            index: Default::default()
+            index: Default::default(),
         }
     }
 
-//    pub fn next_id(&mut self) -> ComponentId {
-//        ComponentId(self.next_id.next())
-//    }
+    //    pub fn next_id(&mut self) -> ComponentId {
+    //        ComponentId(self.next_id.next())
+    //    }
 
     pub fn add(&mut self, component: Component) {
         if self.index.contains_key(&component.id) {

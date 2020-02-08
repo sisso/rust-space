@@ -1,9 +1,9 @@
 use specs::prelude::*;
 
-use super::*;
 use super::super::locations::*;
-use std::borrow::{Borrow, BorrowMut};
+use super::*;
 use crate::game::actions::*;
+use std::borrow::{Borrow, BorrowMut};
 
 pub struct UndockSystem;
 
@@ -24,17 +24,20 @@ impl<'a> System<'a> for UndockSystem {
 
         let mut processed: Vec<(Entity, Option<LocationSpace>)> = vec![];
 
-        let location_space_storage = data.locations_space
-            .borrow();
+        let location_space_storage = data.locations_space.borrow();
 
-        for (entity, _, location_dock) in (&*data.entities, &data.actions_undock, data.locations_dock.maybe()).join() {
+        for (entity, _, location_dock) in (
+            &*data.entities,
+            &data.actions_undock,
+            data.locations_dock.maybe(),
+        )
+            .join()
+        {
             let location_space = match location_dock {
-                Some(location_dock) => {
-                    location_space_storage
-                        .get(location_dock.docked_id)
-                        .map(|value| value.clone())
-                },
-                None => None
+                Some(location_dock) => location_space_storage
+                    .get(location_dock.docked_id)
+                    .map(|value| value.clone()),
+                None => None,
             };
 
             debug!("{:?} undocking", entity);
@@ -54,18 +57,22 @@ impl<'a> System<'a> for UndockSystem {
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use super::super::*;
-    use crate::test::{test_system, assert_v2};
+    use super::*;
+    use crate::test::{assert_v2, test_system};
 
     #[test]
     fn test_undock_system_should_undock_if_docked() {
         let (world, entity) = test_system(UndockSystem, |world| {
-            let station = world.create_entity()
-                .with(LocationSpace { pos: Position::new(0.0, 0.0) })
+            let station = world
+                .create_entity()
+                .with(LocationSpace {
+                    pos: Position::new(0.0, 0.0),
+                })
                 .build();
 
-            let entity = world.create_entity()
+            let entity = world
+                .create_entity()
                 .with(ActionActive(Action::Undock))
                 .with(ActionUndock)
                 .with(LocationDock { docked_id: station })
@@ -82,18 +89,21 @@ mod test {
         match position {
             Some(LocationSpace { pos }) => {
                 assert_v2(*pos, Position::new(0.0, 0.0));
-            },
-            _ => panic!()
+            }
+            _ => panic!(),
         }
     }
 
     #[test]
     fn test_undock_system_should_ignore_undock_if_not_docked() {
         let (world, entity) = test_system(UndockSystem, |world| {
-            let entity = world.create_entity()
+            let entity = world
+                .create_entity()
                 .with(ActionActive(Action::Undock))
                 .with(ActionUndock)
-                .with(LocationSpace { pos: Position::new(0.0, 0.0) })
+                .with(LocationSpace {
+                    pos: Position::new(0.0, 0.0),
+                })
                 .build();
 
             entity
@@ -107,8 +117,8 @@ mod test {
         match position {
             Some(LocationSpace { pos }) => {
                 assert_v2(*pos, Position::new(0.0, 0.0));
-            },
-            _ => panic!()
+            }
+            _ => panic!(),
         }
     }
 }

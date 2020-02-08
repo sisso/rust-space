@@ -1,11 +1,11 @@
+use super::objects::ObjId;
 use specs::prelude::*;
 use std::collections::HashMap;
-use super::objects::ObjId;
 
-use crate::utils::*;
 use crate::game::wares::WareId;
+use crate::utils::*;
 
-#[derive(Clone,Debug,Component)]
+#[derive(Clone, Debug, Component)]
 pub struct Extractable {
     pub ware_id: WareId,
     pub time: DeltaTime,
@@ -13,19 +13,15 @@ pub struct Extractable {
 
 #[derive(Clone, Debug)]
 struct State {
-    extractable: Extractable
+    extractable: Extractable,
 }
 
-pub struct Extractables {
-}
+pub struct Extractables {}
 
 impl Extractables {
     pub fn new() -> Self {
-        Extractables {
-        }
+        Extractables {}
     }
 
-    pub fn init_world(world: &mut World, dispatcher: &mut DispatcherBuilder) {
-
-    }
+    pub fn init_world(world: &mut World, dispatcher: &mut DispatcherBuilder) {}
 }

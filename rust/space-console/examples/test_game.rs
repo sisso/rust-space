@@ -2,11 +2,11 @@ extern crate space_domain;
 extern crate space_macros;
 
 use space_domain::game_api::GameApi;
+use space_macros::{info, log};
 use std::time::Duration;
-use space_macros::{log, info};
 
 fn main() -> Result<(), std::io::Error> {
-//    space_domain::local_game::run();
+    //    space_domain::local_game::run();
     info!(target: "main", "--------------------------------------------------");
     info!(target: "main", "start");
     info!(target: "main", "--------------------------------------------------");
@@ -21,9 +21,7 @@ fn main() -> Result<(), std::io::Error> {
 
         game_api.set_inputs(&vec![]);
         game_api.update(time_rate);
-        game_api.get_inputs(move |bytes| {
-            info!("receive {:?}", bytes)
-        });
+        game_api.get_inputs(move |bytes| info!("receive {:?}", bytes));
     }
 
     Ok(())

@@ -1,9 +1,9 @@
+use super::*;
+use crate::game::extractables::Extractable;
 use shred::{Read, ResourceId, SystemData, World, Write};
 use specs::prelude::*;
 use specs_derive::*;
-use super::*;
 use std::borrow::BorrowMut;
-use crate::game::extractables::Extractable;
 
 /// Index entities to provide fast look up like:
 /// - what ships are in sector 0?
@@ -35,7 +35,11 @@ impl<'a> System<'a> for IndexPerSectorSystem {
             index.add(location_sector.sector_id, entity);
 
             if data.extractables.contains(entity) {
-                trace!("indexing extractable {:?} at {:?}", entity, location_sector.sector_id);
+                trace!(
+                    "indexing extractable {:?} at {:?}",
+                    entity,
+                    location_sector.sector_id
+                );
                 index.add_extractable(location_sector.sector_id, entity);
             }
         }

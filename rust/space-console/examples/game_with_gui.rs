@@ -1,12 +1,12 @@
 extern crate space_domain;
 
-use space_console::gui::{Gui, GuiSector, ShowSectorView, GuiObj, GuiObjKind};
+use space_console::gui::{Gui, GuiObj, GuiObjKind, GuiSector, ShowSectorView};
 use space_domain::game_api::GameApi;
 use space_domain::space_outputs_generated::space_data;
 
-use std::time::Duration;
-use std::collections::HashMap;
 use space_domain::utils::V2;
+use std::collections::HashMap;
+use std::time::Duration;
 
 struct SectorViewsImpl {
     sectors: HashMap<u32, GuiSector>,
@@ -17,18 +17,21 @@ impl SectorViewsImpl {
     pub fn new() -> Self {
         SectorViewsImpl {
             sectors: Default::default(),
-            obj_index: Default::default()
+            obj_index: Default::default(),
         }
     }
 
     fn update(&mut self, outputs: space_data::Outputs) {
         if let Some(sectors) = outputs.sectors() {
             for sector in sectors {
-                self.sectors.insert(sector.id(), GuiSector {
-                    id: sector.id(),
-                    label: format!("Sector {}", sector.id()),
-                    objects: vec![]
-                });
+                self.sectors.insert(
+                    sector.id(),
+                    GuiSector {
+                        id: sector.id(),
+                        label: format!("Sector {}", sector.id()),
+                        objects: vec![],
+                    },
+                );
             }
         }
 
@@ -37,7 +40,7 @@ impl SectorViewsImpl {
             v.objects.push(GuiObj {
                 id: i.id(),
                 kind: GuiObjKind::JUMP,
-                pos: SectorViewsImpl::from_v2(i.pos())
+                pos: SectorViewsImpl::from_v2(i.pos()),
             });
         }
 
@@ -48,7 +51,7 @@ impl SectorViewsImpl {
             gui_sector.objects.push(GuiObj {
                 id: i.id(),
                 kind: SectorViewsImpl::from_kind(i.kind()),
-                pos: SectorViewsImpl::from_v2(i.pos())
+                pos: SectorViewsImpl::from_v2(i.pos()),
             });
 
             self.obj_index.insert(i.id(), sector_id);
@@ -70,7 +73,11 @@ impl SectorViewsImpl {
             let sector_id = self.obj_index.get(&i.id()).unwrap();
             let gui_sector = self.sectors.get_mut(&sector_id).unwrap();
 
-            let index = gui_sector.objects.iter().position(|j| j.id == i.id()).unwrap();
+            let index = gui_sector
+                .objects
+                .iter()
+                .position(|j| j.id == i.id())
+                .unwrap();
             let mut gui_obj = gui_sector.objects.remove(index);
             gui_obj.pos = SectorViewsImpl::from_v2(i.pos());
 

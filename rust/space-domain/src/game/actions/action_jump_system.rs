@@ -1,9 +1,9 @@
 use specs::prelude::*;
 
-use crate::game::locations::{LocationSector, LocationSpace};
 use super::*;
-use std::borrow::{Borrow, BorrowMut};
+use crate::game::locations::{LocationSector, LocationSpace};
 use crate::game::sectors::Sectors;
+use std::borrow::{Borrow, BorrowMut};
 
 pub struct ActionJumpSystem;
 
@@ -28,7 +28,9 @@ impl<'a> System<'a> for ActionJumpSystem {
 
         let mut completed = vec![];
 
-        for (entity, action, action_jump)  in (&*data.entities, &data.actions, &mut data.actions_jump).join() {
+        for (entity, action, action_jump) in
+            (&*data.entities, &data.actions, &mut data.actions_jump).join()
+        {
             let to_jump_id = match action.get_action() {
                 Action::Jump { jump_id } => jump_id.clone(),
                 _ => continue,
@@ -37,10 +39,10 @@ impl<'a> System<'a> for ActionJumpSystem {
             match action_jump.complete_time {
                 Some(value) if value.is_before(total_time) => {
                     completed.push((entity, to_jump_id));
-                },
+                }
                 Some(_) => {
                     debug!("{:?} jumping", entity);
-                },
+                }
                 None => {
                     debug!("{:?} start to jump", entity);
                     action_jump.complete_time = Some(total_time.add(ACTION_JUMP_TOTAL_TIME));
@@ -53,10 +55,21 @@ impl<'a> System<'a> for ActionJumpSystem {
         for (entity, jump_id) in completed {
             let jump = sectors.get_jump(jump_id).unwrap();
 
-            debug!("{:?} jump complete to sector {:?} at position {:?}", entity, jump.to_sector_id, jump.to_pos);
+            debug!(
+                "{:?} jump complete to sector {:?} at position {:?}",
+                entity, jump.to_sector_id, jump.to_pos
+            );
 
-            let _ = data.locations_space.borrow_mut().insert(entity, LocationSpace { pos: jump.to_pos });
-            let _ = data.locations_sector.borrow_mut().insert(entity, LocationSector { sector_id: jump.to_sector_id });
+            let _ = data
+                .locations_space
+                .borrow_mut()
+                .insert(entity, LocationSpace { pos: jump.to_pos });
+            let _ = data.locations_sector.borrow_mut().insert(
+                entity,
+                LocationSector {
+                    sector_id: jump.to_sector_id,
+                },
+            );
             let _ = data.actions.borrow_mut().remove(entity);
             let _ = data.actions_jump.borrow_mut().remove(entity);
         }
@@ -65,19 +78,28 @@ impl<'a> System<'a> for ActionJumpSystem {
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use super::super::*;
-    use crate::test::{test_system, assert_v2};
-    use crate::utils::{Speed, TotalTime};
+    use super::*;
     use crate::game::locations::LocationSpace;
     use crate::game::sectors::test_scenery;
+    use crate::test::{assert_v2, test_system};
+    use crate::utils::{Speed, TotalTime};
 
     fn create_jump_entity(world: &mut World, jump_time: Option<TotalTime>) -> Entity {
-        let entity = world.create_entity()
-            .with(ActionActive(Action::Jump { jump_id: test_scenery::JUMP_0_TO_1.id }))
-            .with(ActionJump { complete_time: jump_time })
-            .with(LocationSpace { pos: test_scenery::JUMP_0_TO_1.pos })
-            .with(LocationSector { sector_id: test_scenery::SECTOR_0 })
+        let entity = world
+            .create_entity()
+            .with(ActionActive(Action::Jump {
+                jump_id: test_scenery::JUMP_0_TO_1.id,
+            }))
+            .with(ActionJump {
+                complete_time: jump_time,
+            })
+            .with(LocationSpace {
+                pos: test_scenery::JUMP_0_TO_1.pos,
+            })
+            .with(LocationSector {
+                sector_id: test_scenery::SECTOR_0,
+            })
             .build();
         entity
     }
@@ -117,8 +139,11 @@ mod test {
         assert_not_jumped(&world, entity);
 
         let storage = world.read_storage::<ActionJump>();
-        let action= storage.get(entity).unwrap();
-        assert_eq!(action.complete_time.unwrap().as_f64(), initial_time.add(ACTION_JUMP_TOTAL_TIME).as_f64());
+        let action = storage.get(entity).unwrap();
+        assert_eq!(
+            action.complete_time.unwrap().as_f64(),
+            initial_time.add(ACTION_JUMP_TOTAL_TIME).as_f64()
+        );
     }
 
     #[test]

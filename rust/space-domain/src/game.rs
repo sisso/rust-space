@@ -1,9 +1,9 @@
-use specs::prelude::*;
 use crate::specs_extras::*;
+use specs::prelude::*;
 use std::collections::HashMap;
 
 use crate::game::extractables::Extractable;
-use crate::game::locations::{LocationDock, LocationSpace, Moveable, Locations};
+use crate::game::locations::{LocationDock, LocationSpace, Locations, Moveable};
 use crate::utils::*;
 
 use self::events::{EventKind, Events, ObjEvent};
@@ -13,23 +13,23 @@ use self::objects::*;
 use self::save::{CanLoad, CanSave, Load, Save};
 use self::sectors::*;
 use self::wares::*;
-use crate::game::navigations::Navigations;
-use crate::game::commands::{Commands, CommandMine};
 use crate::game::actions::Actions;
+use crate::game::commands::{CommandMine, Commands};
+use crate::game::navigations::Navigations;
 use std::borrow::BorrowMut;
 
-pub mod sectors;
-pub mod objects;
-pub mod wares;
 pub mod actions;
 pub mod commands;
-pub mod navigations;
-pub mod locations;
 pub mod extractables;
-pub mod save;
-pub mod new_obj;
 pub mod jsons;
+pub mod locations;
+pub mod navigations;
+pub mod new_obj;
+pub mod objects;
+pub mod save;
+pub mod sectors;
 pub mod ship;
+pub mod wares;
 //pub mod factory;
 pub mod events;
 //pub mod ai_high;
@@ -40,18 +40,18 @@ pub struct Game<'a, 'b> {
     pub total_time: TotalTime,
     pub world: World,
     pub dispatcher: Dispatcher<'a, 'b>,
-//    pub commands: Commands,
-//    pub actions: Actions,
-//    pub sectors: Sectors,
-//    pub objects: Objects,
-//    pub locations: Locations,
-//    pub extractables: Extractables,
-//    pub cargos: Cargos,
-//    pub events: Events,
-//    pub navigations: Navigations,
+    //    pub commands: Commands,
+    //    pub actions: Actions,
+    //    pub sectors: Sectors,
+    //    pub objects: Objects,
+    //    pub locations: Locations,
+    //    pub extractables: Extractables,
+    //    pub cargos: Cargos,
+    //    pub events: Events,
+    //    pub navigations: Navigations,
 }
 
-impl <'a, 'b> Game <'a, 'b>{
+impl<'a, 'b> Game<'a, 'b> {
     pub fn new() -> Self {
         let mut world = World::new();
         let mut dispatcher_builder = DispatcherBuilder::new();
@@ -71,15 +71,15 @@ impl <'a, 'b> Game <'a, 'b>{
             total_time: TotalTime(0.0),
             world,
             dispatcher,
-//            commands: Commands::new(),
-//            actions: Actions::new(),
-//            sectors: Sectors::new(),
-//            objects: Objects::new(),
-//            locations: Locations::new(),
-//            extractables: Extractables::new(),
-//            cargos: Cargos::new(),
-//            events: Events::new(),
-//            navigations: Navigations::new(),
+            //            commands: Commands::new(),
+            //            actions: Actions::new(),
+            //            sectors: Sectors::new(),
+            //            objects: Objects::new(),
+            //            locations: Locations::new(),
+            //            extractables: Extractables::new(),
+            //            cargos: Cargos::new(),
+            //            events: Events::new(),
+            //            navigations: Navigations::new(),
         }
     }
 
@@ -88,11 +88,17 @@ impl <'a, 'b> Game <'a, 'b>{
 
         let has_location = new_obj.location_space.is_some() || new_obj.location_dock.is_some();
         if has_location && new_obj.location_sector_id.is_none() {
-            panic!(format!("fatal {:?}: entity with location should have a sector_id", new_obj));
+            panic!(format!(
+                "fatal {:?}: entity with location should have a sector_id",
+                new_obj
+            ));
         }
 
         if new_obj.can_dock && new_obj.speed.is_none() {
-            panic!(format!("fatal {:?}: entity that can dock should be moveable", new_obj));
+            panic!(format!(
+                "fatal {:?}: entity that can dock should be moveable",
+                new_obj
+            ));
         }
 
         if new_obj.has_dock {
@@ -124,8 +130,7 @@ impl <'a, 'b> Game <'a, 'b>{
             builder.set(cargo);
         }
 
-//        self.events.add_obj_event(ObjEvent::new(id, EventKind::Add));
-
+        //        self.events.add_obj_event(ObjEvent::new(id, EventKind::Add));
 
         let entity = builder.build();
 
@@ -146,11 +151,9 @@ impl <'a, 'b> Game <'a, 'b>{
         self.world.maintain();
     }
 
-    pub fn save(&self, save: &mut impl Save) {
-    }
+    pub fn save(&self, save: &mut impl Save) {}
 
-    pub fn load(&mut self, load: &mut impl Load) {
-    }
+    pub fn load(&mut self, load: &mut impl Load) {}
 
     // TODO: make sense?
     pub fn set_sectors(&mut self, sectors: Sectors) {

@@ -1,10 +1,10 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
 pub const MIN_DISTANCE: f32 = 0.01;
 pub const MIN_DISTANCE_SQR: f32 = MIN_DISTANCE * MIN_DISTANCE;
 
-#[derive(Clone,Copy,PartialEq,Debug,Serialize,Deserialize)]
+#[derive(Clone, Copy, PartialEq, Debug, Serialize, Deserialize)]
 pub struct V2 {
     pub x: f32,
     pub y: f32,
@@ -55,7 +55,7 @@ impl V2 {
 
 pub type Position = V2;
 
-#[derive(Clone,Copy,Debug,Serialize,Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct Speed(pub f32);
 
 impl Speed {
@@ -66,7 +66,7 @@ impl Speed {
 
 pub type Seconds = DeltaTime;
 
-#[derive(Clone,Copy,Debug,Serialize,Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct DeltaTime(pub f32);
 
 impl Default for DeltaTime {
@@ -81,7 +81,7 @@ impl DeltaTime {
     }
 }
 
-#[derive(Clone,Copy,Debug,Serialize,Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct TotalTime(pub f64);
 
 impl Default for TotalTime {
@@ -118,15 +118,11 @@ pub struct NextId {
 
 impl NextId {
     pub fn new() -> Self {
-        NextId {
-            next: 0
-        }
+        NextId { next: 0 }
     }
 
     pub fn from(know_max: u32) -> Self {
-        NextId {
-            next: know_max + 1
-        }
+        NextId { next: know_max + 1 }
     }
 
     pub fn next(&mut self) -> u32 {

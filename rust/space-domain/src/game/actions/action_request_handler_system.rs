@@ -1,9 +1,9 @@
 use specs::prelude::*;
 
-use super::*;
 use super::super::locations::*;
-use std::borrow::{Borrow, BorrowMut};
+use super::*;
 use crate::game::actions::*;
+use std::borrow::{Borrow, BorrowMut};
 
 pub struct ActionRequestHandlerSystem;
 
@@ -39,20 +39,35 @@ impl<'a> System<'a> for ActionRequestHandlerSystem {
 
             match action {
                 Action::Undock {} => {
-                    data.actions_undock.borrow_mut().insert(entity, ActionUndock).unwrap();
-                },
+                    data.actions_undock
+                        .borrow_mut()
+                        .insert(entity, ActionUndock)
+                        .unwrap();
+                }
                 Action::Jump { jump_id } => {
-                    data.actions_jump.borrow_mut().insert(entity, ActionJump::new()).unwrap();
-                },
+                    data.actions_jump
+                        .borrow_mut()
+                        .insert(entity, ActionJump::new())
+                        .unwrap();
+                }
                 Action::Dock { target_id } => {
-                    data.actions_dock.borrow_mut().insert(entity, ActionDock).unwrap();
-                },
+                    data.actions_dock
+                        .borrow_mut()
+                        .insert(entity, ActionDock)
+                        .unwrap();
+                }
                 Action::MoveTo { pos } => {
-                    data.actions_move_to.borrow_mut().insert(entity, ActionMoveTo).unwrap();
-                },
+                    data.actions_move_to
+                        .borrow_mut()
+                        .insert(entity, ActionMoveTo)
+                        .unwrap();
+                }
             }
 
-            data.actions.borrow_mut().insert(entity, ActionActive(action)).unwrap();
+            data.actions
+                .borrow_mut()
+                .insert(entity, ActionActive(action))
+                .unwrap();
         }
 
         let requests_storage = data.requests.borrow_mut();
@@ -70,7 +85,8 @@ mod test {
     #[test]
     fn test_action_request() {
         let (world, entity) = test_system(ActionRequestHandlerSystem, |world| {
-            let entity = world.create_entity()
+            let entity = world
+                .create_entity()
                 .with(ActionRequest(Action::Undock))
                 .build();
 
@@ -80,7 +96,7 @@ mod test {
         let action_storage = world.read_component::<ActionActive>();
         let action = action_storage.get(entity).unwrap();
         match action.get_action() {
-            Action::Undock => {},
+            Action::Undock => {}
             _ => panic!(),
         }
 

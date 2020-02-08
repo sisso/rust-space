@@ -1,9 +1,9 @@
 use specs::prelude::*;
 
-use super::*;
 use super::super::locations::*;
-use std::borrow::{Borrow, BorrowMut};
+use super::*;
 use crate::game::actions::*;
+use std::borrow::{Borrow, BorrowMut};
 
 pub struct ActionMoveToSystem;
 
@@ -26,7 +26,15 @@ impl<'a> System<'a> for ActionMoveToSystem {
         let mut completed = vec![];
         let delta_time = data.delta_time.borrow();
 
-        for (entity, moveable, action, _, position) in (&data.entities, &data.moveable, &data.actions, &data.action_move_to, &mut data.location_space).join() {
+        for (entity, moveable, action, _, position) in (
+            &data.entities,
+            &data.moveable,
+            &data.actions,
+            &data.action_move_to,
+            &mut data.location_space,
+        )
+            .join()
+        {
             let to = match action.get_action() {
                 Action::MoveTo { pos } => pos.clone(),
                 _ => continue,
@@ -47,7 +55,12 @@ impl<'a> System<'a> for ActionMoveToSystem {
                 completed.push(entity.clone());
             } else {
                 let new_pos = position.pos.add(&mov);
-                trace!("{:?} moving to {:?}, new position is {:?}", entity, to, new_pos);
+                trace!(
+                    "{:?} moving to {:?}, new position is {:?}",
+                    entity,
+                    to,
+                    new_pos
+                );
                 position.pos = new_pos;
             }
         }
@@ -61,9 +74,9 @@ impl<'a> System<'a> for ActionMoveToSystem {
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use super::super::*;
-    use crate::test::{test_system, assert_v2};
+    use super::*;
+    use crate::test::{assert_v2, test_system};
     use crate::utils::Speed;
 
     #[test]
@@ -71,10 +84,15 @@ mod test {
         let (world, entity) = test_system(ActionMoveToSystem, |world| {
             world.insert(DeltaTime(1.0));
 
-            let entity = world.create_entity()
-                .with(ActionActive(Action::MoveTo { pos: Position::new(2.0, 0.0) }))
+            let entity = world
+                .create_entity()
+                .with(ActionActive(Action::MoveTo {
+                    pos: Position::new(2.0, 0.0),
+                }))
                 .with(ActionMoveTo)
-                .with(LocationSpace { pos: Position::new(0.0, 0.0) })
+                .with(LocationSpace {
+                    pos: Position::new(0.0, 0.0),
+                })
                 .with(Moveable { speed: Speed(1.0) })
                 .build();
 
@@ -93,10 +111,15 @@ mod test {
         let (world, entity) = test_system(ActionMoveToSystem, |world| {
             world.insert(DeltaTime(1.0));
 
-            let entity = world.create_entity()
-                .with(ActionActive(Action::MoveTo { pos: Position::new(2.0, 0.0) }))
+            let entity = world
+                .create_entity()
+                .with(ActionActive(Action::MoveTo {
+                    pos: Position::new(2.0, 0.0),
+                }))
                 .with(ActionMoveTo)
-                .with(LocationSpace { pos: Position::new(1.0, 0.0) })
+                .with(LocationSpace {
+                    pos: Position::new(1.0, 0.0),
+                })
                 .with(Moveable { speed: Speed(1.5) })
                 .build();
 

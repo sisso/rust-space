@@ -1,9 +1,9 @@
 use specs::prelude::*;
 
-use super::*;
 use super::super::locations::*;
-use std::borrow::{Borrow, BorrowMut};
+use super::*;
 use crate::game::actions::*;
+use std::borrow::{Borrow, BorrowMut};
 
 ///
 /// Execute actions for each NavigationMoveto without Action
@@ -28,7 +28,9 @@ impl<'a> System<'a> for NavigationSystem {
         let mut completed = vec![];
         let mut requests = vec![];
 
-        for (entity, nav, _) in (&*data.entities, &mut data.navigation_move_to, !&data.action).join() {
+        for (entity, nav, _) in
+            (&*data.entities, &mut data.navigation_move_to, !&data.action).join()
+        {
             match nav.next() {
                 Some(action) => requests.push((entity, ActionRequest(action))),
                 None => completed.push(entity),
@@ -59,22 +61,24 @@ mod test {
 
     #[test]
     fn test_navigation_move_to_system_should_complete_when_path_is_empty() {
-        let (world, (entity, target)) =
-            test_system(NavigationSystem, |world| {
-                let target = world.create_entity()
-                    .build();
+        let (world, (entity, target)) = test_system(NavigationSystem, |world| {
+            let target = world.create_entity().build();
 
-                let entity = world.create_entity()
-                    .with(Navigation::MoveTo)
-                    .with(NavigationMoveTo { target: target, plan: NavigationPlan {
+            let entity = world
+                .create_entity()
+                .with(Navigation::MoveTo)
+                .with(NavigationMoveTo {
+                    target: target,
+                    plan: NavigationPlan {
                         target_sector_id: SectorId(0),
                         target_position: Position::new(0.0, 0.0),
-                        path: Default::default()
-                    } })
-                    .build();
+                        path: Default::default(),
+                    },
+                })
+                .build();
 
-                (entity, target)
-            });
+            (entity, target)
+        });
 
         let nav_storage = world.read_component::<Navigation>();
         assert!(nav_storage.get(entity).is_none());

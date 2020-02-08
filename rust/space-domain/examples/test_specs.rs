@@ -46,17 +46,17 @@ impl<'a> System<'a> for SysA {
 
 fn main() {
     let mut world = World::new();
-//    world.register::<Pos>();
-//    world.register::<Vel>();
-//
-//    // An entity may or may not contain some component.
-//
-//    world.create_entity().with(Vel(2.0)).with(Pos(0.0)).build();
-//    world.create_entity().with(Vel(4.0)).with(Pos(1.6)).build();
-//    world.create_entity().with(Vel(1.5)).with(Pos(5.4)).build();
-//
-//    // This entity does not have `Vel`, so it won't be dispatched.
-//    world.create_entity().with(Pos(2.0)).build();
+    //    world.register::<Pos>();
+    //    world.register::<Vel>();
+    //
+    //    // An entity may or may not contain some component.
+    //
+    //    world.create_entity().with(Vel(2.0)).with(Pos(0.0)).build();
+    //    world.create_entity().with(Vel(4.0)).with(Pos(1.6)).build();
+    //    world.create_entity().with(Vel(1.5)).with(Pos(5.4)).build();
+    //
+    //    // This entity does not have `Vel`, so it won't be dispatched.
+    //    world.create_entity().with(Pos(2.0)).build();
 
     // This builds a dispatcher.
     // The third parameter of `with` specifies

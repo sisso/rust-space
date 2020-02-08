@@ -1,8 +1,8 @@
+use crate::game::extractables::Extractable;
 use crate::game::locations::*;
+use crate::game::objects::ObjId;
 use crate::game::sectors::*;
 use crate::utils::*;
-use crate::game::extractables::Extractable;
-use crate::game::objects::ObjId;
 
 #[derive(Debug, Clone)]
 pub struct NewObj {
@@ -28,7 +28,7 @@ impl NewObj {
             location_dock: None,
             can_dock: false,
             has_dock: false,
-            ai: false
+            ai: false,
         }
     }
 

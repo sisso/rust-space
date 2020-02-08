@@ -3,20 +3,42 @@ use std::collections::{HashMap, HashSet};
 
 use rand::{Rng, RngCore};
 
-use crate::utils::{Speed};
+use crate::utils::Speed;
 
 use super::damages;
 use super::ship_internals::*;
 use crate::game::ship::damages::DamageToApply;
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub enum CombatLog {
-    NoTarget { id: ShipInstanceId },
-    Recharging { id: ShipInstanceId, weapon_id: ComponentId, wait_time: f32 },
-    Miss { id: ShipInstanceId, target_id: ShipInstanceId, weapon_id: ComponentId},
-    Hit { id: ShipInstanceId, target_id: ShipInstanceId, damage: Damage, weapon_id: ComponentId, armor_index: ArmorIndex, hull_damage: bool },
-    ComponentDestroy { id: ShipInstanceId, component_id: ComponentId },
-    ShipDestroyed { id: ShipInstanceId },
+    NoTarget {
+        id: ShipInstanceId,
+    },
+    Recharging {
+        id: ShipInstanceId,
+        weapon_id: ComponentId,
+        wait_time: f32,
+    },
+    Miss {
+        id: ShipInstanceId,
+        target_id: ShipInstanceId,
+        weapon_id: ComponentId,
+    },
+    Hit {
+        id: ShipInstanceId,
+        target_id: ShipInstanceId,
+        damage: Damage,
+        weapon_id: ComponentId,
+        armor_index: ArmorIndex,
+        hull_damage: bool,
+    },
+    ComponentDestroy {
+        id: ShipInstanceId,
+        component_id: ComponentId,
+    },
+    ShipDestroyed {
+        id: ShipInstanceId,
+    },
 }
 
 /// Short-lived context used to run single combat run
@@ -73,35 +95,40 @@ struct WeaponFire {
     target_id: ShipInstanceId,
 }
 
-pub struct Combat {
-
-}
+pub struct Combat {}
 
 impl Combat {
-
     pub fn execute(ctx: &mut CombatContext, logs: &mut Vec<CombatLog>) {
         let targets = Combat::acquire_targets(ctx, logs);
-        let fires = Combat::fire_weapons(ctx, logs,targets);
+        let fires = Combat::fire_weapons(ctx, logs, targets);
         let damages = Combat::compute_hits(ctx, logs, fires);
         damages::apply_damages(ctx.components, logs, &mut ctx.ships, damages);
     }
 
-    fn acquire_targets(ctx: &CombatContext, logs: &mut Vec<CombatLog>) -> HashMap<ShipInstanceId, ShipInstanceId> {
-        ctx.ships.iter()
+    fn acquire_targets(
+        ctx: &CombatContext,
+        logs: &mut Vec<CombatLog>,
+    ) -> HashMap<ShipInstanceId, ShipInstanceId> {
+        ctx.ships
+            .iter()
             .filter(|(_, ship)| !ship.wreck)
-            .flat_map(|(attacker_id, _)| {
-                match Combat::search_best_target(ctx, *attacker_id) {
+            .flat_map(
+                |(attacker_id, _)| match Combat::search_best_target(ctx, *attacker_id) {
                     Some(target_id) => Some((*attacker_id, target_id)),
                     None => {
                         logs.push(CombatLog::NoTarget { id: *attacker_id });
                         None
                     }
-                }
-            })
+                },
+            )
             .collect()
     }
 
-    fn fire_weapons(ctx: &mut CombatContext, logs: &mut Vec<CombatLog>, targeting: HashMap<ShipInstanceId, ShipInstanceId>) -> HashMap<ShipInstanceId, WeaponFire> {
+    fn fire_weapons(
+        ctx: &mut CombatContext,
+        logs: &mut Vec<CombatLog>,
+        targeting: HashMap<ShipInstanceId, ShipInstanceId>,
+    ) -> HashMap<ShipInstanceId, WeaponFire> {
         let mut result: HashMap<ShipInstanceId, WeaponFire> = HashMap::new();
 
         for (attacker_id, attacker) in ctx.ships.iter_mut() {
@@ -124,11 +151,19 @@ impl Combat {
                         (true, Some(target_id)) => {
                             weapon_state.recharge += weapon.reload;
 
-                            result.entry(*attacker_id)
+                            result
+                                .entry(*attacker_id)
                                 .and_modify(|weapon_fire| weapon_fire.weapons.push(weapon_id))
-                                .or_insert(WeaponFire { weapons: vec![weapon_id], target_id: *target_id });
-                        },
-                        (false, _) => logs.push(CombatLog::Recharging { id: *attacker_id, weapon_id: weapon_id, wait_time: weapon_state.recharge }),
+                                .or_insert(WeaponFire {
+                                    weapons: vec![weapon_id],
+                                    target_id: *target_id,
+                                });
+                        }
+                        (false, _) => logs.push(CombatLog::Recharging {
+                            id: *attacker_id,
+                            weapon_id: weapon_id,
+                            wait_time: weapon_state.recharge,
+                        }),
                         (true, None) => {}
                     }
                 }
@@ -138,7 +173,11 @@ impl Combat {
         result
     }
 
-    fn compute_hits(ctx: &CombatContext, logs: &mut Vec<CombatLog>, fires: HashMap<ShipInstanceId, WeaponFire>) -> Vec<DamageToApply> {
+    fn compute_hits(
+        ctx: &CombatContext,
+        logs: &mut Vec<CombatLog>,
+        fires: HashMap<ShipInstanceId, WeaponFire>,
+    ) -> Vec<DamageToApply> {
         let mut damages = vec![];
 
         for (attacker_id, attacker) in &ctx.ships {
@@ -152,7 +191,12 @@ impl Combat {
 
             for weapon_id in fire.weapons.iter() {
                 let weapon = ctx.components.get(&weapon_id).weapon.as_ref().unwrap();
-                let hit_chance = Combat::compute_hit_chance(weapon, attacker.current_stats.speed, defender.current_stats.total_width, defender.current_stats.speed);
+                let hit_chance = Combat::compute_hit_chance(
+                    weapon,
+                    attacker.current_stats.speed,
+                    defender.current_stats.total_width,
+                    defender.current_stats.speed,
+                );
 
                 for _ in 0..weapon.rounds {
                     if Combat::roll(hit_chance) {
@@ -167,7 +211,7 @@ impl Combat {
                         logs.push(CombatLog::Miss {
                             id: *attacker_id,
                             target_id,
-                            weapon_id: *weapon_id
+                            weapon_id: *weapon_id,
                         });
                     }
                 }
@@ -179,7 +223,12 @@ impl Combat {
 
     // TODO: the ration should not be speed speed, but tracking speed vs difference in speed
     /// =POW(0.5, B12/A12)+POW(0.1, 100 /C12)
-    fn compute_hit_chance(weapon: &Weapon, attack_speed: Speed, target_width: u32, target_speed: Speed) -> f32 {
+    fn compute_hit_chance(
+        weapon: &Weapon,
+        attack_speed: Speed,
+        target_width: u32,
+        target_speed: Speed,
+    ) -> f32 {
         let speed_ration: f32 = 0.5_f32.powf(target_speed.0 / attack_speed.0);
         let size_bonus: f32 = 0.1_f32.powf(100.0 / target_width as f32);
         let value = speed_ration + size_bonus;
@@ -197,20 +246,22 @@ impl Combat {
         value <= chance
     }
 
-    fn search_best_target(ctx: &CombatContext, attacker_id: ShipInstanceId) -> Option<ShipInstanceId> {
+    fn search_best_target(
+        ctx: &CombatContext,
+        attacker_id: ShipInstanceId,
+    ) -> Option<ShipInstanceId> {
         let team_id = ctx.ships.get(&attacker_id).unwrap().team_id;
 
-        let mut candidates = ctx.ships.iter()
+        let mut candidates = ctx
+            .ships
+            .iter()
             .filter(|(id, other)| other.team_id != team_id)
             .map(|(id, other)| (*id, ctx.distances.get(&(attacker_id, *id)).unwrap()))
             .collect::<Vec<_>>();
 
         candidates.sort_unstable_by(|a, b| a.1.partial_cmp(b.1).unwrap());
 
-        candidates
-            .into_iter()
-            .map(|(id, _)| id)
-            .next()
+        candidates.into_iter().map(|(id, _)| id).next()
     }
 
     fn roll_order(ships: &HashMap<ShipInstanceId, &mut ShipInstance>) -> Vec<ShipInstanceId> {
@@ -229,10 +280,15 @@ mod tests {
                 damage: Damage(1),
                 reload: 1.0,
                 rounds: 1,
-                damage_type: WeaponDamageType::Explosive
+                damage_type: WeaponDamageType::Explosive,
             };
 
-            let hit_chance = Combat::compute_hit_chance(&weapon, Speed(attack_speed), target_width, Speed(target_speed));
+            let hit_chance = Combat::compute_hit_chance(
+                &weapon,
+                Speed(attack_speed),
+                target_width,
+                Speed(target_speed),
+            );
             assert_eq!(hit_chance, expected);
         }
 

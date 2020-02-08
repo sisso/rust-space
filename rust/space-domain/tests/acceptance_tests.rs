@@ -1,32 +1,30 @@
 extern crate space_domain;
 
-use space_domain::game::Game;
-use space_domain::utils::{DeltaTime, TotalTime, V2, Speed};
-use space_domain::game::sectors::SectorId;
-use space_domain::game::objects::ObjId;
-use space_domain::game::new_obj::NewObj;
 use space_domain::game::extractables::Extractable;
-use space_domain::game::wares::WareId;
-use space_domain::game::sectors::test_scenery;
-use specs::WorldExt;
 use space_domain::game::locations::{LocationSector, LocationSpace};
-use std::borrow::Borrow;
-use space_domain::test::assert_v2;
 use space_domain::game::navigations::Navigation;
+use space_domain::game::new_obj::NewObj;
+use space_domain::game::objects::ObjId;
+use space_domain::game::sectors::test_scenery;
+use space_domain::game::sectors::SectorId;
+use space_domain::game::wares::WareId;
+use space_domain::game::Game;
+use space_domain::test::assert_v2;
+use space_domain::utils::{DeltaTime, Speed, TotalTime, V2};
+use specs::WorldExt;
+use std::borrow::Borrow;
 
 const WARE_ORE: WareId = WareId(0);
 
 fn new_asteroid(game: &mut Game, sector_id: SectorId, pos: V2) -> ObjId {
     game.add_object(
         NewObj::new()
-            .extractable(
-                Extractable {
-                    ware_id: WARE_ORE,
-                    time: DeltaTime(1.5),
-                }
-            )
+            .extractable(Extractable {
+                ware_id: WARE_ORE,
+                time: DeltaTime(1.5),
+            })
             .at_sector(sector_id)
-            .at_position(pos)
+            .at_position(pos),
     )
 }
 
@@ -36,7 +34,7 @@ fn new_station(game: &mut Game, sector_id: SectorId, pos: V2) -> ObjId {
             .with_cargo(100.0)
             .at_sector(sector_id)
             .at_position(pos)
-            .has_dock()
+            .has_dock(),
     )
 }
 
@@ -48,7 +46,7 @@ fn new_ship_miner(game: &mut Game, sector_id: SectorId, docked_at: ObjId, speed:
             .at_sector(sector_id)
             .at_dock(docked_at)
             .can_dock()
-            .with_ai()
+            .with_ai(),
     )
 }
 
@@ -82,8 +80,20 @@ fn test_game_should_run() {
         game.tick(delta);
     }
 
-    let sector_id = game.world.read_storage::<LocationSector>().borrow().get(ship_id).unwrap().sector_id;
-    let pos = game.world.read_storage::<LocationSpace>().borrow().get(ship_id).unwrap().pos;
+    let sector_id = game
+        .world
+        .read_storage::<LocationSector>()
+        .borrow()
+        .get(ship_id)
+        .unwrap()
+        .sector_id;
+    let pos = game
+        .world
+        .read_storage::<LocationSpace>()
+        .borrow()
+        .get(ship_id)
+        .unwrap()
+        .pos;
     assert_eq!(sector_id, test_scenery::SECTOR_1);
     assert_v2(pos, V2::new(-5.0, 5.0));
 }

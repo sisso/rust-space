@@ -1,7 +1,7 @@
 use specs::prelude::*;
 
-use std::collections::{HashMap, BTreeMap, HashSet};
 use serde_json::{json, Value};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use crate::utils::*;
 
@@ -9,10 +9,10 @@ use super::objects::ObjId;
 use crate::game::jsons::JsonValueExtra;
 use std::borrow::Borrow;
 
-#[derive(Clone,Copy,PartialEq,Eq,Hash,Debug,PartialOrd,Ord)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
 pub struct WareId(pub u32);
 
-#[derive(Debug,Clone,Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct WareAmount(pub WareId, pub f32);
 
 #[derive(Debug, Clone, Component)]
@@ -50,7 +50,7 @@ impl Cargo {
         }
     }
 
-    pub fn remove(&mut self, ware_id: WareId, amount: f32) -> Result<(),()> {
+    pub fn remove(&mut self, ware_id: WareId, amount: f32) -> Result<(), ()> {
         let ware_amount = *self.wares.get(&ware_id).unwrap_or(&0.0);
         if ware_amount < amount {
             return Result::Err(());
@@ -66,7 +66,7 @@ impl Cargo {
         Result::Ok(())
     }
 
-    pub fn add(&mut self, ware_id: WareId, amount: f32) -> Result<(),()> {
+    pub fn add(&mut self, ware_id: WareId, amount: f32) -> Result<(), ()> {
         if self.free_space() < amount {
             return Result::Err(());
         }
@@ -80,10 +80,8 @@ impl Cargo {
 
     /// Add all cargo possible from to.
     pub fn add_to_max(&mut self, ware_id: WareId, amount: f32) -> f32 {
-        let to_add  = amount.min(self.free_space());
-        self.add(ware_id, to_add)
-            .map(|i| to_add)
-            .unwrap_or(0.0)
+        let to_add = amount.min(self.free_space());
+        self.add(ware_id, to_add).map(|i| to_add).unwrap_or(0.0)
     }
 
     /// Clear cargo only, leave configuration
@@ -117,8 +115,7 @@ pub struct Cargos;
 
 impl Cargos {
     pub fn new() -> Self {
-        Cargos {
-        }
+        Cargos {}
     }
 
     pub fn init_world(world: &mut World, dispatcher: &mut DispatcherBuilder) {
@@ -128,11 +125,11 @@ impl Cargos {
     pub fn move_all(from: &ObjId, to: &ObjId) {
         unimplemented!();
 
-//        let mut cargo_to= self.index.remove(to).unwrap();
-//        let cargo_from = self.index.get_mut(from).unwrap();
-//        Cargo::move_all_to_max(&mut cargo_from.cargo, &mut cargo_to.cargo);
-//        self.index.insert(*to, cargo_to);
-//        info!("Cargos", &format!("move_all {:?} to {:?}, new cargos {:?} and {:?}", from, to, self.index.get(from), self.index.get(to)));
+        //        let mut cargo_to= self.index.remove(to).unwrap();
+        //        let cargo_from = self.index.get_mut(from).unwrap();
+        //        Cargo::move_all_to_max(&mut cargo_from.cargo, &mut cargo_to.cargo);
+        //        self.index.insert(*to, cargo_to);
+        //        info!("Cargos", &format!("move_all {:?} to {:?}, new cargos {:?} and {:?}", from, to, self.index.get(from), self.index.get(to)));
     }
 }
 

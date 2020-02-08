@@ -1,10 +1,10 @@
+use crate::utils::*;
 use specs::prelude::*;
 use std::collections::HashMap;
-use crate::utils::*;
 
 pub type ObjId = Entity;
 
-#[derive(Debug,Copy,Clone,Component)]
+#[derive(Debug, Copy, Clone, Component)]
 pub struct HasDock;
 
 pub struct Objects;

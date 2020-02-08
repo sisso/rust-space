@@ -1,3 +1,4 @@
+use shred::{Read, ResourceId, SystemData, World, Write};
 ///
 /// System plans:
 ///
@@ -13,17 +14,15 @@
 /// - deliver cargo
 ///
 ///
-
 use specs::prelude::*;
-use shred::{Read, ResourceId, SystemData, World, Write};
 use specs_derive::*;
 
 use super::*;
-use crate::game::locations::{LocationDock, LocationSector, EntityPerSectorIndex};
-use std::borrow::{Borrow, BorrowMut};
 use crate::game::extractables::Extractable;
-use crate::game::navigations::{Navigation, NavigationMoveTo, Navigations, NavRequest};
+use crate::game::locations::{EntityPerSectorIndex, LocationDock, LocationSector};
+use crate::game::navigations::{NavRequest, Navigation, NavigationMoveTo, Navigations};
 use crate::game::wares::Cargo;
+use std::borrow::{Borrow, BorrowMut};
 
 pub struct CommandMineSystem;
 
@@ -54,7 +53,15 @@ impl<'a> System<'a> for CommandMineSystem {
             extractables.push(entity);
         }
 
-        for (entity, command, sector_id, cargo, nav, mining) in (&data.entities, &mut data.commands_mine, &data.locations_sector_id, &data.cargos, data.navigation.maybe(), data.navigation.maybe()).join()
+        for (entity, command, sector_id, cargo, nav, mining) in (
+            &data.entities,
+            &mut data.commands_mine,
+            &data.locations_sector_id,
+            &data.cargos,
+            data.navigation.maybe(),
+            data.navigation.maybe(),
+        )
+            .join()
         {
             // deliver for full cargo
             if cargo.is_full() {
@@ -80,7 +87,12 @@ impl<'a> System<'a> for CommandMineSystem {
     }
 }
 
-fn search_mine_target(sectors_index: &EntityPerSectorIndex, entity: Entity, command: &mut CommandMine, sector_id: SectorId) {
+fn search_mine_target(
+    sectors_index: &EntityPerSectorIndex,
+    entity: Entity,
+    command: &mut CommandMine,
+    sector_id: SectorId,
+) {
     // find nearest extractable
     let candidates = sectors_index.list_extractables();
     let target_id = candidates.iter().next().unwrap();
@@ -117,28 +129,36 @@ impl<'a> System<'a> for SearchMineTargetsSystem {
 
         let mut selected = vec![];
 
-        for (entity, _, _, location_sector_id) in (&data.entities, &data.commands_mine, !&data.commands_mine_target, &data.locations_sector_id).join() {
+        for (entity, _, _, location_sector_id) in (
+            &data.entities,
+            &data.commands_mine,
+            !&data.commands_mine_target,
+            &data.locations_sector_id,
+        )
+            .join()
+        {
             let sector_id = location_sector_id.sector_id;
 
             // TODO: search for nearest
-            let target: &ObjId = extractables.iter()
-                .next()
-                .unwrap();
+            let target: &ObjId = extractables.iter().next().unwrap();
 
             // set mine command
             let command = CommandMineTargetState {
-                target_id: target.clone()
+                target_id: target.clone(),
             };
 
             let request = NavRequest::MoveToTarget {
-                target: target.clone()
+                target: target.clone(),
             };
 
             selected.push((entity, command, request));
         }
 
         for (entity, state, request) in selected {
-            info!("{:?} setting mine target to {:?} and request navigation {:?}", entity, state, request);
+            info!(
+                "{:?} setting mine target to {:?} and request navigation {:?}",
+                entity, state, request
+            );
             data.commands_mine_target.insert(entity, state).unwrap();
             data.nav_request.insert(entity, request).unwrap();
         }
@@ -156,7 +176,7 @@ pub struct MineTargetData<'a> {
     nav: ReadStorage<'a, Navigation>,
     nav_request: WriteStorage<'a, NavRequest>,
     location_space: ReadStorage<'a, LocationSpace>,
-//    action_extract: WriteStorage<'a, ActionExtract>,
+    //    action_extract: WriteStorage<'a, ActionExtract>,
 }
 
 impl<'a> System<'a> for MineTargetSystem {
@@ -165,8 +185,15 @@ impl<'a> System<'a> for MineTargetSystem {
     fn run(&mut self, mut data: MineTargetData) {
         trace!("running");
 
-        for (entity, _, mine_target, _) in (&data.entities, &data.commands_mine, &data.commands_mine_target, !&data.nav).join() {
-//            let target_pos = data.location_space.borrow().get(mine_target.target_id);
+        for (entity, _, mine_target, _) in (
+            &data.entities,
+            &data.commands_mine,
+            &data.commands_mine_target,
+            !&data.nav,
+        )
+            .join()
+        {
+            //            let target_pos = data.location_space.borrow().get(mine_target.target_id);
 
             // if is near, mine
 
@@ -178,12 +205,12 @@ impl<'a> System<'a> for MineTargetSystem {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::game::locations::LocationSector;
     use crate::game::sectors::test_scenery;
     use crate::game::sectors::test_scenery::{SECTOR_0, SECTOR_1};
-    use specs::DispatcherBuilder;
     use crate::game::wares::WareId;
-    use crate::game::locations::LocationSector;
     use crate::test::test_system;
+    use specs::DispatcherBuilder;
 
     struct SceneryRequest {}
 
@@ -193,37 +220,39 @@ mod test {
     }
 
     const WARE_0: WareId = WareId(0);
-    const EXTRACTABLE: Extractable = Extractable { ware_id: WARE_0, time: DeltaTime(1.0) };
+    const EXTRACTABLE: Extractable = Extractable {
+        ware_id: WARE_0,
+        time: DeltaTime(1.0),
+    };
 
     fn setup_scenery(world: &mut World) -> SceneryResult {
-        let asteroid =
-            world.create_entity()
-                .with(LocationSector { sector_id: SECTOR_1 })
-                .with(EXTRACTABLE)
-                .build();
+        let asteroid = world
+            .create_entity()
+            .with(LocationSector {
+                sector_id: SECTOR_1,
+            })
+            .with(EXTRACTABLE)
+            .build();
 
-        let miner =
-            world.create_entity()
-                .with(LocationSector { sector_id: SECTOR_0 })
-                .with(CommandMine::new())
-                .build();
+        let miner = world
+            .create_entity()
+            .with(LocationSector {
+                sector_id: SECTOR_0,
+            })
+            .with(CommandMine::new())
+            .build();
 
         // TODO: use index
-//        let mut entitys_per_sector = EntityPerSectorIndex::new();
-//        entitys_per_sector.add_extractable(SECTOR_1, asteroid);
-//        world.insert(entitys_per_sector);
+        //        let mut entitys_per_sector = EntityPerSectorIndex::new();
+        //        entitys_per_sector.add_extractable(SECTOR_1, asteroid);
+        //        world.insert(entitys_per_sector);
 
-        SceneryResult {
-            miner,
-            asteroid,
-        }
+        SceneryResult { miner, asteroid }
     }
 
     #[test]
     fn test_command_mine_should_setup_navigation() {
-        let (world, scenery) = test_system(SearchMineTargetsSystem, |world| {
-            setup_scenery(world)
-        });
+        let (world, scenery) = test_system(SearchMineTargetsSystem, |world| setup_scenery(world));
 
         let command_storage = world.read_component::<CommandMineTargetState>();
         let command = command_storage.get(scenery.miner);
@@ -248,26 +277,31 @@ mod test {
     #[test]
     fn test_command_mine_should_mine() {
         let (world, scenery) = test_system(SearchMineTargetsSystem, |world| {
-            let asteroid =
-                world.create_entity()
-                    .with(LocationSector { sector_id: SECTOR_0 })
-                    .with(LocationSpace { pos: V2::new(0.0, 0.0) })
-                    .with(EXTRACTABLE)
-                    .build();
+            let asteroid = world
+                .create_entity()
+                .with(LocationSector {
+                    sector_id: SECTOR_0,
+                })
+                .with(LocationSpace {
+                    pos: V2::new(0.0, 0.0),
+                })
+                .with(EXTRACTABLE)
+                .build();
 
-            let miner =
-                world.create_entity()
-                    .with(LocationSector { sector_id: SECTOR_0 })
-                    .with(LocationSpace { pos: V2::new(0.01, 0.0) })
-                    .with(CommandMine::new())
-                    .build();
+            let miner = world
+                .create_entity()
+                .with(LocationSector {
+                    sector_id: SECTOR_0,
+                })
+                .with(LocationSpace {
+                    pos: V2::new(0.01, 0.0),
+                })
+                .with(CommandMine::new())
+                .build();
 
-            SceneryResult {
-                miner,
-                asteroid,
-            }
+            SceneryResult { miner, asteroid }
         });
 
-//        world.read_component::<CommandMine>
+        //        world.read_component::<CommandMine>
     }
 }

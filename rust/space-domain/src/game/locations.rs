@@ -12,25 +12,25 @@ use crate::game::locations::index_per_sector_system::*;
 
 #[derive(Debug, Clone, Component)]
 pub struct LocationSpace {
-    pub pos: Position
+    pub pos: Position,
 }
 
 #[derive(Debug, Clone, Component)]
 pub struct LocationDock {
-    pub docked_id: ObjId
+    pub docked_id: ObjId,
 }
 
 #[derive(Debug, Clone, Component)]
 pub struct LocationSector {
-    pub sector_id: SectorId
+    pub sector_id: SectorId,
 }
 
 #[derive(Debug, Clone, Component)]
 pub struct Moveable {
-    pub speed: Speed
+    pub speed: Speed,
 }
 
-#[derive(Clone,Debug,Default,Component)]
+#[derive(Clone, Debug, Default, Component)]
 pub struct EntityPerSectorIndex {
     pub index: HashMap<SectorId, Vec<ObjId>>,
     pub index_extractables: HashMap<SectorId, Vec<ObjId>>,
@@ -50,18 +50,20 @@ impl EntityPerSectorIndex {
     }
 
     pub fn add(&mut self, sector_id: SectorId, obj_id: ObjId) {
-        self.index.entry(sector_id)
+        self.index
+            .entry(sector_id)
             .and_modify(|list| list.push(obj_id))
             .or_insert(vec![obj_id]);
     }
 
     pub fn add_extractable(&mut self, sector_id: SectorId, obj_id: ObjId) {
-        self.index_extractables.entry(sector_id)
+        self.index_extractables
+            .entry(sector_id)
             .and_modify(|list| list.push(obj_id))
             .or_insert(vec![obj_id]);
     }
 
-    pub fn list_extractables(&self)-> Vec<(SectorId, ObjId)> {
+    pub fn list_extractables(&self) -> Vec<(SectorId, ObjId)> {
         unimplemented!()
     }
 
@@ -70,20 +72,16 @@ impl EntityPerSectorIndex {
     }
 }
 
-pub struct Locations {
-}
+pub struct Locations {}
 
 impl Locations {
     pub fn new() -> Self {
-        Locations {
-        }
+        Locations {}
     }
 
     pub fn init_world(world: &mut World, dispatcher: &mut DispatcherBuilder) {
         dispatcher.add(IndexPerSectorSystem, "index_by_sector", &[]);
     }
 
-    pub fn execute(&mut self, world: &mut World) {
-
-    }
+    pub fn execute(&mut self, world: &mut World) {}
 }

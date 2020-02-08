@@ -4,7 +4,7 @@ use crate::game::objects::ObjId;
 pub enum EventKind {
     Add,
     Move,
-    Jump
+    Jump,
 }
 
 #[derive(Debug, Clone)]
@@ -20,14 +20,12 @@ impl ObjEvent {
 }
 
 pub struct Events {
-    obj_events: Vec<ObjEvent>
+    obj_events: Vec<ObjEvent>,
 }
 
 impl Events {
     pub fn new() -> Self {
-        Events {
-            obj_events: vec![]
-        }
+        Events { obj_events: vec![] }
     }
 
     pub fn add_obj_event(&mut self, e: ObjEvent) {

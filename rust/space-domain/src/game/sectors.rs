@@ -13,9 +13,7 @@ use crate::game::save::{Load, Save};
 use crate::utils::*;
 
 #[derive(Debug, Clone, Component)]
-pub struct SectorsIndex {
-
-}
+pub struct SectorsIndex {}
 
 impl Default for SectorsIndex {
     fn default() -> Self {
@@ -24,12 +22,10 @@ impl Default for SectorsIndex {
 }
 
 impl SectorsIndex {
-    pub fn add_jump(&mut self, sector_1: SectorId, sector_2: SectorId) {
-
-    }
+    pub fn add_jump(&mut self, sector_1: SectorId, sector_2: SectorId) {}
 }
 
-#[derive(Clone,Debug,Serialize,Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Jump {
     pub id: JumpId,
     pub sector_id: SectorId,
@@ -38,10 +34,10 @@ pub struct Jump {
     pub to_pos: Position,
 }
 
-#[derive(Clone,Copy,PartialEq,Eq,Hash,Debug,Serialize,Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 pub struct SectorId(pub u32);
 
-#[derive(Clone,Copy,PartialEq,Eq,Hash,Debug,Serialize,Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 pub struct JumpId(pub u32);
 
 impl SectorId {
@@ -50,7 +46,7 @@ impl SectorId {
     }
 }
 
-#[derive(Clone,Debug,Serialize,Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Sector {
     pub id: SectorId,
 }
@@ -73,7 +69,7 @@ impl Sectors {
         Sectors {
             sectors: HashMap::new(),
             jumps: Default::default(),
-            jumps_by_sector: Default::default()
+            jumps_by_sector: Default::default(),
         }
     }
 
@@ -100,10 +96,7 @@ impl Sectors {
     }
 
     pub fn list<'a>(&self) -> Vec<SectorId> {
-        self.sectors.keys()
-            .into_iter()
-            .map(|i| *i)
-            .collect()
+        self.sectors.keys().into_iter().map(|i| *i).collect()
     }
 
     pub fn find_jump(&self, from: SectorId, to: SectorId) -> Option<&Jump> {
@@ -121,9 +114,11 @@ impl Sectors {
     }
 
     pub fn get_jumps(&self, sector_id: SectorId) -> Vec<&Jump> {
-        self.jumps_by_sector.get(&sector_id)
+        self.jumps_by_sector
+            .get(&sector_id)
             .map(|jumps| {
-                jumps.iter()
+                jumps
+                    .iter()
                     .flat_map(|jump_id| self.jumps.get(jump_id))
                     .collect()
             })
@@ -187,9 +182,9 @@ pub mod test_scenery {
 
 #[cfg(test)]
 mod test {
-    use crate::game::save::LoadSaveBuffer;
-    use super::*;
     use super::test_scenery::*;
+    use super::*;
+    use crate::game::save::LoadSaveBuffer;
 
     #[test]
     fn test_sectors() {
@@ -204,7 +199,7 @@ mod test {
                 sector_id: SectorId(0),
                 pos: V2 { x: 0.0, y: 5.0 },
                 to_sector_id: SectorId(1),
-                to_pos: V2 { x: 3.1, y: 2.2 }
+                to_pos: V2 { x: 3.1, y: 2.2 },
             });
             sectors.save(&mut buffer);
         }

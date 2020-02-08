@@ -5,23 +5,22 @@
 /// - convert request into current actions
 /// - execute actions
 ///
-
 use specs::prelude::*;
 
-use crate::utils::{Position, Seconds, DeltaTime, TotalTime};
 use super::objects::ObjId;
-use crate::game::sectors::JumpId;
-use crate::game::actions::action_request_handler_system::ActionRequestHandlerSystem;
-use crate::game::actions::action_move_to_system::ActionMoveToSystem;
 use crate::game::actions::action_dock_system::DockSystem;
 use crate::game::actions::action_jump_system::ActionJumpSystem;
+use crate::game::actions::action_move_to_system::ActionMoveToSystem;
+use crate::game::actions::action_request_handler_system::ActionRequestHandlerSystem;
 use crate::game::actions::action_undock_system::UndockSystem;
+use crate::game::sectors::JumpId;
+use crate::utils::{DeltaTime, Position, Seconds, TotalTime};
 
+mod action_dock_system;
+mod action_jump_system;
+mod action_move_to_system;
 mod action_request_handler_system;
 mod action_undock_system;
-mod action_move_to_system;
-mod action_jump_system;
-mod action_dock_system;
 
 pub const ACTION_JUMP_TOTAL_TIME: DeltaTime = DeltaTime(2.0);
 
@@ -30,7 +29,7 @@ pub enum Action {
     Undock,
     Jump { jump_id: JumpId },
     Dock { target_id: ObjId },
-    MoveTo { pos: Position }
+    MoveTo { pos: Position },
 }
 
 #[derive(Debug, Clone, Component)]
@@ -48,7 +47,7 @@ impl ActionRequest {
 }
 
 #[derive(Debug, Clone, Component)]
-pub struct ActionActive(pub  Action);
+pub struct ActionActive(pub Action);
 
 impl ActionActive {
     pub fn get_action(&self) -> &Action {
@@ -71,29 +70,40 @@ pub struct ActionJump {
 
 impl ActionJump {
     pub fn new() -> Self {
-        ActionJump { complete_time: None}
+        ActionJump {
+            complete_time: None,
+        }
     }
 }
 
 #[derive(Debug, Clone, Component)]
 pub struct ActionMine;
 
-#[derive(Clone,Debug)]
-pub struct Actions {
-
-}
+#[derive(Clone, Debug)]
+pub struct Actions {}
 
 impl Actions {
     pub fn init_world(world: &mut World, dispatcher: &mut DispatcherBuilder) {
         dispatcher.add(ActionRequestHandlerSystem, "action_request_handler", &[]);
-        dispatcher.add(ActionMoveToSystem, "action_move_to", &["action_request_handler"]);
+        dispatcher.add(
+            ActionMoveToSystem,
+            "action_move_to",
+            &["action_request_handler"],
+        );
         dispatcher.add(DockSystem, "action_dock_to", &["action_request_handler"]);
-        dispatcher.add(UndockSystem, "action_undock_to", &["action_request_handler"]);
-        dispatcher.add(ActionJumpSystem, "action_jump_to", &["action_request_handler"]);
+        dispatcher.add(
+            UndockSystem,
+            "action_undock_to",
+            &["action_request_handler"],
+        );
+        dispatcher.add(
+            ActionJumpSystem,
+            "action_jump_to",
+            &["action_request_handler"],
+        );
     }
 
     pub fn new() -> Self {
-        Actions {
-        }
+        Actions {}
     }
 }

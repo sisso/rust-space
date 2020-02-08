@@ -1,10 +1,10 @@
 use specs::prelude::*;
 
-use super::*;
 use super::super::locations::*;
-use std::borrow::{Borrow, BorrowMut};
+use super::*;
 use crate::game::actions::*;
 use crate::game::objects::HasDock;
+use std::borrow::{Borrow, BorrowMut};
 
 pub struct DockSystem;
 
@@ -32,7 +32,12 @@ impl<'a> System<'a> for DockSystem {
             };
 
             debug!("{:?} docked at {:?}", entity, target_id);
-            processed.push((entity, LocationDock { docked_id: target_id } ));
+            processed.push((
+                entity,
+                LocationDock {
+                    docked_id: target_id,
+                },
+            ));
         }
 
         for (entity, location) in processed {
@@ -46,23 +51,29 @@ impl<'a> System<'a> for DockSystem {
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use super::super::*;
-    use crate::test::{test_system, assert_v2};
+    use super::*;
+    use crate::test::{assert_v2, test_system};
 
     #[test]
     fn test_dock_system_should_dock() {
         let (world, (entity, station)) = test_system(DockSystem, |world| {
             let station_position = Position::new(0.0, 0.0);
 
-            let station = world.create_entity()
-                .with(LocationSpace { pos: station_position })
+            let station = world
+                .create_entity()
+                .with(LocationSpace {
+                    pos: station_position,
+                })
                 .build();
 
-            let entity = world.create_entity()
+            let entity = world
+                .create_entity()
                 .with(ActionActive(Action::Dock { target_id: station }))
                 .with(ActionDock)
-                .with(LocationSpace { pos: station_position })
+                .with(LocationSpace {
+                    pos: station_position,
+                })
                 .build();
 
             (entity, station)
@@ -72,10 +83,8 @@ mod test {
         assert!(world.read_storage::<ActionDock>().get(entity).is_none());
         let storage = world.read_storage::<LocationDock>();
         match storage.get(entity) {
-            Some(LocationDock { docked_id }) => {
-                assert_eq!(*docked_id, station)
-            },
-            _ => panic!()
+            Some(LocationDock { docked_id }) => assert_eq!(*docked_id, station),
+            _ => panic!(),
         }
     }
 }

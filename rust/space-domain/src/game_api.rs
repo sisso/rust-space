@@ -1,11 +1,10 @@
-#[allow(dead_code)]
-
-use crate::game::Game;
-use std::time::Duration;
-use crate::utils::{Seconds, V2, DeltaTime, TotalTime};
 use crate::game::events::{EventKind, Events, ObjEvent};
+#[allow(dead_code)]
+use crate::game::Game;
 use crate::space_outputs_generated::space_data;
+use crate::utils::{DeltaTime, Seconds, TotalTime, V2};
 use flatbuffers::FlatBufferBuilder;
+use std::time::Duration;
 
 pub struct GameApi<'a, 'b> {
     game: Game<'a, 'b>,
@@ -25,7 +24,7 @@ impl From<&V2> for space_data::V2 {
 }
 
 /// Represent same interface we intend to use through FFI
-impl <'a, 'b> GameApi<'a, 'b> {
+impl<'a, 'b> GameApi<'a, 'b> {
     pub fn new() -> Self {
         GameApi {
             game: Game::new(),
@@ -34,7 +33,7 @@ impl <'a, 'b> GameApi<'a, 'b> {
     }
 
     pub fn new_game(&mut self) {
-//        crate::local_game::init_new_game(&mut self.game);
+        //        crate::local_game::init_new_game(&mut self.game);
     }
 
     pub fn update(&mut self, elapsed: Duration) {
@@ -46,71 +45,74 @@ impl <'a, 'b> GameApi<'a, 'b> {
         false
     }
 
-    pub fn get_inputs<F>(&mut self, callback: F) -> bool where F: FnOnce(Vec<u8>) {
-//        info!("game_api", "get_inputs");
-//        let events = self.game.events.take();
-//
-//        let mut builder = OutpusBuilder::new();
-//
-//        if self.first_outputs {
-//            self.first_outputs = false;
-//
-//            for sector_id in self.game.sectors.list() {
-//                builder.sectors_new.push(space_data::SectorNew::new(sector_id.value()));
-//            }
-//
-//            for jump in self.game.sectors.list_jumps() {
-//                builder.jumps_new.push(space_data::JumpNew::new(
-//                    jump.id.0,
-//                    jump.sector_id.0,
-//                    &jump.pos.into(),
-//                    jump.to_sector_id.0,
-//                    &jump.to_pos.into()
-//                ));
-//            }
-//        }
-//
-//        // process events
-//        for event in events {
-//            match event.kind {
-//                EventKind::Add => {
-//                    let kind =
-//                        if self.game.extractables.get_extractable(&event.id).is_some() {
-//                            space_data::EntityKind::Asteroid
-//                        } else if self.game.objects.get(&event.id).has_dock {
-//                            space_data::EntityKind::Station
-//                        } else {
-//                            space_data::EntityKind::Fleet
-//                        };
-//
-//                    match self.game.locations.get_location(&event.id) {
-//                        Some(Location::Space { sector_id, pos} ) => {
-//                            builder.push_entity_new(event.id.value(), pos.into(), sector_id.value(), kind);
-//                        },
-//                        Some(Location::Docked { docked_id } ) => {
-//                            let docked_location = self.game.locations.get_location(docked_id).unwrap().get_space();
-//                            builder.push_entity_new(event.id.value(), docked_location.pos.into(), docked_location.sector_id.value(), kind);
-//                        },
-//                        None => {
-//                            warn!("game_api", "Added {:?}, but has no location", event);
-//                        }
-//                    }
-//                }
-//                EventKind::Jump => {
-//                    let location = self.game.locations.get_location(&event.id).unwrap().get_space();
-//                    builder.push_entity_jump(event.id.value(), location.sector_id.value(), location.pos.into());
-//                },
-//                EventKind::Move => {
-//                    let location = self.game.locations.get_location(&event.id).unwrap().get_space();
-//                    builder.push_entity_move(event.id.value(), location.pos.into());
-//                }
-//            }
-//        }
-//
-//        let bytes = builder.finish();
-//        // TODO: remove copy
-//        callback(Vec::from(bytes));
-//        true
+    pub fn get_inputs<F>(&mut self, callback: F) -> bool
+    where
+        F: FnOnce(Vec<u8>),
+    {
+        //        info!("game_api", "get_inputs");
+        //        let events = self.game.events.take();
+        //
+        //        let mut builder = OutpusBuilder::new();
+        //
+        //        if self.first_outputs {
+        //            self.first_outputs = false;
+        //
+        //            for sector_id in self.game.sectors.list() {
+        //                builder.sectors_new.push(space_data::SectorNew::new(sector_id.value()));
+        //            }
+        //
+        //            for jump in self.game.sectors.list_jumps() {
+        //                builder.jumps_new.push(space_data::JumpNew::new(
+        //                    jump.id.0,
+        //                    jump.sector_id.0,
+        //                    &jump.pos.into(),
+        //                    jump.to_sector_id.0,
+        //                    &jump.to_pos.into()
+        //                ));
+        //            }
+        //        }
+        //
+        //        // process events
+        //        for event in events {
+        //            match event.kind {
+        //                EventKind::Add => {
+        //                    let kind =
+        //                        if self.game.extractables.get_extractable(&event.id).is_some() {
+        //                            space_data::EntityKind::Asteroid
+        //                        } else if self.game.objects.get(&event.id).has_dock {
+        //                            space_data::EntityKind::Station
+        //                        } else {
+        //                            space_data::EntityKind::Fleet
+        //                        };
+        //
+        //                    match self.game.locations.get_location(&event.id) {
+        //                        Some(Location::Space { sector_id, pos} ) => {
+        //                            builder.push_entity_new(event.id.value(), pos.into(), sector_id.value(), kind);
+        //                        },
+        //                        Some(Location::Docked { docked_id } ) => {
+        //                            let docked_location = self.game.locations.get_location(docked_id).unwrap().get_space();
+        //                            builder.push_entity_new(event.id.value(), docked_location.pos.into(), docked_location.sector_id.value(), kind);
+        //                        },
+        //                        None => {
+        //                            warn!("game_api", "Added {:?}, but has no location", event);
+        //                        }
+        //                    }
+        //                }
+        //                EventKind::Jump => {
+        //                    let location = self.game.locations.get_location(&event.id).unwrap().get_space();
+        //                    builder.push_entity_jump(event.id.value(), location.sector_id.value(), location.pos.into());
+        //                },
+        //                EventKind::Move => {
+        //                    let location = self.game.locations.get_location(&event.id).unwrap().get_space();
+        //                    builder.push_entity_move(event.id.value(), location.pos.into());
+        //                }
+        //            }
+        //        }
+        //
+        //        let bytes = builder.finish();
+        //        // TODO: remove copy
+        //        callback(Vec::from(bytes));
+        //        true
         false
     }
 }
@@ -134,32 +136,29 @@ impl<'a> OutpusBuilder<'a> {
             entities_moved: vec![],
             entities_jumped: vec![],
             sectors_new: vec![],
-            jumps_new: vec![]
+            jumps_new: vec![],
         }
     }
 
-    pub fn push_entity_new(&mut self, id: u32, pos: space_data::V2, sector_id: u32, kind: space_data::EntityKind) {
-        self.entities_new.push(space_data::EntityNew::new(
-            id,
-            &pos,
-            sector_id,
-            kind
-        ));
+    pub fn push_entity_new(
+        &mut self,
+        id: u32,
+        pos: space_data::V2,
+        sector_id: u32,
+        kind: space_data::EntityKind,
+    ) {
+        self.entities_new
+            .push(space_data::EntityNew::new(id, &pos, sector_id, kind));
     }
 
     pub fn push_entity_move(&mut self, id: u32, pos: space_data::V2) {
-        self.entities_moved.push(space_data::EntityMove::new(
-            id,
-            &pos,
-        ));
+        self.entities_moved
+            .push(space_data::EntityMove::new(id, &pos));
     }
 
     pub fn push_entity_jump(&mut self, id: u32, sector_id: u32, pos: space_data::V2) {
-        self.entities_jumped.push(space_data::EntityJump::new(
-            id,
-            sector_id,
-            &pos,
-        ));
+        self.entities_jumped
+            .push(space_data::EntityJump::new(id, sector_id, &pos));
     }
 
     pub fn finish(&mut self) -> &[u8] {
@@ -169,7 +168,10 @@ impl<'a> OutpusBuilder<'a> {
                 if $field.is_empty() {
                     None
                 } else {
-                    Some(self.builder.create_vector(std::mem::replace(&mut $field, vec![]).as_ref()))
+                    Some(
+                        self.builder
+                            .create_vector(std::mem::replace(&mut $field, vec![]).as_ref()),
+                    )
                 }
             };
         }
@@ -194,10 +196,10 @@ impl<'a> OutpusBuilder<'a> {
 
 #[cfg(test)]
 mod test {
-    use crate::space_outputs_generated::space_data;
-    use crate::game::events::{ObjEvent, EventKind};
+    use crate::game::events::{EventKind, ObjEvent};
     use crate::game::objects::ObjId;
     use crate::game_api::OutpusBuilder;
+    use crate::space_outputs_generated::space_data;
 
     #[test]
     fn test_events_to_flatoutputs_empty() {
@@ -212,8 +214,18 @@ mod test {
     #[test]
     fn test_events_to_flatoutputs_objects_added() {
         let mut builder = OutpusBuilder::new();
-        builder.push_entity_new(0, space_data::V2::new(22.0, 35.0), 4, space_data::EntityKind::Fleet);
-        builder.push_entity_new(1, space_data::V2::new(2.0, 5.0), 2, space_data::EntityKind::Station);
+        builder.push_entity_new(
+            0,
+            space_data::V2::new(22.0, 35.0),
+            4,
+            space_data::EntityKind::Fleet,
+        );
+        builder.push_entity_new(
+            1,
+            space_data::V2::new(2.0, 5.0),
+            2,
+            space_data::EntityKind::Station,
+        );
         let bytes = builder.finish();
 
         let root = space_data::get_root_as_outputs(bytes);
@@ -234,7 +246,7 @@ mod test {
                 assert_eq!(new_entities[1].pos().y(), 5.0);
                 assert_eq!(new_entities[1].sector_id(), 2);
                 assert_eq!(new_entities[1].kind(), space_data::EntityKind::Station);
-            },
+            }
             None => {
                 panic!();
             }
@@ -262,7 +274,7 @@ mod test {
                 assert_eq!(entity_moved[1].id(), 1);
                 assert_eq!(entity_moved[1].pos().x(), -1.0);
                 assert_eq!(entity_moved[1].pos().y(), 0.0);
-            },
+            }
             None => {
                 panic!();
             }
@@ -292,11 +304,10 @@ mod test {
                 assert_eq!(e[1].sector_id(), 4);
                 assert_eq!(e[1].pos().x(), -1.0);
                 assert_eq!(e[1].pos().y(), 0.0);
-            },
+            }
             None => {
                 panic!();
             }
         }
     }
 }
-

@@ -1,9 +1,9 @@
+use crate::game::jsons::JsonValueExtra;
 use serde_json::{json, Value};
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
-use std::io::{Write, BufReader};
-use std::collections::HashMap;
-use crate::game::jsons::JsonValueExtra;
+use std::io::{BufReader, Write};
 
 pub trait CanSave {
     fn save(&self, save: &mut impl Save);
@@ -26,7 +26,7 @@ pub trait Load {
 
 pub struct SaveToFile {
     file_path: String,
-    buffer: Vec<String>
+    buffer: Vec<String>,
 }
 
 impl SaveToFile {
@@ -40,18 +40,24 @@ impl SaveToFile {
 
 impl Save for SaveToFile {
     fn add_header(&mut self, header_name: &str, header_value: serde_json::Value) {
-        self.buffer.push(json!({
-            "header": header_name,
-            "value": header_value
-        }).to_string());
+        self.buffer.push(
+            json!({
+                "header": header_name,
+                "value": header_value
+            })
+            .to_string(),
+        );
     }
 
     fn add(&mut self, id: u32, component: &str, value: serde_json::Value) {
-        self.buffer.push(json!({
-            "id": id,
-            "component": component,
-            "value": value
-        }).to_string());
+        self.buffer.push(
+            json!({
+                "id": id,
+                "component": component,
+                "value": value
+            })
+            .to_string(),
+        );
     }
 
     fn close(&mut self) {
@@ -100,14 +106,14 @@ impl Load for LoadFromFile {
     fn get_headers(&mut self, header: &str) -> Vec<&Value> {
         self.headers
             .get(header)
-            .map(|i| { i.iter().collect() })
+            .map(|i| i.iter().collect())
             .unwrap_or(Vec::new())
     }
 
     fn get_components(&mut self, component: &str) -> Vec<&(u32, Value)> {
         self.components
             .get(component)
-            .map(|i| { i.iter().collect() })
+            .map(|i| i.iter().collect())
             .unwrap_or(Vec::new())
     }
 }
@@ -120,7 +126,10 @@ pub struct LoadSaveBuffer {
 
 impl LoadSaveBuffer {
     pub fn new() -> Self {
-        LoadSaveBuffer { headers: vec![], components: vec![] }
+        LoadSaveBuffer {
+            headers: vec![],
+            components: vec![],
+        }
     }
 }
 
@@ -133,30 +142,33 @@ impl Save for LoadSaveBuffer {
         self.components.push((component.to_string(), (id, value)));
     }
 
-    fn close(&mut self) {
-    }
+    fn close(&mut self) {}
 }
 
 impl Load for LoadSaveBuffer {
     fn get_headers(&mut self, header: &str) -> Vec<&Value> {
-        self.headers.iter()
+        self.headers
+            .iter()
             .filter_map(|(i_header, value)| {
                 if i_header.as_str().eq(header) {
                     Some(value)
                 } else {
                     None
                 }
-            }).collect()
+            })
+            .collect()
     }
 
     fn get_components(&mut self, component: &str) -> Vec<&(u32, Value)> {
-        self.components.iter()
+        self.components
+            .iter()
             .filter_map(|(i_component, pair)| {
                 if i_component.as_str().eq(component) {
                     Some(pair)
                 } else {
                     None
                 }
-            }).collect()
+            })
+            .collect()
     }
 }
