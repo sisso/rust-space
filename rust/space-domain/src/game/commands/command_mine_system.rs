@@ -37,6 +37,7 @@ pub struct CommandMineData<'a> {
     cargos: ReadStorage<'a, Cargo>,
     navigation: ReadStorage<'a, Navigation>,
     action_mine: ReadStorage<'a, ActionMine>,
+    action_request: WriteStorage<'a, ActionRequest>,
 }
 
 impl<'a> System<'a> for CommandMineSystem {
@@ -59,7 +60,7 @@ impl<'a> System<'a> for CommandMineSystem {
             &data.locations_sector_id,
             &data.cargos,
             data.navigation.maybe(),
-            data.navigation.maybe(),
+            data.action_mine.maybe(),
         )
             .join()
         {
@@ -68,17 +69,28 @@ impl<'a> System<'a> for CommandMineSystem {
                 // find deliver target
                 // navigate to deliver target
                 // deliver
+            } else if mining.is_some() {
+                // continue to mine
             } else {
-                // mine for non full cargo, find mine target if not have already
-                if command.mine_target_id.is_none() {
-                    search_mine_target(sector_index, entity, command, sector_id.sector_id);
-                }
+                // mine for non full cargo
+                let target_id = match command.mine_target_id {
+                    Some(id) => id,
+                    None => search_mine_target(sector_index, entity, command, sector_id.sector_id),
+                };
 
                 // navigate to mine
                 if nav.is_none() {
-                    //
-
-                    // mine
+                    if sector_index.is_near(entity, target_id) {
+                        data.action_request.borrow_mut().insert(entity, ActionRequest(Action::Extract {
+                            // mine
+                            target_id: target_id
+                        }));
+                    } else{
+                        // move to target
+                        data.nav_request.borrow_mut().insert(entity, NavRequest::MoveToTarget {
+                            target: target_id,
+                        });
+                    }
                 } else {
                     // wait to arrival
                 }
@@ -92,12 +104,13 @@ fn search_mine_target(
     entity: Entity,
     command: &mut CommandMine,
     sector_id: SectorId,
-) {
+) -> ObjId {
     // find nearest extractable
     let candidates = sectors_index.list_extractables();
     let target_id = candidates.iter().next().unwrap();
 
     command.mine_target_id = Some(target_id.1);
+    target_id.1
 }
 
 /// For miners without target, search nearest one and create a navigation request

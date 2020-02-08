@@ -62,6 +62,9 @@ impl<'a> System<'a> for ActionRequestHandlerSystem {
                         .insert(entity, ActionMoveTo)
                         .unwrap();
                 }
+                _ => {
+                    unimplemented!()
+                }
             }
 
             data.actions

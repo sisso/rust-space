@@ -30,6 +30,7 @@ pub enum Action {
     Jump { jump_id: JumpId },
     Dock { target_id: ObjId },
     MoveTo { pos: Position },
+    Extract { target_id: ObjId },
 }
 
 #[derive(Debug, Clone, Component)]
