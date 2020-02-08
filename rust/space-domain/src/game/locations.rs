@@ -60,6 +60,14 @@ impl EntityPerSectorIndex {
             .and_modify(|list| list.push(obj_id))
             .or_insert(vec![obj_id]);
     }
+
+    pub fn list_extractables(&self)-> Vec<(SectorId, ObjId)> {
+        unimplemented!()
+    }
+
+    pub fn is_near(&self, obj_a: ObjId, obj_b: ObjId) -> bool {
+        unimplemented!();
+    }
 }
 
 pub struct Locations {

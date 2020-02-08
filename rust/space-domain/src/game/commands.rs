@@ -17,16 +17,28 @@ use command_mine_system::*;
 use std::borrow::BorrowMut;
 
 #[derive(Debug, Clone, Component)]
-pub struct CommandMine;
+pub struct CommandMine {
+    mine_target_id: Option<ObjId>,
+    deliver_target_id: Option<ObjId>, 
+}
 
-#[derive(Debug, Clone, Component)]
-pub struct CommandMineTarget {
-    target_obj_id: ObjId,
+impl CommandMine {
+    pub fn new() -> Self {
+        CommandMine {
+            mine_target_id: None,
+            deliver_target_id: None
+        }
+    }   
 }
 
 #[derive(Debug, Clone, Component)]
-pub struct DeliverState {
-    target_obj_id: ObjId,
+pub struct CommandMineTargetState {
+    target_id: ObjId,
+}
+
+#[derive(Debug, Clone, Component)]
+pub struct CommandMineDeliverState {
+    target_id: ObjId,
 }
 
 pub struct Commands {
@@ -45,7 +57,7 @@ impl Commands {
 
 pub fn set_command_mine(world: &mut World, entity: Entity) {
     let mut storage = world.write_storage::<CommandMine>();
-    storage.borrow_mut().insert(entity, CommandMine).unwrap();
+    storage.borrow_mut().insert(entity, CommandMine::new()).unwrap();
 
     info!("{:?} setting command to mine", entity);
 }

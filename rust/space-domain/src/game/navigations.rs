@@ -18,6 +18,7 @@ mod navigation_system;
 /// - execute navigation by create actions
 ///
 
+// TODO: rename to Idle, MoveTo?
 #[derive(Debug, Clone, Component, PartialEq)]
 pub enum Navigation {
     MoveTo

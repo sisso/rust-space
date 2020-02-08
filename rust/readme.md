@@ -44,6 +44,80 @@ in system are never output.
 
 # Forum
 
+## Split commands between systems
+
+The forces to split a algorithm into different systems are:
+- allow parallelism (when they are not dependent)
+- reduce amount of dependencies
+- facilitate automatic test
+
+While the initially looks promising. In reality:
+- split a algorithm between systems usually create dependencies that can not be parallelize
+- reduce dependencies and facilitate test can be done easy by simple delegating code specific methods, create and
+  maintain systems are still scale level of complexity tha simple methods.
+  
+Conclusion:
+
+Complexity should be sliced by methods, not systems. Only split systems for tasks that are complete independent.
+
+## Mine
+
+Command mine each second will extract X amount of ore from resource
+
+Resource should respawn
+
+CommandMine
+CommandMineTarget
+NavigationRequest
+Navigation
+ActionMove
+ActionMine
+
+### Current 
+
+When => Do
+
+CommandMine && !CommandMineTarget && !CommandMineDeliver => 
+    if cargo is full {
+        find deliver station and add CommandMineDeliver
+    } else {
+        find mine target and add CommandMineTarget
+    }
+    
+CommandMine && CommandMineTarget && !Navigation && !ActionMine => 
+
+    if cargo is full {
+        remove CommandMineTarget        
+    } else 
+    if target is near {
+     add ActionMine
+    } else {
+     add NavigationRequest
+    }
+   
+ActionMine => 
+    if cargo full || target is far {
+        remove ActionMine
+    }
+    
+### Simplify
+
+CommandMine { state: enum MineState { Mine { target_id }, Deliver { target_id } }
+
+CommandMine && !Nav =>
+    if cargo is full {
+        remove ActionMine if exists
+        if MineState::Deliver { target_id } {
+            if near {
+                dock
+            }
+            else {
+                add nav_request to target_id
+            }
+        } else {
+        }
+    }
+    
 ## Actions and commands
 
 ### Problem 
