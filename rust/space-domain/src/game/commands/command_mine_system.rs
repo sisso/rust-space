@@ -64,26 +64,14 @@ impl<'a> System<'a> for CommandMineSystem {
         )
             .join()
         {
+            let result = execute(sector_index, entity, command, sector_id.sector_id, cargo, nav.is_some(), mining.is_some(), None);
 
-            let action = execute(sector_index, entity, command, sector_id.sector_id, cargo, nav.is_some(),  mining.is_some(),None);
+            if let Some(nav_request) = result.nav_request {
+                data.nav_request.borrow_mut().insert(entity, nav_request);
+            }
 
-            match action {
-                ExecuteResult::Move { target_id } => {
-                    data.nav_request.borrow_mut().insert(entity, NavRequest::MoveToTarget {
-                        target_id,
-                    });
-                },
-                ExecuteResult::MoveAndDock { target_id } => {
-                    data.nav_request.borrow_mut().insert(entity, NavRequest::MoveAndDockAt{
-                        target_id,
-                    });
-                },
-                ExecuteResult::Extract { target_id } => {
-                    data.action_request.borrow_mut().insert(entity, ActionRequest(Action::Extract {
-                        target_id: target_id
-                    }));
-                },
-                ExecuteResult::NoAction => {},
+            if let Some(action_request) = result.action_request {
+                data.action_request.borrow_mut().insert(entity, action_request);
             }
         }
     }
@@ -96,26 +84,25 @@ struct ExecuteResult {
     nav_request: Option<NavRequest>,
 }
 
-enum ExecuteResult {
-    Move { target_id: ObjId },
-    MoveAndDock { target_id: ObjId },
-    Extract { target_id: ObjId },
-    NoAction,
-}
-
 fn execute(
     sectors_index: &EntityPerSectorIndex,
     entity: ObjId,
     command: &mut CommandMine,
     sector_id: SectorId,
-    cargo: Cargo,
+    cargo: &Cargo,
     has_navigation: bool,
     is_extracting: bool,
     docket_at: Option<ObjId>,
 ) -> ExecuteResult {
+    let mut result = ExecuteResult {
+        id: entity,
+        nav_request: None,
+        action_request: None,
+    };
+
     // do nothing if is doing navigation
     if has_navigation {
-        return ExecuteResult::NoAction;
+        return result;
     }
 
     // deliver for full cargo
@@ -131,7 +118,7 @@ fn execute(
             // deliver
             unimplemented!()
         } else {
-            ExecuteResult::MoveAndDock { target_id }
+            result.nav_request = Some(NavRequest::MoveAndDockAt { target_id });
         }
         // continue to mine
     } else {
@@ -143,12 +130,14 @@ fn execute(
 
         // navigate to mine
         if sectors_index.is_near(entity, target_id) {
-            ExecuteResult::Extract { target_id }
-        } else{
+            result.action_request = Some(ActionRequest(Action::Extract { target_id }));
+        } else {
             // move to target
-            ExecuteResult::Move{ target_id }
+            result.nav_request = Some(NavRequest::MoveToTarget { target_id });
         }
     }
+
+    return result;
 }
 
 fn search_mine_target(
