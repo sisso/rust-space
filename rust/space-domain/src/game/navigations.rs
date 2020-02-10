@@ -26,7 +26,8 @@ pub enum Navigation {
 
 #[derive(Debug, Clone, Component)]
 pub enum NavRequest {
-    MoveToTarget { target: ObjId },
+    MoveToTarget { target_id: ObjId },
+    MoveAndDockAt { target_id: ObjId },
 }
 
 #[derive(Debug, Clone)]

@@ -67,6 +67,10 @@ impl EntityPerSectorIndex {
         unimplemented!()
     }
 
+    pub fn list_stations(&self) -> Vec<(SectorId, ObjId)> {
+        unimplemented!()
+    }
+
     pub fn is_near(&self, obj_a: ObjId, obj_b: ObjId) -> bool {
         unimplemented!();
     }

@@ -42,7 +42,7 @@ impl<'a> System<'a> for NavRequestHandlerSystem {
             .join()
         {
             match request {
-                NavRequest::MoveToTarget { target } => {
+                NavRequest::MoveToTarget { target_id: target } => {
                     let target_sector_id = data.locations_sector_id.borrow().get(*target).unwrap();
                     let target_pos = data.locations_positions.borrow().get(*target).unwrap();
 
@@ -123,7 +123,7 @@ mod test {
                 .with(LocationSpace {
                     pos: Position::new(0.0, 0.0),
                 })
-                .with(NavRequest::MoveToTarget { target: asteroid })
+                .with(NavRequest::MoveToTarget { target_id: asteroid })
                 .build();
 
             (asteroid, miner)
@@ -173,7 +173,7 @@ mod test {
                     sector_id: SECTOR_0,
                 })
                 .with(LocationDock { docked_id: station })
-                .with(NavRequest::MoveToTarget { target: asteroid })
+                .with(NavRequest::MoveToTarget { target_id: asteroid })
                 .build();
 
             (asteroid, miner)

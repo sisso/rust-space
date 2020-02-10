@@ -24,6 +24,7 @@ mod action_undock_system;
 
 pub const ACTION_JUMP_TOTAL_TIME: DeltaTime = DeltaTime(2.0);
 
+/// Not a component, but used to create requests
 #[derive(Debug, Clone)]
 pub enum Action {
     Undock,
@@ -31,6 +32,22 @@ pub enum Action {
     Dock { target_id: ObjId },
     MoveTo { pos: Position },
     Extract { target_id: ObjId },
+}
+
+impl Action {
+    pub fn is_dock(&self) -> bool {
+        match self {
+            Action::Dock{ .. } => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_extract(&self) -> bool {
+       match self {
+           Action::Extract { .. } => true,
+           _ => false,
+       }
+    }
 }
 
 #[derive(Debug, Clone, Component)]
