@@ -31,16 +31,6 @@ impl CommandMine {
     }
 }
 
-#[derive(Debug, Clone, Component)]
-pub struct CommandMineTargetState {
-    target_id: ObjId,
-}
-
-#[derive(Debug, Clone, Component)]
-pub struct CommandMineDeliverState {
-    target_id: ObjId,
-}
-
 pub struct Commands {}
 
 impl Commands {
@@ -50,7 +40,7 @@ impl Commands {
 
     pub fn init_world(world: &mut World, dispatcher: &mut DispatcherBuilder) {
         dispatcher.add(
-            SearchMineTargetsSystem,
+            CommandMineSystem,
             "command_mine_search_mine_targets",
             &["index_by_sector"],
         );

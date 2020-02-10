@@ -23,6 +23,10 @@ pub struct Cargo {
     wares: BTreeMap<WareId, f32>,
 }
 
+pub struct MoveChange {
+    pub moved: Vec<(WareId, f32)>,
+}
+
 impl Cargo {
     pub fn new(max: f32) -> Self {
         Cargo {
@@ -32,22 +36,45 @@ impl Cargo {
         }
     }
 
+    /// Currently impl leave a unknown state on failure, this is the reasons panik
+    pub fn apply_move_from(&mut self, change: &MoveChange) -> Result<(), ()> {
+        for (ware_id, amount) in change.moved.iter() {
+           self.remove(*ware_id, *amount).expect("apply move from failed");
+        }
+
+        Ok(())
+    }
+
+    /// Currently impl leave a unknown state on failure, this is the reasons panik
+    pub fn apply_move_to(&mut self, change: &MoveChange) -> Result<(), ()> {
+        for (ware_id, amount) in change.moved.iter() {
+            self.add(*ware_id, *amount).expect("apply move to failed");
+        }
+
+        Ok(())
+    }
+
     /// Move all cargo possible from to
-    pub fn move_all_to_max(from: &mut Cargo, to: &mut Cargo) {
-        for (id, amount) in from.wares.clone() {
-            let available = to.free_space();
+    pub fn move_all_to_max(from: &Cargo, to: &Cargo) -> MoveChange {
+        let mut change = MoveChange {
+            moved: vec![],
+        };
+
+        let free_space = to.free_space();
+        let mut total_moved = 0.0;
+
+        for (id, amount) in from.wares.iter() {
+            let available = free_space - total_moved;
             let amount_to_move = amount.min(available);
 
             if amount_to_move <= 0.0 {
-                return;
+                break;
             }
 
-            if to.add(id, amount_to_move).is_err() {
-                return;
-            }
-
-            assert!(from.remove(id, amount_to_move).is_ok());
+            change.moved.push((*id, amount_to_move));
         }
+
+        return change;
     }
 
     pub fn remove(&mut self, ware_id: WareId, amount: f32) -> Result<(), ()> {
@@ -122,14 +149,16 @@ impl Cargos {
         world.register::<Cargo>();
     }
 
-    pub fn move_all(from: &ObjId, to: &ObjId) {
-        unimplemented!();
+    pub fn move_all<'a>(cargos: &mut WriteStorage<'a, Cargo>, from_id: ObjId, to_id: ObjId) {
+        let cargo_from = cargos.get(from_id).expect("Entity cargo not found");
+        let cargo_to = cargos.get(to_id).expect("Deliver cargo not found");
+        let changes = Cargo::move_all_to_max(cargo_from, cargo_to);
 
-        //        let mut cargo_to= self.index.remove(to).unwrap();
-        //        let cargo_from = self.index.get_mut(from).unwrap();
-        //        Cargo::move_all_to_max(&mut cargo_from.cargo, &mut cargo_to.cargo);
-        //        self.index.insert(*to, cargo_to);
-        //        info!("Cargos", &format!("move_all {:?} to {:?}, new cargos {:?} and {:?}", from, to, self.index.get(from), self.index.get(to)));
+        let cargo_from = cargos.get_mut(from_id).expect("Entity cargo not found");
+        cargo_from.apply_move_from(&changes);
+
+        let cargo_to = cargos.get_mut(to_id).expect("Deliver cargo not found");
+        cargo_to.apply_move_to(&changes);
     }
 }
 
