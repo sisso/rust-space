@@ -14,9 +14,7 @@ pub struct NavRequestHandlerSystem;
 pub struct NavRequestHandlerData<'a> {
     entities: Entities<'a>,
     sectors: Read<'a, Sectors>,
-    locations_sector_id: ReadStorage<'a, LocationSector>,
-    locations_positions: ReadStorage<'a, LocationSpace>,
-    locations_docked: ReadStorage<'a, LocationDock>,
+    locations: ReadStorage<'a, Location>,
     requests: WriteStorage<'a, NavRequest>,
     navigation: WriteStorage<'a, Navigation>,
     navigation_move_to: WriteStorage<'a, NavigationMoveTo>,
@@ -32,14 +30,11 @@ impl<'a> System<'a> for NavRequestHandlerSystem {
 
         let mut processed_requests = vec![];
 
-        for (entity, request, from_sector_id, from_pos_maybe, from_dock_maybe) in (
+        for (entity, request, location) in (
             &data.entities,
             &data.requests,
-            &data.locations_sector_id,
-            data.locations_positions.maybe(),
-            data.locations_docked.maybe(),
-        )
-            .join()
+            &data.locations,
+        ).join()
         {
             match request {
                 NavRequest::MoveToTarget { target_id: target } => {
@@ -107,21 +102,17 @@ mod test {
 
             let asteroid = world
                 .create_entity()
-                .with(LocationSector {
-                    sector_id: SECTOR_1,
-                })
-                .with(LocationSpace {
+                .with(Location::Space {
                     pos: Position::new(1.0, 0.0),
+                    sector_id: SECTOR_1,
                 })
                 .build();
 
             let miner = world
                 .create_entity()
-                .with(LocationSector {
-                    sector_id: SECTOR_0,
-                })
-                .with(LocationSpace {
+                .with(Location::Space {
                     pos: Position::new(0.0, 0.0),
+                    sector_id: SECTOR_0,
                 })
                 .with(NavRequest::MoveToTarget { target_id: asteroid })
                 .build();
@@ -149,30 +140,23 @@ mod test {
 
             let asteroid = world
                 .create_entity()
-                .with(LocationSector {
-                    sector_id: SECTOR_1,
-                })
-                .with(LocationSpace {
+                .with(Location::Space {
                     pos: Position::new(1.0, 0.0),
+                    sector_id: SECTOR_1,
                 })
                 .build();
 
             let station = world
                 .create_entity()
-                .with(LocationSector {
-                    sector_id: SECTOR_0,
-                })
-                .with(LocationSpace {
+                .with(Location::Space {
                     pos: Position::new(0.0, 0.0),
+                    sector_id: SECTOR_0,
                 })
                 .build();
 
             let miner = world
                 .create_entity()
-                .with(LocationSector {
-                    sector_id: SECTOR_0,
-                })
-                .with(LocationDock { docked_id: station })
+                .with(Location::Dock { docked_id: station })
                 .with(NavRequest::MoveToTarget { target_id: asteroid })
                 .build();
 

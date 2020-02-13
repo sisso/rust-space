@@ -44,6 +44,18 @@ in system are never output.
 
 # Forum
 
+## Location
+
+A single enum with multual exclusive is much easy to manipulate. While in many cases a single component AtSectorId make
+sense, in the end of the they you will always require to access other components like docked or position.
+
+With 3 components (Pos, Sector, DocketAt) is too verbose to implement single methods like
+
+is_near(pos_repo, sector_repo, docked_repo, entty_A, enitty_b) -> bool
+
+Operations like only non docked or any with sector are easy to implement in the start, but in th end of day will always
+need to be implemented by some pathfinding compatible index.`
+
 ## Split commands between systems
 
 The forces to split a algorithm into different systems are:

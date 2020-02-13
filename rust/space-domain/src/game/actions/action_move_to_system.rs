@@ -4,6 +4,7 @@ use super::super::locations::*;
 use super::*;
 use crate::game::actions::*;
 use std::borrow::{Borrow, BorrowMut};
+use crate::utils::V2;
 
 pub struct ActionMoveToSystem;
 
@@ -14,7 +15,7 @@ pub struct ActionMoveToData<'a> {
     moveable: ReadStorage<'a, Moveable>,
     actions: WriteStorage<'a, ActionActive>,
     action_move_to: WriteStorage<'a, ActionMoveTo>,
-    location_space: WriteStorage<'a, LocationSpace>,
+    locations: WriteStorage<'a, Location>,
 }
 
 impl<'a> System<'a> for ActionMoveToSystem {
@@ -26,12 +27,12 @@ impl<'a> System<'a> for ActionMoveToSystem {
         let mut completed = vec![];
         let delta_time = data.delta_time.borrow();
 
-        for (entity, moveable, action, _, position) in (
+        for (entity, moveable, action, _, location) in (
             &data.entities,
             &data.moveable,
             &data.actions,
             &data.action_move_to,
-            &mut data.location_space,
+            &mut data.locations,
         )
             .join()
         {
@@ -40,28 +41,34 @@ impl<'a> System<'a> for ActionMoveToSystem {
                 _ => continue,
             };
 
-            let delta = to.sub(&position.pos);
-            // delta == zero can cause length sqr NaN
-            let length_sqr = delta.length_sqr();
+            // confirm we are dealing with space object
+            let pos = match location.get_pos() {
+                Some(pos) => pos,
+                _ => {
+                    warn!("{:?} can not do action move since it is not in space", entity);
+                    completed.push(entity);
+                    continue;
+                },
+            };
+
             let speed = moveable.speed.as_f32();
             let max_distance = speed * delta_time.as_f32();
-            let norm = delta.div(length_sqr.sqrt());
-            let mov = norm.mult(max_distance);
+
+            let (new_pos, complete) = V2::move_towards(pos, to, max_distance);
 
             // if current move distance is bigger that distance to arrive, move to the position
-            if length_sqr.is_nan() || length_sqr <= max_distance {
+            if complete {
                 debug!("{:?} move complete", entity);
-                position.pos = to;
+                location.set_pos(to).unwrap();
                 completed.push(entity.clone());
             } else {
-                let new_pos = position.pos.add(&mov);
                 trace!(
                     "{:?} moving to {:?}, new position is {:?}",
                     entity,
                     to,
                     new_pos
                 );
-                position.pos = new_pos;
+                location.set_pos(new_pos).unwrap();
             }
         }
 
@@ -79,6 +86,8 @@ mod test {
     use crate::test::{assert_v2, test_system};
     use crate::utils::Speed;
 
+    use crate::game::sectors::test_scenery::SECTOR_0;
+
     #[test]
     fn test_move_to_system_should_move_to_target() {
         let (world, entity) = test_system(ActionMoveToSystem, |world| {
@@ -90,8 +99,9 @@ mod test {
                     pos: Position::new(2.0, 0.0),
                 }))
                 .with(ActionMoveTo)
-                .with(LocationSpace {
+                .with(Location::Space {
                     pos: Position::new(0.0, 0.0),
+                    sector_id: SECTOR_0,
                 })
                 .with(Moveable { speed: Speed(1.0) })
                 .build();
@@ -101,8 +111,8 @@ mod test {
 
         assert!(world.read_storage::<ActionActive>().get(entity).is_some());
         assert!(world.read_storage::<ActionMoveTo>().get(entity).is_some());
-        let storage = world.read_storage::<LocationSpace>();
-        let location = storage.get(entity).unwrap();
+        let storage = world.read_storage::<Location>();
+        let location = storage.get(entity).unwrap().as_space().unwrap();
         assert_v2(location.pos, Position::new(1.0, 0.0));
     }
 
@@ -117,8 +127,9 @@ mod test {
                     pos: Position::new(2.0, 0.0),
                 }))
                 .with(ActionMoveTo)
-                .with(LocationSpace {
+                .with(Location::Space {
                     pos: Position::new(1.0, 0.0),
+                    sector_id: SECTOR_0,
                 })
                 .with(Moveable { speed: Speed(1.5) })
                 .build();
@@ -128,8 +139,8 @@ mod test {
 
         assert!(world.read_storage::<ActionActive>().get(entity).is_none());
         assert!(world.read_storage::<ActionMoveTo>().get(entity).is_none());
-        let storage = world.read_storage::<LocationSpace>();
-        let location = storage.get(entity).unwrap();
+        let storage = world.read_storage::<Location>();
+        let location = storage.get(entity).unwrap().as_space().unwrap();
         assert_v2(location.pos, Position::new(2.0, 0.0));
     }
 }

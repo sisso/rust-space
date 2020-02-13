@@ -3,7 +3,7 @@ use specs::prelude::*;
 use std::collections::HashMap;
 
 use crate::game::extractables::Extractable;
-use crate::game::locations::{LocationDock, LocationSpace, Locations, Moveable};
+use crate::game::locations::{Location, Locations, Moveable};
 use crate::utils::*;
 
 use self::events::{EventKind, Events, ObjEvent};
@@ -86,14 +86,6 @@ impl<'a, 'b> Game<'a, 'b> {
     pub fn add_object(&mut self, new_obj: NewObj) -> ObjId {
         let mut builder = self.world.create_entity();
 
-        let has_location = new_obj.location_space.is_some() || new_obj.location_dock.is_some();
-        if has_location && new_obj.location_sector_id.is_none() {
-            panic!(format!(
-                "fatal {:?}: entity with location should have a sector_id",
-                new_obj
-            ));
-        }
-
         if new_obj.can_dock && new_obj.speed.is_none() {
             panic!(format!(
                 "fatal {:?}: entity that can dock should be moveable",
@@ -105,16 +97,8 @@ impl<'a, 'b> Game<'a, 'b> {
             builder.set(HasDock);
         }
 
-        for location_space in &new_obj.location_space {
-            builder.set(location_space.clone());
-        }
-
-        for location_dock in &new_obj.location_dock {
-            builder.set(location_dock.clone());
-        }
-
-        for location_dock in &new_obj.location_sector_id {
-            builder.set(location_dock.clone());
+        for location in &new_obj.location {
+            builder.set(location.clone());
         }
 
         for speed in new_obj.speed {

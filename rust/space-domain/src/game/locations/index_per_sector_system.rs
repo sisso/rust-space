@@ -15,7 +15,7 @@ pub struct IndexPerSectorSystem;
 pub struct IndexPerSectorData<'a> {
     entities: Entities<'a>,
     index: Write<'a, EntityPerSectorIndex>,
-    locations_sector: ReadStorage<'a, LocationSector>,
+    locations: ReadStorage<'a, Location>,
     extractables: ReadStorage<'a, Extractable>,
 }
 
@@ -30,17 +30,24 @@ impl<'a> System<'a> for IndexPerSectorSystem {
         let index = data.index.borrow_mut();
         index.clear();
 
-        for (entity, location_sector) in (&data.entities, &data.locations_sector).join() {
-            trace!("indexing {:?} at {:?}", entity, location_sector.sector_id);
-            index.add(location_sector.sector_id, entity);
+        for (entity, location) in (&data.entities, &data.locations).join() {
+            match location {
+                Location::Space { sector_id, .. } => {
+                    let sector_id = *sector_id;
 
-            if data.extractables.contains(entity) {
-                trace!(
-                    "indexing extractable {:?} at {:?}",
-                    entity,
-                    location_sector.sector_id
-                );
-                index.add_extractable(location_sector.sector_id, entity);
+                    trace!("indexing {:?} at {:?}", entity, sector_id);
+                    index.add(sector_id, entity);
+
+                    if data.extractables.contains(entity) {
+                        trace!(
+                            "indexing extractable {:?} at {:?}",
+                            entity,
+                            sector_id
+                        );
+                        index.add_extractable(sector_id, entity);
+                    }
+                },
+                _ => {},
             }
         }
     }

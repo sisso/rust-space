@@ -1,7 +1,7 @@
 use specs::prelude::*;
 
 use super::*;
-use crate::game::locations::{LocationSector, LocationSpace};
+use crate::game::locations::{Location};
 use crate::game::sectors::Sectors;
 use std::borrow::{Borrow, BorrowMut};
 
@@ -14,8 +14,7 @@ pub struct ActionJumpData<'a> {
     sectors: Read<'a, Sectors>,
     actions: WriteStorage<'a, ActionActive>,
     actions_jump: WriteStorage<'a, ActionJump>,
-    locations_sector: WriteStorage<'a, LocationSector>,
-    locations_space: WriteStorage<'a, LocationSpace>,
+    locations: WriteStorage<'a, Location>,
 }
 
 impl<'a> System<'a> for ActionJumpSystem {
@@ -60,18 +59,14 @@ impl<'a> System<'a> for ActionJumpSystem {
                 entity, jump.to_sector_id, jump.to_pos
             );
 
-            let _ = data
-                .locations_space
+            data
+                .locations
                 .borrow_mut()
-                .insert(entity, LocationSpace { pos: jump.to_pos });
-            let _ = data.locations_sector.borrow_mut().insert(
-                entity,
-                LocationSector {
-                    sector_id: jump.to_sector_id,
-                },
-            );
-            let _ = data.actions.borrow_mut().remove(entity);
-            let _ = data.actions_jump.borrow_mut().remove(entity);
+                .insert(entity, Location::Space { pos: jump.to_pos, sector_id: jump.to_sector_id })
+                .unwrap();
+
+            data.actions.borrow_mut().remove(entity).unwrap();
+            data.actions_jump.borrow_mut().remove(entity).unwrap();
         }
     }
 }
@@ -80,7 +75,7 @@ impl<'a> System<'a> for ActionJumpSystem {
 mod test {
     use super::super::*;
     use super::*;
-    use crate::game::locations::LocationSpace;
+    use crate::game::locations::Location;
     use crate::game::sectors::test_scenery;
     use crate::test::{assert_v2, test_system};
     use crate::utils::{Speed, TotalTime};
@@ -94,10 +89,8 @@ mod test {
             .with(ActionJump {
                 complete_time: jump_time,
             })
-            .with(LocationSpace {
+            .with(Location::Space {
                 pos: test_scenery::JUMP_0_TO_1.pos,
-            })
-            .with(LocationSector {
                 sector_id: test_scenery::SECTOR_0,
             })
             .build();
@@ -107,22 +100,18 @@ mod test {
     fn assert_jumped(world: &World, entity: Entity) {
         assert!(world.read_storage::<ActionActive>().get(entity).is_none());
         assert!(world.read_storage::<ActionJump>().get(entity).is_none());
-        let storage = world.read_storage::<LocationSpace>();
-        let location = storage.get(entity).unwrap();
+        let storage = world.read_storage::<Location>();
+        let location = storage.get(entity).unwrap().as_space().unwrap();
         assert_v2(location.pos, test_scenery::JUMP_0_TO_1.to_pos);
-        let storage = world.read_storage::<LocationSector>();
-        let location = storage.get(entity).unwrap();
         assert_eq!(location.sector_id, test_scenery::JUMP_0_TO_1.to_sector_id);
     }
 
     fn assert_not_jumped(world: &World, entity: Entity) {
         assert!(world.read_storage::<ActionActive>().get(entity).is_some());
         assert!(world.read_storage::<ActionJump>().get(entity).is_some());
-        let storage = world.read_storage::<LocationSpace>();
-        let location = storage.get(entity).unwrap();
+        let storage = world.read_storage::<Location>();
+        let location = storage.get(entity).unwrap().as_space().unwrap();
         assert_v2(location.pos, test_scenery::JUMP_0_TO_1.pos);
-        let storage = world.read_storage::<LocationSector>();
-        let location = storage.get(entity).unwrap();
         assert_eq!(location.sector_id, test_scenery::JUMP_0_TO_1.sector_id);
     }
 

@@ -12,8 +12,7 @@ pub struct UndockData<'a> {
     entities: Entities<'a>,
     actions: WriteStorage<'a, ActionActive>,
     actions_undock: WriteStorage<'a, ActionUndock>,
-    locations_dock: WriteStorage<'a, LocationDock>,
-    locations_space: WriteStorage<'a, LocationSpace>,
+    locations: WriteStorage<'a, Location>,
 }
 
 impl<'a> System<'a> for UndockSystem {
@@ -22,33 +21,37 @@ impl<'a> System<'a> for UndockSystem {
     fn run(&mut self, mut data: UndockData) {
         trace!("running");
 
-        let mut processed: Vec<(Entity, Option<LocationSpace>)> = vec![];
+        let mut processed: Vec<(Entity, Option<Location>)> = vec![];
 
-        let location_space_storage = data.locations_space.borrow();
+        let locations_storage = data.locations.borrow();
 
-        for (entity, _, location_dock) in (
+        for (entity, _, location) in (
             &*data.entities,
             &data.actions_undock,
-            data.locations_dock.maybe(),
+            data.locations.maybe(),
         )
             .join()
         {
-            let location_space = match location_dock {
-                Some(location_dock) => location_space_storage
-                    .get(location_dock.docked_id)
-                    .map(|value| value.clone()),
+            let new_location: Option<Location> = match location {
+                Some(Location::Dock { docked_id }) => {
+                    let target_location = locations_storage.get(*docked_id);
+                    match target_location {
+                        Some(location @ Location::Space { .. }) => Some(location.clone()),
+                        _ => None,
+                    }
+
+                },
                 None => None,
             };
 
             debug!("{:?} undocking", entity);
-            processed.push((entity, location_space));
+            processed.push((entity, new_location));
         }
 
         for (entity, location) in processed {
             if let Some(location) = location {
-                let _ = data.locations_space.borrow_mut().insert(entity, location);
+                data.locations.borrow_mut().insert(entity, location).unwrap();
             }
-            let _ = data.locations_dock.borrow_mut().remove(entity);
             let _ = data.actions.borrow_mut().remove(entity);
             let _ = data.actions_undock.borrow_mut().remove(entity);
         }
@@ -60,14 +63,18 @@ mod test {
     use super::super::*;
     use super::*;
     use crate::test::{assert_v2, test_system};
+    use crate::game::sectors::SectorId;
+
+    pub const SECTOR_0: SectorId = SectorId(0);
 
     #[test]
     fn test_undock_system_should_undock_if_docked() {
         let (world, entity) = test_system(UndockSystem, |world| {
             let station = world
                 .create_entity()
-                .with(LocationSpace {
+                .with(Location::Space {
                     pos: Position::new(0.0, 0.0),
+                    sector_id: SECTOR_0,
                 })
                 .build();
 
@@ -75,7 +82,7 @@ mod test {
                 .create_entity()
                 .with(ActionActive(Action::Undock))
                 .with(ActionUndock)
-                .with(LocationDock { docked_id: station })
+                .with(Location::Dock { docked_id: station })
                 .build();
 
             entity
@@ -83,11 +90,11 @@ mod test {
 
         assert!(world.read_storage::<ActionActive>().get(entity).is_none());
         assert!(world.read_storage::<ActionUndock>().get(entity).is_none());
-        assert!(world.read_storage::<LocationDock>().get(entity).is_none());
-        let storage = world.read_storage::<LocationSpace>();
+        assert!(world.read_storage::<Location>().get(entity).is_none());
+        let storage = world.read_storage::<Location>();
         let position = storage.get(entity);
         match position {
-            Some(LocationSpace { pos }) => {
+            Some(Location::Space { pos, .. }) => {
                 assert_v2(*pos, Position::new(0.0, 0.0));
             }
             _ => panic!(),
@@ -101,8 +108,9 @@ mod test {
                 .create_entity()
                 .with(ActionActive(Action::Undock))
                 .with(ActionUndock)
-                .with(LocationSpace {
+                .with(Location::Space {
                     pos: Position::new(0.0, 0.0),
+                    sector_id: SECTOR_0,
                 })
                 .build();
 
@@ -111,11 +119,11 @@ mod test {
 
         assert!(world.read_storage::<ActionActive>().get(entity).is_none());
         assert!(world.read_storage::<ActionUndock>().get(entity).is_none());
-        assert!(world.read_storage::<LocationDock>().get(entity).is_none());
-        let storage = world.read_storage::<LocationSpace>();
+        assert!(world.read_storage::<Location>().get(entity).is_none());
+        let storage = world.read_storage::<Location>();
         let position = storage.get(entity);
         match position {
-            Some(LocationSpace { pos }) => {
+            Some(Location::Space { pos, .. }) => {
                 assert_v2(*pos, Position::new(0.0, 0.0));
             }
             _ => panic!(),

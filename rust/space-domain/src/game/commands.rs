@@ -3,7 +3,7 @@ use std::collections::{HashMap, VecDeque};
 use specs::prelude::*;
 
 use crate::game::extractables::Extractables;
-use crate::game::locations::{LocationSpace, Locations};
+use crate::game::locations::{Location, Locations};
 use crate::game::wares::Cargos;
 use crate::utils::*;
 

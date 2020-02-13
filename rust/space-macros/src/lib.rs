@@ -35,6 +35,7 @@ macro_rules! log {
     ($lvl:expr, $($arg:tt)+) => (log!(target: file!(), $lvl, $($arg)+))
 }
 
+
 ///
 /// Hacked from https://docs.rs/log/0.4.8/src/log/macros.rs.html#135-142
 ///
@@ -164,3 +165,35 @@ macro_rules! trace {
         log!("TRACE", $($arg)+);
     )
 }
+
+// ----------------------------------------------------
+
+#[macro_export]
+macro_rules! debugf {
+    () => (debugf!(""));
+    ($fmt:expr) => (match ::std::fs::OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open("/tmp/debug.log") {
+            Ok(mut file) => {
+                use std::io::Write;
+                file.write_all(format!("{}\n", $fmt).as_bytes()).ok();
+            }
+            Err(_) => {
+                panic!("failed to open log file")
+            },
+        });
+    ($fmt:expr, $($arg:tt)*) => (match ::std::fs::OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open("/tmp/debug.log") {
+            Ok(mut file) => {
+                use std::io::Write;
+                file.write_all(format!(concat!($fmt, "\n"), $($arg)*).as_bytes()).ok();
+            }
+            Err(_) => {
+                panic!("failed to open log file")
+            },
+        });
+}
+
