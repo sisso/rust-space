@@ -6,7 +6,7 @@ extern crate specs_derive;
 extern crate shred_derive;
 
 use specs::prelude::*;
-use specs_derive::*;
+
 use std::borrow::BorrowMut;
 
 // A component contains data

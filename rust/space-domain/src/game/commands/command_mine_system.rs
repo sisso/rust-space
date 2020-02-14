@@ -71,13 +71,15 @@ impl<'a> System<'a> for CommandMineSystem {
                         let target_id = search_deliver_target(sectors_index, entity, sector_id);
                         command.deliver_target_id = Some(target_id);
                         target_id
-                    },
+                    }
                 };
 
                 if location.as_docked() == Some(target_id) {
                     cargo_transfers.push((entity, target_id));
                 } else {
-                    data.nav_request.borrow_mut().insert(entity, NavRequest::MoveAndDockAt { target_id });
+                    data.nav_request
+                        .borrow_mut()
+                        .insert(entity, NavRequest::MoveAndDockAt { target_id });
                 }
             } else {
                 // mine for non full cargo
@@ -91,18 +93,21 @@ impl<'a> System<'a> for CommandMineSystem {
                         let target_id = search_mine_target(sectors_index, entity, sector_id);
                         command.mine_target_id = Some(target_id);
                         target_id
-                    },
+                    }
                 };
 
                 // navigate to mine
                 let target_location = locations.get(target_id).unwrap();
                 if Locations::is_near(location, &target_location) {
-                    data.action_request.borrow_mut().insert(entity, ActionRequest(Action::Extract { target_id }));
+                    data.action_request
+                        .borrow_mut()
+                        .insert(entity, ActionRequest(Action::Extract { target_id }));
                 } else {
                     // move to target
-                    data.nav_request.borrow_mut().insert(entity, NavRequest::MoveToTarget { target_id });
+                    data.nav_request
+                        .borrow_mut()
+                        .insert(entity, NavRequest::MoveToTarget { target_id });
                 }
-
             }
         }
 
@@ -135,7 +140,6 @@ fn search_deliver_target(
     let target_id = candidates.iter().next().unwrap();
     target_id.1
 }
-
 
 #[cfg(test)]
 mod test {

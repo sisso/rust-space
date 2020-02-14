@@ -39,12 +39,12 @@ impl NewObj {
     }
 
     pub fn at_position(mut self, sector_id: SectorId, pos: Position) -> Self {
-        self.location= Some(Location::Space { pos, sector_id });
+        self.location = Some(Location::Space { pos, sector_id });
         self
     }
 
     pub fn at_dock(mut self, docked_id: ObjId) -> Self {
-        self.location= Some(Location::Dock { docked_id });
+        self.location = Some(Location::Dock { docked_id });
         self
     }
 

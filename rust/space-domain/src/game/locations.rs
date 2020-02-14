@@ -9,9 +9,9 @@ use crate::utils::*;
 
 use crate::game::jsons::JsonValueExtra;
 use crate::game::locations::index_per_sector_system::*;
-use std::borrow::Borrow;
 use shred::Fetch;
 use specs::storage::MaskedStorage;
+use std::borrow::Borrow;
 
 #[derive(Debug, Clone)]
 pub struct LocationSpace {
@@ -21,31 +21,25 @@ pub struct LocationSpace {
 
 #[derive(Debug, Clone, Component)]
 pub enum Location {
-    Space {
-        pos: Position,
-        sector_id: SectorId,
-    },
-    Dock {
-        docked_id: ObjId,
-    }
+    Space { pos: Position, sector_id: SectorId },
+    Dock { docked_id: ObjId },
 }
 
 impl Location {
     pub fn as_space(&self) -> Option<LocationSpace> {
         match self {
-            Location::Space { pos, sector_id} => Some(LocationSpace {
+            Location::Space { pos, sector_id } => Some(LocationSpace {
                 pos: *pos,
                 sector_id: *sector_id,
             }),
             _ => None,
-
         }
     }
 
     /// Utility method since we can not easily reference a enum type
     pub fn set_pos(&mut self, new_pos: Position) -> Result<(), ()> {
         match self {
-            Location::Space { pos, .. } =>  {
+            Location::Space { pos, .. } => {
                 *pos = new_pos;
                 Ok(())
             }
@@ -118,15 +112,19 @@ impl EntityPerSectorIndex {
 
     // TODO: implement
     pub fn search_nearest_extractable(&self, from_sector_id: SectorId) -> Vec<(SectorId, ObjId)> {
-        self.index_extractables.iter().flat_map(|(sector_id, list)| {
-            list.iter().map(|id| (*sector_id, *id)).collect::<Vec<(SectorId, ObjId)>>()
-        }).collect()
+        self.index_extractables
+            .iter()
+            .flat_map(|(sector_id, list)| {
+                list.iter()
+                    .map(|id| (*sector_id, *id))
+                    .collect::<Vec<(SectorId, ObjId)>>()
+            })
+            .collect()
     }
 
     pub fn list_stations(&self) -> Vec<(SectorId, ObjId)> {
         unimplemented!()
     }
-
 }
 
 pub struct Locations {}
@@ -144,16 +142,16 @@ impl Locations {
 
     pub fn is_near(loc_a: &Location, loc_b: &Location) -> bool {
         match (loc_a, loc_b) {
-            (Location::Space {
-                pos: pos_a,
-                sector_id: sector_id_a
-            }, Location::Space {
-                pos: pos_b,
-                sector_id: sector_id_b
-            }) => {
-                sector_id_a == sector_id_b &&
-                    V2::distance(&pos_a, &pos_b) < MIN_DISTANCE
-            },
+            (
+                Location::Space {
+                    pos: pos_a,
+                    sector_id: sector_id_a,
+                },
+                Location::Space {
+                    pos: pos_b,
+                    sector_id: sector_id_b,
+                },
+            ) => sector_id_a == sector_id_b && V2::distance(&pos_a, &pos_b) < MIN_DISTANCE,
             _ => false,
         }
     }
@@ -165,19 +163,27 @@ impl Locations {
         }
     }
 
-    pub fn is_near_from_storage(locations: &ReadStorage<Location>, obj_a: ObjId, obj_b: ObjId) -> bool {
+    pub fn is_near_from_storage(
+        locations: &ReadStorage<Location>,
+        obj_a: ObjId,
+        obj_b: ObjId,
+    ) -> bool {
         let pos_a = locations.get(obj_a);
         let pos_b = locations.get(obj_b);
         Locations::is_near_maybe(pos_a, pos_b)
     }
 
     /// recursive search through docked entities until find what space position entity is
-    pub fn resolve_space_position(locations: &ReadStorage<Location>, obj: ObjId) -> Option<LocationSpace> {
+    pub fn resolve_space_position(
+        locations: &ReadStorage<Location>,
+        obj: ObjId,
+    ) -> Option<LocationSpace> {
         match locations.get(obj) {
             Some(location @ Location::Space { .. }) => location.as_space(),
-            Some(Location::Dock { docked_id}) => Locations::resolve_space_position(locations, *docked_id),
-            _ => None
+            Some(Location::Dock { docked_id }) => {
+                Locations::resolve_space_position(locations, *docked_id)
+            }
+            _ => None,
         }
     }
 }
-

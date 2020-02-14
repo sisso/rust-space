@@ -31,14 +31,12 @@ impl<'a> System<'a> for NavRequestHandlerSystem {
         let mut processed_requests = vec![];
         let locations = data.locations.borrow();
 
-        for (entity, request, location) in (
-            &data.entities,
-            &data.requests,
-            &data.locations,
-        ).join()
+        for (entity, request, location) in (&data.entities, &data.requests, &data.locations).join()
         {
             match request {
-                NavRequest::MoveToTarget { target_id: target_id } => {
+                NavRequest::MoveToTarget {
+                    target_id: target_id,
+                } => {
                     let is_docked = location.as_docked().is_some();
                     let location = Locations::resolve_space_position(locations, entity)
                         .expect("entity has no location");
@@ -105,7 +103,9 @@ mod test {
                     pos: Position::new(0.0, 0.0),
                     sector_id: SECTOR_0,
                 })
-                .with(NavRequest::MoveToTarget { target_id: asteroid })
+                .with(NavRequest::MoveToTarget {
+                    target_id: asteroid,
+                })
                 .build();
 
             (asteroid, miner)
@@ -148,7 +148,9 @@ mod test {
             let miner = world
                 .create_entity()
                 .with(Location::Dock { docked_id: station })
-                .with(NavRequest::MoveToTarget { target_id: asteroid })
+                .with(NavRequest::MoveToTarget {
+                    target_id: asteroid,
+                })
                 .build();
 
             (asteroid, miner)

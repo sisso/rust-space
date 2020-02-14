@@ -39,7 +39,8 @@ impl Cargo {
     /// Currently impl leave a unknown state on failure, this is the reasons panik
     pub fn apply_move_from(&mut self, change: &MoveChange) -> Result<(), ()> {
         for (ware_id, amount) in change.moved.iter() {
-           self.remove(*ware_id, *amount).expect("apply move from failed");
+            self.remove(*ware_id, *amount)
+                .expect("apply move from failed");
         }
 
         Ok(())
@@ -56,9 +57,7 @@ impl Cargo {
 
     /// Move all cargo possible from to
     pub fn move_all_to_max(from: &Cargo, to: &Cargo) -> MoveChange {
-        let mut change = MoveChange {
-            moved: vec![],
-        };
+        let mut change = MoveChange { moved: vec![] };
 
         let free_space = to.free_space();
         let mut total_moved = 0.0;

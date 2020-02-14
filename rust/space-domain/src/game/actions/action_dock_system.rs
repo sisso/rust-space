@@ -51,8 +51,8 @@ impl<'a> System<'a> for DockSystem {
 mod test {
     use super::super::*;
     use super::*;
-    use crate::test::{assert_v2, test_system};
     use crate::game::sectors::SectorId;
+    use crate::test::{assert_v2, test_system};
 
     pub const SECTOR_0: SectorId = SectorId(0);
 

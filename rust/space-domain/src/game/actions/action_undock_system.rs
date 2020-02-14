@@ -25,12 +25,7 @@ impl<'a> System<'a> for UndockSystem {
 
         let locations_storage = data.locations.borrow();
 
-        for (entity, _, location) in (
-            &*data.entities,
-            &data.actions_undock,
-            &data.locations,
-        )
-            .join()
+        for (entity, _, location) in (&*data.entities, &data.actions_undock, &data.locations).join()
         {
             if let Some(docked_id) = location.as_docked() {
                 let target_location = locations_storage.get(docked_id);
@@ -38,11 +33,11 @@ impl<'a> System<'a> for UndockSystem {
                     Some(location @ Location::Space { .. }) => {
                         debug!("{:?} undocking", entity);
                         processed.push((entity, Some(location.clone())));
-                    },
+                    }
                     _ => {
                         debug!("{:?} can not undock at {:?}", entity, target_location);
                         processed.push((entity, None))
-                    },
+                    }
                 }
             } else {
                 debug!("{:?} can not undock, it is not docked", entity);
@@ -52,7 +47,10 @@ impl<'a> System<'a> for UndockSystem {
 
         for (entity, location) in processed {
             if let Some(location) = location {
-                data.locations.borrow_mut().insert(entity, location).unwrap();
+                data.locations
+                    .borrow_mut()
+                    .insert(entity, location)
+                    .unwrap();
             }
             let _ = data.actions.borrow_mut().remove(entity);
             let _ = data.actions_undock.borrow_mut().remove(entity);
@@ -64,8 +62,8 @@ impl<'a> System<'a> for UndockSystem {
 mod test {
     use super::super::*;
     use super::*;
-    use crate::test::{assert_v2, test_system};
     use crate::game::sectors::SectorId;
+    use crate::test::{assert_v2, test_system};
 
     pub const SECTOR_0: SectorId = SectorId(0);
 

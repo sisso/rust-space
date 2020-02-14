@@ -3,8 +3,8 @@ use specs::prelude::*;
 use super::super::locations::*;
 use super::*;
 use crate::game::actions::*;
-use std::borrow::{Borrow, BorrowMut};
 use crate::utils::V2;
+use std::borrow::{Borrow, BorrowMut};
 
 pub struct ActionMoveToSystem;
 
@@ -45,10 +45,13 @@ impl<'a> System<'a> for ActionMoveToSystem {
             let pos = match location.get_pos() {
                 Some(pos) => pos,
                 _ => {
-                    warn!("{:?} can not do action move since it is not in space", entity);
+                    warn!(
+                        "{:?} can not do action move since it is not in space",
+                        entity
+                    );
                     completed.push(entity);
                     continue;
-                },
+                }
             };
 
             let speed = moveable.speed.as_f32();

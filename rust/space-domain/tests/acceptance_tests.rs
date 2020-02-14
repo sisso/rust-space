@@ -1,8 +1,8 @@
 extern crate space_domain;
 
 use space_domain::game::extractables::Extractable;
-use space_domain::game::locations::{Location, LocationSpace};
-use space_domain::game::navigations::Navigation;
+use space_domain::game::locations::Location;
+
 use space_domain::game::new_obj::NewObj;
 use space_domain::game::objects::ObjId;
 use space_domain::game::sectors::test_scenery;
@@ -10,7 +10,7 @@ use space_domain::game::sectors::SectorId;
 use space_domain::game::wares::WareId;
 use space_domain::game::Game;
 use space_domain::test::assert_v2;
-use space_domain::utils::{DeltaTime, Speed, TotalTime, V2};
+use space_domain::utils::{DeltaTime, Speed, V2};
 use specs::WorldExt;
 use std::borrow::Borrow;
 
@@ -77,7 +77,7 @@ fn test_game_should_run() {
         game.tick(delta);
     }
 
-    let location  = game
+    let location = game
         .world
         .read_storage::<Location>()
         .borrow()

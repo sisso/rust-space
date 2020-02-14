@@ -35,7 +35,6 @@ macro_rules! log {
     ($lvl:expr, $($arg:tt)+) => (log!(target: file!(), $lvl, $($arg)+))
 }
 
-
 ///
 /// Hacked from https://docs.rs/log/0.4.8/src/log/macros.rs.html#135-142
 ///
@@ -196,4 +195,3 @@ macro_rules! debugf {
             },
         });
 }
-

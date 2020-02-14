@@ -1,7 +1,7 @@
 use specs::prelude::*;
 
 use super::*;
-use crate::game::locations::{Location};
+use crate::game::locations::Location;
 use crate::game::sectors::Sectors;
 use std::borrow::{Borrow, BorrowMut};
 
@@ -59,10 +59,15 @@ impl<'a> System<'a> for ActionJumpSystem {
                 entity, jump.to_sector_id, jump.to_pos
             );
 
-            data
-                .locations
+            data.locations
                 .borrow_mut()
-                .insert(entity, Location::Space { pos: jump.to_pos, sector_id: jump.to_sector_id })
+                .insert(
+                    entity,
+                    Location::Space {
+                        pos: jump.to_pos,
+                        sector_id: jump.to_sector_id,
+                    },
+                )
                 .unwrap();
 
             data.actions.borrow_mut().remove(entity).unwrap();

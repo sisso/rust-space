@@ -37,16 +37,16 @@ pub enum Action {
 impl Action {
     pub fn is_dock(&self) -> bool {
         match self {
-            Action::Dock{ .. } => true,
+            Action::Dock { .. } => true,
             _ => false,
         }
     }
 
     pub fn is_extract(&self) -> bool {
-       match self {
-           Action::Extract { .. } => true,
-           _ => false,
-       }
+        match self {
+            Action::Extract { .. } => true,
+            _ => false,
+        }
     }
 }
 

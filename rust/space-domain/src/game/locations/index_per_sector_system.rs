@@ -39,15 +39,11 @@ impl<'a> System<'a> for IndexPerSectorSystem {
                     index.add(sector_id, entity);
 
                     if data.extractables.contains(entity) {
-                        trace!(
-                            "indexing extractable {:?} at {:?}",
-                            entity,
-                            sector_id
-                        );
+                        trace!("indexing extractable {:?} at {:?}", entity, sector_id);
                         index.add_extractable(sector_id, entity);
                     }
-                },
-                _ => {},
+                }
+                _ => {}
             }
         }
     }
