@@ -29,6 +29,7 @@ impl<'a> System<'a> for NavRequestHandlerSystem {
         let sectors = data.sectors.borrow();
 
         let mut processed_requests = vec![];
+        let locations = data.locations.borrow();
 
         for (entity, request, location) in (
             &data.entities,
@@ -37,40 +38,30 @@ impl<'a> System<'a> for NavRequestHandlerSystem {
         ).join()
         {
             match request {
-                NavRequest::MoveToTarget { target_id: target } => {
-                    let target_sector_id = data.locations_sector_id.borrow().get(*target).unwrap();
-                    let target_pos = data.locations_positions.borrow().get(*target).unwrap();
-
-                    let from_pos = match (from_pos_maybe, from_dock_maybe) {
-                        (Some(location), None) => location.pos,
-                        (None, Some(docked)) => {
-                            data.locations_positions
-                                .borrow()
-                                .get(docked.docked_id)
-                                .unwrap()
-                                .pos
-                        }
-                        _ => panic!(),
-                    };
+                NavRequest::MoveToTarget { target_id: target_id } => {
+                    let is_docked = location.as_docked().is_some();
+                    let location = Locations::resolve_space_position(locations, entity)
+                        .expect("entity has no location");
+                    let target_location = Locations::resolve_space_position(locations, *target_id)
+                        .expect("target has no location");
 
                     let plan = Navigations::create_plan(
                         sectors,
-                        from_sector_id.sector_id,
-                        from_pos,
-                        target_sector_id.sector_id,
-                        target_pos.pos,
-                        from_dock_maybe.is_some(),
+                        location.sector_id,
+                        location.pos,
+                        target_location.sector_id,
+                        target_location.pos,
+                        is_docked,
                     );
 
                     debug!("{:?} handle navigation", entity);
 
-                    let _ = data.navigation.insert(entity, Navigation::MoveTo).unwrap();
-                    let _ = data
-                        .navigation_move_to
+                    data.navigation.insert(entity, Navigation::MoveTo).unwrap();
+                    data.navigation_move_to
                         .insert(
                             entity,
                             NavigationMoveTo {
-                                target: *target,
+                                target: *target_id,
                                 plan,
                             },
                         )

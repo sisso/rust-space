@@ -29,7 +29,6 @@ pub struct CommandMineSystem;
 #[derive(SystemData)]
 pub struct CommandMineData<'a> {
     entities: Entities<'a>,
-    extractables: ReadStorage<'a, Extractable>,
     locations: ReadStorage<'a, Location>,
     commands_mine: WriteStorage<'a, CommandMine>,
     nav_request: WriteStorage<'a, NavRequest>,
@@ -46,56 +45,64 @@ impl<'a> System<'a> for CommandMineSystem {
     fn run(&mut self, mut data: CommandMineData) {
         trace!("running");
 
-        let sector_index = data.sector_index.borrow();
-        // search extractable
-        let mut extractables = vec![];
-
-        for (entity, _) in (&data.entities, &data.extractables).join() {
-            extractables.push(entity);
-        }
-
+        let sectors_index = data.sector_index.borrow();
+        let locations = data.locations.borrow();
         let mut cargo_transfers = vec![];
 
-        for (entity, command, cargo, nav, mining, location) in (
-            &data.entities,
+        // find mine commands without action or navigation
+        for (entity, command, cargo, _, _, location) in (
+            &*data.entities,
             &mut data.commands_mine,
             &data.cargos,
-            data.navigation.maybe(),
-            data.action_extract.maybe(),
+            !&data.navigation,
+            !&data.action_extract,
             &data.locations,
         )
             .join()
         {
-            let result = execute(
-                sector_index,
-                entity,
-                command,
-                location,
-                cargo,
-                nav.is_some(),
-                mining.is_some(),
-                None,
-                |id| {
-                    let locations = data.locations.borrow();
-                    Locations::resolve_space_position(locations, id)
-                        .map(|i| i.sector_id)
-                },
-                |id| {
-                    let locations = data.locations.borrow();
-                    locations.get(id).cloned()
-                },
-            );
+            if cargo.is_full() {
+                let target_id = match command.deliver_target_id {
+                    Some(id) => id,
+                    None => {
+                        let sector_id = Locations::resolve_space_position(locations, entity)
+                            .unwrap()
+                            .sector_id;
 
-            if let Some(nav_request) = result.nav_request {
-                data.nav_request.borrow_mut().insert(entity, nav_request);
-            }
+                        let target_id = search_deliver_target(sectors_index, entity, sector_id);
+                        command.deliver_target_id = Some(target_id);
+                        target_id
+                    },
+                };
 
-            if let Some(action_request) = result.action_request {
-                data.action_request.borrow_mut().insert(entity, action_request);
-            }
+                if location.as_docked() == Some(target_id) {
+                    cargo_transfers.push((entity, target_id));
+                } else {
+                    data.nav_request.borrow_mut().insert(entity, NavRequest::MoveAndDockAt { target_id });
+                }
+            } else {
+                // mine for non full cargo
+                let target_id = match command.mine_target_id {
+                    Some(id) => id,
+                    None => {
+                        let sector_id = Locations::resolve_space_position(locations, entity)
+                            .unwrap()
+                            .sector_id;
 
-            if let Some(transfer_target_id) = result.transfer_cargo {
-                cargo_transfers.push((entity, transfer_target_id));
+                        let target_id = search_mine_target(sectors_index, entity, sector_id);
+                        command.mine_target_id = Some(target_id);
+                        target_id
+                    },
+                };
+
+                // navigate to mine
+                let target_location = locations.get(target_id).unwrap();
+                if Locations::is_near(location, &target_location) {
+                    data.action_request.borrow_mut().insert(entity, ActionRequest(Action::Extract { target_id }));
+                } else {
+                    // move to target
+                    data.nav_request.borrow_mut().insert(entity, NavRequest::MoveToTarget { target_id });
+                }
+
             }
         }
 
@@ -107,112 +114,25 @@ impl<'a> System<'a> for CommandMineSystem {
     }
 }
 
-
-struct ExecuteResult {
-    id: ObjId,
-    action_request: Option<ActionRequest>,
-    nav_request: Option<NavRequest>,
-    transfer_cargo: Option<ObjId>,
-}
-
-fn execute<F1, F2>(
-    sectors_index: &EntityPerSectorIndex,
-    entity: ObjId,
-    command: &mut CommandMine,
-    location: &Location,
-    cargo: &Cargo,
-    has_navigation: bool,
-    is_extracting: bool,
-    docket_at: Option<ObjId>,
-    resolve_sector_id: F1,
-    resolve_location: F2,
-) -> ExecuteResult
-    where
-        F1: Fn(ObjId) -> Option<SectorId>,
-        F2: Fn(ObjId) -> Option<Location>,
-{
-
-
-    let mut result = ExecuteResult {
-        id: entity,
-        nav_request: None,
-        action_request: None,
-        transfer_cargo: None,
-    };
-
-    debugf!("Here we are");
-
-    // do nothing if is doing navigation
-    if has_navigation {
-        return result;
-    }
-
-    // deliver for full cargo
-    if cargo.is_full() {
-        // find deliver target if not defined
-        let target_id = match command.deliver_target_id {
-            Some(id) => id,
-            None => {
-                let sector_id = resolve_sector_id(entity).unwrap();
-                search_deliver_target(sectors_index, entity, command, sector_id)
-            },
-        };
-
-        // if is docked at deliver
-        if docket_at == Some(target_id) {
-            // deliver
-            result.transfer_cargo = Some(target_id);
-        } else {
-            result.nav_request = Some(NavRequest::MoveAndDockAt { target_id });
-        }
-        // continue to minbenefits oe
-    } else {
-        // mine for non full cargo
-        let target_id = match command.mine_target_id {
-            Some(id) => id,
-            None => {
-                let sector_id = resolve_sector_id(entity).unwrap();
-                search_mine_target(sectors_index, entity, command, sector_id)
-            },
-        };
-
-        // navigate to mine
-        let target_location = resolve_location(target_id).unwrap();
-        if Locations::is_near(location, &target_location) {
-            result.action_request = Some(ActionRequest(Action::Extract { target_id }));
-        } else {
-            // move to target
-            result.nav_request = Some(NavRequest::MoveToTarget { target_id });
-        }
-    }
-
-    return result;
-}
-
 fn search_mine_target(
     sectors_index: &EntityPerSectorIndex,
     entity: Entity,
-    command: &mut CommandMine,
     sector_id: SectorId,
 ) -> ObjId {
     // find nearest extractable
     let candidates = sectors_index.search_nearest_extractable(sector_id);
     let target_id = candidates.iter().next().unwrap();
-
-    command.mine_target_id = Some(target_id.1);
     target_id.1
 }
 
 fn search_deliver_target(
     sectors_index: &EntityPerSectorIndex,
     entity: Entity,
-    command: &mut CommandMine,
     sector_id: SectorId,
 ) -> ObjId {
     // find nearest deliver
     let candidates = sectors_index.list_stations();
     let target_id = candidates.iter().next().unwrap();
-    command.deliver_target_id = Some(target_id.1);
     target_id.1
 }
 

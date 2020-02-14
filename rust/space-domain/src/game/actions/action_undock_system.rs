@@ -28,24 +28,26 @@ impl<'a> System<'a> for UndockSystem {
         for (entity, _, location) in (
             &*data.entities,
             &data.actions_undock,
-            data.locations.maybe(),
+            &data.locations,
         )
             .join()
         {
-            let new_location: Option<Location> = match location {
-                Some(Location::Dock { docked_id }) => {
-                    let target_location = locations_storage.get(*docked_id);
-                    match target_location {
-                        Some(location @ Location::Space { .. }) => Some(location.clone()),
-                        _ => None,
-                    }
-
-                },
-                None => None,
-            };
-
-            debug!("{:?} undocking", entity);
-            processed.push((entity, new_location));
+            if let Some(docked_id) = location.as_docked() {
+                let target_location = locations_storage.get(docked_id);
+                match target_location {
+                    Some(location @ Location::Space { .. }) => {
+                        debug!("{:?} undocking", entity);
+                        processed.push((entity, Some(location.clone())));
+                    },
+                    _ => {
+                        debug!("{:?} can not undock at {:?}", entity, target_location);
+                        processed.push((entity, None))
+                    },
+                }
+            } else {
+                debug!("{:?} can not undock, it is not docked", entity);
+                processed.push((entity, None));
+            }
         }
 
         for (entity, location) in processed {

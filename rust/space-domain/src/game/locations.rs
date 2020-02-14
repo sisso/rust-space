@@ -53,7 +53,7 @@ impl Location {
         }
     }
 
-    /// Utility method since we can not easlity reference a enum type
+    /// Utility method since we can not easily reference a enum type
     pub fn get_pos(&self) -> Option<Position> {
         match self {
             Location::Space { pos, .. } => Some(pos.clone()),
@@ -61,7 +61,7 @@ impl Location {
         }
     }
 
-    /// Utility method since we can not easlity reference a enum type
+    /// Utility method since we can not easily reference a enum type
     pub fn get_sector_id(&self) -> Option<SectorId> {
         match self {
             Location::Space { sector_id, .. } => Some(sector_id.clone()),
@@ -69,8 +69,8 @@ impl Location {
         }
     }
 
-    /// Utility method since we can not easlity reference a enum type
-    pub fn get_docked(&self) -> Option<ObjId> {
+    /// Utility method since we can not easily reference a enum type
+    pub fn as_docked(&self) -> Option<ObjId> {
         match self {
             Location::Dock { docked_id } => Some(docked_id.clone()),
             _ => None,
@@ -142,8 +142,8 @@ impl Locations {
 
     pub fn execute(&mut self, world: &mut World) {}
 
-    pub fn is_near(pos_a: &Location, pos_b: &Location) -> bool {
-        match (pos_a, pos_b) {
+    pub fn is_near(loc_a: &Location, loc_b: &Location) -> bool {
+        match (loc_a, loc_b) {
             (Location::Space {
                 pos: pos_a,
                 sector_id: sector_id_a
@@ -155,11 +155,6 @@ impl Locations {
                     V2::distance(&pos_a, &pos_b) < MIN_DISTANCE
             },
             _ => false,
-//            (pos_a @ Location::Space { .. }, pos_b @ Location::Space { .. }) => {
-//                pos_a.sector_id == pos_b.sector_id &&
-//                    V2::distance(&pos_a.pos, &pos_b.pos) < MIN_DISTANCE
-//            },
-//            _ => None,
         }
     }
 
