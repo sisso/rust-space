@@ -44,6 +44,19 @@ in system are never output.
 
 # Forum
 
+## ActionPpogress
+
+Action progress is a simple way to standardize delays. Instead always have to get the current
+action and check against total time. The system can just check if no delay is active.
+
+A delay system can centralize all delay logic.
+
+An issue is that all actions will require to be executed synchronous for all actions that
+can activate delay, since they will require write capability.
+
+Mostly of action control is already done by the Handler. Late update is a option to all
+progress creation.
+
 ## Location
 
 A single enum with multual exclusive is much easy to manipulate. While in many cases a single component AtSectorId make

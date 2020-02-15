@@ -2,7 +2,7 @@ use specs::prelude::*;
 use crate::game::extractables::Extractable;
 use crate::game::wares::Cargo;
 use crate::utils::TotalTime;
-use crate::game::actions::ActionExtract;
+use crate::game::actions::{ActionExtract, ActionProgress};
 
 pub struct ActionExtractSystem;
 
@@ -13,6 +13,7 @@ pub struct ActionExtractData<'a> {
     extractables: ReadStorage<'a, Extractable>,
     cargo: ReadStorage<'a, Cargo>,
     action: ReadStorage<'a, ActionExtract>,
+    action_progress: ReadStorage<'a, ActionProgress>,
 }
 
 impl<'a> System<'a> for ActionExtractSystem {
@@ -26,11 +27,13 @@ impl<'a> System<'a> for ActionExtractSystem {
         for (
             entity,
             action,
-            cargo
+            cargo,
+            _
         ) in (
             &*data.entities,
             &data.action,
-            &data.cargo
+            &data.cargo,
+            !&data.action_progress,
         ).join() {
 
         }

@@ -15,6 +15,7 @@ use crate::game::actions::action_request_handler_system::ActionRequestHandlerSys
 use crate::game::actions::action_undock_system::UndockSystem;
 use crate::game::sectors::JumpId;
 use crate::utils::{DeltaTime, Position, Seconds, TotalTime};
+use crate::game::actions::action_progress_system::ActionProgressSystem;
 
 mod action_dock_system;
 mod action_jump_system;
@@ -22,6 +23,7 @@ mod action_move_to_system;
 mod action_request_handler_system;
 mod action_undock_system;
 mod action_extract_system;
+mod action_progress_system;
 
 pub const ACTION_JUMP_TOTAL_TIME: DeltaTime = DeltaTime(2.0);
 
@@ -53,7 +55,7 @@ impl Action {
 
 #[derive(Debug, Clone, Component)]
 pub struct ActionProgress {
-    pub action_delay: DeltaTime,
+    pub complete_time: TotalTime,
 }
 
 #[derive(Debug, Clone, Component)]
@@ -102,24 +104,45 @@ impl ActionJump {
 #[derive(Clone, Debug)]
 pub struct Actions {}
 
+const ACTION_PROGRESS_SYSTEM_NAME: &str = "action_progress_system";
+const ACTION_REQUEST_SYSTEM_NAME: &str = "action_request_handler";
+
+///
+/// Flow:
+/// - execute action progress
+/// - execute request handler
+/// - execute actions
 impl Actions {
     pub fn init_world(world: &mut World, dispatcher: &mut DispatcherBuilder) {
-        dispatcher.add(ActionRequestHandlerSystem, "action_request_handler", &[]);
+        dispatcher.add(ActionProgressSystem, ACTION_PROGRESS_SYSTEM_NAME, &[]);
+        dispatcher.add(ActionRequestHandlerSystem, ACTION_PROGRESS_SYSTEM_NAME, &[
+            ACTION_PROGRESS_SYSTEM_NAME
+        ]);
+
+        let default_dependencies = [
+            ACTION_PROGRESS_SYSTEM_NAME,
+            ACTION_REQUEST_SYSTEM_NAME,
+        ];
+
         dispatcher.add(
             ActionMoveToSystem,
             "action_move_to",
+            &default_dependencies,
+        );
+        dispatcher.add(
+            DockSystem,
+           "action_dock_to",
             &["action_request_handler"],
         );
-        dispatcher.add(DockSystem, "action_dock_to", &["action_request_handler"]);
         dispatcher.add(
             UndockSystem,
             "action_undock_to",
-            &["action_request_handler"],
+            &default_dependencies,
         );
         dispatcher.add(
             ActionJumpSystem,
             "action_jump_to",
-            &["action_request_handler"],
+            &default_dependencies,
         );
     }
 
