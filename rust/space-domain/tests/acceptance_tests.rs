@@ -80,7 +80,6 @@ fn test_game_should_run() {
     let location = game
         .world
         .read_storage::<Location>()
-        .borrow()
         .get(ship_id)
         .unwrap()
         .as_space()

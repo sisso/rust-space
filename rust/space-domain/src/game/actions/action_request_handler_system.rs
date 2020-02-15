@@ -29,6 +29,7 @@ impl<'a> System<'a> for ActionRequestHandlerSystem {
         for (entity, request) in (&*data.entities, &data.requests).join() {
             processed.push(entity);
 
+            // used to move to ActionActive before remove from storage
             let action: Action = request.get_action().clone();
 
             let _ = data.actions_undock.borrow_mut().remove(entity);
@@ -44,25 +45,28 @@ impl<'a> System<'a> for ActionRequestHandlerSystem {
                         .insert(entity, ActionUndock)
                         .unwrap();
                 }
-                Action::Jump { jump_id } => {
+                Action::Jump { .. } => {
                     data.actions_jump
                         .borrow_mut()
                         .insert(entity, ActionJump::new())
                         .unwrap();
                 }
-                Action::Dock { target_id } => {
+                Action::Dock { .. } => {
                     data.actions_dock
                         .borrow_mut()
                         .insert(entity, ActionDock)
                         .unwrap();
                 }
-                Action::MoveTo { pos } => {
+                Action::MoveTo { .. } => {
                     data.actions_move_to
                         .borrow_mut()
                         .insert(entity, ActionMoveTo)
                         .unwrap();
                 }
-                _ => unimplemented!(),
+                Action::Extract { .. } => {
+
+                },
+                other => panic!("not implemented for {:?}", other),
             }
 
             data.actions
@@ -73,7 +77,7 @@ impl<'a> System<'a> for ActionRequestHandlerSystem {
 
         let requests_storage = data.requests.borrow_mut();
         for entity in processed {
-            let _ = requests_storage.remove(entity).unwrap();
+            requests_storage.remove(entity).unwrap();
         }
     }
 }

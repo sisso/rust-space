@@ -35,7 +35,7 @@ pub struct CommandMineData<'a> {
     sector_index: Read<'a, EntityPerSectorIndex>,
     cargos: WriteStorage<'a, Cargo>,
     navigation: ReadStorage<'a, Navigation>,
-    action_extract: ReadStorage<'a, ActionMine>,
+    action_extract: ReadStorage<'a, ActionExtract>,
     action_request: WriteStorage<'a, ActionRequest>,
 }
 
@@ -170,7 +170,8 @@ mod test {
                 pos: V2::new(0.0, 0.0),
                 sector_id: SECTOR_1,
             })
-            .with(EXTRACTABLE)
+            // TODO
+//            .with(EXTRACTABLE)
             .build();
 
         let miner = world
@@ -224,7 +225,7 @@ mod test {
                     pos: V2::new(0.0, 0.0),
                     sector_id: SECTOR_0,
                 })
-                .with(EXTRACTABLE)
+//                .with(EXTRACTABLE)
                 .build();
 
             let miner = world

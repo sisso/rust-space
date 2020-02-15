@@ -23,6 +23,7 @@ pub struct Cargo {
     wares: BTreeMap<WareId, f32>,
 }
 
+#[derive(Debug,Clone)]
 pub struct MoveChange {
     pub moved: Vec<(WareId, f32)>,
 }
@@ -59,7 +60,7 @@ impl Cargo {
     pub fn move_all_to_max(from: &Cargo, to: &Cargo) -> MoveChange {
         let mut change = MoveChange { moved: vec![] };
 
-        let free_space = to.free_space();
+        let mut free_space = to.free_space();
         let mut total_moved = 0.0;
 
         for (id, amount) in from.wares.iter() {
@@ -71,6 +72,7 @@ impl Cargo {
             }
 
             change.moved.push((*id, amount_to_move));
+            free_space -= amount_to_move;
         }
 
         return change;
@@ -148,16 +150,16 @@ impl Cargos {
         world.register::<Cargo>();
     }
 
-    pub fn move_all<'a>(cargos: &mut WriteStorage<'a, Cargo>, from_id: ObjId, to_id: ObjId) {
+    pub fn move_all(cargos: &mut WriteStorage<Cargo>, from_id: ObjId, to_id: ObjId) {
         let cargo_from = cargos.get(from_id).expect("Entity cargo not found");
         let cargo_to = cargos.get(to_id).expect("Deliver cargo not found");
         let changes = Cargo::move_all_to_max(cargo_from, cargo_to);
 
         let cargo_from = cargos.get_mut(from_id).expect("Entity cargo not found");
-        cargo_from.apply_move_from(&changes);
+        cargo_from.apply_move_from(&changes).unwrap();
 
         let cargo_to = cargos.get_mut(to_id).expect("Deliver cargo not found");
-        cargo_to.apply_move_to(&changes);
+        cargo_to.apply_move_to(&changes).unwrap();
     }
 }
 
@@ -172,13 +174,14 @@ mod test {
     #[test]
     fn test_cargo_transfer() {
         let mut cargo1 = Cargo::new(10.0);
-        let _ = cargo1.add(WARE0, 4.0);
-        let _ = cargo1.add(WARE1, 3.0);
+        cargo1.add(WARE0, 4.0).unwrap();
+        cargo1.add(WARE1, 3.0).unwrap();
 
         let mut cargo2 = Cargo::new(5.0);
 
-        Cargo::move_all_to_max(&mut cargo1, &mut cargo2);
-        println!("after move_all_to_max:\n{:?}\n{:?}", cargo1, cargo2);
+        let change = Cargo::move_all_to_max(&cargo1, &cargo2);
+        cargo1.apply_move_from(&change).unwrap();
+        cargo2.apply_move_to(&change).unwrap();
 
         assert_eq!(0.0, cargo1.get_amount(WARE0));
         assert_eq!(2.0, cargo1.get_amount(WARE1));

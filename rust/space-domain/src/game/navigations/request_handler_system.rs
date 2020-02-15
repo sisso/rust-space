@@ -35,7 +35,7 @@ impl<'a> System<'a> for NavRequestHandlerSystem {
         {
             match request {
                 NavRequest::MoveToTarget {
-                    target_id: target_id,
+                    target_id,
                 } => {
                     let is_docked = location.as_docked().is_some();
                     let location = Locations::resolve_space_position(locations, entity)

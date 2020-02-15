@@ -90,7 +90,6 @@ mod test {
 
         assert!(world.read_storage::<ActionActive>().get(entity).is_none());
         assert!(world.read_storage::<ActionUndock>().get(entity).is_none());
-        assert!(world.read_storage::<Location>().get(entity).is_none());
         let storage = world.read_storage::<Location>();
         let position = storage.get(entity);
         match position {
@@ -119,7 +118,6 @@ mod test {
 
         assert!(world.read_storage::<ActionActive>().get(entity).is_none());
         assert!(world.read_storage::<ActionUndock>().get(entity).is_none());
-        assert!(world.read_storage::<Location>().get(entity).is_none());
         let storage = world.read_storage::<Location>();
         let position = storage.get(entity);
         match position {

@@ -21,6 +21,7 @@ mod action_jump_system;
 mod action_move_to_system;
 mod action_request_handler_system;
 mod action_undock_system;
+mod action_extract_system;
 
 pub const ACTION_JUMP_TOTAL_TIME: DeltaTime = DeltaTime(2.0);
 
@@ -72,6 +73,7 @@ impl ActionActive {
         &self.0
     }
 }
+
 #[derive(Debug, Clone, Component)]
 pub struct ActionUndock;
 
@@ -80,6 +82,9 @@ pub struct ActionDock;
 
 #[derive(Debug, Clone, Component)]
 pub struct ActionMoveTo;
+
+#[derive(Debug, Clone, Component)]
+pub struct ActionExtract;
 
 #[derive(Debug, Clone, Component)]
 pub struct ActionJump {
@@ -93,9 +98,6 @@ impl ActionJump {
         }
     }
 }
-
-#[derive(Debug, Clone, Component)]
-pub struct ActionMine;
 
 #[derive(Clone, Debug)]
 pub struct Actions {}
