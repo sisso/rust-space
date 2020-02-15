@@ -12,7 +12,7 @@ in system are never output.
 - add wait time globaly per action
 - fix multiples actions per tick
 - switch movements to curves instead interact every frame
-      
+
 ## Configuration files
 
 - use hacon to bootstrap and configuration
@@ -34,6 +34,8 @@ in system are never output.
 - change TotalTime and DeltaTime to u64
 - change Seconds to DeltaTime
 - remove reference for simple values
+- Create ActionProgressComplete and implement delay actions with ActionProgress
+- change cargo to u32
 
 # Modules
 
@@ -52,10 +54,17 @@ action and check against total time. The system can just check if no delay is ac
 A delay system can centralize all delay logic.
 
 An issue is that all actions will require to be executed synchronous for all actions that
-can activate delay, since they will require write capability.
+can activate delay, since they will require write capability. Anyways, is already what is happening by using 
+ActionActive
 
 Mostly of action control is already done by the Handler. Late update is a option to all
 progress creation.
+
+How the waiting action will know that its action is complete?
+- a new ActionProgressComplete component need to be inserted
+
+So all actions will only start if have no ActionProgress
+Timed actions will only complete when a ActionProgressCompleted exists
 
 ## Location
 

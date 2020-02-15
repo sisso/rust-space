@@ -17,7 +17,9 @@ pub struct WareAmount(pub WareId, pub f32);
 
 #[derive(Debug, Clone, Component)]
 pub struct Cargo {
+    // TODO: u32
     max: f32,
+    // TODO: u32
     current: f32,
     // TODO: back to hashset? since operations order can change depending of the order, should we keep tree?
     wares: BTreeMap<WareId, f32>,

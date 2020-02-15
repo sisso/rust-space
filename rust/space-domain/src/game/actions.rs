@@ -16,6 +16,7 @@ use crate::game::actions::action_undock_system::UndockSystem;
 use crate::game::sectors::JumpId;
 use crate::utils::{DeltaTime, Position, Seconds, TotalTime};
 use crate::game::actions::action_progress_system::ActionProgressSystem;
+use crate::game::wares::WareId;
 
 mod action_dock_system;
 mod action_jump_system;
@@ -34,7 +35,7 @@ pub enum Action {
     Jump { jump_id: JumpId },
     Dock { target_id: ObjId },
     MoveTo { pos: Position },
-    Extract { target_id: ObjId },
+    Extract { target_id: ObjId, ware_id: WareId },
 }
 
 impl Action {

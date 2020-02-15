@@ -21,7 +21,7 @@ use super::*;
 use crate::game::extractables::Extractable;
 use crate::game::locations::{EntityPerSectorIndex, Location};
 use crate::game::navigations::{NavRequest, Navigation, NavigationMoveTo, Navigations};
-use crate::game::wares::Cargo;
+use crate::game::wares::{Cargo, WareId};
 use std::borrow::{Borrow, BorrowMut};
 
 pub struct CommandMineSystem;
@@ -37,6 +37,7 @@ pub struct CommandMineData<'a> {
     navigation: ReadStorage<'a, Navigation>,
     action_extract: ReadStorage<'a, ActionExtract>,
     action_request: WriteStorage<'a, ActionRequest>,
+    extractable: ReadStorage<'a, Extractable>,
 }
 
 impl<'a> System<'a> for CommandMineSystem {
@@ -99,9 +100,12 @@ impl<'a> System<'a> for CommandMineSystem {
                 // navigate to mine
                 let target_location = locations.get(target_id).unwrap();
                 if Locations::is_near(location, &target_location) {
+                    // find extractable ware id
+                    let ware_id = data.extractable.get(target_id).unwrap().ware_id;
+
                     data.action_request
                         .borrow_mut()
-                        .insert(entity, ActionRequest(Action::Extract { target_id }));
+                        .insert(entity, ActionRequest(Action::Extract { target_id, ware_id }));
                 } else {
                     // move to target
                     data.nav_request
