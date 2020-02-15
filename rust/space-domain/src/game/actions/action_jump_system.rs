@@ -40,7 +40,7 @@ impl<'a> System<'a> for ActionJumpSystem {
                     completed.push((entity, to_jump_id));
                 }
                 Some(_) => {
-                    debug!("{:?} jumping", entity);
+                    trace!("{:?} jumping", entity);
                 }
                 None => {
                     debug!("{:?} start to jump", entity);

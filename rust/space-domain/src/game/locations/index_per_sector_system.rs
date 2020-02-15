@@ -30,6 +30,7 @@ impl<'a> System<'a> for IndexPerSectorSystem {
         let index = data.index.borrow_mut();
         index.clear();
 
+
         for (entity, location) in (&data.entities, &data.locations).join() {
             match location {
                 Location::Space { sector_id, .. } => {
@@ -38,6 +39,8 @@ impl<'a> System<'a> for IndexPerSectorSystem {
                     trace!("indexing {:?} at {:?}", entity, sector_id);
                     index.add(sector_id, entity);
 
+                    unimplemented!("index stations");
+                    
                     if data.extractables.contains(entity) {
                         trace!("indexing extractable {:?} at {:?}", entity, sector_id);
                         index.add_extractable(sector_id, entity);

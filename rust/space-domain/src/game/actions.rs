@@ -17,6 +17,7 @@ use crate::game::sectors::JumpId;
 use crate::utils::{DeltaTime, Position, Seconds, TotalTime};
 use crate::game::actions::action_progress_system::ActionProgressSystem;
 use crate::game::wares::WareId;
+use crate::game::actions::action_extract_system::ActionExtractSystem;
 
 mod action_dock_system;
 mod action_jump_system;
@@ -116,7 +117,7 @@ const ACTION_REQUEST_SYSTEM_NAME: &str = "action_request_handler";
 impl Actions {
     pub fn init_world(world: &mut World, dispatcher: &mut DispatcherBuilder) {
         dispatcher.add(ActionProgressSystem, ACTION_PROGRESS_SYSTEM_NAME, &[]);
-        dispatcher.add(ActionRequestHandlerSystem, ACTION_PROGRESS_SYSTEM_NAME, &[
+        dispatcher.add(ActionRequestHandlerSystem, ACTION_REQUEST_SYSTEM_NAME, &[
             ACTION_PROGRESS_SYSTEM_NAME
         ]);
 
@@ -143,6 +144,11 @@ impl Actions {
         dispatcher.add(
             ActionJumpSystem,
             "action_jump_to",
+            &default_dependencies,
+        );
+        dispatcher.add(
+            ActionExtractSystem,
+            "action_extract",
             &default_dependencies,
         );
     }

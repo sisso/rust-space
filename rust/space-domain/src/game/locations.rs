@@ -77,10 +77,12 @@ pub struct Moveable {
     pub speed: Speed,
 }
 
+// TODO: make more flexible, like tags?
 #[derive(Clone, Debug, Default, Component)]
 pub struct EntityPerSectorIndex {
     pub index: HashMap<SectorId, Vec<ObjId>>,
     pub index_extractables: HashMap<SectorId, Vec<ObjId>>,
+    pub index_stations: HashMap<SectorId, Vec<ObjId>>,
 }
 
 impl EntityPerSectorIndex {
@@ -88,6 +90,7 @@ impl EntityPerSectorIndex {
         EntityPerSectorIndex {
             index: Default::default(),
             index_extractables: Default::default(),
+            index_stations: Default::default(),
         }
     }
 
@@ -110,7 +113,13 @@ impl EntityPerSectorIndex {
             .or_insert(vec![obj_id]);
     }
 
-    // TODO: implement
+    pub fn add_stations(&mut self, sector_id: SectorId, obj_id: ObjId) {
+        self.index_stations
+            .entry(sector_id)
+            .and_modify(|list| list.push(obj_id))
+            .or_insert(vec![obj_id]);
+    }
+
     pub fn search_nearest_extractable(&self, from_sector_id: SectorId) -> Vec<(SectorId, ObjId)> {
         self.index_extractables
             .iter()
@@ -122,8 +131,15 @@ impl EntityPerSectorIndex {
             .collect()
     }
 
-    pub fn list_stations(&self) -> Vec<(SectorId, ObjId)> {
-        unimplemented!()
+    pub fn search_nearest_stations(&self, from_sector_id: SectorId) -> Vec<(SectorId, ObjId)> {
+        self.index_stations
+            .iter()
+            .flat_map(|(sector_id, list)| {
+                list.iter()
+                    .map(|id| (*sector_id, *id))
+                    .collect::<Vec<(SectorId, ObjId)>>()
+            })
+            .collect()
     }
 }
 

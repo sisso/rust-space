@@ -139,6 +139,10 @@ impl Cargo {
     pub fn get_amount(&self, ware_id: WareId) -> f32 {
         self.wares.get(&ware_id).map(|i| *i).unwrap_or(0.0)
     }
+
+    pub fn get_total(&self) -> f32 {
+        self.max
+    }
 }
 
 pub struct Cargos;

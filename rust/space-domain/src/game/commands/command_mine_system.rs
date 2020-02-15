@@ -76,8 +76,10 @@ impl<'a> System<'a> for CommandMineSystem {
                 };
 
                 if location.as_docked() == Some(target_id) {
+                    debug!("{:?} cargo full, command to transfer cargo to station {:?}", entity, target_id);
                     cargo_transfers.push((entity, target_id));
                 } else {
+                    debug!("{:?} cargo full, command to navigate to station {:?}", entity, target_id);
                     data.nav_request
                         .borrow_mut()
                         .insert(entity, NavRequest::MoveAndDockAt { target_id });
@@ -103,10 +105,13 @@ impl<'a> System<'a> for CommandMineSystem {
                     // find extractable ware id
                     let ware_id = data.extractable.get(target_id).unwrap().ware_id;
 
+                    debug!("{:?} arrive at extractable {:?}, start extraction of {:?}", entity, target_id, ware_id);
+
                     data.action_request
                         .borrow_mut()
                         .insert(entity, ActionRequest(Action::Extract { target_id, ware_id }));
                 } else {
+                    debug!("{:?} command to move to extractable {:?}", entity, target_id);
                     // move to target
                     data.nav_request
                         .borrow_mut()
@@ -140,7 +145,7 @@ fn search_deliver_target(
     sector_id: SectorId,
 ) -> ObjId {
     // find nearest deliver
-    let candidates = sectors_index.list_stations();
+    let candidates = sectors_index.search_nearest_stations(sector_id);
     let target_id = candidates.iter().next().unwrap();
     target_id.1
 }

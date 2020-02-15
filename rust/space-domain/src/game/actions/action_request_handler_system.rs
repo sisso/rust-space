@@ -16,6 +16,7 @@ pub struct ActionRequestHandlerData<'a> {
     actions_dock: WriteStorage<'a, ActionDock>,
     actions_move_to: WriteStorage<'a, ActionMoveTo>,
     actions_jump: WriteStorage<'a, ActionJump>,
+    actions_extract: WriteStorage<'a, ActionExtract>,
 }
 
 impl<'a> System<'a> for ActionRequestHandlerSystem {
@@ -37,6 +38,7 @@ impl<'a> System<'a> for ActionRequestHandlerSystem {
             let _ = data.actions_dock.borrow_mut().remove(entity);
             let _ = data.actions_move_to.borrow_mut().remove(entity);
             let _ = data.actions_jump.borrow_mut().remove(entity);
+            let _ = data.actions_extract.borrow_mut().remove(entity);
 
             match action {
                 Action::Undock {} => {
@@ -64,7 +66,10 @@ impl<'a> System<'a> for ActionRequestHandlerSystem {
                         .unwrap();
                 }
                 Action::Extract { .. } => {
-
+                    data.actions_extract
+                        .borrow_mut()
+                        .insert(entity, ActionExtract)
+                        .unwrap();
                 },
                 other => panic!("not implemented for {:?}", other),
             }
