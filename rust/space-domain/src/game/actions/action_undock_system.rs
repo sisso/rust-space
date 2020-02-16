@@ -31,16 +31,16 @@ impl<'a> System<'a> for UndockSystem {
                 let target_location = locations_storage.get(docked_id);
                 match target_location {
                     Some(location @ Location::Space { .. }) => {
-                        debug!("{:?} undocking", entity);
+                        debug!("{:?} un-docking from {:?}", entity, docked_id);
                         processed.push((entity, Some(location.clone())));
                     }
                     _ => {
-                        debug!("{:?} can not undock at {:?}", entity, target_location);
+                        debug!("{:?} can not un-dock from {:?}", entity, target_location);
                         processed.push((entity, None))
                     }
                 }
             } else {
-                debug!("{:?} can not undock, it is not docked", entity);
+                debug!("{:?} can not un-dock, ship is already in space {:?}", entity, location);
                 processed.push((entity, None));
             }
         }

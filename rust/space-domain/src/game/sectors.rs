@@ -153,19 +153,21 @@ pub mod test_scenery {
 
     pub const SECTOR_0: SectorId = SectorId(0);
     pub const SECTOR_1: SectorId = SectorId(1);
+
     pub const JUMP_0_TO_1: Jump = Jump {
         id: JumpId(0),
         sector_id: SECTOR_0,
-        pos: Position { x: 5.0, y: 0.0 },
+        pos: Position { x: 4.0, y: 0.0 },
         to_sector_id: SECTOR_1,
-        to_pos: Position { x: 0.0, y: 5.0 },
+        to_pos: Position { x: 0.0, y: 3.0 },
     };
+
     pub const JUMP_1_TO_0: Jump = Jump {
         id: JumpId(1),
-        sector_id: SECTOR_0,
-        pos: Position { x: 5.0, y: 0.0 },
-        to_sector_id: SECTOR_1,
-        to_pos: Position { x: 0.0, y: 5.0 },
+        sector_id: SECTOR_1,
+        pos: Position { x: 0.0, y: 3.0 },
+        to_sector_id: SECTOR_0,
+        to_pos: Position { x: 4.0, y: 0.0 },
     };
 
     pub fn new_test_sectors() -> Sectors {

@@ -31,47 +31,44 @@ impl<'a> System<'a> for NavRequestHandlerSystem {
         let mut processed_requests = vec![];
         let locations = data.locations.borrow();
 
-        for (entity, request, location) in (&data.entities, &data.requests, &data.locations).join()
+        for (entity, request, location) in (&*data.entities, &data.requests, &data.locations).join()
         {
-            match request {
-                NavRequest::MoveToTarget {
-                    target_id,
-                } => {
-                    let is_docked = location.as_docked().is_some();
-                    let location = Locations::resolve_space_position(locations, entity)
-                        .expect("entity has no location");
-                    let target_location = Locations::resolve_space_position(locations, *target_id)
-                        .expect("target has no location");
+            let (target_id, should_dock) = match request {
+                NavRequest::MoveToTarget { target_id, } => (*target_id, false),
+                NavRequest::MoveAndDockAt { target_id, } => (*target_id, true),
+                req => panic!("unsupported request {:?}", req),
+            };
 
-                    let plan = Navigations::create_plan(
-                        sectors,
-                        location.sector_id,
-                        location.pos,
-                        target_location.sector_id,
-                        target_location.pos,
-                        is_docked,
-                    );
+            processed_requests.push(entity);
 
-                    debug!("{:?} handle navigation", entity);
+            let is_docked = location.as_docked().is_some();
+            let location = Locations::resolve_space_position(locations, entity)
+                .expect("entity has no location");
+            let target_location = Locations::resolve_space_position(locations, target_id)
+                .expect("target has no location");
 
-                    data.navigation.insert(entity, Navigation::MoveTo).unwrap();
-                    data.navigation_move_to
-                        .insert(
-                            entity,
-                            NavigationMoveTo {
-                                target: *target_id,
-                                plan,
-                            },
-                        )
-                        .unwrap();
+            let mut plan = Navigations::create_plan(
+                sectors,
+                location.sector_id,
+                location.pos,
+                target_location.sector_id,
+                target_location.pos,
+                is_docked,
+            );
 
-                    processed_requests.push(entity);
-                }
-                _ => panic!("unsupported"),
+            if should_dock {
+                plan.append_dock(target_id);
             }
+
+            debug!("{:?} handle navigation to {:?} by the plan {:?}", entity, request, plan);
+
+            data.navigation.insert(entity, Navigation::MoveTo).unwrap();
+            data.navigation_move_to
+                .insert(entity, NavigationMoveTo { target_id, plan, })
+                .unwrap();
         }
 
-        let request_storage = data.requests.borrow_mut();
+        let request_storage = &mut data.requests;
         for e in processed_requests {
             request_storage.remove(e).unwrap();
         }
@@ -117,7 +114,7 @@ mod test {
 
         let nav_move_to_storage = world.read_component::<NavigationMoveTo>();
         let nav_move_to = nav_move_to_storage.get(miner).unwrap();
-        assert_eq!(nav_move_to.target, asteroid);
+        assert_eq!(nav_move_to.target_id, asteroid);
 
         let nav_request_storage = world.read_component::<NavRequest>();
         let nav_request = nav_request_storage.get(miner);

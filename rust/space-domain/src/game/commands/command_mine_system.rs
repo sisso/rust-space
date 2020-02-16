@@ -78,7 +78,7 @@ impl<'a> System<'a> for CommandMineSystem {
                 };
 
                 if location.as_docked() == Some(target_id) {
-                    debug!("{:?} cargo full, command to transfer cargo to station {:?}", entity, target_id);
+                    debug!("{:?} cargo full, transfering cargo to station {:?}", entity, target_id);
                     cargo_transfers.push((entity, target_id));
                 } else {
                     debug!("{:?} cargo full, command to navigate to station {:?}", entity, target_id);
@@ -112,13 +112,15 @@ impl<'a> System<'a> for CommandMineSystem {
 
                     data.action_request
                         .borrow_mut()
-                        .insert(entity, ActionRequest(Action::Extract { target_id, ware_id }));
+                        .insert(entity, ActionRequest(Action::Extract { target_id, ware_id }))
+                        .unwrap();
                 } else {
                     debug!("{:?} command to move to extractable {:?}", entity, target_id);
                     // move to target
                     data.nav_request
                         .borrow_mut()
-                        .insert(entity, NavRequest::MoveToTarget { target_id });
+                        .insert(entity, NavRequest::MoveToTarget { target_id })
+                        .unwrap();
                 }
             }
         }
@@ -126,7 +128,8 @@ impl<'a> System<'a> for CommandMineSystem {
         // transfer all cargos
         let cargos = data.cargos.borrow_mut();
         for (from_id, to_id) in cargo_transfers {
-            Cargos::move_all(cargos, from_id, to_id);
+            let transfer = Cargos::move_all(cargos, from_id, to_id);
+            info!("{:?} transfer {:?} to {:?}", from_id, transfer, to_id);
         }
     }
 }

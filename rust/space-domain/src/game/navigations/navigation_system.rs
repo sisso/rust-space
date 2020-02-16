@@ -37,16 +37,16 @@ impl<'a> System<'a> for NavigationSystem {
             }
         }
 
-        let requests_storage = data.action_request.borrow_mut();
+        let requests_storage = &mut data.action_request;
         for (entity, action) in requests {
-            debug!("{:?} request next action {:?}", entity, action);
-            let _ = requests_storage.insert(entity, action).unwrap();
+            debug!("{:?} navigation requesting next action {:?}", entity, action);
+            requests_storage.insert(entity, action).unwrap();
         }
 
-        let navigation = data.navigation.borrow_mut();
-        let navigation_move_to_storage = data.navigation_move_to.borrow_mut();
+        let navigation = &mut data.navigation;
+        let navigation_move_to_storage = &mut data.navigation_move_to;
         for entity in completed {
-            debug!("{:?} complete navigation", entity);
+            debug!("{:?} navigation complete", entity);
 
             navigation.remove(entity).unwrap();
             navigation_move_to_storage.remove(entity).unwrap();
@@ -62,22 +62,18 @@ mod test {
     #[test]
     fn test_navigation_move_to_system_should_complete_when_path_is_empty() {
         let (world, (entity, target)) = test_system(NavigationSystem, |world| {
-            let target = world.create_entity().build();
+            let target_id = world.create_entity().build();
 
             let entity = world
                 .create_entity()
                 .with(Navigation::MoveTo)
                 .with(NavigationMoveTo {
-                    target: target,
-                    plan: NavigationPlan {
-                        target_sector_id: SectorId(0),
-                        target_position: Position::new(0.0, 0.0),
-                        path: Default::default(),
-                    },
+                    target_id: target_id,
+                    plan: NavigationPlan { path: Default::default(), },
                 })
                 .build();
 
-            (entity, target)
+            (entity, target_id)
         });
 
         let nav_storage = world.read_component::<Navigation>();

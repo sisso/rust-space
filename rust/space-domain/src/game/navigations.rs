@@ -1,6 +1,6 @@
 use crate::game::actions::*;
 use crate::game::navigations::navigation_system::NavigationSystem;
-use crate::game::navigations::request_handler_system::NavRequestHandlerSystem;
+use crate::game::navigations::navigation_request_handler_system::NavRequestHandlerSystem;
 use crate::game::objects::ObjId;
 use crate::game::sectors::{JumpId, SectorId, Sectors};
 use crate::utils::Position;
@@ -10,7 +10,7 @@ use specs_derive::*;
 use std::collections::VecDeque;
 
 mod navigation_system;
-mod request_handler_system;
+mod navigation_request_handler_system;
 
 ///
 /// Systems:
@@ -18,7 +18,6 @@ mod request_handler_system;
 /// - execute navigation by create actions
 ///
 
-// TODO: rename to Idle, MoveTo?
 #[derive(Debug, Clone, Component, PartialEq)]
 pub enum Navigation {
     MoveTo,
@@ -32,14 +31,18 @@ pub enum NavRequest {
 
 #[derive(Debug, Clone)]
 pub struct NavigationPlan {
-    pub target_sector_id: SectorId,
-    pub target_position: Position,
     pub path: VecDeque<Action>,
+}
+
+impl NavigationPlan {
+    pub fn append_dock(&mut self, target_id: ObjId) {
+       self.path.push_back(Action::Dock { target_id });
+    }
 }
 
 #[derive(Debug, Clone, Component)]
 pub struct NavigationMoveTo {
-    pub target: Entity,
+    pub target_id: Entity,
     pub plan: NavigationPlan,
 }
 
@@ -94,7 +97,11 @@ impl Navigations {
                 path.push_back(Action::MoveTo { pos: to_pos });
                 break;
             } else {
-                let jump = sectors.find_jump(current_sector, to_sector_id).unwrap();
+                let jump = if let Some(jump) = sectors.find_jump(current_sector, to_sector_id) {
+                    jump
+                } else {
+                    panic!("could not find jump from {:?} to {:?}", current_sector, to_sector_id);
+                };
 
                 path.push_back(Action::MoveTo { pos: jump.pos });
                 path.push_back(Action::Jump { jump_id: jump.id });
@@ -104,14 +111,7 @@ impl Navigations {
             }
         }
 
-        info!(target: "create_plan", "navigation path from {:?}/{:?} to {:?}/{:?}: {:?}",
-            from_sector_id, from_pos, to_sector_id, to_pos, path);
-
-        NavigationPlan {
-            target_sector_id: to_sector_id,
-            target_position: to_pos,
-            path,
-        }
+        NavigationPlan { path, }
     }
 }
 
@@ -133,8 +133,6 @@ mod test {
             true,
         );
 
-        assert_eq!(plan.target_sector_id, SECTOR_1);
-        assert_eq!(plan.target_position, Position::new(0.0, 10.0));
         assert_eq!(plan.path.len(), 4);
 
         match plan.path.get(0).unwrap() {

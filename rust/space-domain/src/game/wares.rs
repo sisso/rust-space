@@ -26,7 +26,7 @@ pub struct Cargo {
 }
 
 #[derive(Debug,Clone)]
-pub struct MoveChange {
+pub struct CargoTransfer {
     pub moved: Vec<(WareId, f32)>,
 }
 
@@ -40,7 +40,7 @@ impl Cargo {
     }
 
     /// Currently impl leave a unknown state on failure, this is the reasons panik
-    pub fn apply_move_from(&mut self, change: &MoveChange) -> Result<(), ()> {
+    pub fn apply_move_from(&mut self, change: &CargoTransfer) -> Result<(), ()> {
         for (ware_id, amount) in change.moved.iter() {
             self.remove(*ware_id, *amount)
                 .expect("apply move from failed");
@@ -50,7 +50,7 @@ impl Cargo {
     }
 
     /// Currently impl leave a unknown state on failure, this is the reasons panik
-    pub fn apply_move_to(&mut self, change: &MoveChange) -> Result<(), ()> {
+    pub fn apply_move_to(&mut self, change: &CargoTransfer) -> Result<(), ()> {
         for (ware_id, amount) in change.moved.iter() {
             self.add(*ware_id, *amount).expect("apply move to failed");
         }
@@ -59,8 +59,8 @@ impl Cargo {
     }
 
     /// Move all cargo possible from to
-    pub fn move_all_to_max(from: &Cargo, to: &Cargo) -> MoveChange {
-        let mut change = MoveChange { moved: vec![] };
+    pub fn move_all_to_max(from: &Cargo, to: &Cargo) -> CargoTransfer {
+        let mut change = CargoTransfer { moved: vec![] };
 
         let mut free_space = to.free_space();
         let mut total_moved = 0.0;
@@ -156,16 +156,18 @@ impl Cargos {
         world.register::<Cargo>();
     }
 
-    pub fn move_all(cargos: &mut WriteStorage<Cargo>, from_id: ObjId, to_id: ObjId) {
+    pub fn move_all(cargos: &mut WriteStorage<Cargo>, from_id: ObjId, to_id: ObjId) -> CargoTransfer {
         let cargo_from = cargos.get(from_id).expect("Entity cargo not found");
         let cargo_to = cargos.get(to_id).expect("Deliver cargo not found");
-        let changes = Cargo::move_all_to_max(cargo_from, cargo_to);
+        let transfer = Cargo::move_all_to_max(cargo_from, cargo_to);
 
         let cargo_from = cargos.get_mut(from_id).expect("Entity cargo not found");
-        cargo_from.apply_move_from(&changes).unwrap();
+        cargo_from.apply_move_from(&transfer).unwrap();
 
         let cargo_to = cargos.get_mut(to_id).expect("Deliver cargo not found");
-        cargo_to.apply_move_to(&changes).unwrap();
+        cargo_to.apply_move_to(&transfer).unwrap();
+
+        transfer
     }
 }
 
