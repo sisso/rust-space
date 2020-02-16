@@ -4,6 +4,7 @@ use shred::{Read, ResourceId, SystemData, World, Write};
 use specs::prelude::*;
 use specs_derive::*;
 use std::borrow::BorrowMut;
+use crate::game::station::Station;
 
 /// Index entities to provide fast look up like:
 /// - what ships are in sector 0?
@@ -17,6 +18,7 @@ pub struct IndexPerSectorData<'a> {
     index: Write<'a, EntityPerSectorIndex>,
     locations: ReadStorage<'a, Location>,
     extractables: ReadStorage<'a, Extractable>,
+    stations: ReadStorage<'a, Station>,
 }
 
 impl<'a> System<'a> for IndexPerSectorSystem {
@@ -30,7 +32,6 @@ impl<'a> System<'a> for IndexPerSectorSystem {
         let index = data.index.borrow_mut();
         index.clear();
 
-
         for (entity, location) in (&data.entities, &data.locations).join() {
             match location {
                 Location::Space { sector_id, .. } => {
@@ -39,11 +40,14 @@ impl<'a> System<'a> for IndexPerSectorSystem {
                     trace!("indexing {:?} at {:?}", entity, sector_id);
                     index.add(sector_id, entity);
 
-                    unimplemented!("index stations");
-                    
                     if data.extractables.contains(entity) {
                         trace!("indexing extractable {:?} at {:?}", entity, sector_id);
                         index.add_extractable(sector_id, entity);
+                    }
+
+                    if data.stations.contains(entity) {
+                        trace!("indexing stations {:?} at {:?}", entity, sector_id);
+                        index.add_stations(sector_id, entity);
                     }
                 }
                 _ => {}

@@ -13,6 +13,7 @@ pub struct NewObj {
     pub can_dock: bool,
     pub has_dock: bool,
     pub ai: bool,
+    pub station: bool,
 }
 
 impl NewObj {
@@ -25,6 +26,7 @@ impl NewObj {
             can_dock: false,
             has_dock: false,
             ai: false,
+            station: false,
         }
     }
 
@@ -65,6 +67,11 @@ impl NewObj {
 
     pub fn with_ai(mut self) -> Self {
         self.ai = true;
+        self
+    }
+
+    pub fn as_station(mut self) -> Self {
+        self.station = true;
         self
     }
 }

@@ -8,12 +8,6 @@ use crate::utils::*;
 #[derive(Clone, Debug, Component)]
 pub struct Extractable {
     pub ware_id: WareId,
-    pub time: DeltaTime,
-}
-
-#[derive(Clone, Debug)]
-struct State {
-    extractable: Extractable,
 }
 
 pub struct Extractables {}

@@ -21,7 +21,6 @@ fn new_asteroid(game: &mut Game, sector_id: SectorId, pos: V2) -> ObjId {
         NewObj::new()
             .extractable(Extractable {
                 ware_id: WARE_ORE,
-                time: DeltaTime(1.5),
             })
             .at_position(sector_id, pos),
     )
@@ -32,6 +31,7 @@ fn new_station(game: &mut Game, sector_id: SectorId, pos: V2) -> ObjId {
         NewObj::new()
             .with_cargo(100.0)
             .at_position(sector_id, pos)
+            .as_station()
             .has_dock(),
     )
 }

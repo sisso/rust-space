@@ -30,7 +30,7 @@ mod action_progress_system;
 pub const ACTION_JUMP_TOTAL_TIME: DeltaTime = DeltaTime(2.0);
 
 /// Not a component, but used to create requests
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Action {
     Undock,
     Jump { jump_id: JumpId },

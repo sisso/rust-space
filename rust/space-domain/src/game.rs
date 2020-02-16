@@ -17,6 +17,7 @@ use crate::game::actions::Actions;
 use crate::game::commands::{CommandMine, Commands};
 use crate::game::navigations::Navigations;
 use std::borrow::BorrowMut;
+use crate::game::station::Station;
 
 pub mod actions;
 pub mod commands;
@@ -33,6 +34,7 @@ pub mod wares;
 //pub mod factory;
 pub mod events;
 //pub mod ai_high;
+pub mod station;
 
 // TODO: add tick to game field
 // TODO: remove most of fields?
@@ -113,6 +115,11 @@ impl<'a, 'b> Game<'a, 'b> {
             let cargo = Cargo::new(new_obj.cargo_size);
             builder.set(cargo);
         }
+
+        if new_obj.station {
+            builder.set(Station {});
+        }
+
 
         //        self.events.add_obj_event(ObjEvent::new(id, EventKind::Add));
 
