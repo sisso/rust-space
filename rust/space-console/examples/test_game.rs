@@ -1,7 +1,7 @@
 extern crate space_domain;
 extern crate space_macros;
 
-use space_domain::game_api::GameApi;
+use space_domain::game_ffi::GameFFI;
 use space_macros::{info, log};
 use std::time::Duration;
 
@@ -11,7 +11,7 @@ fn main() -> Result<(), std::io::Error> {
     info!(target: "main", "start");
     info!(target: "main", "--------------------------------------------------");
 
-    let mut game_api = GameApi::new();
+    let mut game_api = GameFFI::new();
     game_api.new_game();
 
     let time_rate = Duration::from_millis(1000);

@@ -45,14 +45,14 @@ impl Commands {
             &["index_by_sector"],
         );
     }
-}
 
-pub fn set_command_mine(world: &mut World, entity: Entity) {
-    let mut storage = world.write_storage::<CommandMine>();
-    storage
-        .borrow_mut()
-        .insert(entity, CommandMine::new())
-        .unwrap();
+    pub fn set_command_mine(world: &mut World, entity: Entity) {
+        let mut storage = world.write_storage::<CommandMine>();
+        storage
+            .borrow_mut()
+            .insert(entity, CommandMine::new())
+            .unwrap();
 
-    info!("{:?} setting command to mine", entity);
+        info!("{:?} setting command to mine", entity);
+    }
 }

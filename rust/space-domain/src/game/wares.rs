@@ -153,7 +153,6 @@ impl Cargos {
     }
 
     pub fn init_world(world: &mut World, dispatcher: &mut DispatcherBuilder) {
-        world.register::<Cargo>();
     }
 
     pub fn move_all(cargos: &mut WriteStorage<Cargo>, from_id: ObjId, to_id: ObjId) -> CargoTransfer {

@@ -6,7 +6,7 @@ use crate::utils::{DeltaTime, Seconds, TotalTime, V2};
 use flatbuffers::FlatBufferBuilder;
 use std::time::Duration;
 
-pub struct GameApi<'a, 'b> {
+pub struct GameFFI<'a, 'b> {
     game: Game<'a, 'b>,
     first_outputs: bool,
 }
@@ -24,16 +24,16 @@ impl From<&V2> for space_data::V2 {
 }
 
 /// Represent same interface we intend to use through FFI
-impl<'a, 'b> GameApi<'a, 'b> {
+impl<'a, 'b> GameFFI<'a, 'b> {
     pub fn new() -> Self {
-        GameApi {
+        GameFFI {
             game: Game::new(),
             first_outputs: true,
         }
     }
 
     pub fn new_game(&mut self) {
-        //        crate::local_game::init_new_game(&mut self.game);
+//        crate::local_game::init_new_game(&mut self.game);
     }
 
     pub fn update(&mut self, elapsed: Duration) {
@@ -198,7 +198,7 @@ impl<'a> OutpusBuilder<'a> {
 mod test {
     use crate::game::events::{EventKind, ObjEvent};
     use crate::game::objects::ObjId;
-    use crate::game_api::OutpusBuilder;
+    use crate::game_ffi::OutpusBuilder;
     use crate::space_outputs_generated::space_data;
 
     #[test]

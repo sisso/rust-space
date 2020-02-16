@@ -35,6 +35,7 @@ pub mod wares;
 pub mod events;
 //pub mod ai_high;
 pub mod station;
+pub mod loader;
 
 // TODO: add tick to game field
 // TODO: remove most of fields?

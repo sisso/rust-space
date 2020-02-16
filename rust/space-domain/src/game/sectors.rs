@@ -51,6 +51,7 @@ pub struct Sector {
     pub id: SectorId,
 }
 
+// TODO: migrate to specs
 #[derive(Debug, Clone, Component)]
 pub struct Sectors {
     sectors: HashMap<SectorId, Sector>,

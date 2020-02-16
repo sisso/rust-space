@@ -13,53 +13,11 @@ use space_domain::test::assert_v2;
 use space_domain::utils::{DeltaTime, Speed, V2};
 use specs::WorldExt;
 use std::borrow::Borrow;
-
-const WARE_ORE: WareId = WareId(0);
-
-fn new_asteroid(game: &mut Game, sector_id: SectorId, pos: V2) -> ObjId {
-    game.add_object(
-        NewObj::new()
-            .extractable(Extractable {
-                ware_id: WARE_ORE,
-            })
-            .at_position(sector_id, pos),
-    )
-}
-
-fn new_station(game: &mut Game, sector_id: SectorId, pos: V2) -> ObjId {
-    game.add_object(
-        NewObj::new()
-            .with_cargo(100.0)
-            .at_position(sector_id, pos)
-            .as_station()
-            .has_dock(),
-    )
-}
-
-fn new_ship_miner(game: &mut Game, docked_at: ObjId, speed: f32) -> ObjId {
-    game.add_object(
-        NewObj::new()
-            .with_cargo(2.0)
-            .with_speed(Speed(speed))
-            .at_dock(docked_at)
-            .can_dock()
-            .with_ai(),
-    )
-}
+use space_domain::game::loader::Loader;
 
 fn load_objects(game: &mut Game) -> (ObjId, ObjId) {
-    // asteroid field
-    new_asteroid(game, test_scenery::SECTOR_1, V2::new(-5.0, 5.0));
-
-    // station
-    let station_id = new_station(game, test_scenery::SECTOR_0, V2::new(5.0, -5.0));
-
-    // miner
-    let ship_id = new_ship_miner(game, station_id, 2.0);
-
-    space_domain::game::commands::set_command_mine(&mut game.world, ship_id);
-
-    (station_id, ship_id)
+    let scenery = Loader::load_basic_scenery(game);
+    (scenery.station_id, scenery.miner_id)
 }
 
 #[test]
