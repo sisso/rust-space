@@ -6,7 +6,6 @@ use crate::game::extractables::Extractable;
 use crate::game::locations::{Location, Locations, Moveable};
 use crate::utils::*;
 
-use self::events::{EventKind, Events, ObjEvent};
 use self::extractables::Extractables;
 use self::new_obj::NewObj;
 use self::objects::*;
@@ -18,6 +17,7 @@ use crate::game::commands::{CommandMine, Commands};
 use crate::game::navigations::Navigations;
 use std::borrow::BorrowMut;
 use crate::game::station::Station;
+use crate::game::events::{Events, ObjEvent, EventKind};
 
 pub mod actions;
 pub mod commands;
@@ -38,27 +38,21 @@ pub mod station;
 pub mod loader;
 
 // TODO: add tick to game field
-// TODO: remove most of fields?
 pub struct Game<'a, 'b> {
     pub total_time: TotalTime,
     pub world: World,
+    /// Normal dispatcher
     pub dispatcher: Dispatcher<'a, 'b>,
-    //    pub commands: Commands,
-    //    pub actions: Actions,
-    //    pub sectors: Sectors,
-    //    pub objects: Objects,
-    //    pub locations: Locations,
-    //    pub extractables: Extractables,
-    //    pub cargos: Cargos,
-    //    pub events: Events,
-    //    pub navigations: Navigations,
+    /// Dispatchers that execute after normal execution and all lazy update get applied
+    pub late_dispatcher: Dispatcher<'a, 'b>,
 }
 
 impl<'a, 'b> Game<'a, 'b> {
     pub fn new() -> Self {
         let mut world = World::new();
-        let mut dispatcher_builder = DispatcherBuilder::new();
 
+        // normal distpatcher
+        let mut dispatcher_builder = DispatcherBuilder::new();
         Locations::init_world(&mut world, &mut dispatcher_builder);
         Actions::init_world(&mut world, &mut dispatcher_builder);
         Commands::init_world(&mut world, &mut dispatcher_builder);
@@ -70,10 +64,18 @@ impl<'a, 'b> Game<'a, 'b> {
         let mut dispatcher = dispatcher_builder.build();
         dispatcher.setup(&mut world);
 
+        // later dispatcher
+        let mut dispatcher_builder = DispatcherBuilder::new();
+        Events::init_world_late(&mut world, &mut dispatcher_builder);
+
+        let mut late_dispatcher = dispatcher_builder.build();
+        late_dispatcher.setup(&mut world);
+
         Game {
             total_time: TotalTime(0.0),
             world,
             dispatcher,
+            late_dispatcher,
             //            commands: Commands::new(),
             //            actions: Actions::new(),
             //            sectors: Sectors::new(),
@@ -84,6 +86,33 @@ impl<'a, 'b> Game<'a, 'b> {
             //            events: Events::new(),
             //            navigations: Navigations::new(),
         }
+    }
+
+    pub fn tick(&mut self, delta_time: DeltaTime) {
+        // update time
+        self.total_time = self.total_time.add(delta_time);
+        self.world.insert(delta_time);
+        self.world.insert(self.total_time);
+        info!("tick delta {} total {}", delta_time.0, self.total_time.0);
+
+        // update systems
+        self.dispatcher.dispatch(&mut self.world);
+        // apply all lazy updates
+        self.world.maintain();
+        // run later dispatcher
+        self.late_dispatcher.dispatch(&mut self.world);
+        // apply all lazy updates from later dispatcher
+        self.world.maintain();
+    }
+
+    pub fn save(&self, save: &mut impl Save) {}
+
+    pub fn load(&mut self, load: &mut impl Load) {}
+
+    // TODO: make sense? Convert to components?
+    pub fn set_sectors(&mut self, sectors: Sectors) {
+        info!("set_sectors");
+        self.world.insert(sectors);
     }
 
     pub fn add_object(&mut self, new_obj: NewObj) -> ObjId {
@@ -121,35 +150,16 @@ impl<'a, 'b> Game<'a, 'b> {
             builder.set(Station {});
         }
 
-
         //        self.events.add_obj_event(ObjEvent::new(id, EventKind::Add));
 
         let entity = builder.build();
 
         info!("add_object {:?} from {:?}", entity, new_obj);
 
+        self.world.create_entity()
+            .with(Events::single(ObjEvent::new(entity, EventKind::Add)))
+            .build();
+
         entity
-    }
-
-    pub fn tick(&mut self, delta_time: DeltaTime) {
-        // update time
-        self.total_time = self.total_time.add(delta_time);
-        self.world.insert(delta_time);
-        self.world.insert(self.total_time);
-        info!("tick delta {} total {}", delta_time.0, self.total_time.0);
-
-        // update systems
-        self.dispatcher.dispatch(&mut self.world);
-        self.world.maintain();
-    }
-
-    pub fn save(&self, save: &mut impl Save) {}
-
-    pub fn load(&mut self, load: &mut impl Load) {}
-
-    // TODO: make sense?
-    pub fn set_sectors(&mut self, sectors: Sectors) {
-        info!("set_sectors");
-        self.world.insert(sectors);
     }
 }

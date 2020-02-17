@@ -97,7 +97,7 @@ mod test {
                 .build();
 
             let mut cargo = Cargo::new(10.0);
-            cargo.add(WARE0, 9.5);
+            cargo.add(WARE0, 9.5).unwrap();
 
             world.create_entity()
                 .with(ActionActive(Action::Extract { target_id: asteroid_id, ware_id: WARE0, }))

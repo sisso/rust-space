@@ -46,6 +46,39 @@ in system are never output.
 
 # Forum
 
+## FFI and Events
+
+FFI need to notify any changes to the controller. 
+
+It should notify only relevant information. We can implement on demand from GUI requirements.
+
+FFI information need to transfer very dry, no complex.
+
+We want to move all FFI related stuff to a new module. This new module will have a system (how to create system into 
+other modules???) that will convert the events change into raw FFI data.
+
+All changes will generate Event.
+
+### Solution A: Attach a event to the entity
+
+FFISystem will process all Event and populate FFI messages queue. 
+
+How to support multiple events for same entity? 
+- you can't, so this solution does not works
+
+### Solution B: Create new entity to hold the vent
+
+Alternative we can create a new entity per event message. Use LazyUpdate to insert events 
+in parallel. Entity creatino overhead can be reduced by holding list.
+
+Looks very ECS way of doing it.
+
+Manage component registering using LazyUpdate is error prone
+
+### Solution C:
+
+Use a single Event resource with multiple producer single reader.
+
 ## ActionPpogress
 
 Action progress is a simple way to standardize delays. Instead always have to get the current

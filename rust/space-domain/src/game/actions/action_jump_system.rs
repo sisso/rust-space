@@ -4,6 +4,7 @@ use super::*;
 use crate::game::locations::Location;
 use crate::game::sectors::Sectors;
 use std::borrow::{Borrow, BorrowMut};
+use crate::game::events::{Events, ObjEvent, EventKind};
 
 pub struct ActionJumpSystem;
 
@@ -15,6 +16,7 @@ pub struct ActionJumpData<'a> {
     actions: WriteStorage<'a, ActionActive>,
     actions_jump: WriteStorage<'a, ActionJump>,
     locations: WriteStorage<'a, Location>,
+    lazy: Read<'a, LazyUpdate>,
 }
 
 impl<'a> System<'a> for ActionJumpSystem {
@@ -50,6 +52,7 @@ impl<'a> System<'a> for ActionJumpSystem {
         }
 
         let sectors = data.sectors.borrow();
+        let mut events = vec![];
 
         for (entity, jump_id) in completed {
             let jump = sectors.get_jump(jump_id).unwrap();
@@ -72,7 +75,12 @@ impl<'a> System<'a> for ActionJumpSystem {
 
             data.actions.borrow_mut().remove(entity).unwrap();
             data.actions_jump.borrow_mut().remove(entity).unwrap();
+            events.push(ObjEvent::new(entity, EventKind::Jump));
         }
+
+        data.lazy.create_entity(&mut data.entities)
+            .with(Events::new(events))
+            .build();
     }
 }
 

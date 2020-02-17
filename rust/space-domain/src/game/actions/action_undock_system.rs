@@ -4,6 +4,7 @@ use super::super::locations::*;
 use super::*;
 use crate::game::actions::*;
 use std::borrow::{Borrow, BorrowMut};
+use crate::game::events::{Events, ObjEvent, EventKind};
 
 pub struct UndockSystem;
 
@@ -13,6 +14,7 @@ pub struct UndockData<'a> {
     actions: WriteStorage<'a, ActionActive>,
     actions_undock: WriteStorage<'a, ActionUndock>,
     locations: WriteStorage<'a, Location>,
+    lazy: Read<'a, LazyUpdate>,
 }
 
 impl<'a> System<'a> for UndockSystem {
@@ -24,6 +26,7 @@ impl<'a> System<'a> for UndockSystem {
         let mut processed: Vec<(Entity, Option<Location>)> = vec![];
 
         let locations_storage = data.locations.borrow();
+        let mut events = vec![];
 
         for (entity, _, location) in (&*data.entities, &data.actions_undock, &data.locations).join()
         {
@@ -52,9 +55,14 @@ impl<'a> System<'a> for UndockSystem {
                     .insert(entity, location)
                     .unwrap();
             }
-            let _ = data.actions.borrow_mut().remove(entity);
-            let _ = data.actions_undock.borrow_mut().remove(entity);
+            data.actions.borrow_mut().remove(entity).unwrap();
+            data.actions_undock.borrow_mut().remove(entity).unwrap();
+            events.push(ObjEvent::new(entity, EventKind::Move));
         }
+
+        data.lazy.create_entity(&mut data.entities)
+            .with(Events::new(events))
+            .build();
     }
 }
 

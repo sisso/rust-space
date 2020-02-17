@@ -1,10 +1,11 @@
-use crate::game::events::{EventKind, Events, ObjEvent};
+use crate::game::events::{Events};
 #[allow(dead_code)]
 use crate::game::Game;
 use crate::space_outputs_generated::space_data;
 use crate::utils::{DeltaTime, Seconds, TotalTime, V2};
 use flatbuffers::FlatBufferBuilder;
 use std::time::Duration;
+use crate::game::loader::Loader;
 
 pub struct GameFFI<'a, 'b> {
     game: Game<'a, 'b>,
@@ -33,7 +34,7 @@ impl<'a, 'b> GameFFI<'a, 'b> {
     }
 
     pub fn new_game(&mut self) {
-//        crate::local_game::init_new_game(&mut self.game);
+        Loader::load_basic_scenery(&mut self.game);
     }
 
     pub fn update(&mut self, elapsed: Duration) {
@@ -162,7 +163,6 @@ impl<'a> OutpusBuilder<'a> {
     }
 
     pub fn finish(&mut self) -> &[u8] {
-        #[macro_export]
         macro_rules! create_vector {
             ($field:expr) => {
                 if $field.is_empty() {
@@ -196,7 +196,7 @@ impl<'a> OutpusBuilder<'a> {
 
 #[cfg(test)]
 mod test {
-    use crate::game::events::{EventKind, ObjEvent};
+    use crate::game::events::{Events};
     use crate::game::objects::ObjId;
     use crate::game_ffi::OutpusBuilder;
     use crate::space_outputs_generated::space_data;

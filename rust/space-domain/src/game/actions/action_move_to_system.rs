@@ -4,7 +4,8 @@ use super::super::locations::*;
 use super::*;
 use crate::game::actions::*;
 use crate::utils::V2;
-use std::borrow::{Borrow, BorrowMut};
+use crate::game::objects::Objects;
+use crate::game::events::{Events, ObjEvent, EventKind};
 
 pub struct ActionMoveToSystem;
 
@@ -16,6 +17,7 @@ pub struct ActionMoveToData<'a> {
     actions: WriteStorage<'a, ActionActive>,
     action_move_to: WriteStorage<'a, ActionMoveTo>,
     locations: WriteStorage<'a, Location>,
+    lazy: Read<'a, LazyUpdate>,
 }
 
 impl<'a> System<'a> for ActionMoveToSystem {
@@ -25,7 +27,8 @@ impl<'a> System<'a> for ActionMoveToSystem {
         trace!("running");
 
         let mut completed = vec![];
-        let delta_time = data.delta_time.borrow();
+        let delta_time = &data.delta_time;
+        let mut events = vec![];
 
         for (entity, moveable, action, _, location) in (
             &data.entities,
@@ -73,12 +76,18 @@ impl<'a> System<'a> for ActionMoveToSystem {
                 );
                 location.set_pos(new_pos).unwrap();
             }
+
+            events.push(ObjEvent::new(entity, EventKind::Move));
         }
 
         for entity in completed {
-            let _ = data.actions.borrow_mut().remove(entity);
-            let _ = data.action_move_to.borrow_mut().remove(entity);
+            (&mut data.actions).remove(entity).unwrap();
+            (&mut data.action_move_to).remove(entity).unwrap();
         }
+
+        data.lazy.create_entity(&mut data.entities)
+            .with(Events::new(events))
+            .build();
     }
 }
 
