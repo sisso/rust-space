@@ -17,7 +17,7 @@ use crate::game::commands::{CommandMine, Commands};
 use crate::game::navigations::Navigations;
 use std::borrow::BorrowMut;
 use crate::game::station::Station;
-use crate::game::events::{Events, ObjEvent, EventKind};
+use crate::game::events::{Events, Event, EventKind};
 
 pub mod actions;
 pub mod commands;
@@ -45,6 +45,7 @@ pub struct Game<'a, 'b> {
     pub dispatcher: Dispatcher<'a, 'b>,
     /// Dispatchers that execute after normal execution and all lazy update get applied
     pub late_dispatcher: Dispatcher<'a, 'b>,
+    pub cleanup_dispatcher: Dispatcher<'a, 'b>,
 }
 
 impl<'a, 'b> Game<'a, 'b> {
@@ -66,25 +67,23 @@ impl<'a, 'b> Game<'a, 'b> {
 
         // later dispatcher
         let mut dispatcher_builder = DispatcherBuilder::new();
-        Events::init_world_late(&mut world, &mut dispatcher_builder);
 
         let mut late_dispatcher = dispatcher_builder.build();
         late_dispatcher.setup(&mut world);
+
+        // clean up dispatcher
+        let mut dispatcher_builder = DispatcherBuilder::new();
+        Events::init_world_cleanup(&mut world, &mut dispatcher_builder);
+
+        let mut cleanup_dispatcher = dispatcher_builder.build();
+        cleanup_dispatcher.setup(&mut world);
 
         Game {
             total_time: TotalTime(0.0),
             world,
             dispatcher,
             late_dispatcher,
-            //            commands: Commands::new(),
-            //            actions: Actions::new(),
-            //            sectors: Sectors::new(),
-            //            objects: Objects::new(),
-            //            locations: Locations::new(),
-            //            extractables: Extractables::new(),
-            //            cargos: Cargos::new(),
-            //            events: Events::new(),
-            //            navigations: Navigations::new(),
+            cleanup_dispatcher,
         }
     }
 
@@ -99,8 +98,10 @@ impl<'a, 'b> Game<'a, 'b> {
         self.dispatcher.dispatch(&mut self.world);
         // apply all lazy updates
         self.world.maintain();
-        // run later dispatcher
+        // run later dispatcher (this dispatcher is not calling maintain
         self.late_dispatcher.dispatch(&mut self.world);
+        // run later dispatcher
+        self.cleanup_dispatcher.dispatch(&mut self.world);
         // apply all lazy updates from later dispatcher
         self.world.maintain();
     }
@@ -157,7 +158,7 @@ impl<'a, 'b> Game<'a, 'b> {
         info!("add_object {:?} from {:?}", entity, new_obj);
 
         self.world.create_entity()
-            .with(Events::single(ObjEvent::new(entity, EventKind::Add)))
+            .with(Event::new(entity, EventKind::Add))
             .build();
 
         entity

@@ -5,7 +5,7 @@ use super::*;
 use crate::game::actions::*;
 use crate::utils::V2;
 use crate::game::objects::Objects;
-use crate::game::events::{Events, ObjEvent, EventKind};
+use crate::game::events::{Events, Event, EventKind};
 
 pub struct ActionMoveToSystem;
 
@@ -26,12 +26,13 @@ impl<'a> System<'a> for ActionMoveToSystem {
     fn run(&mut self, mut data: ActionMoveToData) {
         trace!("running");
 
+        let mut moved = vec![];
         let mut completed = vec![];
+
         let delta_time = &data.delta_time;
-        let mut events = vec![];
 
         for (entity, moveable, action, _, location) in (
-            &data.entities,
+            &*data.entities,
             &data.moveable,
             &data.actions,
             &data.action_move_to,
@@ -66,7 +67,8 @@ impl<'a> System<'a> for ActionMoveToSystem {
             if complete {
                 debug!("{:?} move complete", entity);
                 location.set_pos(to).unwrap();
-                completed.push(entity.clone());
+                moved.push(entity);
+                completed.push(entity);
             } else {
                 trace!(
                     "{:?} moving to {:?}, new position is {:?}",
@@ -75,9 +77,8 @@ impl<'a> System<'a> for ActionMoveToSystem {
                     new_pos
                 );
                 location.set_pos(new_pos).unwrap();
+                moved.push(entity);
             }
-
-            events.push(ObjEvent::new(entity, EventKind::Move));
         }
 
         for entity in completed {
@@ -85,9 +86,11 @@ impl<'a> System<'a> for ActionMoveToSystem {
             (&mut data.action_move_to).remove(entity).unwrap();
         }
 
-        data.lazy.create_entity(&mut data.entities)
-            .with(Events::new(events))
-            .build();
+        for entity in moved {
+            data.lazy.create_entity(&mut data.entities)
+                .with(Event::new(entity, EventKind::Move))
+                .build();
+        }
     }
 }
 

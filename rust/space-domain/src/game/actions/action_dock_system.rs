@@ -5,7 +5,7 @@ use super::*;
 use crate::game::actions::*;
 use crate::game::objects::HasDock;
 use std::borrow::{Borrow, BorrowMut};
-use crate::game::events::{Events, ObjEvent, EventKind};
+use crate::game::events::{Events, Event, EventKind};
 
 pub struct DockSystem;
 
@@ -41,18 +41,15 @@ impl<'a> System<'a> for DockSystem {
             ));
         }
 
-        let mut events = vec![];
-
         for (entity, location) in processed {
             data.actions.borrow_mut().remove(entity).unwrap();
             data.actions_dock.borrow_mut().remove(entity).unwrap();
             data.locations.borrow_mut().insert(entity, location).unwrap();
-            events.push(ObjEvent::new(entity, EventKind::Dock));
+            data.lazy.create_entity(&mut data.entities)
+                .with(Event::new(entity, EventKind::Dock))
+                .build();
         }
 
-        data.lazy.create_entity(&mut data.entities)
-            .with(Events::new(events))
-            .build();
     }
 }
 

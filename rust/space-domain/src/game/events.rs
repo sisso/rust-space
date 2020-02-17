@@ -11,35 +11,22 @@ pub enum EventKind {
     Undock,
 }
 
-#[derive(Debug, Clone)]
-pub struct ObjEvent {
+#[derive(Debug, Clone, Component)]
+pub struct Event {
     id: ObjId,
     kind: EventKind,
 }
 
-impl ObjEvent {
+impl Event {
     pub fn new(id: ObjId, kind: EventKind) -> Self {
-        ObjEvent { id, kind }
+        Event { id, kind }
     }
 }
 
-#[derive(Debug, Clone, Component)]
-pub struct Events {
-   list: Vec<ObjEvent>,
-}
+pub struct Events;
 
-/// Events are added in normal dispatcher and read later_dispatcher, then clean up in clean
-/// dispatcher
 impl Events {
-    pub fn new(list: Vec<ObjEvent>) -> Self {
-        Events { list }
-    }
-
-    pub fn single(event: ObjEvent) -> Self {
-        Events { list: vec![event] }
-    }
-
-    pub fn init_world_late(world: &mut World, late_dispatcher: &mut DispatcherBuilder) {
+    pub fn init_world_cleanup(world: &mut World, late_dispatcher: &mut DispatcherBuilder) {
         late_dispatcher.add(
             ClearEventsSystem,
             "clear_events_system",
@@ -48,10 +35,11 @@ impl Events {
     }
 }
 
+/// Remove all entities with events
 pub struct ClearEventsSystem;
 
 impl<'a> System<'a> for ClearEventsSystem {
-    type SystemData = (Entities<'a>, WriteStorage<'a, Events>);
+    type SystemData = (Entities<'a>, WriteStorage<'a, Event>);
 
     fn run(&mut self, (entities, events): Self::SystemData) {
         trace!("running");

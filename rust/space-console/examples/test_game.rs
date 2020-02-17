@@ -4,7 +4,6 @@ extern crate space_macros;
 use space_domain::game_ffi::GameFFI;
 use space_macros::{info, log};
 use std::time::{Instant, Duration};
-use std::thread::sleep;
 
 fn main() -> Result<(), std::io::Error> {
     //    space_domain::local_game::run();

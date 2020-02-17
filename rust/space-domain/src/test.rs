@@ -1,6 +1,6 @@
 use crate::utils::{MIN_DISTANCE, V2};
 use specs::prelude::*;
-use crate::game::events::Events;
+use crate::game::events::{Events, Event};
 
 pub fn test_system<'a, T, F, J>(system: T, add_entities: F) -> (World, J)
 where
@@ -9,7 +9,7 @@ where
 {
     let mut world = World::new();
     // setup global components
-    world.register::<Events>();
+    world.register::<Event>();
     // create dispatcher for testing
     let mut dispatcher = DispatcherBuilder::new().with(system, "test", &[]).build();
     dispatcher.setup(&mut world);
