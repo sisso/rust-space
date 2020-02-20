@@ -46,7 +46,7 @@ impl<'a> System<'a> for ClearEventsSystem {
 
         for (e, _event) in (&*entities, &events).join() {
             trace!("{:?} removing", e);
-            entities.delete(e);
+            entities.delete(e).unwrap();
         }
     }
 }

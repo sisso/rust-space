@@ -1,7 +1,7 @@
 extern crate space_domain;
 
 use space_console::gui::{Gui, GuiObj, GuiObjKind, GuiSector, ShowSectorView};
-use space_domain::game_ffi::GameFFI;
+use space_domain::ffi::FFIApi;
 use space_domain::space_outputs_generated::space_data;
 
 use space_domain::utils::V2;
@@ -112,7 +112,7 @@ impl ShowSectorView for SectorViewsImpl {
 }
 
 fn main() -> Result<(), std::io::Error> {
-    let mut game_api = GameFFI::new();
+    let mut game_api = FFIApi::new();
     game_api.new_game();
 
     let time_rate = Duration::from_millis(100);

@@ -7,7 +7,9 @@ use flatbuffers::FlatBufferBuilder;
 use std::time::Duration;
 use crate::game::loader::Loader;
 
-pub struct GameFFI<'a, 'b> {
+mod ffi_output_system;
+
+pub struct FFIApi<'a, 'b> {
     game: Game<'a, 'b>,
     first_outputs: bool,
 }
@@ -25,9 +27,9 @@ impl From<&V2> for space_data::V2 {
 }
 
 /// Represent same interface we intend to use through FFI
-impl<'a, 'b> GameFFI<'a, 'b> {
+impl<'a, 'b> FFIApi<'a, 'b> {
     pub fn new() -> Self {
-        GameFFI {
+        FFIApi {
             game: Game::new(),
             first_outputs: true,
         }
@@ -118,21 +120,17 @@ impl<'a, 'b> GameFFI<'a, 'b> {
     }
 }
 
-struct OutpusBuilder<'a> {
-    builder: FlatBufferBuilder<'a>,
-    finish: bool,
-    pub entities_new: Vec<space_data::EntityNew>,
-    pub entities_moved: Vec<space_data::EntityMove>,
-    pub entities_jumped: Vec<space_data::EntityJump>,
-    pub sectors_new: Vec<space_data::SectorNew>,
-    pub jumps_new: Vec<space_data::JumpNew>,
+pub struct FfiOutpusBuilder {
+    entities_new: Vec<space_data::EntityNew>,
+    entities_moved: Vec<space_data::EntityMove>,
+    entities_jumped: Vec<space_data::EntityJump>,
+    sectors_new: Vec<space_data::SectorNew>,
+    jumps_new: Vec<space_data::JumpNew>,
 }
 
-impl<'a> OutpusBuilder<'a> {
+impl FfiOutpusBuilder {
     pub fn new() -> Self {
-        OutpusBuilder {
-            builder: FlatBufferBuilder::new(),
-            finish: false,
+        FfiOutpusBuilder {
             entities_new: vec![],
             entities_moved: vec![],
             entities_jumped: vec![],
@@ -162,35 +160,37 @@ impl<'a> OutpusBuilder<'a> {
             .push(space_data::EntityJump::new(id, sector_id, &pos));
     }
 
-    pub fn finish(&mut self) -> &[u8] {
+    // TODO: how to return just reference? To keep the builder we need 'b that I don't
+    //       know how to reference from a System Data
+    pub fn finish(&mut self) -> Vec<u8> {
+        let mut builder = FlatBufferBuilder::new();
+
         macro_rules! create_vector {
             ($field:expr) => {
                 if $field.is_empty() {
                     None
                 } else {
+                    let v = std::mem::replace(&mut $field, vec![]);
                     Some(
-                        self.builder
-                            .create_vector(std::mem::replace(&mut $field, vec![]).as_ref()),
+                        builder.create_vector(v.as_ref()),
                     )
                 }
             };
         }
 
-        if !self.finish {
-            self.finish = true;
 
-            let root_args = space_data::OutputsArgs {
-                entities_new: create_vector!(self.entities_new),
-                entities_move: create_vector!(self.entities_moved),
-                entities_jump: create_vector!(self.entities_jumped),
-                sectors: create_vector!(self.sectors_new),
-                jumps: create_vector!(self.jumps_new),
-            };
+        let root_args = space_data::OutputsArgs {
+            entities_new: create_vector!(self.entities_new),
+            entities_move: create_vector!(self.entities_moved),
+            entities_jump: create_vector!(self.entities_jumped),
+            sectors: create_vector!(self.sectors_new),
+            jumps: create_vector!(self.jumps_new),
+        };
 
-            let root = space_data::Outputs::create(&mut self.builder, &root_args);
-            self.builder.finish_minimal(root);
-        }
-        self.builder.finished_data()
+        let root = space_data::Outputs::create(&mut builder, &root_args);
+        builder.finish_minimal(root);
+
+        builder.finished_data().into()
     }
 }
 
@@ -198,14 +198,14 @@ impl<'a> OutpusBuilder<'a> {
 mod test {
     use crate::game::events::{Events};
     use crate::game::objects::ObjId;
-    use crate::game_ffi::OutpusBuilder;
+    use crate::ffi::FfiOutpusBuilder;
     use crate::space_outputs_generated::space_data;
 
     #[test]
     fn test_events_to_flatoutputs_empty() {
-        let mut builder = OutpusBuilder::new();
+        let mut builder = FfiOutpusBuilder::new();
         let bytes = builder.finish();
-        let root = space_data::get_root_as_outputs(bytes);
+        let root = space_data::get_root_as_outputs(bytes.as_ref());
         assert!(root.entities_new().is_none());
         assert!(root.entities_jump().is_none());
         assert!(root.entities_move().is_none());
@@ -213,7 +213,7 @@ mod test {
 
     #[test]
     fn test_events_to_flatoutputs_objects_added() {
-        let mut builder = OutpusBuilder::new();
+        let mut builder = FfiOutpusBuilder::new();
         builder.push_entity_new(
             0,
             space_data::V2::new(22.0, 35.0),
@@ -228,7 +228,7 @@ mod test {
         );
         let bytes = builder.finish();
 
-        let root = space_data::get_root_as_outputs(bytes);
+        let root = space_data::get_root_as_outputs(bytes.as_ref());
         assert!(root.entities_jump().is_none());
         assert!(root.entities_move().is_none());
         match root.entities_new() {
@@ -255,12 +255,12 @@ mod test {
 
     #[test]
     fn test_events_to_flatoutputs_entities_moved() {
-        let mut builder = OutpusBuilder::new();
+        let mut builder = FfiOutpusBuilder::new();
         builder.push_entity_move(0, space_data::V2::new(22.0, 35.0));
         builder.push_entity_move(1, space_data::V2::new(-1.0, 0.0));
         let bytes = builder.finish();
 
-        let root = space_data::get_root_as_outputs(bytes);
+        let root = space_data::get_root_as_outputs(bytes.as_ref());
         assert!(root.entities_new().is_none());
         assert!(root.entities_jump().is_none());
         match root.entities_move() {
@@ -283,12 +283,12 @@ mod test {
 
     #[test]
     fn test_events_to_flatoutputs_entities_jumped() {
-        let mut builder = OutpusBuilder::new();
+        let mut builder = FfiOutpusBuilder::new();
         builder.push_entity_jump(0, 3, space_data::V2::new(22.0, 35.0));
         builder.push_entity_jump(1, 4, space_data::V2::new(-1.0, 0.0));
         let bytes = builder.finish();
 
-        let root = space_data::get_root_as_outputs(bytes);
+        let root = space_data::get_root_as_outputs(bytes.as_ref());
         assert!(root.entities_new().is_none());
         assert!(root.entities_move().is_none());
         match root.entities_jump() {

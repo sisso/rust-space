@@ -1,7 +1,7 @@
 extern crate space_domain;
 extern crate space_macros;
 
-use space_domain::game_ffi::GameFFI;
+use space_domain::ffi::FFIApi;
 use space_macros::{info, log};
 use std::time::{Instant, Duration};
 
@@ -11,7 +11,7 @@ fn main() -> Result<(), std::io::Error> {
     info!(target: "main", "start");
     info!(target: "main", "--------------------------------------------------");
 
-    let mut game_api = GameFFI::new();
+    let mut game_api = FFIApi::new();
     game_api.new_game();
 
     let time_rate = Duration::from_millis(1000);
