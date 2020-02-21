@@ -13,8 +13,8 @@ pub enum EventKind {
 
 #[derive(Debug, Clone, Component)]
 pub struct Event {
-    id: ObjId,
-    kind: EventKind,
+    pub id: ObjId,
+    pub kind: EventKind,
 }
 
 impl Event {

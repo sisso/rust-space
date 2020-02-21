@@ -128,6 +128,12 @@ pub struct FfiOutpusBuilder {
     jumps_new: Vec<space_data::JumpNew>,
 }
 
+impl Default for FfiOutpusBuilder {
+    fn default() -> Self {
+        FfiOutpusBuilder::new()
+    }
+}
+
 impl FfiOutpusBuilder {
     pub fn new() -> Self {
         FfiOutpusBuilder {
@@ -137,6 +143,14 @@ impl FfiOutpusBuilder {
             sectors_new: vec![],
             jumps_new: vec![],
         }
+    }
+
+    pub fn clear(&mut self) {
+        self.entities_new = vec![];
+        self.entities_moved = vec![];
+        self.entities_jumped = vec![];
+        self.sectors_new = vec![];
+        self.jumps_new = vec![];
     }
 
     pub fn push_entity_new(
