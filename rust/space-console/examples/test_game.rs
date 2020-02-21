@@ -3,7 +3,7 @@ extern crate space_macros;
 
 use space_domain::ffi::FFIApi;
 use space_macros::{info, log};
-use std::time::{Instant, Duration};
+use std::time::{Duration};
 
 fn main() -> Result<(), std::io::Error> {
     //    space_domain::local_game::run();

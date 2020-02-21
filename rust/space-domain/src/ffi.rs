@@ -169,7 +169,7 @@ impl FfiOutpusBuilder {
             .push(space_data::EntityMove::new(id, &pos));
     }
 
-    pub fn push_entity_jump(&mut self, id: u32, sector_id: u32, pos: space_data::V2) {
+    pub fn push_entity_jump(&mut self, id: u32, pos: space_data::V2, sector_id: u32) {
         self.entities_jumped
             .push(space_data::EntityJump::new(id, sector_id, &pos));
     }
@@ -298,8 +298,8 @@ mod test {
     #[test]
     fn test_events_to_flatoutputs_entities_jumped() {
         let mut builder = FfiOutpusBuilder::new();
-        builder.push_entity_jump(0, 3, space_data::V2::new(22.0, 35.0));
-        builder.push_entity_jump(1, 4, space_data::V2::new(-1.0, 0.0));
+        builder.push_entity_jump(0, space_data::V2::new(22.0, 35.0), 3);
+        builder.push_entity_jump(1, space_data::V2::new(-1.0, 0.0), 4);
         let bytes = builder.finish();
 
         let root = space_data::get_root_as_outputs(bytes.as_ref());

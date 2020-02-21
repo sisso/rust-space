@@ -41,7 +41,7 @@ pub struct SectorId(pub u32);
 pub struct JumpId(pub u32);
 
 impl SectorId {
-    pub fn value(&self) -> u32 {
+    pub fn as_u32(&self) -> u32 {
         self.0
     }
 }
