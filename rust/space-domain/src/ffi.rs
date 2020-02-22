@@ -6,6 +6,10 @@ use crate::utils::{DeltaTime, Seconds, TotalTime, V2};
 use flatbuffers::FlatBufferBuilder;
 use std::time::Duration;
 use crate::game::loader::Loader;
+use specs::{WorldExt, World, DispatcherBuilder};
+use std::borrow::{BorrowMut, Borrow};
+use crate::game::sectors::Sectors;
+use crate::ffi::ffi_output_system::FfiOutputSystem;
 
 mod ffi_output_system;
 
@@ -52,80 +56,61 @@ impl<'a, 'b> FFIApi<'a, 'b> {
     where
         F: FnOnce(Vec<u8>),
     {
-        //        info!("game_api", "get_inputs");
-        //        let events = self.game.events.take();
-        //
-        //        let mut builder = OutpusBuilder::new();
-        //
-        //        if self.first_outputs {
-        //            self.first_outputs = false;
-        //
-        //            for sector_id in self.game.sectors.list() {
-        //                builder.sectors_new.push(space_data::SectorNew::new(sector_id.value()));
-        //            }
-        //
-        //            for jump in self.game.sectors.list_jumps() {
-        //                builder.jumps_new.push(space_data::JumpNew::new(
-        //                    jump.id.0,
-        //                    jump.sector_id.0,
-        //                    &jump.pos.into(),
-        //                    jump.to_sector_id.0,
-        //                    &jump.to_pos.into()
-        //                ));
-        //            }
-        //        }
-        //
-        //        // process events
-        //        for event in events {
-        //            match event.kind {
-        //                EventKind::Add => {
-        //                    let kind =
-        //                        if self.game.extractables.get_extractable(&event.id).is_some() {
-        //                            space_data::EntityKind::Asteroid
-        //                        } else if self.game.objects.get(&event.id).has_dock {
-        //                            space_data::EntityKind::Station
-        //                        } else {
-        //                            space_data::EntityKind::Fleet
-        //                        };
-        //
-        //                    match self.game.locations.get_location(&event.id) {
-        //                        Some(Location::Space { sector_id, pos} ) => {
-        //                            builder.push_entity_new(event.id.value(), pos.into(), sector_id.value(), kind);
-        //                        },
-        //                        Some(Location::Docked { docked_id } ) => {
-        //                            let docked_location = self.game.locations.get_location(docked_id).unwrap().get_space();
-        //                            builder.push_entity_new(event.id.value(), docked_location.pos.into(), docked_location.sector_id.value(), kind);
-        //                        },
-        //                        None => {
-        //                            warn!("game_api", "Added {:?}, but has no location", event);
-        //                        }
-        //                    }
-        //                }
-        //                EventKind::Jump => {
-        //                    let location = self.game.locations.get_location(&event.id).unwrap().get_space();
-        //                    builder.push_entity_jump(event.id.value(), location.sector_id.value(), location.pos.into());
-        //                },
-        //                EventKind::Move => {
-        //                    let location = self.game.locations.get_location(&event.id).unwrap().get_space();
-        //                    builder.push_entity_move(event.id.value(), location.pos.into());
-        //                }
-        //            }
-        //        }
-        //
-        //        let bytes = builder.finish();
-        //        // TODO: remove copy
-        //        callback(Vec::from(bytes));
-        //        true
-        false
+        if !self.game.world.has_value::<FfiOutpusBuilder>() {
+            warn!("fail to get ffi outputs, no FfiOutpusBuilder");
+            return false;
+        }
+
+        let mut sectors_to_add = vec![];
+        let mut jumps_to_add = vec![];
+
+        if self.first_outputs {
+            self.first_outputs = false;
+
+            let sectors = self.game.world.read_resource::<Sectors>();
+
+            for sector_id in sectors.list() {
+                sectors_to_add.push(space_data::SectorNew::new(sector_id.as_u32()));
+            }
+
+            for jump in sectors.list_jumps() {
+                jumps_to_add.push(space_data::JumpNew::new(
+                    jump.id.as_u32(),
+                    jump.sector_id.as_u32(),
+                    &jump.pos.into(),
+                    jump.to_sector_id.as_u32(),
+                    &jump.to_pos.into(),
+                ));
+            }
+        }
+
+        let outputs = &mut self.game.world.write_resource::<FfiOutpusBuilder>();
+
+        for sector in sectors_to_add {
+            outputs.sectors_new.push(sector);
+        }
+
+        for jump in jumps_to_add {
+            outputs.jumps_new.push(jump);
+        }
+
+        // TODO: remove copy
+        let bytes = outputs.build();
+        callback(bytes);
+        true
+    }
+
+    pub fn init_world(world: &mut World, dispatcher: &mut DispatcherBuilder) {
+        dispatcher.add(FfiOutputSystem, "ffi_output_system", &[]);
     }
 }
 
 pub struct FfiOutpusBuilder {
-    entities_new: Vec<space_data::EntityNew>,
-    entities_moved: Vec<space_data::EntityMove>,
-    entities_jumped: Vec<space_data::EntityJump>,
-    sectors_new: Vec<space_data::SectorNew>,
-    jumps_new: Vec<space_data::JumpNew>,
+    pub entities_new: Vec<space_data::EntityNew>,
+    pub entities_moved: Vec<space_data::EntityMove>,
+    pub entities_jumped: Vec<space_data::EntityJump>,
+    pub sectors_new: Vec<space_data::SectorNew>,
+    pub jumps_new: Vec<space_data::JumpNew>,
 }
 
 impl Default for FfiOutpusBuilder {
@@ -145,7 +130,7 @@ impl FfiOutpusBuilder {
         }
     }
 
-    pub fn clear(&mut self) {
+    fn clear(&mut self) {
         self.entities_new = vec![];
         self.entities_moved = vec![];
         self.entities_jumped = vec![];
@@ -176,7 +161,7 @@ impl FfiOutpusBuilder {
 
     // TODO: how to return just reference? To keep the builder we need 'b that I don't
     //       know how to reference from a System Data
-    pub fn finish(&mut self) -> Vec<u8> {
+    pub fn build(&mut self) -> Vec<u8> {
         let mut builder = FlatBufferBuilder::new();
 
         macro_rules! create_vector {
@@ -204,7 +189,9 @@ impl FfiOutpusBuilder {
         let root = space_data::Outputs::create(&mut builder, &root_args);
         builder.finish_minimal(root);
 
-        builder.finished_data().into()
+        let bytes = builder.finished_data().into();
+        self.clear();
+        bytes
     }
 }
 
@@ -218,7 +205,7 @@ mod test {
     #[test]
     fn test_events_to_flatoutputs_empty() {
         let mut builder = FfiOutpusBuilder::new();
-        let bytes = builder.finish();
+        let bytes = builder.build();
         let root = space_data::get_root_as_outputs(bytes.as_ref());
         assert!(root.entities_new().is_none());
         assert!(root.entities_jump().is_none());
@@ -240,7 +227,7 @@ mod test {
             2,
             space_data::EntityKind::Station,
         );
-        let bytes = builder.finish();
+        let bytes = builder.build();
 
         let root = space_data::get_root_as_outputs(bytes.as_ref());
         assert!(root.entities_jump().is_none());
@@ -272,7 +259,7 @@ mod test {
         let mut builder = FfiOutpusBuilder::new();
         builder.push_entity_move(0, space_data::V2::new(22.0, 35.0));
         builder.push_entity_move(1, space_data::V2::new(-1.0, 0.0));
-        let bytes = builder.finish();
+        let bytes = builder.build();
 
         let root = space_data::get_root_as_outputs(bytes.as_ref());
         assert!(root.entities_new().is_none());
@@ -300,7 +287,7 @@ mod test {
         let mut builder = FfiOutpusBuilder::new();
         builder.push_entity_jump(0, space_data::V2::new(22.0, 35.0), 3);
         builder.push_entity_jump(1, space_data::V2::new(-1.0, 0.0), 4);
-        let bytes = builder.finish();
+        let bytes = builder.build();
 
         let root = space_data::get_root_as_outputs(bytes.as_ref());
         assert!(root.entities_new().is_none());

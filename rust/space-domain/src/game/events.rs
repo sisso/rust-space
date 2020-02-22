@@ -44,8 +44,8 @@ impl<'a> System<'a> for ClearEventsSystem {
     fn run(&mut self, (entities, events): Self::SystemData) {
         trace!("running");
 
-        for (e, _event) in (&*entities, &events).join() {
-            trace!("{:?} removing", e);
+        for (e, event) in (&*entities, &events).join() {
+            trace!("{:?} removing {:?}", e, event);
             entities.delete(e).unwrap();
         }
     }

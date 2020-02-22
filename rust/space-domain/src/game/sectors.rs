@@ -40,6 +40,10 @@ pub struct SectorId(pub u32);
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 pub struct JumpId(pub u32);
 
+impl JumpId {
+    pub fn as_u32(&self) -> u32 { self.0 }
+}
+
 impl SectorId {
     pub fn as_u32(&self) -> u32 {
         self.0

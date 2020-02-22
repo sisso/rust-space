@@ -125,10 +125,14 @@ fn main() -> Result<(), std::io::Error> {
 
         game_api.update(time_rate);
 
-        game_api.get_inputs(|bytes| {
+        let success = game_api.get_inputs(|bytes| {
             let outputs = space_data::get_root_as_outputs(bytes.as_slice());
             sector_view.update(outputs);
         });
+
+        if !success {
+            eprintln!("gui - failed to get inputs");
+        }
 
         gui.show_sectors(&sector_view);
 
@@ -141,7 +145,7 @@ fn main() -> Result<(), std::io::Error> {
         let delta = now - start;
         if delta < time_rate {
             let wait_time = time_rate - delta;
-            eprintln!("gui - delta {:?}, wait_time: {:?}, ration: {:?}", delta, wait_time, time_rate.as_millis() as f64 / delta.as_millis() as f64);
+            eprintln!("gui - delta {:?}, wait_time: {:?}, ration: {:?}% usage", delta, wait_time, (100.0 / (time_rate.as_millis() as f64 / delta.as_millis() as f64)) as i32);
             std::thread::sleep(wait_time);
         } else {
             eprintln!("gui - delta {:?}, wait_time: 0.0: missing time frame", delta);

@@ -1,6 +1,7 @@
 use crate::specs_extras::*;
 use specs::prelude::*;
 use std::collections::HashMap;
+use std::borrow::BorrowMut;
 
 use crate::game::extractables::Extractable;
 use crate::game::locations::{Location, Locations, Moveable};
@@ -15,9 +16,9 @@ use self::wares::*;
 use crate::game::actions::Actions;
 use crate::game::commands::{CommandMine, Commands};
 use crate::game::navigations::Navigations;
-use std::borrow::BorrowMut;
 use crate::game::station::Station;
 use crate::game::events::{Events, Event, EventKind};
+use crate::ffi::FFIApi;
 
 pub mod actions;
 pub mod commands;
@@ -67,6 +68,7 @@ impl<'a, 'b> Game<'a, 'b> {
 
         // later dispatcher
         let mut dispatcher_builder = DispatcherBuilder::new();
+        FFIApi::init_world(&mut world, &mut dispatcher_builder);
 
         let mut late_dispatcher = dispatcher_builder.build();
         late_dispatcher.setup(&mut world);
@@ -92,7 +94,7 @@ impl<'a, 'b> Game<'a, 'b> {
         self.total_time = self.total_time.add(delta_time);
         self.world.insert(delta_time);
         self.world.insert(self.total_time);
-        info!("tick delta {} total {}", delta_time.0, self.total_time.0);
+        info!("tick delta {} total {}", delta_time.as_f32(), self.total_time.as_f64());
 
         // update systems
         self.dispatcher.dispatch(&mut self.world);
