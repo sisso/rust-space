@@ -28,7 +28,7 @@ impl<'a> System<'a> for FfiOutputSystem {
         let output = &mut data.output;
         output.clear();
 
-        for (event_entity, event) in (&*data.entities, &data.events).join() {
+        for (_event_entity, event) in (&*data.entities, &data.events).join() {
             let entity = event.id;
 
             // TODO: optimize to fetch only when it is needed

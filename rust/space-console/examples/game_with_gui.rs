@@ -6,7 +6,7 @@ use space_domain::space_outputs_generated::space_data;
 
 use space_domain::utils::V2;
 use std::collections::HashMap;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 struct SectorViewsImpl {
     sectors: HashMap<u32, GuiSector>,
@@ -121,6 +121,8 @@ fn main() -> Result<(), std::io::Error> {
     let mut sector_view = SectorViewsImpl::new();
 
     loop {
+        let start = Instant::now();
+
         game_api.update(time_rate);
 
         game_api.get_inputs(|bytes| {
@@ -132,6 +134,17 @@ fn main() -> Result<(), std::io::Error> {
 
         if gui.exit() {
             break;
+        }
+
+        // TODO: move it to own class
+        let now = Instant::now();
+        let delta = now - start;
+        if delta < time_rate {
+            let wait_time = time_rate - delta;
+            eprintln!("gui - delta {:?}, wait_time: {:?}, ration: {:?}", delta, wait_time, time_rate.as_millis() as f64 / delta.as_millis() as f64);
+            std::thread::sleep(wait_time);
+        } else {
+            eprintln!("gui - delta {:?}, wait_time: 0.0: missing time frame", delta);
         }
     }
 
