@@ -13,7 +13,7 @@ pub struct NavRequestHandlerSystem;
 #[derive(SystemData)]
 pub struct NavRequestHandlerData<'a> {
     entities: Entities<'a>,
-    sectors: Read<'a, Sectors>,
+    sectors: Read<'a, SectorsIndex>,
     locations: ReadStorage<'a, Location>,
     requests: WriteStorage<'a, NavRequest>,
     navigation: WriteStorage<'a, Navigation>,
@@ -36,7 +36,6 @@ impl<'a> System<'a> for NavRequestHandlerSystem {
             let (target_id, should_dock) = match request {
                 NavRequest::MoveToTarget { target_id, } => (*target_id, false),
                 NavRequest::MoveAndDockAt { target_id, } => (*target_id, true),
-                req => panic!("unsupported request {:?}", req),
             };
 
             processed_requests.push(entity);
@@ -81,24 +80,37 @@ mod test {
     use crate::game::sectors::test_scenery::*;
     use crate::test::test_system;
 
+    fn setup_station_and_asteroid(world: &mut World, sectors: &SectorScenery) -> (Entity, Entity) {
+        let asteroid = world
+            .create_entity()
+            .with(Location::Space {
+                pos: Position::new(1.0, 0.0),
+                sector_id: sectors.sector_1,
+            })
+            .build();
+
+        let station = world
+            .create_entity()
+            .with(Location::Space {
+                pos: Position::new(0.0, 0.0),
+                sector_id: sectors.sector_0,
+            })
+            .build();
+
+        (station, asteroid)
+    }
+
     #[test]
     fn test_nav_request_handler_should_create_navigation_from_requests() {
         let (world, (asteroid, miner)) = test_system(NavRequestHandlerSystem, |world| {
-            world.insert(new_test_sectors());
-
-            let asteroid = world
-                .create_entity()
-                .with(Location::Space {
-                    pos: Position::new(1.0, 0.0),
-                    sector_id: SECTOR_1,
-                })
-                .build();
+            let sector_scenery = crate::game::sectors::test_scenery::setup_sector_scenery(world);
+            let (station, asteroid) = setup_station_and_asteroid(world, &sector_scenery);
 
             let miner = world
                 .create_entity()
                 .with(Location::Space {
                     pos: Position::new(0.0, 0.0),
-                    sector_id: SECTOR_0,
+                    sector_id: sector_scenery.sector_0,
                 })
                 .with(NavRequest::MoveToTarget {
                     target_id: asteroid,
@@ -124,23 +136,8 @@ mod test {
     #[test]
     fn test_nav_request_handler_should_create_navigation_from_requests_when_docked() {
         let (world, (asteroid, miner)) = test_system(NavRequestHandlerSystem, |world| {
-            world.insert(new_test_sectors());
-
-            let asteroid = world
-                .create_entity()
-                .with(Location::Space {
-                    pos: Position::new(1.0, 0.0),
-                    sector_id: SECTOR_1,
-                })
-                .build();
-
-            let station = world
-                .create_entity()
-                .with(Location::Space {
-                    pos: Position::new(0.0, 0.0),
-                    sector_id: SECTOR_0,
-                })
-                .build();
+            let sector_scenery = crate::game::sectors::test_scenery::setup_sector_scenery(world);
+            let (station, asteroid) = setup_station_and_asteroid(world, &sector_scenery);
 
             let miner = world
                 .create_entity()

@@ -3,6 +3,7 @@ use crate::game::locations::*;
 use crate::game::objects::ObjId;
 use crate::game::sectors::*;
 use crate::utils::*;
+use specs::Entity;
 
 #[derive(Debug, Clone)]
 pub struct NewObj {
@@ -14,6 +15,8 @@ pub struct NewObj {
     pub has_dock: bool,
     pub ai: bool,
     pub station: bool,
+    pub sector: bool,
+    pub jump_to: Option<Entity>,
 }
 
 impl NewObj {
@@ -27,6 +30,8 @@ impl NewObj {
             has_dock: false,
             ai: false,
             station: false,
+            sector: false,
+            jump_to: None,
         }
     }
 
@@ -72,6 +77,16 @@ impl NewObj {
 
     pub fn as_station(mut self) -> Self {
         self.station = true;
+        self
+    }
+
+    pub fn with_sector(mut self) -> Self {
+        self.sector= true;
+        self
+    }
+
+    pub fn with_jump(mut self, jump_to: Entity) -> Self {
+        self.jump_to = Some(jump_to);
         self
     }
 }

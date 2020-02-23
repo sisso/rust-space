@@ -160,7 +160,6 @@ fn search_deliver_target(
 mod test {
     use super::*;
     use crate::game::sectors::test_scenery;
-    use crate::game::sectors::test_scenery::{SECTOR_0, SECTOR_1};
     use crate::game::wares::WareId;
     use crate::test::test_system;
     use specs::DispatcherBuilder;
@@ -180,11 +179,13 @@ mod test {
     };
 
     fn setup_scenery(world: &mut World) -> SceneryResult {
+        let sector_scenery = crate::game::sectors::test_scenery::setup_sector_scenery(world);
+
         let asteroid = world
             .create_entity()
             .with(Location::Space {
                 pos: V2::new(0.0, 0.0),
-                sector_id: SECTOR_1,
+                sector_id: sector_scenery.sector_0,
             })
             .with(EXTRACTABLE)
             .build();
@@ -193,7 +194,7 @@ mod test {
             .create_entity()
             .with(Location::Space {
                 pos: V2::new(0.0, 0.0),
-                sector_id: SECTOR_0,
+                sector_id: sector_scenery.sector_0,
             })
             .with(Station {})
             .with(Cargo::new(100.0))
@@ -209,8 +210,8 @@ mod test {
             .build();
 
         let mut entitys_per_sector = EntityPerSectorIndex::new();
-        entitys_per_sector.add_stations(SECTOR_1, station);
-        entitys_per_sector.add_extractable(SECTOR_1, asteroid);
+        entitys_per_sector.add_stations(sector_scenery.sector_0, station);
+        entitys_per_sector.add_extractable(sector_scenery.sector_0, asteroid);
         world.insert(entitys_per_sector);
 
         SceneryResult { miner, asteroid, station }

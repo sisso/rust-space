@@ -70,16 +70,16 @@ mod test {
     use crate::game::sectors::SectorId;
     use crate::test::{assert_v2, test_system};
 
-    pub const SECTOR_0: SectorId = SectorId(0);
-
     #[test]
     fn test_undock_system_should_undock_if_docked() {
         let (world, entity) = test_system(UndockSystem, |world| {
+            let sector_id = world.create_entity().build();
+
             let station = world
                 .create_entity()
                 .with(Location::Space {
                     pos: Position::new(0.0, 0.0),
-                    sector_id: SECTOR_0,
+                    sector_id: sector_id,
                 })
                 .build();
 
@@ -108,13 +108,15 @@ mod test {
     #[test]
     fn test_undock_system_should_ignore_undock_if_not_docked() {
         let (world, entity) = test_system(UndockSystem, |world| {
+            let sector_id = world.create_entity().build();
+
             let entity = world
                 .create_entity()
                 .with(ActionActive(Action::Undock))
                 .with(ActionUndock)
                 .with(Location::Space {
                     pos: Position::new(0.0, 0.0),
-                    sector_id: SECTOR_0,
+                    sector_id,
                 })
                 .build();
 

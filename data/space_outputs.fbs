@@ -25,6 +25,7 @@ enum EntityKind : short{
   Fleet = 0,
   Asteroid,
   Station,
+  // remove?
   Jump
 }
 

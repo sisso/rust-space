@@ -8,14 +8,13 @@ use std::time::Duration;
 use crate::game::loader::Loader;
 use specs::{WorldExt, World, DispatcherBuilder};
 use std::borrow::{BorrowMut, Borrow};
-use crate::game::sectors::Sectors;
+use crate::game::sectors::SectorsIndex;
 use crate::ffi::ffi_output_system::FfiOutputSystem;
 
 mod ffi_output_system;
 
 pub struct FFIApi<'a, 'b> {
     game: Game<'a, 'b>,
-    first_outputs: bool,
 }
 
 impl From<V2> for space_data::V2 {
@@ -35,7 +34,6 @@ impl<'a, 'b> FFIApi<'a, 'b> {
     pub fn new() -> Self {
         FFIApi {
             game: Game::new(),
-            first_outputs: true,
         }
     }
 
@@ -63,26 +61,6 @@ impl<'a, 'b> FFIApi<'a, 'b> {
 
         let mut sectors_to_add = vec![];
         let mut jumps_to_add = vec![];
-
-        if self.first_outputs {
-            self.first_outputs = false;
-
-            let sectors = self.game.world.read_resource::<Sectors>();
-
-            for sector_id in sectors.list() {
-                sectors_to_add.push(space_data::SectorNew::new(sector_id.as_u32()));
-            }
-
-            for jump in sectors.list_jumps() {
-                jumps_to_add.push(space_data::JumpNew::new(
-                    jump.id.as_u32(),
-                    jump.sector_id.as_u32(),
-                    &jump.pos.into(),
-                    jump.to_sector_id.as_u32(),
-                    &jump.to_pos.into(),
-                ));
-            }
-        }
 
         let outputs = &mut self.game.world.write_resource::<FfiOutpusBuilder>();
 

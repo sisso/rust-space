@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
+use specs::Entity;
 
 pub const MIN_DISTANCE: f32 = 0.01;
 pub const MIN_DISTANCE_SQR: f32 = MIN_DISTANCE * MIN_DISTANCE;
@@ -150,6 +151,17 @@ impl NextId {
         v
     }
 }
+
+pub trait IdAsU32Support {
+    fn as_u32(&self) -> u32;
+}
+
+impl IdAsU32Support for Entity {
+    fn as_u32(&self) -> u32 {
+        self.id()
+    }
+}
+
 
 #[test]
 fn test_total_time_give_us_hundred_years_game_60_fps_precision() {

@@ -1,11 +1,15 @@
 use crate::game::wares::WareId;
-use crate::game::sectors::{SectorId, Sectors, Sector, Jump, JumpId};
+use crate::game::sectors::{SectorId, SectorsIndex, Sector, Jump, JumpId};
 use crate::game::objects::ObjId;
 use crate::game::Game;
 use crate::game::new_obj::NewObj;
 use crate::game::extractables::Extractable;
 use crate::utils::{V2, Speed, Position};
 use crate::game::commands::Commands;
+use specs::{WorldExt, Builder};
+use crate::game::locations::Location;
+use crate::game::events::{Event, EventKind};
+use std::borrow::BorrowMut;
 
 pub struct Loader {
 
@@ -25,47 +29,32 @@ impl Loader {
     ///
     /// Is defined as a simple 2 sector, one miner ship, a station and asteroid
     pub fn load_basic_scenery(game: &mut Game) -> BasicScenery {
+        // init wares
         let ware_ore_id = WareId(0);
 
-        let sector_0: SectorId = SectorId(0);
-        let sector_1: SectorId = SectorId(1);
+        // init sectors
+        let sector_0 = Loader::new_sector(game);
+        let sector_1 = Loader::new_sector(game);
 
-        let jump_0_to_1: Jump = Jump {
-            id: JumpId(0),
-            sector_id: sector_0,
-            pos: Position { x: 4.0, y: 0.0 },
-            to_sector_id: sector_1,
-            to_pos: Position { x: 0.0, y: 3.0 },
-        };
+        Loader::new_jump(game, sector_0, V2::new(0.5, 0.3), sector_1, V2::new(0.0, 0.0));
+        SectorsIndex::update_index_from_world(&mut game.world);
 
-        let jump_1_to_0: Jump = Jump {
-            id: JumpId(1),
-            sector_id: sector_1,
-            pos: Position { x: 0.0, y: 3.0 },
-            to_sector_id: sector_0,
-            to_pos: Position { x: 4.0, y: 0.0 },
-        };
-
-        let mut sectors = Sectors::new();
-        sectors.add_sector(Sector { id: sector_0 });
-        sectors.add_sector(Sector { id: sector_1 });
-        sectors.add_jump(jump_0_to_1.clone());
-        sectors.add_jump(jump_1_to_0.clone());
-        game.set_sectors(sectors);
-
+        // init objects
         let asteroid_id = Loader::new_asteroid(game, sector_1, V2::new(-2.0, 3.0), ware_ore_id);
         let station_id = Loader::new_station(game, sector_0, V2::new(1.0, -3.0));
         let miner_id = Loader::new_ship_miner(game, station_id, 2.0);
 
+        // set initial orders
         Commands::set_command_mine(&mut game.world, miner_id);
 
+        // return scenery
         BasicScenery {
             asteroid_id,
             station_id,
             miner_id,
             ware_ore_id,
             sector_0,
-            sector_1
+            sector_1,
         }
 
     }
@@ -97,5 +86,32 @@ impl Loader {
                 .can_dock()
                 .with_ai(),
         )
+    }
+
+    pub fn new_sector(game: &mut Game) -> ObjId {
+        game.add_object(NewObj::new().with_sector())
+    }
+
+    pub fn new_jump(game: &mut Game, from_sector_id: SectorId, from_pos: Position, to_sector_id: JumpId, to_pos: Position) -> (ObjId, ObjId) {
+        let jump_from_id = game.world.create_entity()
+            .with(Location::Space { pos: from_pos, sector_id: from_sector_id })
+            .build();
+
+        let jump_to_id = game.world.create_entity()
+            .with(Location::Space { pos: to_pos, sector_id: to_sector_id })
+            .with(Jump { target_id: jump_from_id })
+            .build();
+
+        game.world.write_storage::<Jump>()
+            .borrow_mut()
+            .insert(jump_from_id, Jump { target_id: jump_to_id });
+
+        game.world.create_entity().with(Event::new(jump_from_id, EventKind::Add)).build();
+        game.world.create_entity().with(Event::new(jump_to_id, EventKind::Add)).build();
+
+        info!("{:?} creating jump from {:?} to {:?}", jump_from_id, from_sector_id, to_sector_id);
+        info!("{:?} creating jump from {:?} to {:?}", jump_to_id, to_sector_id, from_sector_id);
+
+        (jump_from_id, jump_to_id)
     }
 }

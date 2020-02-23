@@ -2,12 +2,14 @@ use crate::game::actions::*;
 use crate::game::navigations::navigation_system::NavigationSystem;
 use crate::game::navigations::navigation_request_handler_system::NavRequestHandlerSystem;
 use crate::game::objects::ObjId;
-use crate::game::sectors::{JumpId, SectorId, Sectors};
+use crate::game::sectors::{JumpId, SectorId, SectorsIndex, Sector, Jump};
 use crate::utils::Position;
 use specs::prelude::*;
 use specs::Entity;
 use specs_derive::*;
 use std::collections::VecDeque;
+use crate::game::locations::Location;
+use specs::world::EntitiesRes;
 
 mod navigation_system;
 mod navigation_request_handler_system;
@@ -68,10 +70,8 @@ impl Navigations {
         );
     }
 
-    pub fn execute(&mut self, world: &mut World) {}
-
     pub fn create_plan(
-        sectors: &Sectors,
+        sectors: &SectorsIndex,
         from_sector_id: SectorId,
         from_pos: Position,
         to_sector_id: SectorId,
@@ -89,6 +89,7 @@ impl Navigations {
         let mut current_sector = from_sector_id;
 
         for i in 0..safe {
+            // panic i is last operation
             if i + 1 == safe {
                 panic!();
             }
@@ -103,9 +104,11 @@ impl Navigations {
                     panic!("could not find jump from {:?} to {:?}", current_sector, to_sector_id);
                 };
 
-                path.push_back(Action::MoveTo { pos: jump.pos });
+                // move to gate and jump
+                path.push_back(Action::MoveTo { pos: jump.from_pos });
                 path.push_back(Action::Jump { jump_id: jump.id });
 
+                // now we are in next sector
                 current_sector = jump.to_sector_id;
                 current_pos = jump.to_pos;
             }
@@ -119,16 +122,20 @@ impl Navigations {
 mod test {
     use super::*;
     use crate::game::sectors::test_scenery::*;
+    use crate::game::sectors::{Sector, Jump};
 
     #[test]
     fn create_plan() {
-        let sectors = new_test_sectors();
+        let mut world = World::new();
+
+        let sector_scenery = setup_sector_scenery(&mut world);
+        let sectors = &world.read_resource::<SectorsIndex>();
 
         let plan = Navigations::create_plan(
             &sectors,
-            SECTOR_0,
+            sector_scenery.sector_0,
             Position::new(10.0, 0.0),
-            SECTOR_1,
+            sector_scenery.sector_1,
             Position::new(0.0, 10.0),
             true,
         );
@@ -141,12 +148,12 @@ mod test {
         }
 
         match plan.path.get(1).unwrap() {
-            Action::MoveTo { pos } => assert_eq!(pos.clone(), JUMP_0_TO_1.pos),
+            Action::MoveTo { pos } => assert_eq!(pos.clone(), sector_scenery.jump_0_to_1_pos),
             other => panic!(),
         }
 
         match plan.path.get(2).unwrap() {
-            Action::Jump { jump_id } => assert_eq!(jump_id.clone(), JUMP_0_TO_1.id),
+            Action::Jump { jump_id } => assert_eq!(jump_id.clone(), sector_scenery.jump_0_to_1),
             other => panic!(),
         }
 

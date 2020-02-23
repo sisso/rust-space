@@ -19,10 +19,6 @@ fn load_objects(game: &mut Game) -> (ObjId, ObjId) {
 #[test]
 fn test_game_should_mine_and_deliver_cargo_to_station() {
     let mut game = Game::new();
-
-    let sectors = test_scenery::new_test_sectors();
-    game.set_sectors(sectors);
-
     let (station_id, _ship_id) = load_objects(&mut game);
 
     let delta = DeltaTime(0.5);

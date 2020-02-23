@@ -57,21 +57,21 @@ impl<'a> System<'a> for DockSystem {
 mod test {
     use super::super::*;
     use super::*;
-    use crate::game::sectors::SectorId;
     use crate::test::{assert_v2, test_system};
-
-    pub const SECTOR_0: SectorId = SectorId(0);
+    use crate::game::loader::Loader;
 
     #[test]
     fn test_dock_system_should_dock() {
         let (world, (entity, station)) = test_system(DockSystem, |world| {
             let station_position = Position::new(0.0, 0.0);
 
+            let sector_0 = world.create_entity().build();
+
             let station = world
                 .create_entity()
                 .with(Location::Space {
                     pos: station_position,
-                    sector_id: SECTOR_0,
+                    sector_id: sector_0,
                 })
                 .build();
 
@@ -81,7 +81,7 @@ mod test {
                 .with(ActionDock)
                 .with(Location::Space {
                     pos: station_position,
-                    sector_id: SECTOR_0,
+                    sector_id: sector_0,
                 })
                 .build();
 

@@ -3,8 +3,6 @@ use specs::prelude::*;
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, HashMap, HashSet};
 
-use crate::utils::*;
-
 use super::objects::ObjId;
 use crate::game::jsons::JsonValueExtra;
 use std::borrow::Borrow;

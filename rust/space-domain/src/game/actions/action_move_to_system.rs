@@ -101,11 +101,11 @@ mod test {
     use crate::test::{assert_v2, test_system};
     use crate::utils::Speed;
 
-    use crate::game::sectors::test_scenery::SECTOR_0;
-
     #[test]
     fn test_move_to_system_should_move_to_target() {
         let (world, entity) = test_system(ActionMoveToSystem, |world| {
+            let sector_0 = world.create_entity().build();
+
             world.insert(DeltaTime(1.0));
 
             let entity = world
@@ -116,7 +116,7 @@ mod test {
                 .with(ActionMoveTo)
                 .with(Location::Space {
                     pos: Position::new(0.0, 0.0),
-                    sector_id: SECTOR_0,
+                    sector_id: sector_0,
                 })
                 .with(Moveable { speed: Speed(1.0) })
                 .build();
@@ -134,6 +134,8 @@ mod test {
     #[test]
     fn test_move_to_system_should_stop_on_arrival() {
         let (world, entity) = test_system(ActionMoveToSystem, |world| {
+            let sector_0 = world.create_entity().build();
+
             world.insert(DeltaTime(1.0));
 
             let entity = world
@@ -144,7 +146,7 @@ mod test {
                 .with(ActionMoveTo)
                 .with(Location::Space {
                     pos: Position::new(1.0, 0.0),
-                    sector_id: SECTOR_0,
+                    sector_id: sector_0,
                 })
                 .with(Moveable { speed: Speed(1.5) })
                 .build();

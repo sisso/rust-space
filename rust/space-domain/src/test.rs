@@ -2,23 +2,33 @@ use crate::utils::{MIN_DISTANCE, V2};
 use specs::prelude::*;
 use crate::game::events::{Events, Event};
 
-pub fn test_system<'a, T, F, J>(system: T, add_entities: F) -> (World, J)
+pub fn test_system<'a, SystemType, Callback, ReturnType>(system: SystemType, add_entities: Callback)
+    -> (World, ReturnType)
 where
-    T: for<'c> System<'c> + Send + 'a,
-    F: FnOnce(&mut World) -> J,
+    SystemType: for<'c> System<'c> + Send + 'a,
+    Callback: FnOnce(&mut World) -> ReturnType,
 {
     let mut world = World::new();
     // setup global components
     world.register::<Event>();
     // create dispatcher for testing
-    let mut dispatcher = DispatcherBuilder::new().with(system, "test", &[]).build();
+    let mut dispatcher = DispatcherBuilder::new()
+        .with(system, "test", &[])
+        .build();
+
     dispatcher.setup(&mut world);
+
     let result = add_entities(&mut world);
+
     dispatcher.dispatch(&world);
     world.maintain();
+
     (world, result)
 }
 
 pub fn assert_v2(value: V2, expected: V2) {
-    assert!(value.sub(&expected).length() < MIN_DISTANCE);
+    let distance = value.sub(&expected).length();
+    if distance > MIN_DISTANCE {
+        panic!("fail, receives {:?} but expect {:?}, distance of {:?}", value, expected, distance);
+    }
 }

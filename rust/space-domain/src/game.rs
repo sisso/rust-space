@@ -53,7 +53,10 @@ impl<'a, 'b> Game<'a, 'b> {
     pub fn new() -> Self {
         let mut world = World::new();
 
-        // normal distpatcher
+        // initializations
+        Sectors::init_world(&mut world);
+
+        // normal dispatcher
         let mut dispatcher_builder = DispatcherBuilder::new();
         Locations::init_world(&mut world, &mut dispatcher_builder);
         Actions::init_world(&mut world, &mut dispatcher_builder);
@@ -112,10 +115,9 @@ impl<'a, 'b> Game<'a, 'b> {
 
     pub fn load(&mut self, load: &mut impl Load) {}
 
-    // TODO: make sense? Convert to components?
-    pub fn set_sectors(&mut self, sectors: Sectors) {
-        info!("set_sectors");
-        self.world.insert(sectors);
+    pub fn reindex_sectors(&mut self) {
+        info!("reindex_sectors");
+        SectorsIndex::update_index_from_world(&mut self.world);
     }
 
     pub fn add_object(&mut self, new_obj: NewObj) -> ObjId {
@@ -153,7 +155,13 @@ impl<'a, 'b> Game<'a, 'b> {
             builder.set(Station {});
         }
 
-        //        self.events.add_obj_event(ObjEvent::new(id, EventKind::Add));
+        if new_obj.sector {
+            builder.set(Sector {});
+        }
+
+        if let Some(target_id) = new_obj.jump_to {
+            builder.set(Jump { target_id });
+        }
 
         let entity = builder.build();
 
