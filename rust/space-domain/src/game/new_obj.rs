@@ -1,11 +1,12 @@
+use specs::prelude::*;
+
 use crate::game::extractables::Extractable;
 use crate::game::locations::*;
 use crate::game::objects::ObjId;
 use crate::game::sectors::*;
 use crate::utils::*;
-use specs::Entity;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Component)]
 pub struct NewObj {
     pub speed: Option<Speed>,
     pub cargo_size: f32,
@@ -17,6 +18,7 @@ pub struct NewObj {
     pub station: bool,
     pub sector: bool,
     pub jump_to: Option<Entity>,
+    pub command_mine: bool,
 }
 
 impl NewObj {
@@ -32,6 +34,7 @@ impl NewObj {
             station: false,
             sector: false,
             jump_to: None,
+            command_mine: false,
         }
     }
 
@@ -87,6 +90,11 @@ impl NewObj {
 
     pub fn with_jump(mut self, jump_to: Entity) -> Self {
         self.jump_to = Some(jump_to);
+        self
+    }
+
+    pub fn with_command_mine(mut self) -> Self {
+        self.command_mine = true;
         self
     }
 }

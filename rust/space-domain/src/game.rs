@@ -37,6 +37,7 @@ pub mod events;
 //pub mod ai_high;
 pub mod station;
 pub mod loader;
+pub mod factory;
 
 // TODO: add tick to game field
 pub struct Game<'a, 'b> {

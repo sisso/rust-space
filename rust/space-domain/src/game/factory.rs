@@ -1,313 +1,126 @@
-use std::collections::HashMap;
+use specs::prelude::*;
+use crate::game::wares::Cargo;
+use crate::game::new_obj::NewObj;
+use crate::utils::Speed;
 
-use super::objects::{ObjId};
-use crate::utils::*;
-use crate::game::wares::*;
+const REQUIRE_CARGO: f32 = 5.0;
 
-#[derive(Clone, Debug)]
-pub struct Production {
-    pub input: HashMap<WareId, f32>,
-    pub output: HashMap<WareId, f32>,
-    pub time: DeltaTime,
-}
-
-#[derive(Clone, Debug)]
-struct ProductionState {
-    pub complete_time: Option<TotalTime>,
-}
-
-impl ProductionState {
-    pub fn new() -> Self {
-        ProductionState { complete_time: None }
-    }
-}
-
-#[derive(Clone, Debug)]
+#[derive(Debug,Clone,Component)]
 pub struct Factory {
-    production: Vec<(Production, ProductionState)>,
+
 }
 
-impl Factory {
-    pub fn new(production: Vec<Production>) -> Self {
-        Factory {
-            production: production.into_iter().map(|production| {
-                (production, ProductionState::new())
-            }).collect()
-        }
-    }
+pub struct FactorySystem;
 
-    pub fn get_count(&self) -> usize {
-        self.production.len()
-    }
+impl<'a> System<'a> for FactorySystem {
+    type SystemData = (
+        Entities<'a>,
+        WriteStorage<'a, Cargo>,
+        ReadStorage<'a, Factory>,
+        WriteStorage<'a, NewObj>
+    );
 
-    pub fn get_percentage(&self, index: usize, time: TotalTime) -> f32 {
-        self.production.get(index).and_then(|(production, state)| {
-            state.complete_time.map(|complete_time| {
-                let require_time = complete_time.sub(time);
+    fn run(&mut self, data: Self::SystemData) {
+        let (entities, mut cargos, factories, mut new_objects) = data;
 
-                if require_time.as_f32() <= 0.0 {
-                    0.0
-                } else {
-                    1.0 - require_time.as_f32() / production.time.as_f32()
-                }
-            })
-        }).unwrap_or(0.0)
-    }
+        let mut to_add = vec![];
 
-    pub fn update(&mut self, time: TotalTime, cargo: &mut Cargo) {
-        for (production, state) in &mut self.production {
-            match state.complete_time {
-                Some(end_time) if time.is_after(end_time) => {
-                    if Factory::complete_production(cargo, production, state).is_ok() {
-                        Factory::try_start_production(time, cargo, production, state);
-                    }
-                },
-                Some(_) => {},
-                None => {
-                    Factory::try_start_production(time, cargo, production, state);
-                }
+        for (entity, cargo, _) in (&*entities, &mut cargos, &factories).join() {
+            // TODO: only check for correct resources
+            if cargo.get_current() > REQUIRE_CARGO {
+                let ware_id = cargo.get_wares().into_iter().next().unwrap();
+                cargo.remove(*ware_id, REQUIRE_CARGO).unwrap();
+
+                let new_obj = NewObj::new()
+                    .with_ai()
+                    .with_command_mine()
+                    .with_cargo(10.0)
+                    .with_speed(Speed(2.0))
+                    .at_dock(entity);
+
+                to_add.push(new_obj);
             }
         }
-    }
 
-    pub fn is_producing(&self, index: usize) -> bool {
-        let (_, state) = self.production.get(index).unwrap();
-        state.complete_time.is_some()
-    }
-
-    fn complete_production(cargo: &mut Cargo, production: &mut Production, state: &mut ProductionState) -> Result<(),()> {
-        let total_to_add = production.output.iter().map(|(_, amount)| amount).sum();
-        if cargo.free_space() < total_to_add {
-            // not enough space to complete production
-            return Err(());
+        // let new_objects = &mut new_objects;
+        for obj in to_add {
+            entities.build_entity()
+                .with(obj, &mut new_objects)
+                .build();
         }
-
-        for (ware_id, amount) in &production.output {
-            cargo.add(*ware_id, *amount).expect("not able to add produced cargo, it is full")
-        }
-
-        state.complete_time = None;
-        Ok(())
-    }
-
-    fn try_start_production(time: TotalTime, cargo: &mut Cargo, production: &mut Production, state: &mut ProductionState) {
-        let has_enough_input = production.input.iter().all(|(ware_id, require_amount)| {
-            cargo.get_amount(*ware_id) >= *require_amount
-        });
-
-        if !has_enough_input {
-            return;
-        }
-
-        for (ware_id, amount) in &production.input {
-            cargo.remove(*ware_id, *amount).expect("failed to remove cargo");
-        }
-
-        state.complete_time = Some(time.add(production.time))
-    }
-}
-
-#[derive(Clone, Debug)]
-struct State {
-    factory: Factory
-}
-
-impl State {
-    pub fn new(factory: Factory) -> Self {
-        State {
-            factory
-        }
-    }
-}
-
-pub struct Factories {
-    index: HashMap<ObjId, State>,
-}
-
-impl Factories {
-    pub fn new() -> Self {
-        Factories {
-            index: HashMap::new()
-        }
-    }
-
-    pub fn init(&mut self, obj_id: ObjId, factory: Factory) {
-        self.index.insert(obj_id, State::new(factory));
-    }
-
-    pub fn set(&mut self, obj_id: ObjId, value: Factory) {
-        let mut state = self.index.get_mut(&obj_id).unwrap();
-        info!("Factories", &format!("set {:?}: {:?}", obj_id, value));
-        state.factory = value;
-    }
-
-    pub fn get(&self, id: ObjId) -> &Factory {
-        let state = self.index.get(&id).unwrap();
-        &state.factory
     }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
-    use super::super::wares::*;
+    use crate::test::test_system;
+    use crate::game::wares::WareId;
+    use std::borrow::Borrow;
+    use crate::game::locations::Location;
+    use crate::game::events::EventKind::Add;
+    use crate::utils::V2;
+    use crate::space_outputs_generated::space_data::EntityKind::Station;
+    use crate::game::commands::CommandMine;
 
-    const WARE_ORE: WareId = WareId(0);
-    const WARE_POWER: WareId = WareId(1);
-    const WARE_IRON: WareId = WareId(2);
-    const WARE_COPPER: WareId = WareId(3);
-    const WARE_PLATE: WareId = WareId(4);
+    const WARE_ID: WareId = WareId(0);
 
     #[test]
-    fn test_factory_production_acceptance() {
-        let ore_production = Production {
-            input: vec![(WARE_ORE, 1.0), (WARE_POWER, 2.0)].into_iter().collect(),
-            output: vec![(WARE_IRON, 1.0), (WARE_COPPER, 0.25)].into_iter().collect(),
-            time: DeltaTime(2.0),
-        };
-
-        let plate_production = Production {
-            input: vec![(WARE_IRON, 1.0)].into_iter().collect(),
-            output: vec![(WARE_PLATE, 2.0)].into_iter().collect(),
-            time: DeltaTime(1.0),
-        };
-        
-        let mut factory = Factory::new(vec![ore_production, plate_production]);
-        let mut cargo = Cargo::new(100.0);
-
-        assert_eq!(2, factory.get_count());
-
-        // no cargo, nothing happens
-        factory.update(TotalTime(1.0), &mut cargo);
-        assert!(!factory.is_producing(0));
-        assert!(!factory.is_producing(1));
-        assert_eq!(0.0, cargo.get_current());
-
-        // add one input, nothings happens
-        cargo.add(WARE_ORE, 10.0);
-        factory.update(TotalTime(2.0), &mut cargo);
-        assert!(!factory.is_producing(0));
-        assert!(!factory.is_producing(1));
-        assert_eq!(10.0, cargo.get_current());
-
-        // add less that require input, nothings happens
-        cargo.add(WARE_POWER, 1.5);
-        factory.update(TotalTime(3.0), &mut cargo);
-        assert!(!factory.is_producing(0));
-        assert!(!factory.is_producing(1));
-        assert_eq!(11.5, cargo.get_current());
-
-        // add enough input, inputs are removed and production starts
-        let total_time = TotalTime(4.0);
-
-        cargo.add(WARE_POWER, 0.5);
-        factory.update(total_time, &mut cargo);
-        assert!(factory.is_producing(0));
-        assert!(!factory.is_producing(1));
-        assert_eq!(9.0, cargo.get_current());
-
-        // check percentages
-        assert_eq!(0.5, factory.get_percentage(0, TotalTime(5.0)));
-        assert_eq!(0.75, factory.get_percentage(0, TotalTime(5.5)));
-        assert_eq!(0.0, factory.get_percentage(1, TotalTime(5.0)));
-
-        // still producing
-        let total_time = TotalTime(5.5);
-        factory.update(total_time, &mut cargo);
-        assert!(factory.is_producing(0));
-        assert!(!factory.is_producing(1));
-        assert_eq!(9.0, cargo.get_current());
-
-        // complete production and chain next one
-        let total_time = TotalTime(6.0);
-        factory.update(total_time, &mut cargo);
-        // produce 1 iron and 0.25 copper, iron is used to start next line production
-        assert!(!factory.is_producing(0));
-        assert!(factory.is_producing(1));
-        assert_eq!(9.25, cargo.get_current());
-        assert_eq!(0.0, factory.get_percentage(0, total_time));
-        assert_eq!(90, (factory.get_percentage(1, TotalTime(6.9)) * 100.0) as i32);
-
-        // complete both productions
-        let total_time = TotalTime(7.0);
-        factory.update(total_time, &mut cargo);
-        assert!(!factory.is_producing(0));
-        assert!(!factory.is_producing(1));
-        assert_eq!(11.25, cargo.get_current());
-        assert_eq!(0.0, factory.get_percentage(0, total_time));
-        assert_eq!(0.0, factory.get_percentage(1, total_time));
+    fn test_factory_system_should_create_new_miners_with_amount_of_ore() {
+        test_one(REQUIRE_CARGO * 2.0, true, REQUIRE_CARGO);
     }
 
     #[test]
-    fn test_factory_production_continuous_production() {
-        let ore_production = Production {
-            input: vec![(WARE_ORE, 1.0)].into_iter().collect(),
-            output: vec![(WARE_IRON, 1.0)].into_iter().collect(),
-            time: DeltaTime(1.0),
-        };
-
-        let mut factory = Factory::new(vec![ore_production]);
-        let mut cargo = Cargo::new(10.0);
-        cargo.add(WARE_ORE, 10.0);
-
-        factory.update(TotalTime(0.0), &mut cargo);
-        assert_eq!(factory.is_producing(0), true);
-        assert_eq!(cargo.get_amount(WARE_ORE), 9.0);
-        assert_eq!(cargo.get_amount(WARE_IRON), 0.0);
-
-        factory.update(TotalTime(1.0), &mut cargo);
-        assert_eq!(factory.is_producing(0), true);
-        assert_eq!(cargo.get_amount(WARE_ORE), 8.0);
-        assert_eq!(cargo.get_amount(WARE_IRON), 1.0);
-
-        for time in 2..9 {
-            factory.update(TotalTime(time as f64), &mut cargo);
-            assert_eq!(factory.is_producing(0), true);
-            assert_eq!(cargo.get_amount(WARE_ORE), 9.0 - time as f32);
-            assert_eq!(cargo.get_amount(WARE_IRON), time as f32);
-        }
-
-        factory.update(TotalTime(10.0), &mut cargo);
-        assert_eq!(factory.is_producing(0), true);
-        assert_eq!(cargo.get_amount(WARE_ORE), 0.0);
-        assert_eq!(cargo.get_amount(WARE_IRON), 9.0);
-
-        factory.update(TotalTime(11.0), &mut cargo);
-        assert_eq!(factory.is_producing(0), false);
-        assert_eq!(cargo.get_amount(WARE_ORE), 0.0);
-        assert_eq!(cargo.get_amount(WARE_IRON), 10.0);
+    fn test_factory_system_should_not_spawn_miner_without_enough_cargo() {
+        test_one(REQUIRE_CARGO - 0.5 , false, REQUIRE_CARGO - 0.5);
     }
 
-    #[test]
-    fn test_factory_should_stop_if_can_not_unload_production() {
-        let ore_production = Production {
-            input: vec![(WARE_ORE, 1.0)].into_iter().collect(),
-            output: vec![(WARE_IRON, 3.0)].into_iter().collect(),
-            time: DeltaTime(1.0),
-        };
+    /// returns the world and factory entity
+    fn test_one(cargo_amount: f32, expected_new_miner: bool, expected_cargo: f32) {
+        let (world, entity) = test_system(FactorySystem, move |world| {
+            let mut cargo = Cargo::new(100.0);
+            if cargo_amount > 0.0 {
+                cargo.add(WARE_ID, cargo_amount);
+            }
 
-        let mut factory = Factory::new(vec![ore_production]);
-        let mut cargo = Cargo::new(5.0);
-        cargo.add(WARE_ORE, 5.0);
+            let entity = world
+                .create_entity()
+                .with(cargo)
+                .with(Factory {})
+                .build();
 
-        factory.update(TotalTime(0.0), &mut cargo);
-        assert_eq!(factory.is_producing(0), true);
-        assert_eq!(cargo.get_amount(WARE_ORE), 4.0);
-        assert_eq!(cargo.get_amount(WARE_IRON), 0.0);
+            entity
+        });
 
-        // production should be complete, but get stuck by not enough space in cargo
-        for time in 1..5 {
-            factory.update(TotalTime(time as f64), &mut cargo);
-            assert_eq!(factory.is_producing(0), true);
-            assert_eq!(cargo.get_amount(WARE_ORE), 4.0);
-            assert_eq!(cargo.get_amount(WARE_IRON), 0.0);
+        let storage = &world.read_storage::<NewObj>();
+        if expected_new_miner {
+            let new_obj: &NewObj = storage.as_slice()
+                .iter()
+                .next()
+                .unwrap();
+
+            assert!(new_obj.ai);
+            assert!(new_obj.speed.is_some());
+
+            match &new_obj.location {
+                Some(Location::Dock { docked_id }) => {
+                    assert_eq!(*docked_id, entity);
+                },
+                other => {
+                    panic!("unexpected location {:?}", other);
+                }
+            }
+
+            assert!(new_obj.command_mine);
+        } else {
+            assert_eq!(0, storage.count());
         }
 
-        // free space to enable production to complete
-        cargo.remove(WARE_ORE, 4.0);
-        factory.update(TotalTime(5.1), &mut cargo);
-        assert_eq!(factory.is_producing(0), false);
-        assert_eq!(cargo.get_amount(WARE_ORE), 0.0);
-        assert_eq!(cargo.get_amount(WARE_IRON), 3.0);
+        let current_cargo = world.read_storage::<Cargo>()
+            .get(entity)
+            .unwrap()
+            .get_amount(WARE_ID);
+
+        assert_eq!(expected_cargo, current_cargo);
     }
 }
