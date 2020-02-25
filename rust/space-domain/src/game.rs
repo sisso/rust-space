@@ -19,6 +19,7 @@ use crate::game::navigations::Navigations;
 use crate::game::station::Station;
 use crate::game::events::{Events, Event, EventKind};
 use crate::ffi::FFIApi;
+use crate::game::factory::Factory;
 
 pub mod actions;
 pub mod commands;
@@ -66,6 +67,7 @@ impl<'a, 'b> Game<'a, 'b> {
         Extractables::init_world(&mut world, &mut dispatcher_builder);
         Objects::init_world(&mut world, &mut dispatcher_builder);
         Cargos::init_world(&mut world, &mut dispatcher_builder);
+        Factory::init_world(&mut world, &mut dispatcher_builder);
 
         let mut dispatcher = dispatcher_builder.build();
         dispatcher.setup(&mut world);
@@ -102,6 +104,8 @@ impl<'a, 'b> Game<'a, 'b> {
 
         // update systems
         self.dispatcher.dispatch(&mut self.world);
+        // instantiate new objects
+        self.tick_new_objects_system();
         // apply all lazy updates
         self.world.maintain();
         // run later dispatcher (this dispatcher is not calling maintain
@@ -119,6 +123,19 @@ impl<'a, 'b> Game<'a, 'b> {
     pub fn reindex_sectors(&mut self) {
         info!("reindex_sectors");
         SectorsIndex::update_index_from_world(&mut self.world);
+    }
+
+    pub fn tick_new_objects_system(&mut self) {
+        let mut list = vec![];
+
+        for (e, new_obj) in (&*self.world.entities(), self.world.write_storage::<NewObj>().borrow_mut().drain()).join() {
+            list.push(new_obj);
+            self.world.entities().delete(e);
+        }
+
+        for obj in list {
+            self.add_object(obj);
+        }
     }
 
     pub fn add_object(&mut self, new_obj: NewObj) -> ObjId {
@@ -162,6 +179,14 @@ impl<'a, 'b> Game<'a, 'b> {
 
         if let Some(target_id) = new_obj.jump_to {
             builder.set(Jump { target_id });
+        }
+
+        if new_obj.command_mine {
+            builder.set(CommandMine::new());
+        }
+
+        if new_obj.factory {
+            builder.set(Factory {});
         }
 
         let entity = builder.build();

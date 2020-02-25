@@ -10,6 +10,12 @@ pub struct Factory {
 
 }
 
+impl Factory {
+    pub fn init_world(world: &mut World, dispatcher: &mut DispatcherBuilder) {
+        dispatcher.add(FactorySystem, "factory_system", &[]);
+    }
+}
+
 pub struct FactorySystem;
 
 impl<'a> System<'a> for FactorySystem {

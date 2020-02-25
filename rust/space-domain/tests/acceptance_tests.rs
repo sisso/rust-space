@@ -23,7 +23,7 @@ fn test_game_should_mine_and_deliver_cargo_to_station() {
 
     let delta = DeltaTime(0.5);
 
-    for _ in 0..100 {
+    for _ in 0..1000 {
         game.tick(delta);
     }
 

@@ -44,9 +44,6 @@ impl Loader {
         let station_id = Loader::new_station(game, sector_0, V2::new(1.0, -3.0));
         let miner_id = Loader::new_ship_miner(game, station_id, 2.0);
 
-        // set initial orders
-        Commands::set_command_mine(&mut game.world, miner_id);
-
         // return scenery
         BasicScenery {
             asteroid_id,
@@ -73,6 +70,7 @@ impl Loader {
                 .with_cargo(100.0)
                 .at_position(sector_id, pos)
                 .as_station()
+                .with_factory()
                 .has_dock(),
         )
     }
@@ -84,7 +82,8 @@ impl Loader {
                 .with_speed(Speed(speed))
                 .at_dock(docked_at)
                 .can_dock()
-                .with_ai(),
+                .with_ai()
+                .with_command_mine(),
         )
     }
 
