@@ -186,7 +186,7 @@ impl<'a, 'b> Game<'a, 'b> {
         }
 
         if new_obj.factory {
-            builder.set(Factory {});
+            builder.set(Factory::new());
         }
 
         let entity = builder.build();

@@ -132,6 +132,11 @@ impl TotalTime {
     pub fn sub(&self, other: TotalTime) -> DeltaTime {
         DeltaTime((self.0 - other.0) as f32)
     }
+
+    /// convert to milliseconds
+    pub fn as_u64(&self) -> u64 {
+        (self.0 * 1000.0) as u64
+    }
 }
 
 pub struct NextId {
