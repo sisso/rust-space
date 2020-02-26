@@ -10,12 +10,4 @@ pub struct Extractable {
     pub ware_id: WareId,
 }
 
-pub struct Extractables {}
-
-impl Extractables {
-    pub fn new() -> Self {
-        Extractables {}
-    }
-
-    pub fn init_world(world: &mut World, dispatcher: &mut DispatcherBuilder) {}
-}
+pub struct Extractables;

@@ -18,7 +18,7 @@ use crate::game::commands::{CommandMine, Commands};
 use crate::game::navigations::Navigations;
 use crate::game::station::Station;
 use crate::game::events::{Events, Event, EventKind};
-use crate::ffi::FFIApi;
+use crate::ffi::{FFIApi, FFI};
 use crate::game::factory::Factory;
 
 pub mod actions;
@@ -46,44 +46,54 @@ pub struct Game<'a, 'b> {
     pub world: World,
     /// Normal dispatcher
     pub dispatcher: Dispatcher<'a, 'b>,
-    /// Dispatchers that execute after normal execution and all lazy update get applied
+    /// Dispatchers that execute after normal execution and after all lazy update get applied
+    /// This dispatcher is where all events should be processed
     pub late_dispatcher: Dispatcher<'a, 'b>,
     pub cleanup_dispatcher: Dispatcher<'a, 'b>,
+}
+
+pub struct GameInitContext<'a, 'b, 'c> {
+    pub world: &'c mut World,
+    pub dispatcher: DispatcherBuilder<'a, 'b>,
+    pub late_dispatcher: DispatcherBuilder<'a, 'b>,
+    pub cleanup_dispatcher: DispatcherBuilder<'a, 'b>,
+}
+
+pub trait RequireInitializer {
+    fn init(context: &mut GameInitContext);
 }
 
 impl<'a, 'b> Game<'a, 'b> {
     pub fn new() -> Self {
         let mut world = World::new();
 
+        // TODO: remove it?
+        world.register::<HasDock>();
+
+        // initialize all
+        let mut init_context = GameInitContext {
+            world: &mut world,
+            dispatcher: Default::default(),
+            late_dispatcher: Default::default(),
+            cleanup_dispatcher: Default::default()
+        };
+
         // initializations
-        Sectors::init_world(&mut world);
+        Sectors::init(&mut init_context);
+        Locations::init(&mut init_context);
+        Actions::init(&mut init_context);
+        Commands::init(&mut init_context);
+        Navigations::init(&mut init_context);
+        Factory::init(&mut init_context);
+        FFI::init(&mut init_context);
+        Events::init(&mut init_context);
 
-        // normal dispatcher
-        let mut dispatcher_builder = DispatcherBuilder::new();
-        Locations::init_world(&mut world, &mut dispatcher_builder);
-        Actions::init_world(&mut world, &mut dispatcher_builder);
-        Commands::init_world(&mut world, &mut dispatcher_builder);
-        Navigations::init_world(&mut world, &mut dispatcher_builder);
-        Extractables::init_world(&mut world, &mut dispatcher_builder);
-        Objects::init_world(&mut world, &mut dispatcher_builder);
-        Cargos::init_world(&mut world, &mut dispatcher_builder);
-        Factory::init_world(&mut world, &mut dispatcher_builder);
+        let mut dispatcher = init_context.dispatcher.build();
+        let mut late_dispatcher = init_context.late_dispatcher.build();
+        let mut cleanup_dispatcher = init_context.cleanup_dispatcher.build();
 
-        let mut dispatcher = dispatcher_builder.build();
         dispatcher.setup(&mut world);
-
-        // later dispatcher
-        let mut dispatcher_builder = DispatcherBuilder::new();
-        FFIApi::init_world(&mut world, &mut dispatcher_builder);
-
-        let mut late_dispatcher = dispatcher_builder.build();
         late_dispatcher.setup(&mut world);
-
-        // clean up dispatcher
-        let mut dispatcher_builder = DispatcherBuilder::new();
-        Events::init_world_cleanup(&mut world, &mut dispatcher_builder);
-
-        let mut cleanup_dispatcher = dispatcher_builder.build();
         cleanup_dispatcher.setup(&mut world);
 
         Game {

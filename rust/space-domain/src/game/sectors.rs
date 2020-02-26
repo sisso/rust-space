@@ -8,6 +8,7 @@ use crate::utils::*;
 use crate::game::objects::ObjId;
 use specs::world::EntitiesRes;
 use crate::game::locations::Location;
+use crate::game::{RequireInitializer, GameInitContext};
 
 #[derive(Clone, Debug, Component)]
 pub struct Jump {
@@ -23,26 +24,18 @@ pub struct Sector {
 
 pub struct Sectors;
 
-impl Sectors {
-    pub fn init_world(world: &mut World) {
-        world.register::<Jump>();
-        world.register::<Sector>();
-        world.insert(SectorsIndex::default());
+impl RequireInitializer for Sectors {
+    fn init(context: &mut GameInitContext) {
+        context.world.register::<Jump>();
+        context.world.register::<Sector>();
+        context.world.insert(SectorsIndex::default());
     }
 }
 
 /// Indexing of all sectors and jump points
-#[derive(Debug, Clone, Component)]
+#[derive(Debug, Clone, Component, Default)]
 pub struct SectorsIndex {
     jumps: Vec<IndexedJump>,
-}
-
-impl Default for SectorsIndex {
-    fn default() -> Self {
-        SectorsIndex {
-            jumps: Default::default(),
-        }
-    }
 }
 
 #[derive(Debug, Clone)]

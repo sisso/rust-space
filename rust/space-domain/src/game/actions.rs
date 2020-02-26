@@ -18,6 +18,7 @@ use crate::utils::{DeltaTime, Position, Seconds, TotalTime};
 use crate::game::actions::action_progress_system::ActionProgressSystem;
 use crate::game::wares::WareId;
 use crate::game::actions::action_extract_system::ActionExtractSystem;
+use crate::game::{RequireInitializer, GameInitContext};
 
 mod action_dock_system;
 mod action_jump_system;
@@ -103,8 +104,7 @@ impl ActionJump {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct Actions {}
+pub struct Actions;
 
 const ACTION_PROGRESS_SYSTEM_NAME: &str = "action_progress_system";
 const ACTION_REQUEST_SYSTEM_NAME: &str = "action_request_handler";
@@ -114,10 +114,10 @@ const ACTION_REQUEST_SYSTEM_NAME: &str = "action_request_handler";
 /// - execute action progress
 /// - execute request handler
 /// - execute actions
-impl Actions {
-    pub fn init_world(world: &mut World, dispatcher: &mut DispatcherBuilder) {
-        dispatcher.add(ActionProgressSystem, ACTION_PROGRESS_SYSTEM_NAME, &[]);
-        dispatcher.add(ActionRequestHandlerSystem, ACTION_REQUEST_SYSTEM_NAME, &[
+impl RequireInitializer for Actions{
+    fn init(context: &mut GameInitContext) {
+        context.dispatcher.add(ActionProgressSystem, ACTION_PROGRESS_SYSTEM_NAME, &[]);
+        context.dispatcher.add(ActionRequestHandlerSystem, ACTION_REQUEST_SYSTEM_NAME, &[
             ACTION_PROGRESS_SYSTEM_NAME
         ]);
 
@@ -126,34 +126,30 @@ impl Actions {
             ACTION_REQUEST_SYSTEM_NAME,
         ];
 
-        dispatcher.add(
+        context.dispatcher.add(
             ActionMoveToSystem,
             "action_move_to",
             &default_dependencies,
         );
-        dispatcher.add(
+        context.dispatcher.add(
             DockSystem,
-           "action_dock_to",
+            "action_dock_to",
             &["action_request_handler"],
         );
-        dispatcher.add(
+        context.dispatcher.add(
             UndockSystem,
             "action_undock_to",
             &default_dependencies,
         );
-        dispatcher.add(
+        context.dispatcher.add(
             ActionJumpSystem,
             "action_jump_to",
             &default_dependencies,
         );
-        dispatcher.add(
+        context.dispatcher.add(
             ActionExtractSystem,
             "action_extract",
             &default_dependencies,
         );
-    }
-
-    pub fn new() -> Self {
-        Actions {}
     }
 }

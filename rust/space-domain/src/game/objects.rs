@@ -9,13 +9,3 @@ pub type ObjId = Entity;
 pub struct HasDock;
 
 pub struct Objects;
-
-impl Objects {
-    pub fn new() -> Self {
-        Objects {}
-    }
-
-    pub fn init_world(world: &mut World, dispatcher: &mut DispatcherBuilder) {
-        world.register::<HasDock>();
-    }
-}

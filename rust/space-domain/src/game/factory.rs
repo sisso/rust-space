@@ -2,6 +2,7 @@ use specs::prelude::*;
 use crate::game::wares::Cargo;
 use crate::game::new_obj::NewObj;
 use crate::utils::{Speed, TotalTime, DeltaTime};
+use crate::game::{GameInitContext, RequireInitializer};
 
 const REQUIRE_CARGO: f32 = 5.0;
 const PRODUCTION_TIME: f32 = 5.0;
@@ -19,9 +20,9 @@ impl Factory {
     }
 }
 
-impl Factory {
-    pub fn init_world(world: &mut World, dispatcher: &mut DispatcherBuilder) {
-        dispatcher.add(FactorySystem, "factory_system", &[]);
+impl RequireInitializer for Factory {
+    fn init(context: &mut GameInitContext) {
+        context.dispatcher.add(FactorySystem, "factory_system", &[]);
     }
 }
 
@@ -177,7 +178,7 @@ mod test {
         test_system(FactorySystem, move |world| {
             let mut cargo = Cargo::new(100.0);
             if cargo_amount > 0.0 {
-                cargo.add(WARE_ID, cargo_amount);
+                cargo.add(WARE_ID, cargo_amount).unwrap();
             }
 
             world.insert(TotalTime(total_time));

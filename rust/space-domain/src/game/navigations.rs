@@ -10,6 +10,7 @@ use specs_derive::*;
 use std::collections::VecDeque;
 use crate::game::locations::Location;
 use specs::world::EntitiesRes;
+use crate::game::{RequireInitializer, GameInitContext};
 
 mod navigation_system;
 mod navigation_request_handler_system;
@@ -54,22 +55,21 @@ impl NavigationMoveTo {
     }
 }
 
-pub struct Navigations {}
+pub struct Navigations;
 
-impl Navigations {
-    pub fn new() -> Self {
-        Navigations {}
-    }
+impl RequireInitializer for Navigations {
+    fn init(context: &mut GameInitContext) {
+        context.dispatcher.add(NavRequestHandlerSystem, "navigation_request_handler", &[]);
 
-    pub fn init_world(world: &mut World, dispatcher: &mut DispatcherBuilder) {
-        dispatcher.add(NavRequestHandlerSystem, "navigation_request_handler", &[]);
-        dispatcher.add(
+        context.dispatcher.add(
             NavigationSystem,
             "navigation",
             &["navigation_request_handler"],
         );
     }
+}
 
+impl Navigations {
     pub fn create_plan(
         sectors: &SectorsIndex,
         from_sector_id: SectorId,

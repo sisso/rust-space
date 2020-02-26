@@ -15,6 +15,7 @@ use super::sectors::*;
 mod command_mine_system;
 use command_mine_system::*;
 use std::borrow::BorrowMut;
+use crate::game::{RequireInitializer, GameInitContext};
 
 #[derive(Debug, Clone, Component)]
 pub struct CommandMine {
@@ -31,21 +32,19 @@ impl CommandMine {
     }
 }
 
-pub struct Commands {}
+pub struct Commands;
 
-impl Commands {
-    pub fn new() -> Self {
-        Commands {}
-    }
-
-    pub fn init_world(world: &mut World, dispatcher: &mut DispatcherBuilder) {
-        dispatcher.add(
+impl RequireInitializer for Commands {
+    fn init(context: &mut GameInitContext) {
+        context.dispatcher.add(
             CommandMineSystem,
             "command_mine_search_mine_targets",
             &["index_by_sector"],
         );
     }
+}
 
+impl Commands {
     pub fn set_command_mine(world: &mut World, entity: Entity) {
         let mut storage = world.write_storage::<CommandMine>();
         storage

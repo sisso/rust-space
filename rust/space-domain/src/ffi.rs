@@ -10,8 +10,11 @@ use specs::{WorldExt, World, DispatcherBuilder};
 use std::borrow::{BorrowMut, Borrow};
 use crate::game::sectors::SectorsIndex;
 use crate::ffi::ffi_output_system::FfiOutputSystem;
+use crate::game::{GameInitContext, RequireInitializer};
 
 mod ffi_output_system;
+
+pub struct FFI;
 
 pub struct FFIApi<'a, 'b> {
     game: Game<'a, 'b>,
@@ -77,9 +80,11 @@ impl<'a, 'b> FFIApi<'a, 'b> {
         callback(bytes);
         true
     }
+}
 
-    pub fn init_world(world: &mut World, dispatcher: &mut DispatcherBuilder) {
-        dispatcher.add(FfiOutputSystem, "ffi_output_system", &[]);
+impl RequireInitializer for FFI {
+    fn init(context: &mut GameInitContext) {
+        context.late_dispatcher.add(FfiOutputSystem, "ffi_output_system", &[]);
     }
 }
 

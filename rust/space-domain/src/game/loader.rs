@@ -103,7 +103,8 @@ impl Loader {
 
         game.world.write_storage::<Jump>()
             .borrow_mut()
-            .insert(jump_from_id, Jump { target_id: jump_to_id });
+            .insert(jump_from_id, Jump { target_id: jump_to_id })
+            .unwrap();
 
         game.world.create_entity().with(Event::new(jump_from_id, EventKind::Add)).build();
         game.world.create_entity().with(Event::new(jump_to_id, EventKind::Add)).build();

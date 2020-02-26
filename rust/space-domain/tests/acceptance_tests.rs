@@ -3,11 +3,10 @@ extern crate space_domain;
 use space_domain::game::objects::ObjId;
 use space_domain::game::sectors::test_scenery;
 use space_domain::game::sectors::SectorId;
-use space_domain::game::wares::{WareId, Cargo};
+use space_domain::game::wares::{Cargo};
 use space_domain::test::assert_v2;
-use space_domain::utils::{DeltaTime, Speed, V2};
+use space_domain::utils::{DeltaTime};
 use specs::WorldExt;
-use std::borrow::Borrow;
 use space_domain::game::loader::Loader;
 use space_domain::game::Game;
 

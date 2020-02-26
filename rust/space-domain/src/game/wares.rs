@@ -146,13 +146,6 @@ impl Cargo {
 pub struct Cargos;
 
 impl Cargos {
-    pub fn new() -> Self {
-        Cargos {}
-    }
-
-    pub fn init_world(world: &mut World, dispatcher: &mut DispatcherBuilder) {
-    }
-
     pub fn move_all(cargos: &mut WriteStorage<Cargo>, from_id: ObjId, to_id: ObjId) -> CargoTransfer {
         let cargo_from = cargos.get(from_id).expect("Entity cargo not found");
         let cargo_to = cargos.get(to_id).expect("Deliver cargo not found");

@@ -1,6 +1,7 @@
 use specs::prelude::*;
 use crate::game::objects::ObjId;
 use crate::game::sectors::SectorId;
+use crate::game::{GameInitContext, RequireInitializer};
 
 #[derive(Debug, Clone)]
 pub enum EventKind {
@@ -25,9 +26,9 @@ impl Event {
 
 pub struct Events;
 
-impl Events {
-    pub fn init_world_cleanup(world: &mut World, late_dispatcher: &mut DispatcherBuilder) {
-        late_dispatcher.add(
+impl RequireInitializer for Events {
+    fn init(context: &mut GameInitContext) {
+        context.cleanup_dispatcher.add(
             ClearEventsSystem,
             "clear_events_system",
             &[],

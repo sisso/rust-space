@@ -12,6 +12,7 @@ use crate::game::locations::index_per_sector_system::*;
 use shred::Fetch;
 use specs::storage::MaskedStorage;
 use std::borrow::Borrow;
+use crate::game::{RequireInitializer, GameInitContext};
 
 #[derive(Debug, Clone)]
 pub struct LocationSpace {
@@ -145,16 +146,16 @@ impl EntityPerSectorIndex {
 
 pub struct Locations {}
 
+impl RequireInitializer for Locations {
+    fn init(context: &mut GameInitContext) {
+        context.dispatcher.add(IndexPerSectorSystem, "index_by_sector", &[]);
+    }
+}
+
 impl Locations {
     pub fn new() -> Self {
         Locations {}
     }
-
-    pub fn init_world(world: &mut World, dispatcher: &mut DispatcherBuilder) {
-        dispatcher.add(IndexPerSectorSystem, "index_by_sector", &[]);
-    }
-
-    pub fn execute(&mut self, world: &mut World) {}
 
     pub fn is_near(loc_a: &Location, loc_b: &Location) -> bool {
         match (loc_a, loc_b) {
