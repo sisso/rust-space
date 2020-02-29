@@ -135,33 +135,33 @@ pub mod test_scenery {
                 // jumps: vec![
                 //     jump_0_to_1
                 // ]
-            });
+            }).unwrap();
 
             sectors.insert(sector_1, Sector {
                 // jumps: vec![
                 //     jump_1_to_0
                 // ]
-            });
+            }).unwrap();
 
             let jumps = &mut world.write_storage::<Jump>();
             jumps.insert(jump_0_to_1, Jump {
                 target_id: jump_1_to_0,
-            });
+            }).unwrap();
 
             jumps.insert(jump_1_to_0, Jump {
                 target_id: jump_0_to_1,
-            });
+            }).unwrap();
 
             let locations = &mut world.write_storage::<Location>();
             locations.insert(jump_0_to_1, Location::Space {
                 pos: jump_0_to_1_pos,
                 sector_id: sector_0,
-            });
+            }).unwrap();
 
             locations.insert(jump_1_to_0, Location::Space {
                 pos: jump_1_to_0_pos,
                 sector_id: sector_1,
-            });
+            }).unwrap();
         }
 
         SectorsIndex::update_index_from_world(world);

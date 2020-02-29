@@ -88,14 +88,8 @@ impl Speed {
 
 pub type Seconds = DeltaTime;
 
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq)]
 pub struct DeltaTime(pub f32);
-
-impl Default for DeltaTime {
-    fn default() -> Self {
-        DeltaTime(0.0)
-    }
-}
 
 impl DeltaTime {
     pub fn as_f32(&self) -> f32 {
@@ -103,12 +97,31 @@ impl DeltaTime {
     }
 }
 
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+impl Default for DeltaTime {
+    fn default() -> Self {
+        DeltaTime(0.0)
+    }
+}
+
+impl From<f32> for DeltaTime {
+    fn from(value: f32) -> Self {
+        DeltaTime(value)
+    }
+}
+
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq)]
 pub struct TotalTime(pub f64);
 
 impl Default for TotalTime {
     fn default() -> Self {
         TotalTime(0.0)
+    }
+}
+
+impl From<f64> for TotalTime {
+    fn from(value: f64) -> Self {
+        TotalTime(value)
     }
 }
 
