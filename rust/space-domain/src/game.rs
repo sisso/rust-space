@@ -18,7 +18,7 @@ use crate::game::commands::{CommandMine, Commands};
 use crate::game::navigations::Navigations;
 use crate::game::events::{Events, Event, EventKind};
 use crate::ffi::{FFIApi, FFI};
-use crate::game::factory::Factory;
+use crate::game::shipyard::Shipyard;
 use crate::game::dock::HasDock;
 
 pub mod actions;
@@ -35,9 +35,10 @@ pub mod ship;
 pub mod wares;
 pub mod events;
 pub mod loader;
-pub mod factory;
+pub mod shipyard;
 pub mod dock;
 pub mod station;
+pub mod factory;
 
 // TODO: add tick to game field
 pub struct Game<'a, 'b> {
@@ -80,7 +81,7 @@ impl<'a, 'b> Game<'a, 'b> {
         Actions::init(&mut init_context);
         Commands::init(&mut init_context);
         Navigations::init(&mut init_context);
-        Factory::init(&mut init_context);
+        Shipyard::init(&mut init_context);
         FFI::init(&mut init_context);
         Events::init(&mut init_context);
 
@@ -191,8 +192,8 @@ impl<'a, 'b> Game<'a, 'b> {
             builder.set(CommandMine::new());
         }
 
-        if new_obj.factory {
-            builder.set(Factory::new());
+        if new_obj.shipyard {
+            builder.set(Shipyard::new());
         }
 
         let entity = builder.build();

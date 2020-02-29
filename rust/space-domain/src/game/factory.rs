@@ -1,21 +1,27 @@
 use specs::prelude::*;
-use crate::game::wares::Cargo;
-use crate::game::new_obj::NewObj;
-use crate::utils::{Speed, TotalTime, DeltaTime};
-use crate::game::{GameInitContext, RequireInitializer};
+use crate::utils::{DeltaTime, TotalTime};
+use std::collections::HashMap;
+use crate::game::wares::{WareId, Cargo};
+use crate::game::{RequireInitializer, GameInitContext};
 
-const REQUIRE_CARGO: f32 = 5.0;
-const PRODUCTION_TIME: f32 = 5.0;
+#[derive(Debug, Clone)]
+pub struct Production {
+    pub input: HashMap<WareId, f32>,
+    pub output: HashMap<WareId, f32>,
+    pub time: DeltaTime,
+}
 
 #[derive(Debug,Clone,Component)]
 pub struct Factory {
-    production: Option<TotalTime>,
+    pub production: Production,
+    pub production_time: Option<TotalTime>,
 }
 
 impl Factory {
-    pub fn new() -> Self {
+    pub fn new(production: Production) -> Self {
         Factory {
-            production: None,
+            production,
+            production_time: None,
         }
     }
 }
@@ -34,7 +40,6 @@ impl<'a> System<'a> for FactorySystem {
         Entities<'a>,
         WriteStorage<'a, Cargo>,
         WriteStorage<'a, Factory>,
-        WriteStorage<'a, NewObj>
     );
 
     fn run(&mut self, data: Self::SystemData) {
@@ -45,49 +50,10 @@ impl<'a> System<'a> for FactorySystem {
             entities,
             mut cargos,
             mut factories,
-            mut new_objects
         ) = data;
 
-        let mut to_add = vec![];
+        for (entity, cargo, shipyard) in (&*entities, &mut cargos, &mut factories).join() {
 
-        for (entity, cargo, factory) in (&*entities, &mut cargos, &mut factories).join() {
-            match factory.production {
-                Some(time) if total_time.is_after(time) => {
-                    factory.production = None;
-
-                    let new_obj = NewObj::new()
-                        .with_ai()
-                        .with_command_mine()
-                        .with_cargo(10.0)
-                        .with_speed(Speed(2.0))
-                        .at_dock(entity);
-
-                    to_add.push(new_obj);
-
-                    debug!("{:?} complete production, scheduling new object", entity);
-                },
-                Some(_) => {
-                    // still producing
-                },
-                None => {
-                    if cargo.get_current() >= REQUIRE_CARGO {
-                        let ware_id = cargo.get_wares().into_iter().next().unwrap();
-                        cargo.remove(*ware_id, REQUIRE_CARGO).unwrap();
-
-                        let ready_time = total_time.add(DeltaTime(PRODUCTION_TIME));
-                        factory.production = Some(ready_time);
-
-                        debug!("{:?} staring production, will be ready at {:?}", entity, ready_time);
-                    }
-                },
-            }
-        }
-
-        // let new_objects = &mut new_objects;
-        for obj in to_add {
-            entities.build_entity()
-                .with(obj, &mut new_objects)
-                .build();
         }
     }
 }
@@ -107,91 +73,5 @@ mod test {
     const WARE_ID: WareId = WareId(0);
 
     #[test]
-    fn test_factory_system_should_not_start_production_without_enough_cargo() {
-        let (world, entity) = scenery(0.0, REQUIRE_CARGO - 0.5, None);
-        assert_factory_cargo(&world, entity, REQUIRE_CARGO - 0.5);
-        assert_factory_production(&world, entity, None);
-    }
-
-    #[test]
-    fn test_factory_system_should_start_production_with_enough_cargo() {
-        let (world, entity) = scenery(0.0, REQUIRE_CARGO, None);
-        assert_factory_cargo(&world, entity, 0.0);
-        assert_factory_production(&world, entity, Some(TotalTime(PRODUCTION_TIME as f64)));
-    }
-
-    #[test]
-    fn test_factory_system_should_not_start_production_with_enough_cargo_and_already_producing() {
-        let (world, entity) = scenery(0.0, REQUIRE_CARGO, Some(1.0));
-        assert_factory_cargo(&world, entity, REQUIRE_CARGO);
-        assert_factory_production(&world, entity, Some(TotalTime(1.0)));
-    }
-
-    #[test]
-    fn test_factory_system_should_complete_production() {
-        let (world, entity) = scenery(2.0, 0.0, Some(1.0));
-        assert_factory_production(&world, entity, None);
-
-        let storage = &world.read_storage::<NewObj>();
-
-        let new_obj: &NewObj = storage.as_slice()
-            .iter()
-            .next()
-            .unwrap();
-
-        assert!(new_obj.ai);
-        assert!(new_obj.speed.is_some());
-
-        match &new_obj.location {
-            Some(Location::Dock { docked_id }) => {
-                assert_eq!(*docked_id, entity);
-            },
-            other => {
-                panic!("unexpected location {:?}", other);
-            }
-        }
-
-        assert!(new_obj.command_mine);
-    }
-
-    fn assert_factory_cargo(world: &World, entity: Entity, expected: f32) {
-        let current_cargo = world.read_storage::<Cargo>()
-            .get(entity)
-            .unwrap()
-            .get_amount(WARE_ID);
-
-        assert_eq!(current_cargo, expected);
-    }
-
-    fn assert_factory_production(world: &World, entity: Entity, expected: Option<TotalTime>) {
-        let current_production = world.read_storage::<Factory>().get(entity)
-            .unwrap()
-            .production
-            .clone()
-            .map(|i| i.as_u64());
-
-        assert_eq!(current_production, expected.map(|i| i.as_u64()));
-    }
-
-    /// returns the world and factory entity
-    fn scenery(total_time: f64, cargo_amount: f32, production: Option<f64>) -> (World, Entity) {
-        test_system(FactorySystem, move |world| {
-            let mut cargo = Cargo::new(100.0);
-            if cargo_amount > 0.0 {
-                cargo.add(WARE_ID, cargo_amount).unwrap();
-            }
-
-            world.insert(TotalTime(total_time));
-
-            let entity = world
-                .create_entity()
-                .with(cargo)
-                .with(Factory {
-                    production: production.map(|v| TotalTime(v))
-                })
-                .build();
-
-            entity
-        })
-    }
+    fn test_factory_system_should_not_start_production_without_enough_cargo() {}
 }

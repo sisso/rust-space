@@ -19,7 +19,7 @@ pub struct NewObj {
     pub sector: bool,
     pub jump_to: Option<Entity>,
     pub command_mine: bool,
-    pub factory: bool,
+    pub shipyard: bool,
 }
 
 impl NewObj {
@@ -36,7 +36,7 @@ impl NewObj {
             sector: false,
             jump_to: None,
             command_mine: false,
-            factory: false,
+            shipyard: false,
         }
     }
 
@@ -100,8 +100,8 @@ impl NewObj {
         self
     }
 
-    pub fn with_factory(mut self) -> Self {
-        self.factory = true;
+    pub fn with_shipyard(mut self) -> Self {
+        self.shipyard = true;
         self
     }
 }

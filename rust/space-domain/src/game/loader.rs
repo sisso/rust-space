@@ -70,7 +70,7 @@ impl Loader {
                 .with_cargo(100.0)
                 .at_position(sector_id, pos)
                 .as_station()
-                .with_factory()
+                .with_shipyard()
                 .has_dock(),
         )
     }
