@@ -1,8 +1,12 @@
 use std::collections::HashMap;
+use space_domain::utils::{TotalTime, DeltaTime};
+use space_domain::game::wares::Cargo;
 
-use super::objects::{ObjId};
-use crate::utils::*;
-use crate::game::wares::*;
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
+pub struct WareId(pub u32);
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
+pub struct ObjId(pub u32);
 
 #[derive(Clone, Debug)]
 pub struct Production {
@@ -137,7 +141,6 @@ impl Factories {
 
     pub fn set(&mut self, obj_id: ObjId, value: Factory) {
         let mut state = self.index.get_mut(&obj_id).unwrap();
-        info!("Factories", &format!("set {:?}: {:?}", obj_id, value));
         state.factory = value;
     }
 
@@ -150,7 +153,8 @@ impl Factories {
 #[cfg(test)]
 mod test {
     use super::*;
-    use super::super::wares::*;
+    use space_domain::utils::{TotalTime, DeltaTime};
+    use space_domain::game::wares::{WareId, Cargo};
 
     const WARE_ORE: WareId = WareId(0);
     const WARE_POWER: WareId = WareId(1);

@@ -1,5 +1,6 @@
 use specs::prelude::*;
 
+/// Static object that usually contains docks, storage, factories and shipyards
 #[derive(Clone, Debug, Component)]
 pub struct Station {
 

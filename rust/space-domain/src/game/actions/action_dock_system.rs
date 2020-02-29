@@ -3,7 +3,6 @@ use specs::prelude::*;
 use super::super::locations::*;
 use super::*;
 use crate::game::actions::*;
-use crate::game::objects::HasDock;
 use std::borrow::{Borrow, BorrowMut};
 use crate::game::events::{Events, Event, EventKind};
 

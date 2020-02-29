@@ -5,10 +5,10 @@ use std::ops::DerefMut;
 use std::borrow::{BorrowMut, Borrow};
 use crate::game::locations::Location;
 use crate::space_outputs_generated::space_data::{V2, EntityKind, SectorNew, JumpNew};
-use crate::game::station::Station;
 use crate::game::extractables::Extractable;
 use crate::utils::IdAsU32Support;
 use crate::game::sectors::{Sector, Jump};
+use crate::game::station::Station;
 
 /// Convert Events into FFI outputs
 pub struct FfiOutputSystem;

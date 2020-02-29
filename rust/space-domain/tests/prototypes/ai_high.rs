@@ -1,8 +1,7 @@
-use crate::game::wares::{WareId, WareAmount};
-use crate::game::objects::ObjId;
 use std::mem;
 use std::collections::{HashMap, HashSet};
-use specs::{World, Component, VecStorage, WorldExt, DenseVecStorage, Builder, System, ReadStorage, Entities, Read, LazyUpdate, WriteStorage};
+use specs::{World, Component, WorldExt, DenseVecStorage, Builder, System, ReadStorage, Entities, WriteStorage};
+use space_domain::game::wares::WareAmount;
 
 ///
 /// AI components responsible to manage high level management.
@@ -11,6 +10,12 @@ use specs::{World, Component, VecStorage, WorldExt, DenseVecStorage, Builder, Sy
 /// task to be executed.
 ///
 ///
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
+pub struct WareId(pub u32);
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
+pub struct ObjId(pub u32);
 
 #[derive(Clone,Copy,Debug)]
 enum Role {
@@ -107,8 +112,6 @@ impl<'a> System<'a> for DeliverResourceSystem {
     );
 
     fn run(&mut self, (ids, roles, infos): Self::SystemData) {
-        use specs::Join;
-
         // collect all request by ware and offers by ware
 //        for info in &infos {
 //
@@ -346,7 +349,6 @@ impl HighAi2 {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::game::objects::{Obj, ObjId};
 
     #[test]
     pub fn test_ai_high_should_allocate_idle_miners_to_mine() {

@@ -16,10 +16,10 @@ use self::wares::*;
 use crate::game::actions::Actions;
 use crate::game::commands::{CommandMine, Commands};
 use crate::game::navigations::Navigations;
-use crate::game::station::Station;
 use crate::game::events::{Events, Event, EventKind};
 use crate::ffi::{FFIApi, FFI};
 use crate::game::factory::Factory;
+use crate::game::dock::HasDock;
 
 pub mod actions;
 pub mod commands;
@@ -33,12 +33,11 @@ pub mod save;
 pub mod sectors;
 pub mod ship;
 pub mod wares;
-//pub mod factory;
 pub mod events;
-//pub mod ai_high;
-pub mod station;
 pub mod loader;
 pub mod factory;
+pub mod dock;
+pub mod station;
 
 // TODO: add tick to game field
 pub struct Game<'a, 'b> {
@@ -66,9 +65,6 @@ pub trait RequireInitializer {
 impl<'a, 'b> Game<'a, 'b> {
     pub fn new() -> Self {
         let mut world = World::new();
-
-        // TODO: remove it?
-        world.register::<HasDock>();
 
         // initialize all
         let mut init_context = GameInitContext {
@@ -180,7 +176,7 @@ impl<'a, 'b> Game<'a, 'b> {
         }
 
         if new_obj.station {
-            builder.set(Station {});
+            // builder.set(Station {});
         }
 
         if new_obj.sector {

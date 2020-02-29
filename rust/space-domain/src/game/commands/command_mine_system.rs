@@ -23,7 +23,7 @@ use crate::game::locations::{EntityPerSectorIndex, Location};
 use crate::game::navigations::{NavRequest, Navigation, NavigationMoveTo, Navigations};
 use crate::game::wares::{Cargo, WareId};
 use std::borrow::{Borrow, BorrowMut};
-use crate::game::station::Station;
+use crate::game::dock::HasDock;
 
 pub struct CommandMineSystem;
 
@@ -39,7 +39,7 @@ pub struct CommandMineData<'a> {
     action_extract: ReadStorage<'a, ActionExtract>,
     action_request: WriteStorage<'a, ActionRequest>,
     extractable: ReadStorage<'a, Extractable>,
-    stations: ReadStorage<'a, Station>,
+    docks: ReadStorage<'a, HasDock>,
 }
 
 impl<'a> System<'a> for CommandMineSystem {
@@ -163,7 +163,6 @@ mod test {
     use crate::game::wares::WareId;
     use crate::test::test_system;
     use specs::DispatcherBuilder;
-    use crate::game::station::Station;
 
     struct SceneryRequest {}
 
@@ -196,7 +195,7 @@ mod test {
                 pos: V2::new(0.0, 0.0),
                 sector_id: sector_scenery.sector_0,
             })
-            .with(Station {})
+            .with(HasDock)
             .with(Cargo::new(100.0))
             .build();
 

@@ -4,7 +4,7 @@ use shred::{Read, ResourceId, SystemData, World, Write};
 use specs::prelude::*;
 use specs_derive::*;
 use std::borrow::BorrowMut;
-use crate::game::station::Station;
+use crate::game::dock::HasDock;
 
 /// Index entities to provide fast look up like:
 /// - what ships are in sector 0?
@@ -18,7 +18,7 @@ pub struct IndexPerSectorData<'a> {
     index: Write<'a, EntityPerSectorIndex>,
     locations: ReadStorage<'a, Location>,
     extractables: ReadStorage<'a, Extractable>,
-    stations: ReadStorage<'a, Station>,
+    stations: ReadStorage<'a, HasDock>,
 }
 
 impl<'a> System<'a> for IndexPerSectorSystem {
