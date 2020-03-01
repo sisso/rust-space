@@ -54,20 +54,15 @@ impl<'a> System<'a> for FactorySystem {
 
         let total_time = *total_time;
 
-        for (entity, cargo, factory) in (&*entities, &mut cargos, &mut factories).join() {
+        for (_entity, cargo, factory) in (&*entities, &mut cargos, &mut factories).join() {
            match factory.production_time {
                Some(time) if total_time.is_after(time) => {
                    // production ready
-                   let total_produce = factory.production.output.iter()
-                       .map(|WareAmount(_, amount)| amount)
-                       .sum();
-
-                   if cargo.free_space() > total_produce {
-                       for WareAmount(ware_id, amount) in &factory.production.output {
-                          cargo.add(*ware_id, *amount).unwrap();
-                       }
-
-                       factory.production_time = None;
+                   match cargo.add_all(&factory.production.output) {
+                       Ok(()) => {
+                           factory.production_time = None;
+                       },
+                       _ => {},
                    }
                },
 
@@ -76,23 +71,12 @@ impl<'a> System<'a> for FactorySystem {
                },
 
                None => {
-                   let mut has_all_inputs = true;
-
-                   // check if can produce
-                   for WareAmount(ware_id, amount) in &factory.production.input {
-                       if cargo.get_amount(*ware_id) < *amount {
-                           has_all_inputs = false;
-                       }
-                   }
-
-                   if has_all_inputs {
-                       for WareAmount(ware_id, amount) in &factory.production.input {
-                           cargo.remove(*ware_id, *amount).unwrap();
-                       }
-
-                       factory.production_time = Some(total_time.add(factory.production.time));
-                   } else {
-                       // not enough cargo
+                   // check if have enough cargo to start a new production
+                   match cargo.remove_all(&factory.production.input) {
+                       Ok(()) => {
+                           factory.production_time = Some(total_time.add(factory.production.time));
+                       },
+                       _ => {},
                    }
                }
            }

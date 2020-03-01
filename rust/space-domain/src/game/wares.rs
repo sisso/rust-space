@@ -13,16 +13,17 @@ pub struct WareId(pub u32);
 #[derive(Debug, Clone, Copy)]
 pub struct WareAmount(pub WareId, pub f32);
 
+impl From<(WareId, f32)> for WareAmount {
+    fn from((ware_id, amount): (WareId, f32)) -> Self {
+        WareAmount(ware_id, amount)
+    }
+}
+
 #[derive(Debug, Clone, Component)]
 pub struct Cargo {
     max: f32,
     current: f32,
     wares: Vec<WareAmount>,
-}
-
-#[derive(Debug,Clone)]
-pub struct CargoTransfer {
-    pub moved: Vec<(WareId, f32)>,
 }
 
 impl Cargo {
@@ -32,47 +33,6 @@ impl Cargo {
             current: 0.0,
             wares: Default::default(),
         }
-    }
-
-    /// Currently impl leave a unknown state on failure, this is the reasons panik
-    pub fn apply_move_from(&mut self, change: &CargoTransfer) -> Result<(), ()> {
-        for (ware_id, amount) in change.moved.iter() {
-            self.remove(*ware_id, *amount)
-                .expect("apply move from failed");
-        }
-
-        Ok(())
-    }
-
-    /// Currently impl leave a unknown state on failure, this is the reasons panik
-    pub fn apply_move_to(&mut self, change: &CargoTransfer) -> Result<(), ()> {
-        for (ware_id, amount) in change.moved.iter() {
-            self.add(*ware_id, *amount).expect("apply move to failed");
-        }
-
-        Ok(())
-    }
-
-    /// Move all cargo possible from to
-    pub fn move_all_to_max(from: &Cargo, to: &Cargo) -> CargoTransfer {
-        let mut change = CargoTransfer { moved: vec![] };
-
-        let mut free_space = to.free_space();
-        let mut total_moved = 0.0;
-
-        for WareAmount(id, amount) in &from.wares {
-            let available = free_space - total_moved;
-            let amount_to_move = amount.min(available);
-
-            if amount_to_move <= 0.0 {
-                break;
-            }
-
-            change.moved.push((*id, amount_to_move));
-            free_space -= amount_to_move;
-        }
-
-        return change;
     }
 
     pub fn remove(&mut self, ware_id: WareId, amount: f32) -> Result<(), ()> {
@@ -104,6 +64,38 @@ impl Cargo {
 
         self.current += amount;
         Result::Ok(())
+    }
+
+    /// add all wares or none
+    pub fn add_all(&mut self, wares: &Vec<WareAmount>) -> Result<(), ()> {
+        let total_to_add = wares.iter()
+                .map(|WareAmount(_, amount)| amount)
+                .sum();
+
+        if self.free_space() >= total_to_add {
+            for WareAmount(ware_id, amount) in wares {
+                self.add(*ware_id, *amount).unwrap();
+            }
+
+            Ok(())
+        } else {
+            Err(())
+        }
+    }
+
+    /// remove all wares or none
+    pub fn remove_all(&mut self, wares: &Vec<WareAmount>) -> Result<(), ()> {
+        for WareAmount(ware_id, amount) in wares {
+            if self.get_amount(*ware_id) < *amount {
+                return Err(());
+            }
+        }
+
+        for WareAmount(ware_id, amount) in wares {
+            self.remove(*ware_id, *amount);
+        }
+
+        Ok(())
     }
 
     /// Add all cargo possible from to.
@@ -149,19 +141,56 @@ impl Cargo {
     }
 }
 
+#[derive(Debug,Clone)]
+pub struct CargoTransfer {
+    pub moved: Vec<WareAmount>,
+}
+
+impl CargoTransfer {
+    /// Move all cargo possible from to
+    pub fn new(from: &Cargo, to: &Cargo) -> CargoTransfer {
+        let mut change = CargoTransfer { moved: vec![] };
+
+        let mut free_space = to.free_space();
+        let mut total_moved = 0.0;
+
+        for WareAmount(id, amount) in &from.wares {
+            let available = free_space - total_moved;
+            let amount_to_move = amount.min(available);
+
+            if amount_to_move <= 0.0 {
+                break;
+            }
+
+            change.moved.push(WareAmount(*id, amount_to_move));
+            free_space -= amount_to_move;
+        }
+
+        return change;
+    }
+
+    fn apply_move_from(&self, cargo: &mut Cargo) -> Result<(),()> {
+        cargo.remove_all(&self.moved)
+    }
+
+    fn apply_move_to(&self, cargo: &mut Cargo) -> Result<(),()> {
+        cargo.add_all(&self.moved)
+    }
+}
+
 pub struct Cargos;
 
 impl Cargos {
     pub fn move_all(cargos: &mut WriteStorage<Cargo>, from_id: ObjId, to_id: ObjId) -> CargoTransfer {
         let cargo_from = cargos.get(from_id).expect("Entity cargo not found");
         let cargo_to = cargos.get(to_id).expect("Deliver cargo not found");
-        let transfer = Cargo::move_all_to_max(cargo_from, cargo_to);
+        let transfer = CargoTransfer::new(cargo_from, cargo_to);
 
         let cargo_from = cargos.get_mut(from_id).expect("Entity cargo not found");
-        cargo_from.apply_move_from(&transfer).unwrap();
+        transfer.apply_move_from(cargo_from).expect("To remove wares to be transfer");
 
         let cargo_to = cargos.get_mut(to_id).expect("Deliver cargo not found");
-        cargo_to.apply_move_to(&transfer).unwrap();
+        transfer.apply_move_to(cargo_to).expect("To add wares to be transfer");
 
         transfer
     }
@@ -177,21 +206,21 @@ mod test {
 
     #[test]
     fn test_cargo_transfer() {
-        let mut cargo1 = Cargo::new(10.0);
-        cargo1.add(WARE0, 4.0).unwrap();
-        cargo1.add(WARE1, 3.0).unwrap();
+        let mut cargo_from = Cargo::new(10.0);
+        cargo_from.add(WARE0, 4.0).unwrap();
+        cargo_from.add(WARE1, 3.0).unwrap();
 
-        let mut cargo2 = Cargo::new(5.0);
+        let mut cargo_to = Cargo::new(5.0);
 
-        let change = Cargo::move_all_to_max(&cargo1, &cargo2);
-        cargo1.apply_move_from(&change).unwrap();
-        cargo2.apply_move_to(&change).unwrap();
+        let transfer = CargoTransfer::new(&cargo_from, &cargo_to);
+        transfer.apply_move_from(&mut cargo_from);
+        transfer.apply_move_to(&mut cargo_to);
 
-        assert_eq!(0.0, cargo1.get_amount(WARE0));
-        assert_eq!(2.0, cargo1.get_amount(WARE1));
+        assert_eq!(0.0, cargo_from.get_amount(WARE0));
+        assert_eq!(2.0, cargo_from.get_amount(WARE1));
 
-        assert_eq!(4.0, cargo2.get_amount(WARE0));
-        assert_eq!(1.0, cargo2.get_amount(WARE1));
+        assert_eq!(4.0, cargo_to.get_amount(WARE0));
+        assert_eq!(1.0, cargo_to.get_amount(WARE1));
     }
 
     #[test]
