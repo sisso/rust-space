@@ -15,12 +15,9 @@ pub struct WareAmount(pub WareId, pub f32);
 
 #[derive(Debug, Clone, Component)]
 pub struct Cargo {
-    // TODO: u32
     max: f32,
-    // TODO: u32
     current: f32,
-    // TODO: back to hashset? since operations order can change depending of the order, should we keep tree?
-    wares: BTreeMap<WareId, f32>,
+    wares: Vec<WareAmount>,
 }
 
 #[derive(Debug,Clone)]
@@ -33,7 +30,7 @@ impl Cargo {
         Cargo {
             max,
             current: 0.0,
-            wares: BTreeMap::new(),
+            wares: Default::default(),
         }
     }
 
@@ -63,7 +60,7 @@ impl Cargo {
         let mut free_space = to.free_space();
         let mut total_moved = 0.0;
 
-        for (id, amount) in from.wares.iter() {
+        for WareAmount(id, amount) in &from.wares {
             let available = free_space - total_moved;
             let amount_to_move = amount.min(available);
 
@@ -79,19 +76,16 @@ impl Cargo {
     }
 
     pub fn remove(&mut self, ware_id: WareId, amount: f32) -> Result<(), ()> {
-        let ware_amount = *self.wares.get(&ware_id).unwrap_or(&0.0);
-        if ware_amount < amount {
-            return Result::Err(());
+        match self.wares.iter().position(|i| i.0 == ware_id) {
+            Some(pos) if self.wares[pos].1 >= amount => {
+                self.wares[pos].1 -= amount;
+                self.current -= amount;
+                Result::Ok(())
+            },
+            _ => {
+                 Err(())
+            }
         }
-        let new_amount = ware_amount - amount;
-        if new_amount <= 0.0 {
-            self.wares.remove(&ware_id);
-        } else {
-            self.wares.insert(ware_id, new_amount);
-        }
-        self.current -= amount;
-
-        Result::Ok(())
     }
 
     pub fn add(&mut self, ware_id: WareId, amount: f32) -> Result<(), ()> {
@@ -99,10 +93,16 @@ impl Cargo {
             return Result::Err(());
         }
 
-        let ware_amount = *self.wares.get(&ware_id).unwrap_or(&0.0);
-        self.wares.insert(ware_id, ware_amount + amount);
-        self.current += amount;
+        match self.wares.iter().position(|i| i.0 == ware_id) {
+            Some(pos) => {
+                self.wares[pos].1 += amount;
+            },
+            None => {
+                self.wares.push(WareAmount(ware_id, amount));
+            }
+        }
 
+        self.current += amount;
         Result::Ok(())
     }
 
@@ -130,12 +130,18 @@ impl Cargo {
         self.current
     }
 
-    pub fn get_wares(&self) -> Vec<&WareId> {
-        self.wares.keys().collect()
+    pub fn get_wares<'a>(&'a self) -> impl Iterator<Item = &'a WareId> + 'a {
+        self.wares.iter().map(|WareAmount(ware_id, _)| ware_id)
     }
 
     pub fn get_amount(&self, ware_id: WareId) -> f32 {
-        self.wares.get(&ware_id).map(|i| *i).unwrap_or(0.0)
+        self.wares.iter().find_map(|WareAmount(i_ware_id, i_amount)| {
+            if ware_id == *i_ware_id {
+                Some(*i_amount)
+            } else {
+                None
+            }
+        }).unwrap_or(0.0)
     }
 
     pub fn get_total(&self) -> f32 {
