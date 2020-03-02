@@ -78,7 +78,6 @@ impl<'a> System<'a> for FfiOutputSystem {
                             },
                             other => {
                                 // ignore entities not visible in sector
-                                panic!("{:?} has no valid location {:?}", entity, other);
                             },
                         }
                     }

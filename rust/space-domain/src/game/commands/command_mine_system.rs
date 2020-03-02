@@ -170,15 +170,15 @@ mod test {
         miner: ObjId,
         asteroid: ObjId,
         station: ObjId,
+        ware_id: WareId,
     }
-
-    const WARE_0: WareId = WareId(0);
-    const EXTRACTABLE: Extractable = Extractable {
-        ware_id: WARE_0,
-    };
 
     fn setup_scenery(world: &mut World) -> SceneryResult {
         let sector_scenery = crate::game::sectors::test_scenery::setup_sector_scenery(world);
+
+        let ware_id = world.create_entity().build();
+
+        let extractable = Extractable { ware_id };
 
         let asteroid = world
             .create_entity()
@@ -186,7 +186,7 @@ mod test {
                 pos: V2::new(0.0, 0.0),
                 sector_id: sector_scenery.sector_0,
             })
-            .with(EXTRACTABLE)
+            .with(extractable)
             .build();
 
         let station = world
@@ -213,7 +213,7 @@ mod test {
         entitys_per_sector.add_extractable(sector_scenery.sector_0, asteroid);
         world.insert(entitys_per_sector);
 
-        SceneryResult { miner, asteroid, station }
+        SceneryResult { miner, asteroid, station, ware_id }
     }
 
     #[test]
@@ -254,7 +254,7 @@ mod test {
         });
         let action = world.read_storage::<ActionRequest>().get(scenery.miner).cloned();
         assert!(action.is_some());
-        assert_eq!(action.unwrap().0, Action::Extract { target_id: scenery.asteroid, ware_id: WARE_0 });
+        assert_eq!(action.unwrap().0, Action::Extract { target_id: scenery.asteroid, ware_id: scenery.ware_id });
     }
 
     #[test]
@@ -270,7 +270,7 @@ mod test {
             // fill miner cargo
             let cargo_storage = &mut world.write_storage::<Cargo>();
             let cargo = cargo_storage.get_mut(scenery.miner).unwrap();
-            cargo.add_to_max(WARE_0, 10.0);
+            cargo.add_to_max(scenery.ware_id, 10.0);
 
             scenery
         });
@@ -293,7 +293,7 @@ mod test {
             // fill miner cargo
             let cargo_storage = &mut world.write_storage::<Cargo>();
             let cargo = cargo_storage.get_mut(scenery.miner).unwrap();
-            cargo.add_to_max(WARE_0, 10.0);
+            cargo.add_to_max(scenery.ware_id, 10.0);
 
             scenery
         });

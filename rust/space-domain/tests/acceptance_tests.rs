@@ -24,9 +24,14 @@ fn test_game_should_mine_and_deliver_cargo_to_station() {
 
     for _ in 0..100 {
         game.tick(delta);
+
+        let cargo_storage = &game.world.read_storage::<Cargo>();
+        let station_cargo = cargo_storage.get(station_id).unwrap();
+        if station_cargo.get_total() > 0.0 {
+            // good
+            return;
+        }
     }
 
-    let cargo_storage = &game.world.read_storage::<Cargo>();
-    let station_cargo = cargo_storage.get(station_id).unwrap();
-    assert!(station_cargo.get_total() > 0.0);
+    panic!("looks like station never have cargo");
 }

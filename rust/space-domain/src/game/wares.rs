@@ -7,8 +7,10 @@ use super::objects::ObjId;
 use crate::game::jsons::JsonValueExtra;
 use std::borrow::Borrow;
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
-pub struct WareId(pub u32);
+pub type WareId = Entity;
+
+#[derive(Debug, Clone, Component)]
+pub struct Ware;
 
 #[derive(Debug, Clone, Copy)]
 pub struct WareAmount(pub WareId, pub f32);
@@ -199,16 +201,23 @@ impl Cargos {
 #[cfg(test)]
 mod test {
     use super::*;
+    use specs::world::Generation;
 
-    const WARE0: WareId = WareId(0);
-    const WARE1: WareId = WareId(1);
-    const WARE2: WareId = WareId(2);
+    // TODO: how to create entities without a world?
+    fn create_wares() -> (WareId, WareId) {
+        let mut world = World::new();
+        let ware_0 = world.create_entity().build();
+        let ware_1 = world.create_entity().build();
+        (ware_0, ware_1)
+    }
 
     #[test]
     fn test_cargo_transfer() {
+        let (ware_0, ware_1) = create_wares();
+
         let mut cargo_from = Cargo::new(10.0);
-        cargo_from.add(WARE0, 4.0).unwrap();
-        cargo_from.add(WARE1, 3.0).unwrap();
+        cargo_from.add(ware_0, 4.0).unwrap();
+        cargo_from.add(ware_1, 3.0).unwrap();
 
         let mut cargo_to = Cargo::new(5.0);
 
@@ -216,28 +225,31 @@ mod test {
         transfer.apply_move_from(&mut cargo_from);
         transfer.apply_move_to(&mut cargo_to);
 
-        assert_eq!(0.0, cargo_from.get_amount(WARE0));
-        assert_eq!(2.0, cargo_from.get_amount(WARE1));
+        assert_eq!(0.0, cargo_from.get_amount(ware_0));
+        assert_eq!(2.0, cargo_from.get_amount(ware_1));
 
-        assert_eq!(4.0, cargo_to.get_amount(WARE0));
-        assert_eq!(1.0, cargo_to.get_amount(WARE1));
+        assert_eq!(4.0, cargo_to.get_amount(ware_0));
+        assert_eq!(1.0, cargo_to.get_amount(ware_1));
     }
 
     #[test]
     fn test_cargo_add_over_capacity_should_fail() {
+        let (ware_0, _) = create_wares();
         let mut cargo = Cargo::new(1.0);
-        let result = cargo.add(WARE0, 2.0);
+        let result = cargo.add(ware_0, 2.0);
         assert!(result.is_err())
     }
 
     #[test]
     fn test_cargo_add_to_max() {
+        let (ware_0, _) = create_wares();
+
         let mut cargo = Cargo::new(1.0);
-        let amount = cargo.add_to_max(WARE0, 2.0);
+        let amount = cargo.add_to_max(ware_0, 2.0);
         assert_eq!(1.0, amount);
         assert_eq!(1.0, cargo.get_current());
 
-        let amount = cargo.add_to_max(WARE0, 2.0);
+        let amount = cargo.add_to_max(ware_0, 2.0);
         assert_eq!(0.0, amount);
         assert_eq!(1.0, cargo.get_current());
     }

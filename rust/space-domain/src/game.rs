@@ -1,4 +1,3 @@
-use crate::specs_extras::*;
 use specs::prelude::*;
 use std::collections::HashMap;
 use std::borrow::BorrowMut;
@@ -20,6 +19,7 @@ use crate::game::events::{Events, Event, EventKind};
 use crate::ffi::{FFIApi, FFI};
 use crate::game::shipyard::Shipyard;
 use crate::game::dock::HasDock;
+use crate::game::loader::Loader;
 
 pub mod actions;
 pub mod commands;
@@ -141,69 +141,8 @@ impl<'a, 'b> Game<'a, 'b> {
         }
 
         for obj in list {
-            self.add_object(obj);
+            Loader::add_object(&mut self.world, obj);
         }
-    }
-
-    pub fn add_object(&mut self, new_obj: NewObj) -> ObjId {
-        let mut builder = self.world.create_entity();
-
-        if new_obj.can_dock && new_obj.speed.is_none() {
-            panic!(format!(
-                "fatal {:?}: entity that can dock should be moveable",
-                new_obj
-            ));
-        }
-
-        if new_obj.has_dock {
-            builder.set(HasDock);
-        }
-
-        for location in &new_obj.location {
-            builder.set(location.clone());
-        }
-
-        for speed in new_obj.speed {
-            builder.set(Moveable { speed });
-        }
-
-        new_obj.extractable.iter().for_each(|i| {
-            builder.set(i.clone());
-        });
-
-        if new_obj.cargo_size > 0.0 {
-            let cargo = Cargo::new(new_obj.cargo_size);
-            builder.set(cargo);
-        }
-
-        if new_obj.station {
-            // builder.set(Station {});
-        }
-
-        if new_obj.sector {
-            builder.set(Sector {});
-        }
-
-        if let Some(target_id) = new_obj.jump_to {
-            builder.set(Jump { target_id });
-        }
-
-        if new_obj.command_mine {
-            builder.set(CommandMine::new());
-        }
-
-        if new_obj.shipyard {
-            builder.set(Shipyard::new());
-        }
-
-        let entity = builder.build();
-
-        info!("add_object {:?} from {:?}", entity, new_obj);
-
-        self.world.create_entity()
-            .with(Event::new(entity, EventKind::Add))
-            .build();
-
-        entity
     }
 }
+

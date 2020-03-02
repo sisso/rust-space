@@ -96,23 +96,11 @@ mod test {
     use crate::space_outputs_generated::space_data::EntityKind::Station;
     use crate::game::commands::CommandMine;
 
-    const ORE_ID: WareId = WareId(0);
-    const ENERGY_ID: WareId = WareId(1);
-    const PLATE_ID: WareId = WareId(2);
-
     const REQUIRE_ORE: f32 = 1.0;
     const REQUIRE_ENERGY: f32 = 10.0;
     const PRODUCTION_TIME: f32 = 5.0;
     const TOTAL_CARGO: f32 = 20.0;
     const PRODUCED_PLATE: f32 = 1.0;
-
-    fn get_production() -> Production {
-        Production {
-            input: vec![WareAmount(ORE_ID, REQUIRE_ORE), WareAmount(ENERGY_ID, REQUIRE_ENERGY)],
-            output: vec![WareAmount(PLATE_ID, PRODUCED_PLATE)],
-            time: DeltaTime(PRODUCTION_TIME),
-        }
-    }
 
     #[test]
     fn test_factory_system_should_not_start_production_without_enough_cargo() {
@@ -154,10 +142,20 @@ mod test {
                    expected_ore: f32,
                    expected_energy: f32,
                    expected_plates: f32) {
-       let (world, entity) = test_system(FactorySystem, move |world| {
+       let (world, (entity, plate_id)) = test_system(FactorySystem, move |world| {
+           let ore_id = world.create_entity().build();
+           let energy_id = world.create_entity().build();
+           let plate_id = world.create_entity().build();
+
+           let production = Production {
+               input: vec![WareAmount(ore_id, REQUIRE_ORE), WareAmount(energy_id, REQUIRE_ENERGY)],
+               output: vec![WareAmount(plate_id, PRODUCED_PLATE)],
+               time: DeltaTime(PRODUCTION_TIME),
+           };
+
            let mut cargo = Cargo::new(TOTAL_CARGO);
-           cargo.add(ORE_ID, ore).unwrap();
-           cargo.add(ENERGY_ID, energy).unwrap();
+           cargo.add(ore_id, ore).unwrap();
+           cargo.add(energy_id, energy).unwrap();
 
            world.insert(TotalTime(total_time));
 
@@ -165,16 +163,16 @@ mod test {
                .create_entity()
                .with(cargo)
                .with(Factory {
-                   production: get_production(),
+                   production,
                    production_time: production_time.map(|time| TotalTime(time)),
                })
                .build();
 
-           entity
+           (entity, plate_id)
        });
 
         let cargo = world.read_storage::<Cargo>().get(entity).unwrap().clone();
-        assert_eq!(cargo.get_amount(PLATE_ID), expected_plates);
+        assert_eq!(cargo.get_amount(plate_id), expected_plates);
 
         let factory = world.read_storage::<Factory>().get(entity).unwrap().clone();
         assert_eq!(factory.production_time.map(|i| i.as_f64()), expect_produce_at);

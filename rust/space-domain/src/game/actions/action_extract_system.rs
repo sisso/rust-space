@@ -66,49 +66,55 @@ mod test {
     use crate::test::test_system;
     use crate::utils::{DeltaTime};
 
-    const WARE0: WareId = WareId(0);
-
     #[test]
     fn should_extract_ware() {
-        let (world, entity) = test_system(ActionExtractSystem, |world| {
+        let (world, (entity, ware_id)) = test_system(ActionExtractSystem, |world| {
             world.insert(DeltaTime(1.0));
+
+            let ware_id = world.create_entity().build();
 
             let asteroid_id = world.create_entity()
                 .build();
 
-            world.create_entity()
-                .with(ActionActive(Action::Extract { target_id: asteroid_id, ware_id: WARE0, }))
+            let entity = world.create_entity()
+                .with(ActionActive(Action::Extract { target_id: asteroid_id, ware_id, }))
                 .with(ActionExtract {})
                 .with(Cargo::new(10.0))
-                .build()
+                .build();
+
+            (entity, ware_id)
         });
 
         let cargo_storage = world.read_storage::<Cargo>();
         let cargo = cargo_storage.get(entity).unwrap();
-        assert_eq!(1.0, cargo.get_amount(WARE0));
+        assert_eq!(1.0, cargo.get_amount(ware_id));
     }
 
     #[test]
     fn should_remove_action_when_cargo_is_full() {
-        let (world, entity) = test_system(ActionExtractSystem, |world| {
+        let (world, (entity, ware_id)) = test_system(ActionExtractSystem, |world| {
             world.insert(DeltaTime(1.0));
+
+            let ware_id = world.create_entity().build();
 
             let asteroid_id = world.create_entity()
                 .build();
 
             let mut cargo = Cargo::new(10.0);
-            cargo.add(WARE0, 9.5).unwrap();
+            cargo.add(ware_id, 9.5).unwrap();
 
-            world.create_entity()
-                .with(ActionActive(Action::Extract { target_id: asteroid_id, ware_id: WARE0, }))
+            let entity = world.create_entity()
+                .with(ActionActive(Action::Extract { target_id: asteroid_id, ware_id, }))
                 .with(ActionExtract {})
                 .with(cargo)
-                .build()
+                .build();
+
+            (entity, ware_id)
         });
 
         let cargo_storage = world.read_storage::<Cargo>();
         let cargo = cargo_storage.get(entity).unwrap();
-        assert_eq!(10.0, cargo.get_amount(WARE0));
+        assert_eq!(10.0, cargo.get_amount(ware_id));
 
         assert!(world.read_storage::<ActionActive>().get(entity).is_none());
         assert!(world.read_storage::<ActionExtract>().get(entity).is_none());
