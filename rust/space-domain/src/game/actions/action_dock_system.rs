@@ -14,7 +14,7 @@ pub struct DockData<'a> {
     actions: WriteStorage<'a, ActionActive>,
     actions_dock: WriteStorage<'a, ActionDock>,
     locations: WriteStorage<'a, Location>,
-    lazy: Read<'a, LazyUpdate>,
+    events: Write<'a, Events>,
 }
 
 impl<'a> System<'a> for DockSystem {
@@ -40,13 +40,12 @@ impl<'a> System<'a> for DockSystem {
             ));
         }
 
+        let events= &mut data.events;
         for (entity, location) in processed {
             data.actions.borrow_mut().remove(entity).unwrap();
             data.actions_dock.borrow_mut().remove(entity).unwrap();
             data.locations.borrow_mut().insert(entity, location).unwrap();
-            data.lazy.create_entity(&mut data.entities)
-                .with(Event::new(entity, EventKind::Dock))
-                .build();
+            events.push(Event::new(entity, EventKind::Dock));
         }
 
     }

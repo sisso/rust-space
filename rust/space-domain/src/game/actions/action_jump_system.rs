@@ -17,7 +17,7 @@ pub struct ActionJumpData<'a> {
     actions_jump: WriteStorage<'a, ActionJump>,
     locations: WriteStorage<'a, Location>,
     jumps: ReadStorage<'a, Jump>,
-    lazy: Read<'a, LazyUpdate>,
+    events: Write<'a, Events>,
 }
 
 impl<'a> System<'a> for ActionJumpSystem {
@@ -83,9 +83,7 @@ impl<'a> System<'a> for ActionJumpSystem {
 
             data.actions.borrow_mut().remove(entity).unwrap();
             data.actions_jump.borrow_mut().remove(entity).unwrap();
-            data.lazy.create_entity(&mut data.entities)
-                .with(Event::new(entity, EventKind::Jump))
-                .build();
+            data.events.borrow_mut().push(Event::new(entity, EventKind::Jump));
         }
     }
 }

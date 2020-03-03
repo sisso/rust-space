@@ -17,7 +17,7 @@ pub struct ActionMoveToData<'a> {
     actions: WriteStorage<'a, ActionActive>,
     action_move_to: WriteStorage<'a, ActionMoveTo>,
     locations: WriteStorage<'a, Location>,
-    lazy: Read<'a, LazyUpdate>,
+    events: Write<'a, Events>,
 }
 
 impl<'a> System<'a> for ActionMoveToSystem {
@@ -86,10 +86,9 @@ impl<'a> System<'a> for ActionMoveToSystem {
             (&mut data.action_move_to).remove(entity).unwrap();
         }
 
+        let events = &mut data.events;
         for entity in moved {
-            data.lazy.create_entity(&mut data.entities)
-                .with(Event::new(entity, EventKind::Move))
-                .build();
+            events.push(Event::new(entity, EventKind::Move));
         }
     }
 }

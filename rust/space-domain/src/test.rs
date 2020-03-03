@@ -9,8 +9,7 @@ where
     Callback: FnOnce(&mut World) -> ReturnType,
 {
     let mut world = World::new();
-    // setup global components
-    world.register::<Event>();
+
     // create dispatcher for testing
     let mut dispatcher = DispatcherBuilder::new()
         .with(system, "test", &[])

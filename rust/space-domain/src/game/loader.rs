@@ -9,7 +9,7 @@ use crate::utils::{V2, Speed, Position};
 use crate::game::commands::{Commands, CommandMine};
 use specs::{WorldExt, Builder, World};
 use crate::game::locations::{Location, Moveable};
-use crate::game::events::{Event, EventKind};
+use crate::game::events::{Event, EventKind, Events};
 use std::borrow::BorrowMut;
 use crate::game::dock::HasDock;
 use crate::game::shipyard::Shipyard;
@@ -124,8 +124,9 @@ impl Loader {
             .insert(jump_from_id, Jump { target_id: jump_to_id })
             .unwrap();
 
-        world.create_entity().with(Event::new(jump_from_id, EventKind::Add)).build();
-        world.create_entity().with(Event::new(jump_to_id, EventKind::Add)).build();
+        let events = &mut world.write_resource::<Events>();
+        events.push(Event::new(jump_from_id, EventKind::Add));
+        events.push(Event::new(jump_to_id, EventKind::Add));
 
         info!("{:?} creating jump from {:?} to {:?}", jump_from_id, from_sector_id, to_sector_id);
         info!("{:?} creating jump from {:?} to {:?}", jump_to_id, to_sector_id, from_sector_id);
@@ -188,9 +189,8 @@ impl Loader {
 
         info!("add_object {:?} from {:?}", entity, new_obj);
 
-        world.create_entity()
-            .with(Event::new(entity, EventKind::Add))
-            .build();
+        let events = &mut world.write_resource::<Events>();
+        events.push(Event::new(entity, EventKind::Add));
 
         entity
     }

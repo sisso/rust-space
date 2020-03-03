@@ -1,5 +1,5 @@
 use specs::prelude::*;
-use crate::game::events::{Event, EventKind};
+use crate::game::events::{Event, EventKind, Events};
 use crate::ffi::FfiOutpusBuilder;
 use std::ops::DerefMut;
 use std::borrow::{BorrowMut, Borrow};
@@ -16,7 +16,7 @@ pub struct FfiOutputSystem;
 #[derive(SystemData)]
 pub struct FfiOutputData<'a> {
     entities: Entities<'a>,
-    events: ReadStorage<'a, Event>,
+    events: Read<'a, Events>,
     output: Write<'a, FfiOutpusBuilder>,
     location: ReadStorage<'a, Location>,
     station: ReadStorage<'a, Station>,
@@ -49,7 +49,7 @@ impl<'a> System<'a> for FfiOutputSystem {
         // TODO: the fetcher should be one that remove events
         output.clear();
 
-        for (_event_entity, event) in (&*data.entities, &data.events).join() {
+        for event in data.events.list() {
             let entity = event.id;
 
             match &event.kind {
@@ -143,9 +143,9 @@ mod test {
                 .with(Location::Dock { docked_id: arbitrary_station, })
                 .build();
 
-            world.create_entity()
-                .with(Event::new(arbitrary_entity, EventKind::Add))
-                .build();
+            world.write_resource::<Events>()
+                .borrow_mut()
+                .push(Event::new(arbitrary_entity, EventKind::Add));
 
             arbitrary_entity.id()
         });
@@ -165,9 +165,9 @@ mod test {
                 })
                 .build();
 
-            world.create_entity()
-                .with(Event::new(arbitrary_entity, EventKind::Add))
-                .build();
+            world.write_resource::<Events>()
+                .borrow_mut()
+                .push(Event::new(arbitrary_entity, EventKind::Add));
 
             (arbitrary_entity.id(), sector_0)
         });
@@ -192,9 +192,9 @@ mod test {
                 })
                 .build();
 
-            world.create_entity()
-                .with(Event::new(arbitrary_entity, EventKind::Undock))
-                .build();
+            world.write_resource::<Events>()
+                .borrow_mut()
+                .push(Event::new(arbitrary_entity, EventKind::Undock));
 
             (arbitrary_entity.id(), sector_0)
         });
@@ -219,9 +219,9 @@ mod test {
                 })
                 .build();
 
-            world.create_entity()
-                .with(Event::new(arbitrary_entity, EventKind::Jump))
-                .build();
+            world.write_resource::<Events>()
+                .borrow_mut()
+                .push(Event::new(arbitrary_entity, EventKind::Jump));
 
             (arbitrary_entity.id(), sector_0)
         });
@@ -246,9 +246,9 @@ mod test {
                 })
                 .build();
 
-            world.create_entity()
-                .with(Event::new(arbitrary_entity, EventKind::Move))
-                .build();
+            world.write_resource::<Events>()
+                .borrow_mut()
+                .push(Event::new(arbitrary_entity, EventKind::Move));
 
             (arbitrary_entity.id(), sector_0)
         });

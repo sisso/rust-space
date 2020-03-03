@@ -2,6 +2,7 @@ use specs::prelude::*;
 use crate::game::objects::ObjId;
 use crate::game::sectors::SectorId;
 use crate::game::{GameInitContext, RequireInitializer};
+use std::borrow::BorrowMut;
 
 #[derive(Debug, Clone)]
 pub enum EventKind {
@@ -12,7 +13,7 @@ pub enum EventKind {
     Undock,
 }
 
-#[derive(Debug, Clone, Component)]
+#[derive(Debug, Clone)]
 pub struct Event {
     pub id: ObjId,
     pub kind: EventKind,
@@ -24,7 +25,31 @@ impl Event {
     }
 }
 
-pub struct Events;
+pub struct Events {
+    queue: Vec<Event>,
+}
+
+impl Default for Events {
+    fn default() -> Self {
+        Events {
+            queue: Default::default()
+        }
+    }
+}
+
+impl Events {
+    pub fn push(&mut self, event: Event) {
+        self.queue.push(event);
+    }
+
+    pub fn clear(&mut self) {
+        self.queue.clear();
+    }
+
+    pub fn list<'a>(&'a self) -> impl Iterator<Item = &'a Event> + 'a {
+        self.queue.iter()
+    }
+}
 
 impl RequireInitializer for Events {
     fn init(context: &mut GameInitContext) {
@@ -40,14 +65,10 @@ impl RequireInitializer for Events {
 pub struct ClearEventsSystem;
 
 impl<'a> System<'a> for ClearEventsSystem {
-    type SystemData = (Entities<'a>, WriteStorage<'a, Event>);
+    type SystemData = (Write<'a, Events>);
 
-    fn run(&mut self, (entities, events): Self::SystemData) {
+    fn run(&mut self, (mut events): Self::SystemData) {
         trace!("running");
-
-        for (e, event) in (&*entities, &events).join() {
-            trace!("{:?} removing {:?}", e, event);
-            entities.delete(e).unwrap();
-        }
+        events.borrow_mut().clear();
     }
 }

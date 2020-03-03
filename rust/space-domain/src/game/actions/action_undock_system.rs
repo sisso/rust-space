@@ -14,7 +14,7 @@ pub struct UndockData<'a> {
     actions: WriteStorage<'a, ActionActive>,
     actions_undock: WriteStorage<'a, ActionUndock>,
     locations: WriteStorage<'a, Location>,
-    lazy: Read<'a, LazyUpdate>,
+    events: Write<'a, Events>,
 }
 
 impl<'a> System<'a> for UndockSystem {
@@ -47,6 +47,8 @@ impl<'a> System<'a> for UndockSystem {
             }
         }
 
+        let events = &mut data.events;
+
         for (entity, location) in processed {
             if let Some(location) = location {
                 data.locations
@@ -56,9 +58,7 @@ impl<'a> System<'a> for UndockSystem {
             }
             data.actions.borrow_mut().remove(entity).unwrap();
             data.actions_undock.borrow_mut().remove(entity).unwrap();
-            data.lazy.create_entity(&mut data.entities)
-                .with(Event::new(entity, EventKind::Undock))
-                .build();
+            events.push(Event::new(entity, EventKind::Undock));
         }
     }
 }
