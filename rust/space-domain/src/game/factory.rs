@@ -24,6 +24,13 @@ impl Factory {
             production_time: None,
         }
     }
+
+    pub fn setup_cargo(&self, cargo: &mut Cargo) {
+        let mut wares = vec![];
+        wares.extend(self.production.input.iter().map(|i| i.0));
+        wares.extend(self.production.output.iter().map(|i| i.0));
+        cargo.set_whitelist(wares);
+    }
 }
 
 impl RequireInitializer for Factory {

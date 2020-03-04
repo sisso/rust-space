@@ -160,11 +160,6 @@ impl Loader {
             builder.set(i.clone());
         });
 
-        if new_obj.cargo_size > 0.0 {
-            let cargo = Cargo::new(new_obj.cargo_size);
-            builder.set(cargo);
-        }
-
         if new_obj.station {
             // builder.set(Station {});
         }
@@ -183,6 +178,14 @@ impl Loader {
 
         if new_obj.shipyard {
             builder.set(Shipyard::new());
+        }
+
+        if new_obj.cargo_size > 0.0 {
+            let mut cargo = Cargo::new(new_obj.cargo_size);
+            if let Some(factory) = &new_obj.factory {
+                factory.setup_cargo(&mut cargo);
+            }
+            builder.set(cargo);
         }
 
         let entity = builder.build();

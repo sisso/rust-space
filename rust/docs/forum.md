@@ -1,5 +1,20 @@
 # Forum
 
+## Factory and cargo spaces
+
+Factories need to be able to control the amount of space used by its cargo, otherwise a single input can force
+enter in dead lock to receive a secondary input or release the output.
+
+AI is not enough, will be very prone to failure and users will not obey.
+
+Cargo whitelist % is the best approach to have consistency in the cargo space. Whitelisting a % of total cargo, or using
+multiple storages.
+- how factory component will manage cargo storage?
+    - the way a component can manage other is by creating a system, a system that take every factory and cargo pair and
+      setup its storage reserve. A storage or extra component will be require to cache already processed factories.
+    - during object instantiation the cargo is updated given other components, if any system changes one of requirements,
+      it will need to manually setup the cargo again
+
 ## Sector as Component
 
 Sector and Jump become a component

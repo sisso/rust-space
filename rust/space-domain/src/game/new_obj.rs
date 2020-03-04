@@ -5,6 +5,7 @@ use crate::game::locations::*;
 use crate::game::objects::ObjId;
 use crate::game::sectors::*;
 use crate::utils::*;
+use crate::game::factory::Factory;
 
 #[derive(Debug, Clone, Component)]
 pub struct NewObj {
@@ -21,6 +22,7 @@ pub struct NewObj {
     pub command_mine: bool,
     pub shipyard: bool,
     pub ware: bool,
+    pub factory: Option<Factory>,
 }
 
 impl NewObj {
@@ -39,6 +41,7 @@ impl NewObj {
             command_mine: false,
             shipyard: false,
             ware: false,
+            factory: None,
         }
     }
 
@@ -109,6 +112,11 @@ impl NewObj {
 
     pub fn with_ware(mut self) -> Self {
         self.ware = true;
+        self
+    }
+
+    pub fn with_factory(mut self, factory: Factory) -> Self {
+        self.factory = Some(factory);
         self
     }
 }
