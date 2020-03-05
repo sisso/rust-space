@@ -24,6 +24,7 @@ use crate::game::navigations::{NavRequest, Navigation, NavigationMoveTo, Navigat
 use crate::game::wares::{Cargo, WareId};
 use std::borrow::{Borrow, BorrowMut};
 use crate::game::dock::HasDock;
+use crate::game::order::Order;
 
 pub struct CommandMineSystem;
 
@@ -40,6 +41,7 @@ pub struct CommandMineData<'a> {
     action_request: WriteStorage<'a, ActionRequest>,
     extractable: ReadStorage<'a, Extractable>,
     docks: ReadStorage<'a, HasDock>,
+    orders: ReadStorage<'a, Order>,
 }
 
 impl<'a> System<'a> for CommandMineSystem {
@@ -64,6 +66,9 @@ impl<'a> System<'a> for CommandMineSystem {
             .join()
         {
             if cargo.is_full() {
+                // deliver cargo
+
+                // get or search for a target
                 let target_id = match command.deliver_target_id {
                     Some(id) => id,
                     None => {
@@ -71,14 +76,21 @@ impl<'a> System<'a> for CommandMineSystem {
                             .unwrap()
                             .sector_id;
 
-                        let target_id = search_deliver_target(sectors_index, entity, sector_id);
-                        command.deliver_target_id = Some(target_id);
-                        target_id
+                        match search_deliver_target(sectors_index, entity, sector_id, &data.orders) {
+                            Some(target_id) => {
+                                command.deliver_target_id = Some(target_id);
+                                target_id
+                            },
+                            None => {
+                                warn!("{:?} can not find a cargo for deliver", entity);
+                                continue;
+                            }
+                        }
                     }
                 };
 
                 if location.as_docked() == Some(target_id) {
-                    debug!("{:?} cargo full, transfering cargo to station {:?}", entity, target_id);
+                    debug!("{:?} cargo full, transferring cargo to station {:?}", entity, target_id);
                     cargo_transfers.push((entity, target_id));
                 } else {
                     debug!("{:?} cargo full, command to navigate to station {:?}", entity, target_id);
@@ -149,11 +161,21 @@ fn search_deliver_target(
     sectors_index: &EntityPerSectorIndex,
     entity: Entity,
     sector_id: SectorId,
-) -> ObjId {
+    orders: &ReadStorage<Order>,
+) -> Option<ObjId> {
     // find nearest deliver
     let candidates = sectors_index.search_nearest_stations(sector_id);
-    let target_id = candidates.iter().next().unwrap();
-    target_id.1
+    candidates.iter()
+        .flat_map(|(sector_id, candidate_id)| {
+            match orders.get(*candidate_id) {
+                // TODO: filter per ware type
+                Some(Order::WareRequest { .. }) => {
+                    Some(*candidate_id)
+                },
+                _ => None,
+            }
+        })
+        .next()
 }
 
 #[cfg(test)]
@@ -163,9 +185,11 @@ mod test {
     use crate::game::wares::WareId;
     use crate::test::test_system;
     use specs::DispatcherBuilder;
+    use crate::game::order::Order;
 
     struct SceneryRequest {}
 
+    #[derive(Debug)]
     struct SceneryResult {
         miner: ObjId,
         asteroid: ObjId,
@@ -197,6 +221,7 @@ mod test {
             })
             .with(HasDock)
             .with(Cargo::new(100.0))
+            .with(Order::WareRequest { wares_id: vec![ware_id] })
             .build();
 
         let miner = world
@@ -208,12 +233,33 @@ mod test {
             .with(Cargo::new(10.0))
             .build();
 
-        let mut entitys_per_sector = EntityPerSectorIndex::new();
-        entitys_per_sector.add_stations(sector_scenery.sector_0, station);
-        entitys_per_sector.add_extractable(sector_scenery.sector_0, asteroid);
-        world.insert(entitys_per_sector);
+        // inject objects into the location index
+        let mut entities_per_sector = EntityPerSectorIndex::new();
+        entities_per_sector.add_stations(sector_scenery.sector_0, station);
+        entities_per_sector.add_extractable(sector_scenery.sector_0, asteroid);
+        world.insert(entities_per_sector);
 
-        SceneryResult { miner, asteroid, station, ware_id }
+        let scenery = SceneryResult {
+            miner,
+            asteroid,
+            station,
+            ware_id
+        };
+
+        debug!("setup scenery {:?}", scenery);
+
+        scenery
+    }
+
+    fn remove_station_ware_order(world: &mut World, scenery: &SceneryResult) {
+        world.write_storage::<Order>().borrow_mut().remove(scenery.station).unwrap();
+    }
+
+    fn move_miner_to_asteroid(world: &mut World, scenery: &SceneryResult) {
+        // move ship to asteroid, should start to mine
+        let location_storage = &mut world.write_storage::<Location>();
+        let asteroid_location = location_storage.get(scenery.asteroid);
+        location_storage.insert(scenery.miner, asteroid_location.unwrap().clone()).unwrap();
     }
 
     #[test]
@@ -244,12 +290,7 @@ mod test {
     fn test_command_mine_should_mine() {
         let (world, scenery) = test_system(CommandMineSystem, |world| {
             let scenery = setup_scenery(world);
-
-            // move ship to asteroid, should start to mine
-            let location_storage = &mut world.write_storage::<Location>();
-            let asteroid_location = location_storage.get(scenery.asteroid);
-            location_storage.insert(scenery.miner, asteroid_location.unwrap().clone()).unwrap();
-
+            move_miner_to_asteroid(world, &scenery);
             scenery
         });
         let action = world.read_storage::<ActionRequest>().get(scenery.miner).cloned();
@@ -258,14 +299,36 @@ mod test {
     }
 
     #[test]
+    fn test_command_mine_should_be_wait_if_cargo_is_full_and_has_no_target_station() {
+        let (world, scenery) = test_system(CommandMineSystem, |world| {
+            let scenery = setup_scenery(world);
+
+            remove_station_ware_order(world, &scenery);
+
+            // fill miner cargo
+            let cargo_storage = &mut world.write_storage::<Cargo>();
+            let cargo = cargo_storage.get_mut(scenery.miner).unwrap();
+            cargo.add_to_max(scenery.ware_id, 10.0);
+
+            scenery
+        });
+
+        let nav_request_storage = world.read_storage::<NavRequest>();
+
+        match nav_request_storage.get(scenery.miner) {
+            None => {
+                // nothing, waiting until something happens
+            },
+            other => panic!("unexpected nav request {:?}", other),
+        }
+    }
+
+    #[test]
     fn test_command_mine_should_navigate_to_station_when_cargo_is_full() {
         let (world, scenery) = test_system(CommandMineSystem, |world| {
             let scenery = setup_scenery(world);
 
-            // move ship to asteroid
-            let location_storage = &mut world.write_storage::<Location>();
-            let asteroid_location = location_storage.get(scenery.asteroid);
-            location_storage.insert(scenery.miner, asteroid_location.unwrap().clone()).unwrap();
+            move_miner_to_asteroid(world, &scenery);
 
             // fill miner cargo
             let cargo_storage = &mut world.write_storage::<Cargo>();
@@ -283,6 +346,26 @@ mod test {
             }
             other => panic!("unexpected nav request {:?}", other),
         }
+    }
+
+    #[test]
+    fn test_command_mine_should_not_deliver_cargo_to_station_if_not_require() {
+        let (world, scenery) = test_system(CommandMineSystem, |world| {
+            let scenery = setup_scenery(world);
+
+            remove_station_ware_order(world, &scenery);
+
+            // fill miner cargo
+            let cargo_storage = &mut world.write_storage::<Cargo>();
+            let cargo = cargo_storage.get_mut(scenery.miner).unwrap();
+            cargo.add_to_max(scenery.ware_id, 10.0);
+
+            scenery
+        });
+
+        let cargo_storage = &world.write_storage::<Cargo>();
+        let miner_cargo = cargo_storage.get(scenery.miner).unwrap();
+        assert_eq!(10.0, miner_cargo.get_current());
     }
 
     #[test]

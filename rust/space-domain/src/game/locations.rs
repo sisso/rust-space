@@ -121,6 +121,7 @@ impl EntityPerSectorIndex {
             .or_insert(vec![obj_id]);
     }
 
+    // TODO: should be a iterator from nearest to far
     pub fn search_nearest_extractable(&self, from_sector_id: SectorId) -> Vec<(SectorId, ObjId)> {
         self.index_extractables
             .iter()
@@ -132,6 +133,7 @@ impl EntityPerSectorIndex {
             .collect()
     }
 
+    // TODO: should be a iterator from nearest to far
     pub fn search_nearest_stations(&self, from_sector_id: SectorId) -> Vec<(SectorId, ObjId)> {
         self.index_stations
             .iter()

@@ -20,6 +20,8 @@ use crate::ffi::{FFIApi, FFI};
 use crate::game::shipyard::Shipyard;
 use crate::game::dock::HasDock;
 use crate::game::loader::Loader;
+use crate::game::factory::Factory;
+use crate::game::order::Orders;
 
 pub mod actions;
 pub mod commands;
@@ -39,6 +41,7 @@ pub mod shipyard;
 pub mod dock;
 pub mod station;
 pub mod factory;
+pub mod order;
 
 // TODO: add tick to game field
 pub struct Game<'a, 'b> {
@@ -84,6 +87,8 @@ impl<'a, 'b> Game<'a, 'b> {
         Shipyard::init(&mut init_context);
         FFI::init(&mut init_context);
         Events::init(&mut init_context);
+        Factory::init(&mut init_context);
+        Orders::init(&mut init_context);
 
         let mut dispatcher = init_context.dispatcher.build();
         let mut late_dispatcher = init_context.late_dispatcher.build();

@@ -11,6 +11,12 @@ pub struct Production {
     pub time: DeltaTime,
 }
 
+impl Production {
+    pub fn request_wares_id(&self) -> Vec<WareId> {
+        self.input.iter().map(|WareAmount(ware_id, _)| *ware_id).collect()
+    }
+}
+
 #[derive(Debug,Clone,Component)]
 pub struct Factory {
     pub production: Production,
@@ -31,6 +37,7 @@ impl Factory {
         wares.extend(self.production.output.iter().map(|i| i.0));
         cargo.set_whitelist(wares);
     }
+
 }
 
 impl RequireInitializer for Factory {
@@ -61,12 +68,13 @@ impl<'a> System<'a> for FactorySystem {
 
         let total_time = *total_time;
 
-        for (_entity, cargo, factory) in (&*entities, &mut cargos, &mut factories).join() {
+        for (entity, cargo, factory) in (&*entities, &mut cargos, &mut factories).join() {
            match factory.production_time {
                Some(time) if total_time.is_after(time) => {
                    // production ready
                    match cargo.add_all(&factory.production.output) {
                        Ok(()) => {
+                           debug!("{:?} adding production to cargo: {:?}", entity, &factory.production.output);
                            factory.production_time = None;
                        },
                        _ => {},

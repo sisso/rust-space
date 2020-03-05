@@ -6,8 +6,8 @@ use crate::game::{GameInitContext, RequireInitializer};
 
 #[derive(Debug,Clone,Component)]
 pub struct Shipyard {
-    input: WareAmount,
-    production_time: DeltaTime,
+    pub input: WareAmount,
+    pub production_time: DeltaTime,
     current_production: Option<TotalTime>,
 }
 

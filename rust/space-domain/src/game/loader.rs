@@ -14,6 +14,8 @@ use std::borrow::BorrowMut;
 use crate::game::dock::HasDock;
 use crate::game::shipyard::Shipyard;
 use crate::game::station::Station;
+use crate::game::factory::{Factory, Production};
+use crate::game::order::Order;
 
 pub struct Loader {
 
@@ -24,8 +26,10 @@ pub struct BasicScenery {
     pub shipyard_id: ObjId,
     pub miner_id: ObjId,
     pub ware_ore_id: WareId,
+    pub ware_components_id: WareId,
     pub sector_0: SectorId,
     pub sector_1: SectorId,
+    pub component_factory_id: ObjId,
 }
 
 impl Loader {
@@ -37,6 +41,7 @@ impl Loader {
 
         // init wares
         let ware_ore_id = Loader::new_ware(world);
+        let ware_components_id = Loader::new_ware(world);
 
         // init sectors
         let sector_0 = Loader::new_sector(world);
@@ -47,7 +52,14 @@ impl Loader {
 
         // init objects
         let asteroid_id = Loader::new_asteroid(world, sector_1, V2::new(-2.0, 3.0), ware_ore_id);
-        let shipyard_id = Loader::new_shipyard(world, sector_0, V2::new(1.0, -3.0), ware_ore_id);
+        let component_factory_id = Loader::new_factory(world,
+           sector_0,
+           V2::new(3.0, -1.0),
+           vec![WareAmount(ware_ore_id, 2.0)],
+           vec![WareAmount(ware_components_id, 1.0)],
+            DeltaTime(1.0),
+        );
+        let shipyard_id = Loader::new_shipyard(world, sector_0, V2::new(1.0, -3.0), ware_components_id);
         let miner_id = Loader::new_ship_miner(world, shipyard_id, 2.0);
 
         // return scenery
@@ -56,8 +68,10 @@ impl Loader {
             shipyard_id,
             miner_id,
             ware_ore_id,
+            ware_components_id,
             sector_0,
             sector_1,
+            component_factory_id,
         }
 
     }
@@ -79,6 +93,24 @@ impl Loader {
                 .at_position(sector_id, pos)
                 .as_station()
                 .with_shipyard(Shipyard::new(WareAmount(ware_id, 5.0), DeltaTime(5.0)))
+                .has_dock(),
+        )
+    }
+
+    pub fn new_factory(world: &mut World, sector_id: SectorId, pos: V2, input: Vec<WareAmount>, output: Vec<WareAmount>, time: DeltaTime) -> ObjId {
+        let production = Production {
+            input,
+            output,
+            time
+        };
+
+        Loader::add_object(
+            world,
+            NewObj::new()
+                .with_cargo(100.0)
+                .at_position(sector_id, pos)
+                .as_station()
+                .with_factory(Factory::new(production))
                 .has_dock(),
         )
     }
@@ -179,14 +211,25 @@ impl Loader {
 
         for shipyard in &new_obj.shipyard {
             builder.set(shipyard.clone());
+            builder.set(Order::WareRequest {
+                wares_id: vec![shipyard.input.get_ware_id()]
+            })
         }
 
         if new_obj.cargo_size > 0.0 {
             let mut cargo = Cargo::new(new_obj.cargo_size);
-            if let Some(factory) = &new_obj.factory {
+            // TODO: shipyards?
+            for factory in &new_obj.factory {
                 factory.setup_cargo(&mut cargo);
             }
             builder.set(cargo);
+        }
+
+        for factory in &new_obj.factory {
+            builder.set(factory.clone());
+            builder.set(Order::WareRequest {
+                wares_id: factory.production.request_wares_id()
+            })
         }
 
         let entity = builder.build();
