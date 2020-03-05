@@ -1,21 +1,22 @@
 use specs::prelude::*;
-use crate::game::wares::Cargo;
+use crate::game::wares::{Cargo, WareId, WareAmount};
 use crate::game::new_obj::NewObj;
 use crate::utils::{Speed, TotalTime, DeltaTime};
 use crate::game::{GameInitContext, RequireInitializer};
 
-const REQUIRE_CARGO: f32 = 5.0;
-const PRODUCTION_TIME: f32 = 5.0;
-
 #[derive(Debug,Clone,Component)]
 pub struct Shipyard {
-    production: Option<TotalTime>,
+    input: WareAmount,
+    production_time: DeltaTime,
+    current_production: Option<TotalTime>,
 }
 
 impl Shipyard {
-    pub fn new() -> Self {
+    pub fn new(input: WareAmount, production_time: DeltaTime) -> Self {
         Shipyard {
-            production: None,
+            input,
+            production_time,
+            current_production: None,
         }
     }
 }
@@ -51,9 +52,9 @@ impl<'a> System<'a> for ShipyardSystem {
         let mut to_add = vec![];
 
         for (entity, cargo, shipyard) in (&*entities, &mut cargos, &mut shipyards).join() {
-            match shipyard.production {
+            match shipyard.current_production {
                 Some(time) if total_time.is_after(time) => {
-                    shipyard.production = None;
+                    shipyard.current_production = None;
 
                     let new_obj = NewObj::new()
                         .with_ai()
@@ -70,12 +71,14 @@ impl<'a> System<'a> for ShipyardSystem {
                     // still producing
                 },
                 None => {
-                    if cargo.get_current() >= REQUIRE_CARGO {
-                        let ware_id = cargo.get_wares().into_iter().next().unwrap();
-                        cargo.remove(*ware_id, REQUIRE_CARGO).unwrap();
+                    let ware_id = shipyard.input.get_ware_id();
+                    let amount = shipyard.input.get_amount();
 
-                        let ready_time = total_time.add(DeltaTime(PRODUCTION_TIME));
-                        shipyard.production = Some(ready_time);
+                    if cargo.get_amount(ware_id) >= amount {
+                        cargo.remove(ware_id, amount).unwrap();
+
+                        let ready_time = total_time.add(shipyard.production_time);
+                        shipyard.current_production = Some(ready_time);
 
                         debug!("{:?} staring production, will be ready at {:?}", entity, ready_time);
                     }
@@ -103,6 +106,10 @@ mod test {
     use crate::utils::V2;
     use crate::space_outputs_generated::space_data::EntityKind::Station;
     use crate::game::commands::CommandMine;
+
+    const PRODUCTION_TIME: f32 = 5.0;
+    const REQUIRE_CARGO: f32 = 5.0;
+
 
     #[test]
     fn test_shipyard_system_should_not_start_production_without_enough_cargo() {
@@ -164,7 +171,7 @@ mod test {
     fn assert_shipyard_production(world: &World, entity: Entity, expected: Option<TotalTime>) {
         let current_production = world.read_storage::<Shipyard>().get(entity)
             .unwrap()
-            .production
+            .current_production
             .clone()
             .map(|i| i.as_u64());
 
@@ -172,7 +179,7 @@ mod test {
     }
 
     /// returns the world and shipyard entity
-    fn scenery(total_time: f64, cargo_amount: f32, production: Option<f64>) -> (World, (Entity, WareId)) {
+    fn scenery(total_time: f64, cargo_amount: f32, current_production: Option<f64>) -> (World, (Entity, WareId)) {
         test_system(ShipyardSystem, move |world| {
             let ware_id = world.create_entity().build();
 
@@ -183,12 +190,13 @@ mod test {
 
             world.insert(TotalTime(total_time));
 
+            let mut shipyard = Shipyard::new(WareAmount(ware_id, REQUIRE_CARGO), DeltaTime(PRODUCTION_TIME));
+            shipyard.current_production = current_production.map(|i| TotalTime(i));
+
             let entity = world
                 .create_entity()
                 .with(cargo)
-                .with(Shipyard {
-                    production: production.map(|v| TotalTime(v))
-                })
+                .with(shipyard)
                 .build();
 
             (entity, ware_id)

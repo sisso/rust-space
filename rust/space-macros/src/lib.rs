@@ -44,13 +44,13 @@ macro_rules! log {
 /// # Examples
 ///
 /// ```edition2018
-/// use log::error;
+/// # use log::error;
 ///
 /// # fn main() {
-/// let (err_info, port) = ("No connection", 22);
+/// # let (err_info, port) = ("No connection", 22);
 ///
-/// error!("Error: {} on port {}", err_info, port);
-/// error!(target: "app_events", "App Error: {}, Port: {}", err_info, 22);
+/// # error!("Error: {} on port {}", err_info, port);
+/// # error!(target: "app_events", "App Error: {}, Port: {}", err_info, 22);
 /// # }
 /// ```
 #[macro_export]
@@ -71,10 +71,10 @@ macro_rules! error {
 /// use log::warn;
 ///
 /// # fn main() {
-/// let warn_description = "Invalid Input";
+/// # let warn_description = "Invalid Input";
 ///
-/// warn!("Warning! {}!", warn_description);
-/// warn!(target: "input_events", "App received warning: {}", warn_description);
+/// # warn!("Warning! {}!", warn_description);
+/// # warn!(target: "input_events", "App received warning: {}", warn_description);
 /// # }
 /// ```
 #[macro_export]
@@ -122,10 +122,10 @@ macro_rules! info {
 ///
 /// # fn main() {
 /// # struct Position { x: f32, y: f32 }
-/// let pos = Position { x: 3.234, y: -1.223 };
+/// # let pos = Position { x: 3.234, y: -1.223 };
 ///
-/// debug!("New position: x: {}, y: {}", pos.x, pos.y);
-/// debug!(target: "app_events", "New position: x: {}, y: {}", pos.x, pos.y);
+/// # debug!("New position: x: {}, y: {}", pos.x, pos.y);
+/// # debug!(target: "app_events", "New position: x: {}, y: {}", pos.x, pos.y);
 /// # }
 /// ```
 #[macro_export]
@@ -147,12 +147,12 @@ macro_rules! debug {
 ///
 /// # fn main() {
 /// # struct Position { x: f32, y: f32 }
-/// let pos = Position { x: 3.234, y: -1.223 };
+/// # let pos = Position { x: 3.234, y: -1.223 };
 ///
-/// trace!("Position is: x: {}, y: {}", pos.x, pos.y);
-/// trace!(target: "app_events", "x is {} and y is {}",
-///        if pos.x >= 0.0 { "positive" } else { "negative" },
-///        if pos.y >= 0.0 { "positive" } else { "negative" });
+/// # trace!("Position is: x: {}, y: {}", pos.x, pos.y);
+/// # trace!(target: "app_events", "x is {} and y is {}",
+/// #       if pos.x >= 0.0 { "positive" } else { "negative" },
+/// #       if pos.y >= 0.0 { "positive" } else { "negative" });
 /// # }
 /// ```
 #[macro_export]

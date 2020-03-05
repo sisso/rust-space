@@ -10,7 +10,7 @@ use space_domain::game::Game;
 
 fn load_objects(game: &mut Game) -> (ObjId, ObjId) {
     let scenery = Loader::load_basic_scenery(game);
-    (scenery.station_id, scenery.miner_id)
+    (scenery.shipyard_id, scenery.miner_id)
 }
 
 #[test]

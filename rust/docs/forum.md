@@ -1,5 +1,37 @@
 # Forum
 
+## Factory and Shipyard and input ores
+
+Both require inputs, both potentially require cargo reservation, both require cargo delivering. 
+
+Cargo deliver will be always managed by cargo to have consistency through whitelist. 
+
+### Options
+
+a) Check for existence of factory, shipyard or other component to decide?
+- simple for now until have a better decision
+b) Move everything to factory, and shipyard consumes directly from factory?
+- Still shipyard will consume a Ware, this ware need to be in cargo.
+  - can other ships take this cargo?
+  - how I generate cargo demand back?
+c) Convert shipyard into a factory?
+- Instead a ware output is a ship_id? 
+  - look simple to add, but reduce the cohesion
+  - what if we have a new requirement later?
+d) Create a new component that contains a InputRequest?
+- factory/station ai need to keep it in sync 
+- maybe is the born a big management AI thorugh requests and demands. Instead give commands, it can schedule tasks and
+  only schedule new InputRequest giving priority, until have full cargo, etc
+- Maybe will be the way to user see and create new commands.
+c) Check cargo whitelist?
+- and how it will distinguish between input and output?
+
+Conclusion
+
+a) is easy solution for now
+d) looks the most flexible and one that open broad flexibility. Still need to confirm if spreading the AI decision is 
+   not a bad idea. (review code of prototype high_level_ai)
+
 ## Factory and cargo spaces
 
 Factories need to be able to control the amount of space used by its cargo, otherwise a single input can force

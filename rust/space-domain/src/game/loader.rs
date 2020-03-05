@@ -1,11 +1,11 @@
 use crate::specs_extras::*;
-use crate::game::wares::{WareId, Cargo};
+use crate::game::wares::{WareId, Cargo, WareAmount};
 use crate::game::sectors::{SectorId, SectorsIndex, Sector, Jump, JumpId};
 use crate::game::objects::ObjId;
 use crate::game::Game;
 use crate::game::new_obj::NewObj;
 use crate::game::extractables::Extractable;
-use crate::utils::{V2, Speed, Position};
+use crate::utils::{V2, Speed, Position, DeltaTime};
 use crate::game::commands::{Commands, CommandMine};
 use specs::{WorldExt, Builder, World};
 use crate::game::locations::{Location, Moveable};
@@ -13,6 +13,7 @@ use crate::game::events::{Event, EventKind, Events};
 use std::borrow::BorrowMut;
 use crate::game::dock::HasDock;
 use crate::game::shipyard::Shipyard;
+use crate::game::station::Station;
 
 pub struct Loader {
 
@@ -20,7 +21,7 @@ pub struct Loader {
 
 pub struct BasicScenery {
     pub asteroid_id: ObjId,
-    pub station_id: ObjId,
+    pub shipyard_id: ObjId,
     pub miner_id: ObjId,
     pub ware_ore_id: WareId,
     pub sector_0: SectorId,
@@ -46,13 +47,13 @@ impl Loader {
 
         // init objects
         let asteroid_id = Loader::new_asteroid(world, sector_1, V2::new(-2.0, 3.0), ware_ore_id);
-        let station_id = Loader::new_station(world, sector_0, V2::new(1.0, -3.0));
-        let miner_id = Loader::new_ship_miner(world, station_id, 2.0);
+        let shipyard_id = Loader::new_shipyard(world, sector_0, V2::new(1.0, -3.0), ware_ore_id);
+        let miner_id = Loader::new_ship_miner(world, shipyard_id, 2.0);
 
         // return scenery
         BasicScenery {
             asteroid_id,
-            station_id,
+            shipyard_id,
             miner_id,
             ware_ore_id,
             sector_0,
@@ -70,14 +71,14 @@ impl Loader {
         )
     }
 
-    pub fn new_station(world: &mut World, sector_id: SectorId, pos: V2) -> ObjId {
+    pub fn new_shipyard(world: &mut World, sector_id: SectorId, pos: V2, ware_id: WareId) -> ObjId {
         Loader::add_object(
             world,
             NewObj::new()
                 .with_cargo(100.0)
                 .at_position(sector_id, pos)
                 .as_station()
-                .with_shipyard()
+                .with_shipyard(Shipyard::new(WareAmount(ware_id, 5.0), DeltaTime(5.0)))
                 .has_dock(),
         )
     }
@@ -161,14 +162,14 @@ impl Loader {
         });
 
         if new_obj.station {
-            // builder.set(Station {});
+            builder.set(Station {});
         }
 
         if new_obj.sector {
             builder.set(Sector {});
         }
 
-        if let Some(target_id) = new_obj.jump_to {
+        for target_id in new_obj.jump_to {
             builder.set(Jump { target_id });
         }
 
@@ -176,8 +177,8 @@ impl Loader {
             builder.set(CommandMine::new());
         }
 
-        if new_obj.shipyard {
-            builder.set(Shipyard::new());
+        for shipyard in &new_obj.shipyard {
+            builder.set(shipyard.clone());
         }
 
         if new_obj.cargo_size > 0.0 {

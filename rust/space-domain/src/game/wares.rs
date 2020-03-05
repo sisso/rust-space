@@ -15,6 +15,16 @@ pub struct Ware;
 #[derive(Debug, Clone, Copy)]
 pub struct WareAmount(pub WareId, pub f32);
 
+impl WareAmount {
+    pub fn get_ware_id(&self) -> WareId {
+        self.0
+    }
+
+    pub fn get_amount(&self) -> f32 {
+         self.1
+    }
+}
+
 impl From<(WareId, f32)> for WareAmount {
     fn from((ware_id, amount): (WareId, f32)) -> Self {
         WareAmount(ware_id, amount)
