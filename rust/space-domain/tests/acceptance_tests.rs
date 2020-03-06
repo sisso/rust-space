@@ -1,7 +1,6 @@
 extern crate space_domain;
 
 use space_domain::game::objects::ObjId;
-use space_domain::game::sectors::test_scenery;
 use space_domain::game::wares::{Cargo};
 use space_domain::utils::{DeltaTime};
 use specs::WorldExt;

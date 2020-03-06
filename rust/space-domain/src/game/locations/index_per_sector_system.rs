@@ -21,6 +21,7 @@ pub struct IndexPerSectorData<'a> {
     stations: ReadStorage<'a, HasDock>,
 }
 
+
 impl<'a> System<'a> for IndexPerSectorSystem {
     type SystemData = IndexPerSectorData<'a>;
 

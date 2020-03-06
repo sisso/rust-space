@@ -3,6 +3,7 @@ use crate::game::wares::{Cargo, WareId, WareAmount};
 use crate::game::new_obj::NewObj;
 use crate::utils::{Speed, TotalTime, DeltaTime};
 use crate::game::{GameInitContext, RequireInitializer};
+use crate::game::commands::Command;
 
 #[derive(Debug,Clone,Component)]
 pub struct Shipyard {
@@ -58,7 +59,7 @@ impl<'a> System<'a> for ShipyardSystem {
 
                     let new_obj = NewObj::new()
                         .with_ai()
-                        .with_command_mine()
+                        .with_command(Command::mine())
                         .with_cargo(10.0)
                         .with_speed(Speed(2.0))
                         .at_dock(entity);
@@ -105,7 +106,7 @@ mod test {
     use crate::game::events::EventKind::Add;
     use crate::utils::V2;
     use crate::space_outputs_generated::space_data::EntityKind::Station;
-    use crate::game::commands::CommandMine;
+    use crate::game::commands::MineState;
 
     const PRODUCTION_TIME: f32 = 5.0;
     const REQUIRE_CARGO: f32 = 5.0;
@@ -156,7 +157,7 @@ mod test {
             }
         }
 
-        assert!(new_obj.command_mine);
+        assert!(new_obj.command.as_ref().and_then(|command| command.as_mine()).is_some());
     }
 
     fn assert_shipyard_cargo(world: &World, entity: Entity, ware_id: WareId, expected: f32) {

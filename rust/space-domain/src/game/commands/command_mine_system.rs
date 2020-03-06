@@ -32,7 +32,7 @@ pub struct CommandMineSystem;
 pub struct CommandMineData<'a> {
     entities: Entities<'a>,
     locations: ReadStorage<'a, Location>,
-    commands_mine: WriteStorage<'a, CommandMine>,
+    commands: WriteStorage<'a, Command>,
     nav_request: WriteStorage<'a, NavRequest>,
     sector_index: Read<'a, EntityPerSectorIndex>,
     cargos: WriteStorage<'a, Cargo>,
@@ -57,7 +57,7 @@ impl<'a> System<'a> for CommandMineSystem {
         // find mine commands without action or navigation
         for (entity, command, cargo, _, _, location) in (
             &*data.entities,
-            &mut data.commands_mine,
+            &mut data.commands,
             &data.cargos,
             !&data.navigation,
             !&data.action_extract,
@@ -65,6 +65,11 @@ impl<'a> System<'a> for CommandMineSystem {
         )
             .join()
         {
+            let command = match command {
+                Command::Mine(mine) => mine,
+                _ => continue,
+            };
+
             if cargo.is_full() {
                 // deliver cargo
 
@@ -229,7 +234,7 @@ mod test {
             .with(Location::Dock {
                 docked_id: station,
             })
-            .with(CommandMine::new())
+            .with(Command::mine())
             .with(Cargo::new(10.0))
             .build();
 
@@ -266,8 +271,8 @@ mod test {
     fn test_command_mine_should_setup_navigation() {
         let (world, scenery) = test_system(CommandMineSystem, |world| setup_scenery(world));
 
-        let command_storage = world.read_component::<CommandMine>();
-        let command = command_storage.get(scenery.miner);
+        let command_storage = world.read_component::<Command>();
+        let command = command_storage.get(scenery.miner).and_then(|i| i.as_mine());
         match command {
             Some(command) => {
                 assert_eq!(command.mine_target_id, Some(scenery.asteroid));

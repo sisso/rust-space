@@ -110,7 +110,7 @@ impl Cargo {
         }
 
         for WareAmount(ware_id, amount) in wares {
-            self.remove(*ware_id, *amount);
+            self.remove(*ware_id, *amount).unwrap();
         }
 
         Ok(())
@@ -188,7 +188,7 @@ impl CargoTransfer {
             let available = tmp_to.free_space(*id);
             let amount_to_move = amount.min(available);
             if amount_to_move > 0.0 {
-                tmp_to.add(*id, amount_to_move);
+                tmp_to.add(*id, amount_to_move).unwrap();
                 change.moved.push(WareAmount(*id, amount_to_move));
             }
         }
@@ -247,8 +247,8 @@ mod test {
         let mut cargo_to = Cargo::new(5.0);
 
         let transfer = CargoTransfer::new(&cargo_from, &cargo_to);
-        transfer.apply_move_from(&mut cargo_from);
-        transfer.apply_move_to(&mut cargo_to);
+        transfer.apply_move_from(&mut cargo_from).unwrap();
+        transfer.apply_move_to(&mut cargo_to).unwrap();
 
         assert_eq!(0.0, cargo_from.get_amount(ware_0));
         assert_eq!(2.0, cargo_from.get_amount(ware_1));

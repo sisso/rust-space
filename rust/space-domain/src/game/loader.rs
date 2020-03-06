@@ -6,7 +6,7 @@ use crate::game::Game;
 use crate::game::new_obj::NewObj;
 use crate::game::extractables::Extractable;
 use crate::utils::{V2, Speed, Position, DeltaTime};
-use crate::game::commands::{Commands, CommandMine};
+use crate::game::commands::{Commands, MineState, Command};
 use specs::{WorldExt, Builder, World};
 use crate::game::locations::{Location, Moveable};
 use crate::game::events::{Event, EventKind, Events};
@@ -124,7 +124,7 @@ impl Loader {
                 .at_dock(docked_at)
                 .can_dock()
                 .with_ai()
-                .with_command_mine(),
+                .with_command(Command::mine()),
         )
     }
 
@@ -167,6 +167,7 @@ impl Loader {
         (jump_from_id, jump_to_id)
     }
 
+    // TODO: receive new obj or reference?
     pub fn add_object(world: &mut World, new_obj: NewObj) -> ObjId {
         let mut builder = world.create_entity();
 
@@ -185,13 +186,13 @@ impl Loader {
             builder.set(location.clone());
         }
 
-        for speed in new_obj.speed {
-            builder.set(Moveable { speed });
+        for speed in &new_obj.speed {
+            builder.set(Moveable { speed: speed.clone() });
         }
 
-        new_obj.extractable.iter().for_each(|i| {
-            builder.set(i.clone());
-        });
+        for extractable in &new_obj.extractable {
+            builder.set(extractable.clone());
+        }
 
         if new_obj.station {
             builder.set(Station {});
@@ -205,8 +206,8 @@ impl Loader {
             builder.set(Jump { target_id });
         }
 
-        if new_obj.command_mine {
-            builder.set(CommandMine::new());
+        for command in &new_obj.command {
+            builder.set(command.clone());
         }
 
         for shipyard in &new_obj.shipyard {

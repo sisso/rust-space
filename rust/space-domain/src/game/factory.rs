@@ -109,7 +109,7 @@ mod test {
     use crate::game::events::EventKind::Add;
     use crate::utils::V2;
     use crate::space_outputs_generated::space_data::EntityKind::Station;
-    use crate::game::commands::CommandMine;
+    use crate::game::commands::MineState;
 
     const REQUIRE_ORE: f32 = 1.0;
     const REQUIRE_ENERGY: f32 = 10.0;

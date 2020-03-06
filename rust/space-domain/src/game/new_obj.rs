@@ -7,6 +7,7 @@ use crate::game::sectors::*;
 use crate::utils::*;
 use crate::game::factory::Factory;
 use crate::game::shipyard::Shipyard;
+use crate::game::commands::Command;
 
 #[derive(Debug, Clone, Component)]
 pub struct NewObj {
@@ -20,7 +21,7 @@ pub struct NewObj {
     pub station: bool,
     pub sector: bool,
     pub jump_to: Option<Entity>,
-    pub command_mine: bool,
+    pub command: Option<Command>,
     pub shipyard: Option<Shipyard>,
     pub ware: bool,
     pub factory: Option<Factory>,
@@ -29,20 +30,20 @@ pub struct NewObj {
 impl NewObj {
     pub fn new() -> NewObj {
         NewObj {
-            speed: None,
+            speed: Default::default(),
             cargo_size: 0.0,
-            extractable: None,
-            location: None,
-            can_dock: false,
-            has_dock: false,
-            ai: false,
-            station: false,
-            sector: false,
-            jump_to: None,
-            command_mine: false,
-            shipyard: None,
-            ware: false,
-            factory: None,
+            extractable: Default::default(),
+            location: Default::default(),
+            can_dock: Default::default(),
+            has_dock: Default::default(),
+            ai: Default::default(),
+            station: Default::default(),
+            sector: Default::default(),
+            jump_to: Default::default(),
+            command: Default::default(),
+            shipyard: Default::default(),
+            ware: Default::default(),
+            factory: Default::default(),
         }
     }
 
@@ -101,8 +102,8 @@ impl NewObj {
         self
     }
 
-    pub fn with_command_mine(mut self) -> Self {
-        self.command_mine = true;
+    pub fn with_command(mut self, command: Command) -> Self {
+        self.command = Some(command);
         self
     }
 

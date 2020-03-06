@@ -146,11 +146,13 @@ impl EntityPerSectorIndex {
     }
 }
 
+pub const INDEX_SECTOR_SYSTEM: &str = "index_sector";
+
 pub struct Locations {}
 
 impl RequireInitializer for Locations {
     fn init(context: &mut GameInitContext) {
-        context.dispatcher.add(IndexPerSectorSystem, "index_by_sector", &[]);
+        context.dispatcher.add(IndexPerSectorSystem, INDEX_SECTOR_SYSTEM, &[]);
     }
 }
 

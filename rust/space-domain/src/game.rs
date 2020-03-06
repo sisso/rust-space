@@ -13,7 +13,7 @@ use self::save::{CanLoad, CanSave, Load, Save};
 use self::sectors::*;
 use self::wares::*;
 use crate::game::actions::Actions;
-use crate::game::commands::{CommandMine, Commands};
+use crate::game::commands::{MineState, Commands};
 use crate::game::navigations::Navigations;
 use crate::game::events::{Events, Event, EventKind};
 use crate::ffi::{FFIApi, FFI};
