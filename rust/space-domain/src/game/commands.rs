@@ -40,13 +40,15 @@ impl Default for MineState {
 pub struct TradeState {
     pub pickup_target_id: Option<ObjId>,
     pub deliver_target_id: Option<ObjId>,
+    pub wares: Vec<WareId>,
 }
 
 impl Default for TradeState {
     fn default() -> Self {
         TradeState {
             pickup_target_id: None,
-            deliver_target_id: None
+            deliver_target_id: None,
+            wares: vec![],
         }
     }
 }
@@ -103,32 +105,40 @@ impl Commands {
     // }
 }
 
-pub fn search_deliver_target(
+pub fn search_orders_target(
     sectors_index: &EntityPerSectorIndex,
-    entity: Entity,
     sector_id: SectorId,
     orders: &ReadStorage<Orders>,
-    wares_to_deliver: &Vec<WareId>,
-) -> Option<ObjId> {
-    // find nearest deliver
+    wares_whitelist: Option<&Vec<WareId>>,
+    requests: bool,
+) -> Option<(ObjId, Vec<WareId>)> {
     let candidates = sectors_index.search_nearest_stations(sector_id);
+
     candidates.iter()
         .flat_map(|(sector_id, candidate_id)| {
-            let has_request =
-                orders.get(*candidate_id)
-                    .map(|orders| {
-                        orders.ware_requests().iter().any(|ware_id| {
-                            wares_to_deliver.contains(ware_id)
-                        })
-                    })
-                    .unwrap_or(false);
+            match orders.get(*candidate_id).map(|orders| {
+                if requests {
+                    orders.ware_requests()
+                } else {
+                    orders.wares_provider()
+                }
+            }) {
+                Some(wares) if !wares.is_empty() => {
+                    let is_valid = match wares_whitelist {
+                        Some(whitelist) =>
+                            whitelist.iter().any(|ware_id| wares.contains(ware_id)),
+                        None => true,
+                    };
 
-            if has_request {
-                Some(*candidate_id)
-            } else {
-                None
+                    if is_valid  {
+                        Some((*candidate_id, wares))
+                    } else {
+                        None
+                    }
+                },
+                _ => None,
             }
         })
-        .next()
+        .next()    // find nearest deliver
 }
 

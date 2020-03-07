@@ -182,13 +182,27 @@ pub struct CargoTransfer {
 
 impl CargoTransfer {
     /// Move all cargo possible from to
-    pub fn new(from: &Cargo, to: &Cargo) -> CargoTransfer {
+    pub fn transfer_all(from: &Cargo, to: &Cargo) -> CargoTransfer {
+        CargoTransfer::transfer_impl(from, to, None)
+    }
+
+    pub fn transfer_only(from: &Cargo, to: &Cargo, wares: &Vec<WareId>) -> CargoTransfer {
+        CargoTransfer::transfer_impl(from, to, Some(wares))
+    }
+
+    fn transfer_impl(from: &Cargo, to: &Cargo, wares: Option<&Vec<WareId>>) -> CargoTransfer {
         let mut change = CargoTransfer { moved: vec![] };
 
         // use a temporary copy to simulate the transfer
         let mut tmp_to = to.clone();
 
         for WareAmount(id, amount) in &from.wares {
+            if let Some(wares) = wares {
+                if !wares.contains(id) {
+                    continue;
+                }
+            }
+
             let available = tmp_to.free_space(*id);
             let amount_to_move = amount.min(available);
             if amount_to_move > 0.0 {
@@ -212,12 +226,20 @@ impl CargoTransfer {
 pub struct Cargos;
 
 impl Cargos {
+    pub fn move_only(cargos: &mut WriteStorage<Cargo>, from_id: ObjId, to_id: ObjId, wares: &Vec<WareId>) -> CargoTransfer {
+        Cargos::move_impl(cargos, from_id, to_id, Some(wares))
+    }
+
     pub fn move_all(cargos: &mut WriteStorage<Cargo>, from_id: ObjId, to_id: ObjId) -> CargoTransfer {
+        Cargos::move_impl(cargos, from_id, to_id, None)
+    }
+
+    fn move_impl(cargos: &mut WriteStorage<Cargo>, from_id: ObjId, to_id: ObjId, wares: Option<&Vec<WareId>>) -> CargoTransfer {
         let cargo_from = cargos.get(from_id).expect("Entity cargo not found");
         let cargo_to = cargos.get(to_id).expect("Deliver cargo not found");
-        let transfer = CargoTransfer::new(cargo_from, cargo_to);
+        let transfer = CargoTransfer::transfer_impl(cargo_from, cargo_to, wares);
 
-        trace!("move_all from {:?} to {:?}, transfer is {:?}", cargo_from, cargo_to, transfer);
+        trace!("move wares {:?} from {:?} to {:?}, transfer is {:?}", wares, cargo_from, cargo_to, transfer);
 
         let cargo_from = cargos.get_mut(from_id).expect("Entity cargo not found");
         transfer.apply_move_from(cargo_from).expect("To remove wares to be transfer");
@@ -235,16 +257,17 @@ mod test {
     use specs::world::Generation;
 
     // TODO: how to create entities without a world?
-    fn create_wares() -> (WareId, WareId) {
+    fn create_wares() -> (WareId, WareId, WareId) {
         let mut world = World::new();
         let ware_0 = world.create_entity().build();
         let ware_1 = world.create_entity().build();
-        (ware_0, ware_1)
+        let ware_2 = world.create_entity().build();
+        (ware_0, ware_1, ware_2)
     }
 
     #[test]
     fn test_cargo_transfer() {
-        let (ware_0, ware_1) = create_wares();
+        let (ware_0, ware_1, _ware_2) = create_wares();
 
         let mut cargo_from = Cargo::new(10.0);
         cargo_from.add(ware_0, 4.0).unwrap();
@@ -252,7 +275,7 @@ mod test {
 
         let mut cargo_to = Cargo::new(5.0);
 
-        let transfer = CargoTransfer::new(&cargo_from, &cargo_to);
+        let transfer = CargoTransfer::transfer_all(&cargo_from, &cargo_to);
         transfer.apply_move_from(&mut cargo_from).unwrap();
         transfer.apply_move_to(&mut cargo_to).unwrap();
 
@@ -264,8 +287,32 @@ mod test {
     }
 
     #[test]
+    fn test_cargo_transfer_only() {
+        let (ware_0, ware_1, ware_2) = create_wares();
+
+        let mut cargo_from = Cargo::new(10.0);
+        cargo_from.add(ware_0, 2.0).unwrap();
+        cargo_from.add(ware_1, 2.0).unwrap();
+        cargo_from.add(ware_2, 2.0).unwrap();
+
+        let mut cargo_to = Cargo::new(5.0);
+
+        let transfer = CargoTransfer::transfer_only(&cargo_from, &cargo_to, &vec![ware_0, ware_1]);
+        transfer.apply_move_from(&mut cargo_from).unwrap();
+        transfer.apply_move_to(&mut cargo_to).unwrap();
+
+        assert_eq!(0.0, cargo_from.get_amount(ware_0));
+        assert_eq!(0.0, cargo_from.get_amount(ware_1));
+        assert_eq!(2.0, cargo_from.get_amount(ware_2));
+
+        assert_eq!(2.0, cargo_to.get_amount(ware_0));
+        assert_eq!(2.0, cargo_to.get_amount(ware_1));
+        assert_eq!(0.0, cargo_to.get_amount(ware_2));
+    }
+
+    #[test]
     fn test_cargo_add_over_capacity_should_fail() {
-        let (ware_0, _) = create_wares();
+        let (ware_0, _, _ware_2) = create_wares();
         let mut cargo = Cargo::new(1.0);
         let result = cargo.add(ware_0, 2.0);
         assert!(result.is_err())
@@ -273,7 +320,7 @@ mod test {
 
     #[test]
     fn test_cargo_add_to_max() {
-        let (ware_0, _) = create_wares();
+        let (ware_0, _, _ware_2) = create_wares();
 
         let mut cargo = Cargo::new(1.0);
         let amount = cargo.add_to_max(ware_0, 2.0);
@@ -287,7 +334,7 @@ mod test {
 
     #[test]
     fn test_cargo_whitelist_should_reject_any_other_ware() {
-        let (ware_0, ware_1) = create_wares();
+        let (ware_0, ware_1, _ware_2) = create_wares();
 
         let mut cargo = Cargo::new(10.0);
         cargo.set_whitelist(vec![ware_0]);
@@ -301,7 +348,7 @@ mod test {
 
     #[test]
     fn test_cargo_whitelist_should_accept_valid_ware() {
-        let (ware_0, ware_1) = create_wares();
+        let (ware_0, ware_1, _ware_2) = create_wares();
 
         let mut cargo = Cargo::new(10.0);
         cargo.set_whitelist(vec![ware_0]);
@@ -315,7 +362,7 @@ mod test {
 
     #[test]
     fn test_cargo_whitelist_should_split_cargo_even() {
-        let (ware_0, ware_1) = create_wares();
+        let (ware_0, ware_1, _ware_2) = create_wares();
 
         let mut cargo = Cargo::new(10.0);
         cargo.set_whitelist(vec![ware_0, ware_1]);

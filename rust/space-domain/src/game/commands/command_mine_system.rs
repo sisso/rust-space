@@ -86,8 +86,8 @@ impl<'a> System<'a> for CommandMineSystem {
 
                         let wares_to_deliver: Vec<WareId> = cargo.get_wares().cloned().collect();
 
-                        match search_deliver_target(sectors_index, entity, sector_id, &data.orders, &wares_to_deliver) {
-                            Some(target_id) => {
+                        match search_orders_target(sectors_index, sector_id, &data.orders, Some(&wares_to_deliver), true) {
+                            Some((target_id, _wares)) => {
                                 command.deliver_target_id = Some(target_id);
                                 target_id
                             },

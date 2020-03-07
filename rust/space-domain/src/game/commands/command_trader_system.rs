@@ -63,10 +63,12 @@ impl<'a> System<'a> for CommandTradeSystem {
                             .unwrap()
                             .sector_id;
 
-                        match search_pickup_target(sectors_index, entity, sector_id, &data.orders) {
-                            Some(target_id) => {
-                                debug!("{:?} found station {:?} to pickup", entity, target_id);
+                        match search_pickup_target(sectors_index, sector_id, &data.orders) {
+                            Some((target_id, wares)) => {
+                                debug!("{:?} found station {:?} to pickup {:?}", entity, target_id, wares);
                                 state.pickup_target_id = Some(target_id);
+                                state.deliver_target_id = None;
+                                state.wares = wares;
                                 target_id
                             },
                             None => {
@@ -78,8 +80,8 @@ impl<'a> System<'a> for CommandTradeSystem {
                 };
 
                 if location.as_docked() == Some(target_id) {
-                    debug!("{:?} take wares from station {:?}", entity, target_id);
-                    cargo_transfers.push((target_id, entity));
+                    debug!("{:?} take wares {:?} from station {:?}", entity, state.wares, target_id);
+                    cargo_transfers.push((target_id, entity, state.wares.clone()));
                 } else {
                     debug!("{:?} navigating to pick wares at station {:?}", entity, target_id);
                     data.nav_request
@@ -97,10 +99,12 @@ impl<'a> System<'a> for CommandTradeSystem {
 
                         let wares = cargo.get_wares().cloned().collect();
 
-                        match super::search_deliver_target(sectors_index, entity, sector_id, &data.orders, &wares) {
-                            Some(target_id) => {
+                        match super::search_orders_target(sectors_index, sector_id, &data.orders, Some(&wares), true) {
+                            Some((target_id, wares)) => {
                                 debug!("{:?} found station {:?} to deliver {:?}", entity, target_id, wares);
                                 state.deliver_target_id = Some(target_id);
+                                state.pickup_target_id = None;
+                                state.wares = wares;
                                 target_id
                             },
                             None => {
@@ -112,8 +116,8 @@ impl<'a> System<'a> for CommandTradeSystem {
                 };
 
                 if location.as_docked() == Some(target_id) {
-                    debug!("{:?} deliver wares to station {:?}", entity, target_id);
-                    cargo_transfers.push((entity, target_id));
+                    debug!("{:?} deliver wares {:?} to station {:?}", entity, state.wares, target_id);
+                    cargo_transfers.push((entity, target_id, state.wares.clone()));
                 } else {
                     debug!("{:?} navigating to deliver wares to station {:?}", entity, target_id);
                     data.nav_request
@@ -126,36 +130,25 @@ impl<'a> System<'a> for CommandTradeSystem {
 
         // transfer all cargo
         let cargos = data.cargos.borrow_mut();
-        for (from_id, to_id) in cargo_transfers {
-            let transfer = Cargos::move_all(cargos, from_id, to_id);
-            info!("{:?} transfer {:?} to {:?}", from_id, transfer, to_id);
+        for (from_id, to_id, wares) in cargo_transfers {
+            let transfer = Cargos::move_only(cargos, from_id, to_id, &wares);
+            info!("{:?} transfer wares {:?} from {:?} to {:?}", wares, from_id, transfer, to_id);
         }
     }
 }
 
 fn search_pickup_target(
     sectors_index: &EntityPerSectorIndex,
-    _entity: Entity,
     sector_id: SectorId,
     orders: &ReadStorage<Orders>,
-) -> Option<ObjId> {
-    // find nearest deliver
-    let candidates = sectors_index.search_nearest_stations(sector_id);
-
-    candidates.iter()
-        .flat_map(|(sector_id, candidate_id)| {
-            let has_request =
-                orders.get(*candidate_id)
-                    .map(|orders| !orders.wares_provider().is_empty())
-                    .unwrap_or(false);
-
-            if has_request {
-                Some(*candidate_id)
-            } else {
-                None
-            }
-        })
-        .next()
+) -> Option<(ObjId, Vec<WareId>)> {
+    super::search_orders_target(
+        sectors_index,
+        sector_id,
+        orders,
+        None,
+        false,
+    )
 }
 
 #[cfg(test)]
@@ -187,6 +180,7 @@ mod test {
         consumer_station_id: ObjId,
         ware0_id: WareId,
         ware1_id: WareId,
+        ware2_id: WareId,
     }
 
     fn setup_scenery(world: &mut World) -> SceneryResult {
@@ -194,12 +188,13 @@ mod test {
 
         let ware0_id = world.create_entity().build();
         let ware1_id = world.create_entity().build();
+        let ware2_id = world.create_entity().build();
 
         let producer_station_id = world
             .create_entity()
             .with(Location::Space { pos: V2_ZERO, sector_id })
             .with(HasDock)
-            .with(Orders::new(Order::WareProvide { wares_id: vec![ware0_id] }))
+            .with(Orders::new(Order::WareProvide { wares_id: vec![ware0_id, ware1_id] }))
             .with(Cargo::new(STATION_CARGO))
             .build();
 
@@ -230,6 +225,7 @@ mod test {
             consumer_station_id,
             ware0_id,
             ware1_id,
+            ware2_id,
         };
 
         debug!("setup scenery {:?}", scenery);
@@ -319,6 +315,24 @@ mod test {
     }
 
     #[test]
+    fn command_trade_when_pickup_should_only_take_valid_cargo() {
+        let (world, scenery) = test_system(CommandTradeSystem, |mut world| {
+            let scenery = setup_scenery(world);
+
+            set_docked_at(world, scenery.trader_id, scenery.producer_station_id);
+            add_cargo(world, scenery.producer_station_id, scenery.ware0_id, 1.0);
+            add_cargo(world, scenery.producer_station_id, scenery.ware1_id, 1.0);
+            add_cargo(world, scenery.producer_station_id, scenery.ware2_id, 1.0);
+
+            scenery
+        });
+
+        assert_cargo(&world, scenery.trader_id, scenery.ware0_id, 1.0);
+        assert_cargo(&world, scenery.trader_id, scenery.ware1_id, 1.0);
+        assert_cargo(&world, scenery.trader_id, scenery.ware2_id, 0.0);
+    }
+
+    #[test]
     fn command_trade_when_with_cargo_should_move_to_deliver() {
         let (world, scenery) = test_system(CommandTradeSystem, |mut world| {
             let scenery = setup_scenery(world);
@@ -358,5 +372,23 @@ mod test {
 
         assert_cargo(&world, scenery.trader_id, scenery.ware0_id, 0.0);
         assert_cargo(&world, scenery.consumer_station_id, scenery.ware0_id, SHIP_CARGO);
+    }
+
+    #[test]
+    fn command_trade_when_deliver_should_only_deliver_valid_cargo() {
+        let (world, scenery) = test_system(CommandTradeSystem, |mut world| {
+            let scenery = setup_scenery(world);
+
+            set_docked_at(world, scenery.trader_id, scenery.consumer_station_id);
+            add_cargo(world, scenery.trader_id, scenery.ware0_id, 1.0);
+            add_cargo(world, scenery.trader_id, scenery.ware1_id, 1.0);
+            add_cargo(world, scenery.trader_id, scenery.ware2_id, 1.0);
+
+            scenery
+        });
+
+        assert_cargo(&world, scenery.trader_id, scenery.ware0_id, 0.0);
+        assert_cargo(&world, scenery.trader_id, scenery.ware1_id, 0.0);
+        assert_cargo(&world, scenery.trader_id, scenery.ware2_id, 1.0);
     }
 }
