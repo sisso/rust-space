@@ -50,8 +50,8 @@ impl<'a> System<'a> for CommandMineSystem {
     fn run(&mut self, mut data: CommandMineData) {
         trace!("running");
 
-        let sectors_index = data.sector_index.borrow();
-        let locations = data.locations.borrow();
+        let sectors_index = &data.sector_index;
+        let locations = &data.locations;
         let mut cargo_transfers = vec![];
 
         // find mine commands without action or navigation
@@ -84,7 +84,7 @@ impl<'a> System<'a> for CommandMineSystem {
                             .unwrap()
                             .sector_id;
 
-                        let wares_to_deliver: Vec<&WareId> = cargo.get_wares().collect();
+                        let wares_to_deliver: Vec<WareId> = cargo.get_wares().cloned().collect();
 
                         match search_deliver_target(sectors_index, entity, sector_id, &data.orders, &wares_to_deliver) {
                             Some(target_id) => {
@@ -167,34 +167,6 @@ fn search_mine_target(
     target_id.1
 }
 
-fn search_deliver_target(
-    sectors_index: &EntityPerSectorIndex,
-    entity: Entity,
-    sector_id: SectorId,
-    orders: &ReadStorage<Orders>,
-    wares_to_deliver: &Vec<&WareId>,
-) -> Option<ObjId> {
-    // find nearest deliver
-    let candidates = sectors_index.search_nearest_stations(sector_id);
-    candidates.iter()
-        .flat_map(|(sector_id, candidate_id)| {
-            let has_request =
-                orders.get(*candidate_id)
-                    .map(|orders| {
-                        orders.ware_requests().iter().any(|ware_id| {
-                            wares_to_deliver.contains(&ware_id)
-                        })
-                    })
-                    .unwrap_or(false);
-
-            if has_request {
-                Some(*candidate_id)
-            } else {
-                None
-            }
-        })
-        .next()
-}
 
 #[cfg(test)]
 mod test {

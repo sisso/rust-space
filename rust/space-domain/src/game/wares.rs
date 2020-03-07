@@ -148,6 +148,10 @@ impl Cargo {
         self.current >= self.max
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.current <= 0.001
+    }
+
     pub fn get_current(&self) -> f32 {
         self.current
     }
@@ -212,6 +216,8 @@ impl Cargos {
         let cargo_from = cargos.get(from_id).expect("Entity cargo not found");
         let cargo_to = cargos.get(to_id).expect("Deliver cargo not found");
         let transfer = CargoTransfer::new(cargo_from, cargo_to);
+
+        trace!("move_all from {:?} to {:?}, transfer is {:?}", cargo_from, cargo_to, transfer);
 
         let cargo_from = cargos.get_mut(from_id).expect("Entity cargo not found");
         transfer.apply_move_from(cargo_from).expect("To remove wares to be transfer");

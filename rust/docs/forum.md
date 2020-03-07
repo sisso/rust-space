@@ -1,5 +1,15 @@
 # Forum
 
+## AtSectorId
+
+One more time come to the discussion if we should have Location::AtSector or a diffirecent component. While
+centralize most of position algorithms become much simplier, some systems that dont care about position like
+is not good to have a position.
+
+- Neh, only because you are not doing right and searching not only for the nearest secort, but nearest 
+  position. NEGATE!!!
+
+
 ## Factory and Shipyard and input ores
 
 Both require inputs, both potentially require cargo reservation, both require cargo delivering. 
