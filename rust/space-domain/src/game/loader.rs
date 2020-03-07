@@ -15,7 +15,7 @@ use crate::game::dock::HasDock;
 use crate::game::shipyard::Shipyard;
 use crate::game::station::Station;
 use crate::game::factory::{Factory, Production};
-use crate::game::order::Order;
+use crate::game::order::{Order, Orders};
 
 pub struct Loader {
 
@@ -171,6 +171,8 @@ impl Loader {
     pub fn add_object(world: &mut World, new_obj: NewObj) -> ObjId {
         let mut builder = world.create_entity();
 
+        let mut orders = vec![];
+
         if new_obj.can_dock && new_obj.speed.is_none() {
             panic!(format!(
                 "fatal {:?}: entity that can dock should be moveable",
@@ -212,9 +214,9 @@ impl Loader {
 
         for shipyard in &new_obj.shipyard {
             builder.set(shipyard.clone());
-            builder.set(Order::WareRequest {
+            orders.push(Order::WareRequest {
                 wares_id: vec![shipyard.input.get_ware_id()]
-            })
+            });
         }
 
         if new_obj.cargo_size > 0.0 {
@@ -228,9 +230,16 @@ impl Loader {
 
         for factory in &new_obj.factory {
             builder.set(factory.clone());
-            builder.set(Order::WareRequest {
+            orders.push(Order::WareRequest {
                 wares_id: factory.production.request_wares_id()
-            })
+            });
+            orders.push(Order::WareProvide {
+                wares_id: factory.production.provide_wares_id()
+            });
+        }
+
+        if !orders.is_empty() {
+            builder.set(Orders(orders));
         }
 
         let entity = builder.build();

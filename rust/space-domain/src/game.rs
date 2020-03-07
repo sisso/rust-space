@@ -142,7 +142,7 @@ impl<'a, 'b> Game<'a, 'b> {
 
         for (e, new_obj) in (&*self.world.entities(), self.world.write_storage::<NewObj>().borrow_mut().drain()).join() {
             list.push(new_obj);
-            self.world.entities().delete(e);
+            self.world.entities().delete(e).unwrap();
         }
 
         for obj in list {

@@ -15,6 +15,10 @@ impl Production {
     pub fn request_wares_id(&self) -> Vec<WareId> {
         self.input.iter().map(|WareAmount(ware_id, _)| *ware_id).collect()
     }
+
+    pub fn provide_wares_id(&self) -> Vec<WareId> {
+        self.output.iter().map(|WareAmount(ware_id, _)| *ware_id).collect()
+    }
 }
 
 #[derive(Debug,Clone,Component)]

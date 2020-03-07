@@ -24,7 +24,7 @@ use crate::game::navigations::{NavRequest, Navigation, NavigationMoveTo, Navigat
 use crate::game::wares::{Cargo, WareId};
 use std::borrow::{Borrow, BorrowMut};
 use crate::game::dock::HasDock;
-use crate::game::order::Order;
+use crate::game::order::{Order, Orders};
 
 pub struct CommandMineSystem;
 
@@ -41,7 +41,7 @@ pub struct CommandMineData<'a> {
     action_request: WriteStorage<'a, ActionRequest>,
     extractable: ReadStorage<'a, Extractable>,
     docks: ReadStorage<'a, HasDock>,
-    orders: ReadStorage<'a, Order>,
+    orders: ReadStorage<'a, Orders>,
 }
 
 impl<'a> System<'a> for CommandMineSystem {
@@ -65,6 +65,9 @@ impl<'a> System<'a> for CommandMineSystem {
         )
             .join()
         {
+            // re-assign to stop Intelij to complain
+            let command: &mut Command = command;
+
             let command = match command {
                 Command::Mine(mine) => mine,
                 _ => continue,
@@ -81,7 +84,9 @@ impl<'a> System<'a> for CommandMineSystem {
                             .unwrap()
                             .sector_id;
 
-                        match search_deliver_target(sectors_index, entity, sector_id, &data.orders) {
+                        let wares_to_deliver: Vec<&WareId> = cargo.get_wares().collect();
+
+                        match search_deliver_target(sectors_index, entity, sector_id, &data.orders, &wares_to_deliver) {
                             Some(target_id) => {
                                 command.deliver_target_id = Some(target_id);
                                 target_id
@@ -166,18 +171,26 @@ fn search_deliver_target(
     sectors_index: &EntityPerSectorIndex,
     entity: Entity,
     sector_id: SectorId,
-    orders: &ReadStorage<Order>,
+    orders: &ReadStorage<Orders>,
+    wares_to_deliver: &Vec<&WareId>,
 ) -> Option<ObjId> {
     // find nearest deliver
     let candidates = sectors_index.search_nearest_stations(sector_id);
     candidates.iter()
         .flat_map(|(sector_id, candidate_id)| {
-            match orders.get(*candidate_id) {
-                // TODO: filter per ware type
-                Some(Order::WareRequest { .. }) => {
-                    Some(*candidate_id)
-                },
-                _ => None,
+            let has_request =
+                orders.get(*candidate_id)
+                    .map(|orders| {
+                        orders.ware_requests().iter().any(|ware_id| {
+                            wares_to_deliver.contains(&ware_id)
+                        })
+                    })
+                    .unwrap_or(false);
+
+            if has_request {
+                Some(*candidate_id)
+            } else {
+                None
             }
         })
         .next()
@@ -226,7 +239,7 @@ mod test {
             })
             .with(HasDock)
             .with(Cargo::new(100.0))
-            .with(Order::WareRequest { wares_id: vec![ware_id] })
+            .with(Orders::new(Order::WareRequest { wares_id: vec![ware_id] }))
             .build();
 
         let miner = world
@@ -257,7 +270,7 @@ mod test {
     }
 
     fn remove_station_ware_order(world: &mut World, scenery: &SceneryResult) {
-        world.write_storage::<Order>().borrow_mut().remove(scenery.station).unwrap();
+        world.write_storage::<Orders>().borrow_mut().remove(scenery.station).unwrap();
     }
 
     fn move_miner_to_asteroid(world: &mut World, scenery: &SceneryResult) {
