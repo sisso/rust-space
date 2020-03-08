@@ -4,6 +4,7 @@ use crate::game::new_obj::NewObj;
 use crate::utils::{Speed, TotalTime, DeltaTime};
 use crate::game::{GameInitContext, RequireInitializer};
 use crate::game::commands::Command;
+use rand::RngCore;
 
 #[derive(Debug,Clone,Component)]
 pub struct Shipyard {
@@ -57,9 +58,15 @@ impl<'a> System<'a> for ShipyardSystem {
                 Some(time) if total_time.is_after(time) => {
                     shipyard.current_production = None;
 
+                    let command = if rand::thread_rng().next_u32() % 2 == 0 {
+                        Command::mine()
+                    } else {
+                        Command::trade()
+                    };
+
                     let new_obj = NewObj::new()
                         .with_ai()
-                        .with_command(Command::mine())
+                        .with_command(command)
                         .with_cargo(10.0)
                         .with_speed(Speed(2.0))
                         .at_dock(entity);
@@ -157,7 +164,8 @@ mod test {
             }
         }
 
-        assert!(new_obj.command.as_ref().and_then(|command| command.as_mine()).is_some());
+        // check command
+        assert!(new_obj.command.is_some());
     }
 
     fn assert_shipyard_cargo(world: &World, entity: Entity, ware_id: WareId, expected: f32) {

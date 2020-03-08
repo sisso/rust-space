@@ -25,6 +25,7 @@ pub struct BasicScenery {
     pub asteroid_id: ObjId,
     pub shipyard_id: ObjId,
     pub miner_id: ObjId,
+    pub trader_id: ObjId,
     pub ware_ore_id: WareId,
     pub ware_components_id: WareId,
     pub sector_0: SectorId,
@@ -61,12 +62,14 @@ impl Loader {
         );
         let shipyard_id = Loader::new_shipyard(world, sector_0, V2::new(1.0, -3.0), ware_components_id);
         let miner_id = Loader::new_ship_miner(world, shipyard_id, 2.0);
+        let trader_id = Loader::new_ship_trader(world, component_factory_id, 2.0);
 
         // return scenery
         BasicScenery {
             asteroid_id,
             shipyard_id,
             miner_id,
+            trader_id,
             ware_ore_id,
             ware_components_id,
             sector_0,
@@ -118,14 +121,26 @@ impl Loader {
     pub fn new_ship_miner(world: &mut World, docked_at: ObjId, speed: f32) -> ObjId {
         Loader::add_object(
             world,
-            NewObj::new()
-                .with_cargo(2.0)
-                .with_speed(Speed(speed))
-                .at_dock(docked_at)
-                .can_dock()
-                .with_ai()
-                .with_command(Command::mine()),
+           Loader::new_ship(docked_at, speed)
+               .with_command(Command::mine())
         )
+    }
+
+    pub fn new_ship_trader(world: &mut World, docked_at: ObjId, speed: f32) -> ObjId {
+        Loader::add_object(
+            world,
+            Loader::new_ship(docked_at, speed)
+                .with_command(Command::trade())
+        )
+    }
+
+    pub fn new_ship(docked_at: ObjId, speed: f32) -> NewObj {
+        NewObj::new()
+            .with_cargo(2.0)
+            .with_speed(Speed(speed))
+            .at_dock(docked_at)
+            .can_dock()
+            .with_command(Command::mine())
     }
 
     pub fn new_sector(world: &mut World) -> ObjId {

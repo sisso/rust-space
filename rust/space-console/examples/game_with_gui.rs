@@ -115,7 +115,7 @@ fn main() -> Result<(), std::io::Error> {
     let mut game_api = FFIApi::new();
     game_api.new_game();
 
-    let time_rate = Duration::from_millis(100);
+    let time_rate = Duration::from_millis(1000);
 
     let mut gui = Gui::new(time_rate)?;
     let mut sector_view = SectorViewsImpl::new();
@@ -125,10 +125,14 @@ fn main() -> Result<(), std::io::Error> {
 
         game_api.update(time_rate);
 
+        let game_update_time= Instant::now();
+
         let success = game_api.get_inputs(|bytes| {
             let outputs = space_data::get_root_as_outputs(bytes.as_slice());
             sector_view.update(outputs);
         });
+
+        let input_read_time = Instant::now();
 
         if !success {
             eprintln!("gui - failed to get inputs");
@@ -136,19 +140,22 @@ fn main() -> Result<(), std::io::Error> {
 
         gui.show_sectors(&sector_view);
 
-        if gui.exit() {
-            break;
-        }
+        let show_sector_time = Instant::now();
 
         // TODO: move it to own class
-        let now = Instant::now();
+        let now = show_sector_time;
         let delta = now - start;
         if delta < time_rate {
             let wait_time = time_rate - delta;
             eprintln!("gui - delta {:?}, wait_time: {:?}, ration: {:?}% usage", delta, wait_time, (100.0 / (time_rate.as_millis() as f64 / delta.as_millis() as f64)) as i32);
+            eprintln!("    - update {:?}, collect_inputs: {:?}, draw {:?}", game_update_time - start, input_read_time - game_update_time, show_sector_time - input_read_time);
             std::thread::sleep(wait_time);
         } else {
             eprintln!("gui - delta {:?}, wait_time: 0.0: missing time frame", delta);
+        }
+
+        if gui.exit() {
+            break;
         }
     }
 
