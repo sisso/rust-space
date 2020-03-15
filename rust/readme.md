@@ -5,10 +5,9 @@ in system are never output.
 
 # TODO
 
-- add wait time globaly per action
+- traders/miners always go to same targets
 - fix multiples actions per tick
 - switch movements to curves instead interact every frame
-
 - create new movement system. 
 
 ## Configuration files

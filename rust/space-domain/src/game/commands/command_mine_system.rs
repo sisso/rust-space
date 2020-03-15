@@ -89,6 +89,7 @@ impl<'a> System<'a> for CommandMineSystem {
                         match search_orders_target(sectors_index, sector_id, &data.orders, Some(&wares_to_deliver), true) {
                             Some((target_id, _wares)) => {
                                 command.deliver_target_id = Some(target_id);
+                                command.mine_target_id = None;
                                 target_id
                             },
                             None => {
@@ -120,6 +121,7 @@ impl<'a> System<'a> for CommandMineSystem {
 
                         let target_id = search_mine_target(sectors_index, entity, sector_id);
                         command.mine_target_id = Some(target_id);
+                        command.deliver_target_id = None;
                         target_id
                     }
                 };

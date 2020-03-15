@@ -34,7 +34,6 @@ impl<'a> System<'a> for CommandTradeSystem {
 
         let sectors_index = &data.sector_index;
         let locations = &data.locations;
-        // TODO: only move ores that should move
         let mut cargo_transfers = vec![];
 
         // ships with trade command but not executing any navigation

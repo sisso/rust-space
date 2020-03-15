@@ -4,5 +4,4 @@ members = [
   "space-domain",
   "space-lib",
   "space-console",
-  "space-ffi",
 ]

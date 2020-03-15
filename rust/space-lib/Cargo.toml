@@ -11,3 +11,4 @@ crate-type = ["cdylib"]
 [dependencies]
 libc = "*"
 space-domain = { version = "*", path = "../space-domain" }
+space-macros = { version = "*", path = "../space-macros" }
