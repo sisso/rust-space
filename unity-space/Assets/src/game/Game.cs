@@ -19,4 +19,9 @@ public class Game : MonoBehaviour
         this.core.Dispose();
         this.core = null;
     }
+
+    void FixedUpdate()
+    {
+        this.core.Update(Time.fixedDeltaTime);
+    }
 }

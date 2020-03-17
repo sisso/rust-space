@@ -47,7 +47,6 @@ pub mod order;
 pub struct Game<'a, 'b> {
     pub total_time: TotalTime,
     pub world: World,
-    /// Normal dispatcher
     pub dispatcher: Dispatcher<'a, 'b>,
     /// Dispatchers that execute after normal execution and after all lazy update get applied
     /// This dispatcher is where all events should be processed

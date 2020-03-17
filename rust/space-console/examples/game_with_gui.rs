@@ -161,3 +161,13 @@ fn main() -> Result<(), std::io::Error> {
 
     Ok(())
 }
+
+// pub struct Clock {
+//     desired: Duration,
+// }
+//
+// impl Clock {
+//     fn compute_wait_time(&self, delta_time: Duration) -> Option<Duration> {
+//
+//     }
+// }
