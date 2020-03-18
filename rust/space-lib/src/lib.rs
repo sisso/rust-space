@@ -62,13 +62,20 @@ pub extern fn close(ctx_ptr: *mut FfiContext) {
 
 #[no_mangle]
 pub extern fn set_data(ctx_ptr: *mut FfiContext, kind: u32, buffer: *mut u8, length: u32) -> u32 {
-    debugf!("set_data");
+    let ctx = Context::from_ptr(ctx_ptr);
+    let ref_data = unsafe { std::slice::from_raw_parts(buffer, length as usize) };
+    let bytes = ref_data.to_vec();
+    debugf!("set_data: {:?}", bytes);
     0
 }
 
 #[no_mangle]
 pub extern fn get_data(ctx_ptr: *mut FfiContext, callback: extern "stdcall" fn (*mut u8, u32)) -> u32 {
-    debugf!("get_data");
+    let ctx = Context::from_ptr(ctx_ptr);
+    ctx.api.get_inputs(|mut bytes| {
+        debugf!("get_data: {:?}", bytes);
+        callback(bytes.as_mut_ptr(), bytes.len() as u32);
+    });
     0
 }
 

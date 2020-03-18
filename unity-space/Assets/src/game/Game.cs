@@ -22,6 +22,8 @@ public class Game : MonoBehaviour
 
     void FixedUpdate()
     {
+        Debug.Log("Tick");
         this.core.Update(Time.fixedDeltaTime);
+        this.core.GetData();
     }
 }

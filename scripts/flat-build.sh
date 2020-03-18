@@ -11,7 +11,7 @@ for file in $WORK_DIR/data/*; do
   echo "processing ${file}..."
   $flatc --rust -o "$WORK_DIR/rust/space-domain/src" "${file}"
   # $flatc --csharp -o "$WORK_DIR/mono/test-csharp-rust/" "${file}"
-  # $flatc --csharp -o "$WORK_DIR/unity-space/Assets/src" "${file}"
+  $flatc --csharp -o "$WORK_DIR/unity-space/Assets/src" "${file}"
 done
 
 echo "complete"

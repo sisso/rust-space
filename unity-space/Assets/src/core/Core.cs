@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System;
 using UnityEngine;
+using FlatBuffers;
 
 namespace core
 {
@@ -12,13 +13,13 @@ namespace core
         [DllImport("libspace.so", CharSet = CharSet.Unicode)]
         internal static extern CoreHandler init(string args);
         [DllImport("libspace.so", CharSet = CharSet.Unicode)]
-        internal static extern void run_tick(CoreHandler ptr, UInt32 delta);
+        internal static extern UInt32 run_tick(CoreHandler ptr, UInt32 delta);
         [DllImport("libspace.so", CharSet = CharSet.Unicode)]
-        internal static extern void close(CoreHandler ptr);
+        internal static extern void close(IntPtr ptr);
         [DllImport("libspace.so")]
-        internal static extern bool set_data(CoreHandler ptr, byte[] buffer, UInt32 len);
+        internal static extern UInt32 set_data(CoreHandler ptr, byte[] buffer, UInt32 len);
         [DllImport("libspace.so", CharSet = CharSet.Unicode)]
-        internal static extern bool get_data(CoreHandler ptr, Action<IntPtr, UInt32> callback);
+        internal static extern UInt32 get_data(CoreHandler ptr, Action<IntPtr, UInt32> callback);
     }
 
     internal class CoreHandler : SafeHandle
@@ -37,7 +38,7 @@ namespace core
 
         protected override bool ReleaseHandle()
         {
-            Native.close(this);
+            Native.close(handle);
             return true;
         }
     }
@@ -55,6 +56,7 @@ namespace core
         public void Dispose()
         {
             handler.Dispose();
+            Debug.Log("core disposed");
         }
 
         public void Update(float delta) 
@@ -77,7 +79,54 @@ namespace core
                 throw new Exception("Null bytes returned from Native");
             }
 
-            Debug.Log("receive " + bytes.Length + " bytes");
+            // unmarshlar
+            var buffer = new ByteBuffer(bytes);
+            var outputs = space_data.Outputs.GetRootAsOutputs(buffer);
+
+            for (int i = 0; i < outputs.SectorsLength; i++)
+            {
+                var entity = outputs.Sectors(i) ?? throw new NullReferenceException();
+                var id = entity.Id;
+                Debug.Log("adding sector "+id);
+            }
+
+            for (int i = 0; i < outputs.JumpsLength; i++)
+            {
+                var entity = outputs.Jumps(i) ?? throw new NullReferenceException();
+                var id = entity.Id;
+                var pos = new Vector2(entity.Pos.X, entity.Pos.Y);
+                var sector = (int) entity.SectorId;
+                var toSector = (int) entity.ToSectorId;
+                var toPos = new Vector2(entity.ToPos.X, entity.ToPos.Y);
+                Debug.Log("adding jump gate" + id + " from " + pos + "/" + sector + " to " + toSector + "/" + toPos);
+            }
+
+            for (int i = 0; i < outputs.EntitiesNewLength; i++)
+            {
+                var entity = outputs.EntitiesNew(i) ?? throw new NullReferenceException();
+                var id = entity.Id;
+                var kind = entity.Kind;
+                var sectorId = (int)entity.SectorId;
+                var pos = new Vector2(entity.Pos.X, entity.Pos.Y);
+                Debug.Log("adding " + id + " of type " + kind + " at " + pos + "/" + sectorId);
+            }
+
+            for (int i = 0; i < outputs.EntitiesMoveLength; i++)
+            {
+                var entity = outputs.EntitiesMove(i) ?? throw new NullReferenceException();
+                var id = entity.Id;
+                var pos = new Vector2(entity.Pos.X, entity.Pos.Y);
+                Debug.Log("moved " + id + " to " + pos);
+            }
+
+            for (int i = 0; i < outputs.EntitiesJumpLength; i++)
+            {
+                var entity = outputs.EntitiesJump(i) ?? throw new NullReferenceException();
+                var id = entity.Id;
+                var pos = new Vector2(entity.Pos.X, entity.Pos.Y);
+                var sector = (int) entity.SectorId;
+                Debug.Log("jump " + id + " to " + pos + "/" + sector);
+            }
         }
 
         private static byte[] ToByteArray(IntPtr ptr, uint length)
