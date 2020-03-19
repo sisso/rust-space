@@ -10,5 +10,6 @@ export LD_LIBRARY_PATH="${LIB_PATH}"
 echo "export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}"
 ls $LD_LIBRARY_PATH
 
-[[ $(rm -v /tmp/ffi.log) ]] || true
+[[ $(rm -v /tmp/debug.log) ]] || true
+[[ $(rm -v unity-space/Temp/UnityLockfile) ]] || true
 unity-editor -projectPath unity-space $@

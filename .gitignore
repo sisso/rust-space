@@ -2,3 +2,4 @@
 **/*.rs.bk
 .idea
 *.lock
+unity-space/Assets/Plugins/lib/libspace.so

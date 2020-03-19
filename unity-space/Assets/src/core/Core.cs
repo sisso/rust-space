@@ -5,8 +5,19 @@ using System;
 using UnityEngine;
 using FlatBuffers;
 
+/**
+ * Provide user friendly access to native rust code
+ */
 namespace core
 {
+    public interface EventHandler
+    {
+        void AddSector(UInt32 id);
+        void AddJump(UInt32 id, UInt32 fromSectorId, space_data.V2 fromPos, UInt32 toSectorId, space_data.V2 toPos);
+        void AddObj(UInt32 id, UInt32 sectorId, space_data.V2 pos, space_data.EntityKind kind);
+        void ObjMove(UInt32 id, space_data.V2 pos);
+        void ObjJump(UInt32 id, UInt32 sectorId, space_data.V2 pos);
+    }
 
     static class Native
     {
@@ -45,96 +56,96 @@ namespace core
 
     public class Core : IDisposable
     {
-        private CoreHandler handler;
+        private CoreHandler coreHandler;
 
-        public Core(string args)
+        public EventHandler eventHandler;
+
+        public Core(string args, EventHandler eventHandler)
         {
-            this.handler = Native.init(args);
+            this.coreHandler = Native.init(args);
+            this.eventHandler = eventHandler;
             Debug.Log("core initialize");
         }
 
         public void Dispose()
         {
-            handler.Dispose();
+            coreHandler.Dispose();
             Debug.Log("core disposed");
         }
 
         public void Update(float delta) 
         {
             var delta_u32 = (UInt32) Math.Floor(delta * 1000);
-            Native.run_tick(handler, delta_u32);
+            var result = Native.run_tick(coreHandler, delta_u32);
+
+            if (result != 0)
+            {
+                throw new Exception("invalid result " + result);
+            }
         }
 
         public void GetData()
         {
+            if (this.eventHandler == null) throw new NullReferenceException("Event handler can not be null");
+
             byte[] bytes = null;
 
-            Native.get_data(this.handler, (ptr, length) =>
+            var result = Native.get_data(this.coreHandler, (ptr, length) =>
             {
+                // TODO: why moving parser and call to handler here crash rust with already borrow?
                 bytes = ToByteArray(ptr, length);
             });
 
+            if (result != 0)
+            {
+                throw new Exception("invalid result " + result);
+            }
             if (bytes == null)
             {
                 throw new Exception("Null bytes returned from Native");
             }
 
-            // unmarshlar
             var buffer = new ByteBuffer(bytes);
             var outputs = space_data.Outputs.GetRootAsOutputs(buffer);
 
             for (int i = 0; i < outputs.SectorsLength; i++)
             {
                 var entity = outputs.Sectors(i) ?? throw new NullReferenceException();
-                var id = entity.Id;
-                Debug.Log("adding sector "+id);
+                this.eventHandler.AddSector(entity.Id);
             }
 
             for (int i = 0; i < outputs.JumpsLength; i++)
             {
                 var entity = outputs.Jumps(i) ?? throw new NullReferenceException();
-                var id = entity.Id;
-                var pos = new Vector2(entity.Pos.X, entity.Pos.Y);
-                var sector = (int) entity.SectorId;
-                var toSector = (int) entity.ToSectorId;
-                var toPos = new Vector2(entity.ToPos.X, entity.ToPos.Y);
-                Debug.Log("adding jump gate" + id + " from " + pos + "/" + sector + " to " + toSector + "/" + toPos);
+                this.eventHandler.AddJump(entity.Id, entity.SectorId, entity.Pos, entity.ToSectorId, entity.ToPos);
             }
 
             for (int i = 0; i < outputs.EntitiesNewLength; i++)
             {
                 var entity = outputs.EntitiesNew(i) ?? throw new NullReferenceException();
-                var id = entity.Id;
-                var kind = entity.Kind;
-                var sectorId = (int)entity.SectorId;
-                var pos = new Vector2(entity.Pos.X, entity.Pos.Y);
-                Debug.Log("adding " + id + " of type " + kind + " at " + pos + "/" + sectorId);
+                this.eventHandler.AddObj(entity.Id, entity.SectorId, entity.Pos, entity.Kind);
             }
 
             for (int i = 0; i < outputs.EntitiesMoveLength; i++)
             {
                 var entity = outputs.EntitiesMove(i) ?? throw new NullReferenceException();
-                var id = entity.Id;
-                var pos = new Vector2(entity.Pos.X, entity.Pos.Y);
-                Debug.Log("moved " + id + " to " + pos);
+                this.eventHandler.ObjMove(entity.Id, entity.Pos);
             }
 
             for (int i = 0; i < outputs.EntitiesJumpLength; i++)
             {
                 var entity = outputs.EntitiesJump(i) ?? throw new NullReferenceException();
-                var id = entity.Id;
-                var pos = new Vector2(entity.Pos.X, entity.Pos.Y);
-                var sector = (int) entity.SectorId;
-                Debug.Log("jump " + id + " to " + pos + "/" + sector);
+                this.eventHandler.ObjJump(entity.Id, entity.SectorId, entity.Pos);
             }
         }
 
         private static byte[] ToByteArray(IntPtr ptr, uint length)
         {
+            // TODO: remove copy
             int len = Convert.ToInt32(length);
             var bytes = new byte[len];
             Marshal.Copy(ptr, bytes, 0, len);
             return bytes;
-        }    
-    }       
+        }
+    }
 }

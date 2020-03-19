@@ -2,28 +2,32 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Game : MonoBehaviour
+namespace game
 {
-    private core.Core core;
-
-    void OnEnable()
+    public class Game : MonoBehaviour
     {
-        if (this.core == null)
+        public domain.Domain domain;
+
+        private core.Core core;
+
+        void OnEnable()
         {
-            this.core = new core.Core("");
+            if (this.core == null)
+            {
+                this.core = new core.Core("", this.domain);
+            }
         }
-    }
 
-    void Destroy()
-    {
-        this.core.Dispose();
-        this.core = null;
-    }
+        void Destroy()
+        {
+            this.core.Dispose();
+            this.core = null;
+        }
 
-    void FixedUpdate()
-    {
-        Debug.Log("Tick");
-        this.core.Update(Time.fixedDeltaTime);
-        this.core.GetData();
+        void FixedUpdate()
+        {
+            this.core.Update(Time.fixedDeltaTime);
+            this.core.GetData();
+        }
     }
 }
