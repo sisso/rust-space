@@ -90,8 +90,11 @@ impl RequireInitializer for FFI {
 
 pub struct FfiOutpusBuilder {
     pub entities_new: Vec<space_data::EntityNew>,
+    pub entities_teleport: Vec<space_data::EntityTeleport>,
     pub entities_moved: Vec<space_data::EntityMove>,
     pub entities_jumped: Vec<space_data::EntityJump>,
+    pub entities_dock: Vec<space_data::EntityDock>,
+    pub entities_undock: Vec<space_data::EntityUndock>,
     pub sectors_new: Vec<space_data::SectorNew>,
     pub jumps_new: Vec<space_data::JumpNew>,
 }
@@ -106,8 +109,11 @@ impl FfiOutpusBuilder {
     pub fn new() -> Self {
         FfiOutpusBuilder {
             entities_new: vec![],
+            entities_teleport: vec![],
             entities_moved: vec![],
             entities_jumped: vec![],
+            entities_dock: vec![],
+            entities_undock: vec![],
             sectors_new: vec![],
             jumps_new: vec![],
         }
@@ -121,15 +127,42 @@ impl FfiOutpusBuilder {
         self.jumps_new = vec![];
     }
 
-    pub fn push_entity_new(
+    pub fn push_entity_new_in_space(
+        &mut self,
+        id: u32,
+        kind: space_data::EntityKind,
+        pos: space_data::V2,
+        sector_id: u32,
+    ) {
+        self.entities_new.push(space_data::EntityNew::new(id, kind));
+        self.entities_teleport.push(space_data::EntityTeleport::new(id, &pos, sector_id));
+    }
+
+    pub fn push_entity_new_docked(
+        &mut self,
+        id: u32,
+        kind: space_data::EntityKind,
+        docked_id: u32,
+    ) {
+        self.entities_new.push(space_data::EntityNew::new(id, kind));
+        self.push_entity_dock(id, docked_id);
+    }
+
+    pub fn push_entity_dock(
+        &mut self,
+        id: u32,
+        docked_id: u32,
+    ) {
+        self.entities_dock.push(space_data::EntityDock::new(id, docked_id));
+    }
+
+    pub fn push_entity_undock(
         &mut self,
         id: u32,
         pos: space_data::V2,
         sector_id: u32,
-        kind: space_data::EntityKind,
     ) {
-        self.entities_new
-            .push(space_data::EntityNew::new(id, &pos, sector_id, kind));
+        self.entities_undock.push(space_data::EntityUndock::new(id, &pos, sector_id));
     }
 
     pub fn push_entity_move(&mut self, id: u32, pos: space_data::V2) {
@@ -163,8 +196,11 @@ impl FfiOutpusBuilder {
 
         let root_args = space_data::OutputsArgs {
             entities_new: create_vector!(self.entities_new),
+            entities_teleport: create_vector!(self.entities_teleport),
             entities_move: create_vector!(self.entities_moved),
             entities_jump: create_vector!(self.entities_jumped),
+            entities_dock: create_vector!(self.entities_dock),
+            entities_undock: create_vector!(self.entities_undock),
             sectors: create_vector!(self.sectors_new),
             jumps: create_vector!(self.jumps_new),
         };
@@ -198,17 +234,16 @@ mod test {
     #[test]
     fn test_events_to_flatoutputs_objects_added() {
         let mut builder = FfiOutpusBuilder::new();
-        builder.push_entity_new(
+        builder.push_entity_new_docked(
             0,
-            space_data::V2::new(22.0, 35.0),
-            4,
             space_data::EntityKind::Fleet,
-        );
-        builder.push_entity_new(
             1,
+        );
+        builder.push_entity_new_in_space(
+            1,
+            space_data::EntityKind::Station,
             space_data::V2::new(2.0, 5.0),
             2,
-            space_data::EntityKind::Station,
         );
         let bytes = builder.build();
 
@@ -220,16 +255,36 @@ mod test {
                 assert_eq!(new_entities.len(), 2);
 
                 assert_eq!(new_entities[0].id(), 0);
-                assert_eq!(new_entities[0].pos().x(), 22.0);
-                assert_eq!(new_entities[0].pos().y(), 35.0);
-                assert_eq!(new_entities[0].sector_id(), 4);
                 assert_eq!(new_entities[0].kind(), space_data::EntityKind::Fleet);
 
                 assert_eq!(new_entities[1].id(), 1);
-                assert_eq!(new_entities[1].pos().x(), 2.0);
-                assert_eq!(new_entities[1].pos().y(), 5.0);
-                assert_eq!(new_entities[1].sector_id(), 2);
                 assert_eq!(new_entities[1].kind(), space_data::EntityKind::Station);
+            }
+            None => {
+                panic!();
+            }
+        }
+
+        match root.entities_teleport() {
+            Some(teleports) => {
+                assert_eq!(teleports.len(), 1);
+
+                assert_eq!(teleports[0].id(), 1);
+                assert_eq!(teleports[0].pos().x(), 2.0);
+                assert_eq!(teleports[0].pos().y(), 5.0);
+                assert_eq!(teleports[0].sector_id(), 2);
+            }
+            None => {
+                panic!();
+            }
+        }
+
+        match root.entities_dock() {
+            Some(docked) => {
+                assert_eq!(docked.len(), 1);
+
+                assert_eq!(docked[0].id(), 0);
+                assert_eq!(docked[0].target_id(), 1);
             }
             None => {
                 panic!();

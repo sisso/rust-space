@@ -71,23 +71,52 @@ impl<'a> System<'a> for FfiOutputSystem {
                         match data.location.get(entity) {
                             Some(Location::Space { pos, sector_id }) => {
                                 let entity_kind = FfiOutputSystem::resolve_entity_kind(entity, &data.station, &data.extractable);
-                                output.push_entity_new(entity.id(), pos.into(), sector_id.as_u32(), entity_kind);
+                                output.push_entity_new_in_space(
+                                    entity.id(),
+                                    entity_kind,
+                                    pos.into(),
+                                    sector_id.as_u32(),
+                                );
                             },
-                            Some(Location::Dock { .. }) => {
-                                // ignore docked objects
+                            Some(Location::Dock { docked_id }) => {
+                                let entity_kind = FfiOutputSystem::resolve_entity_kind(entity, &data.station, &data.extractable);
+                                output.push_entity_new_docked(
+                                    entity.id(),
+                                    entity_kind,
+                                    docked_id.as_u32(),
+                                );
                             },
                             other => {
                                 // ignore entities not visible in sector
+                                warn!("{:?} added entity with invalid position {:?}", entity, other);
                             },
                         }
+                    }
+                },
+
+                EventKind::Dock => {
+                    match data.location.get(entity) {
+                        Some(Location::Dock { docked_id }) => {
+                            output.push_entity_dock(
+                                entity.id(),
+                                docked_id.as_u32()
+                            );
+                        },
+                        other => {
+                            // ignore entities not visible in sector
+                            warn!("{:?} undock but has no space {:?}", entity, other);
+                        },
                     }
                 },
 
                 EventKind::Undock => {
                     match data.location.get(entity) {
                         Some(Location::Space { pos, sector_id }) => {
-                            let entity_kind = FfiOutputSystem::resolve_entity_kind(entity, &data.station, &data.extractable);
-                            output.push_entity_new(entity.id(), pos.into(), sector_id.as_u32(), entity_kind);
+                            output.push_entity_undock(
+                                entity.id(),
+                                pos.into(),
+                                sector_id.as_u32()
+                            );
                         },
                         other => {
                             // ignore entities not visible in sector
@@ -135,8 +164,8 @@ mod test {
     use crate::utils::V2;
 
     #[test]
-    fn test_ffi_output_system_added_docked_not_create_new_entity() {
-        let (world, id) = test_system(FfiOutputSystem, |world| {
+    fn test_ffi_output_system_added_docked_create_new_entity_and_dock_output() {
+        let (world, (id, station_id)) = test_system(FfiOutputSystem, |world| {
             let arbitrary_station = world.create_entity().build();
 
             let arbitrary_entity = world.create_entity()
@@ -147,14 +176,20 @@ mod test {
                 .borrow_mut()
                 .push(Event::new(arbitrary_entity, EventKind::Add));
 
-            arbitrary_entity.id()
+            (arbitrary_entity.id(), arbitrary_station.id())
         });
 
         let output = &*world.read_resource::<FfiOutpusBuilder>();
-        assert_eq!(output.entities_new.iter().next(), None);
+
+        let entry = output.entities_new.iter().next().unwrap();
+        assert_eq!(id, entry.id());
+
+        let entry = output.entities_dock.iter().next().unwrap();
+        assert_eq!(entry.target_id(), station_id);
     }
+
     #[test]
-    fn test_ffi_output_system_added_entity_in_space() {
+    fn test_ffi_output_system_added_entity_in_space_should_create_new_entity_and_teleport_output() {
         let (world, (id, sector_0)) = test_system(FfiOutputSystem, |world| {
             let sector_0 = world.create_entity().build();
 
@@ -173,15 +208,18 @@ mod test {
         });
 
         let output = &*world.read_resource::<FfiOutpusBuilder>();
+
         let entry = output.entities_new.iter().next().unwrap();
         assert_eq!(id, entry.id());
+
+        let entry = output.entities_teleport.iter().next().unwrap();
         assert_eq!(entry.pos().x(), 1.0);
         assert_eq!(entry.pos().y(), 2.0);
         assert_eq!(entry.sector_id(), sector_0.as_u32());
     }
 
     #[test]
-    fn test_ffi_output_system_undock_event_should_generate_added_output() {
+    fn test_ffi_output_system_undock_event_should_generate_undock() {
         let (world, (id, sector_0)) = test_system(FfiOutputSystem, |world| {
             let sector_0 = world.create_entity().build();
 
@@ -200,7 +238,7 @@ mod test {
         });
 
         let output = &*world.read_resource::<FfiOutpusBuilder>();
-        let entry = output.entities_new.iter().next().unwrap();
+        let entry = output.entities_undock.iter().next().unwrap();
         assert_eq!(id, entry.id());
         assert_eq!(entry.pos().x(), 1.0);
         assert_eq!(entry.pos().y(), 2.0);
@@ -258,5 +296,27 @@ mod test {
         assert_eq!(id, entry.id());
         assert_eq!(entry.pos().x(), 1.0);
         assert_eq!(entry.pos().y(), 2.0);
+    }
+
+    #[test]
+    fn test_ffi_output_system_docked_should_create_dock_output() {
+        let (world, (id, station_id)) = test_system(FfiOutputSystem, |world| {
+            let arbitrary_station = world.create_entity().build();
+
+            let arbitrary_entity = world.create_entity()
+                .with(Location::Dock { docked_id: arbitrary_station, })
+                .build();
+
+            world.write_resource::<Events>()
+                .borrow_mut()
+                .push(Event::new(arbitrary_entity, EventKind::Dock));
+
+            (arbitrary_entity.id(), arbitrary_station.id())
+        });
+
+        let output = &*world.read_resource::<FfiOutpusBuilder>();
+
+        let entry = output.entities_dock.iter().next().unwrap();
+        assert_eq!(entry.target_id(), station_id);
     }
 }

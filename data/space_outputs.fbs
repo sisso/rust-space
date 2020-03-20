@@ -25,15 +25,17 @@ enum EntityKind : short{
   Fleet = 0,
   Asteroid,
   Station,
-  // remove?
-  Jump
 }
 
 struct EntityNew {
   id: uint;
+  kind: EntityKind;
+}
+
+struct EntityTeleport {
+  id: uint;
   pos: V2;
   sector_id: uint;
-  kind: EntityKind;
 }
 
 struct EntityMove {
@@ -47,12 +49,26 @@ struct EntityJump {
   pos: V2;
 }
 
+struct EntityDock {
+  id: uint;
+  target_id: uint;
+}
+
+struct EntityUndock {
+  id: uint;
+  pos: V2;
+  sector_id: uint;
+}
+
 //----------------------------------------------------
 
 table Outputs {
   entities_new: [EntityNew];
+  entities_teleport: [EntityTeleport];
   entities_move: [EntityMove];
   entities_jump: [EntityJump];
+  entities_dock: [EntityDock];
+  entities_undock: [EntityUndock];
   sectors: [SectorNew];
   jumps: [JumpNew];
 }

@@ -3,5 +3,4 @@ members = [
   "space-macros",
   "space-domain",
   "space-lib",
-  "space-console",
 ]

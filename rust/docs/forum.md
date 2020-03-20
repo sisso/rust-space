@@ -1,5 +1,22 @@
 # Forum
 
+## FFI events
+
+We should add new entities independent of location
+
+New events 
+DockedAt(target), Undock(sector, pos), Teleport(sector,pos)
+
+### Context
+
+Currently create entity add a EntityAdded with position and sector. 
+- can not be used for created docked entity
+
+The idea was to Add when visible and Remove when invisible. 
+- that will complicate drastically UI, like 
+
+
+
 ## AtSectorId
 
 One more time come to the discussion if we should have Location::AtSector or a diffirecent component. While
