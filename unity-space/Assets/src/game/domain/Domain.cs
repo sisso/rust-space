@@ -38,16 +38,15 @@ namespace game.domain
             Debug.Log("AddJump");
         }
 
-        public void AddObj(uint id, uint sectorId, V2 pos, EntityKind kind)
+        public void AddObj(uint id, EntityKind kind)
         {
-            Debug.Log("AddObj "+id+"/"+kind);
+            Debug.Log("AddObj " + id + "/" + kind);
 
             var obj = Utils.Inst(prefabGeneric);
             obj.id = new Id(id);
-            obj.kind = (ObjKind) (short) kind;
+            obj.kind = (ObjKind)(short)kind;
 
             Utils.SetParentZero(obj.transform, root);
-            obj.transform.localPosition = new Vector3((float) pos.X, (float) pos.Y, 0f);
 
             this.idMap.Add(id, obj.gameObject);
         }
@@ -66,16 +65,39 @@ namespace game.domain
             this.idMap.Add(id, obj.gameObject);
         }
 
+        public void ObjDock(uint id, uint targetId)
+        {
+            Debug.Log("ObjDock");
+            var obj = this.idMap[id];
+            obj.GetComponent<DrawGizmos>().enabled = false;
+        }
+
         public void ObjJump(uint id, uint sectorId, V2 pos)
         {
             Debug.Log("ObjJump");
+            var obj = this.idMap[id];
+            obj.transform.position = new Vector3((float)pos.X, (float)pos.Y, 0f);
         }
 
         public void ObjMove(uint id, V2 pos)
         {
-            Debug.Log("ObjMove");
-
+            // Debug.Log("ObjMove");
             var obj = this.idMap[id];
+            obj.transform.position = new Vector3((float)pos.X, (float)pos.Y, 0f);
+        }
+
+        public void ObjTeleport(uint id, uint sectorId, V2 pos)
+        {
+            Debug.Log("ObjTeleport " + id + " " + sectorId + "/" +pos.X + ", " +pos.Y);
+            var obj = this.idMap[id];
+            obj.transform.position = new Vector3((float)pos.X, (float)pos.Y, 0f);
+        }
+
+        public void ObjUndock(uint id, uint sectorId, V2 pos)
+        {
+            Debug.Log("ObjUndock " + id + " " + sectorId + "/" + pos.X + ", " + pos.Y);
+            var obj = this.idMap[id];
+            obj.GetComponent<DrawGizmos>().enabled = true;
             obj.transform.position = new Vector3((float)pos.X, (float)pos.Y, 0f);
         }
     }

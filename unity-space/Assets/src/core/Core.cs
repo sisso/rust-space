@@ -14,9 +14,12 @@ namespace core
     {
         void AddSector(UInt32 id);
         void AddJump(UInt32 id, UInt32 fromSectorId, space_data.V2 fromPos, UInt32 toSectorId, space_data.V2 toPos);
-        void AddObj(UInt32 id, UInt32 sectorId, space_data.V2 pos, space_data.EntityKind kind);
+        void AddObj(UInt32 id, space_data.EntityKind kind);
+        void ObjTeleport(UInt32 id, UInt32 sectorId, space_data.V2 pos);
         void ObjMove(UInt32 id, space_data.V2 pos);
         void ObjJump(UInt32 id, UInt32 sectorId, space_data.V2 pos);
+        void ObjDock(UInt32 id, UInt32 targetId);
+        void ObjUndock(UInt32 id, UInt32 sectorId, space_data.V2 pos);
     }
 
     static class Native
@@ -123,7 +126,13 @@ namespace core
             for (int i = 0; i < outputs.EntitiesNewLength; i++)
             {
                 var entity = outputs.EntitiesNew(i) ?? throw new NullReferenceException();
-                this.eventHandler.AddObj(entity.Id, entity.SectorId, entity.Pos, entity.Kind);
+                this.eventHandler.AddObj(entity.Id, entity.Kind);
+            }
+
+            for (int i = 0; i < outputs.EntitiesTeleportLength; i++)
+            {
+                var entity = outputs.EntitiesTeleport(i) ?? throw new NullReferenceException();
+                this.eventHandler.ObjTeleport(entity.Id, entity.SectorId, entity.Pos);
             }
 
             for (int i = 0; i < outputs.EntitiesMoveLength; i++)
@@ -136,6 +145,18 @@ namespace core
             {
                 var entity = outputs.EntitiesJump(i) ?? throw new NullReferenceException();
                 this.eventHandler.ObjJump(entity.Id, entity.SectorId, entity.Pos);
+            }
+
+            for (int i = 0; i < outputs.EntitiesDockLength; i++)
+            {
+                var entity = outputs.EntitiesDock(i) ?? throw new NullReferenceException();
+                this.eventHandler.ObjDock(entity.Id, entity.TargetId);
+            }
+
+            for (int i = 0; i < outputs.EntitiesUndockLength; i++)
+            {
+                var entity = outputs.EntitiesUndock(i) ?? throw new NullReferenceException();
+                this.eventHandler.ObjUndock(entity.Id, entity.SectorId, entity.Pos);
             }
         }
 
