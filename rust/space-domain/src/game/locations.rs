@@ -121,16 +121,21 @@ impl EntityPerSectorIndex {
             .or_insert(vec![obj_id]);
     }
 
-    // TODO: should be a iterator from nearest to far
-    pub fn search_nearest_extractable(&self, from_sector_id: SectorId) -> Vec<(SectorId, ObjId)> {
+    // TODO: return properly distance, not only 0 or 1
+    /// returns the sector_id, distance, object_id
+    pub fn search_nearest_extractable<'a>(&'a self, from_sector_id: SectorId) -> impl Iterator<Item = (SectorId, u32, ObjId)> + 'a {
         self.index_extractables
             .iter()
-            .flat_map(|(sector_id, list)| {
+            .flat_map(move |(sector_id, list)| {
+                // TODO: remove the collect
                 list.iter()
-                    .map(|id| (*sector_id, *id))
-                    .collect::<Vec<(SectorId, ObjId)>>()
+                    .map(|id| {
+                        let same_sector = *sector_id == from_sector_id;
+                        let distance = if same_sector { 0 } else { 1 };
+                        (*sector_id, distance, *id)
+                    })
+                    .collect::<Vec<(SectorId, u32, ObjId)>>()
             })
-            .collect()
     }
 
     // TODO: should be a iterator from nearest to far

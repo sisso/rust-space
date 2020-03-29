@@ -54,6 +54,21 @@ impl<'a> System<'a> for CommandMineSystem {
         let locations = &data.locations;
         let mut cargo_transfers = vec![];
 
+        let mut already_targets: HashMap<ObjId, u32> = HashMap::new();
+
+        // collect all already target
+        for command in (&data.commands).join() {
+            match command {
+                Command::Mine(mine) => {
+                    for target_id in &mine.mine_target_id {
+                        *already_targets.entry(*target_id)
+                            .or_insert(0) += 1;
+                    }
+                },
+                _ => {},
+            };
+        }
+
         // find mine commands without action or navigation
         for (entity, command, cargo, _, _, location) in (
             &*data.entities,
@@ -119,9 +134,13 @@ impl<'a> System<'a> for CommandMineSystem {
                             .unwrap()
                             .sector_id;
 
-                        let target_id = search_mine_target(sectors_index, entity, sector_id);
+                        let target_id = search_mine_target(sectors_index, &already_targets, entity, sector_id);
                         command.mine_target_id = Some(target_id);
                         command.deliver_target_id = None;
+
+                        *already_targets.entry(target_id)
+                            .or_insert(0) += 1;
+
                         target_id
                     }
                 };
@@ -160,13 +179,24 @@ impl<'a> System<'a> for CommandMineSystem {
 
 fn search_mine_target(
     sectors_index: &EntityPerSectorIndex,
+    already_targets: &HashMap<ObjId, u32>,
     entity: Entity,
     sector_id: SectorId,
 ) -> ObjId {
     // find nearest extractable
-    let candidates = sectors_index.search_nearest_extractable(sector_id);
-    let target_id = candidates.iter().next().unwrap();
-    target_id.1
+    let mut candidates =
+        sectors_index.search_nearest_extractable(sector_id)
+            .map(|(_, distance, obj_id)| {
+                let count = already_targets.get(&obj_id).cloned().unwrap_or(0);
+                let score = count * 10 + distance * 11;
+                (score, obj_id)
+            }).collect::<Vec<_>>();
+
+    candidates.sort_by_key(|(score, _id)| *score);
+
+    // search first
+    let (_score, target_id) = candidates.iter().next().expect("target mine not found");
+    *target_id
 }
 
 
@@ -239,6 +269,7 @@ mod test {
         });
 
         // inject objects into the location index
+        // TODO: how to test it easy?
         let mut entities_per_sector = EntityPerSectorIndex::new();
         entities_per_sector.add_stations(sector_scenery.sector_0, station);
         entities_per_sector.add_extractable(sector_scenery.sector_0, asteroid);
@@ -433,6 +464,12 @@ mod test {
                     miners.push(miner);
                 }
 
+                // update index
+                // TODO: how to test it easy without manually manipulating the index?
+                let index = &mut world.write_resource::<EntityPerSectorIndex>();
+                index.add_extractable(scenery.sector_scenery.sector_1, asteroid_1);
+                index.add_extractable(scenery.sector_scenery.sector_1, asteroid_2);
+
                 (scenery, asteroids, miners)
             });
 
@@ -440,12 +477,12 @@ mod test {
             let mut targets_sector_1 = 0i32;
 
             for miner_id in miners {
-                let target_id = match world.read_storage::<ActionRequest>().get(scenery.miner).cloned() {
-                    Some(ActionRequest(Action::Extract { target_id, .. })) => target_id,
+                let target_id = match world.read_storage::<Command>().get(miner_id).cloned() {
+                    Some(Command::Mine(MineState { mine_target_id, .. })) => mine_target_id,
                     other => panic!("unexpected {:?} for {:?}", other, miner_id),
                 };
 
-                if target_id == asteroids[0] {
+                if target_id == Some(asteroids[0]) {
                     targets_sector_1 += 1;
                 } else {
                     targets_sector_0 += 1;
