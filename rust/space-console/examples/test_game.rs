@@ -3,7 +3,7 @@ extern crate space_macros;
 
 use space_domain::ffi::FFIApi;
 use space_macros::{info, log};
-use std::time::{Duration};
+use std::time::{Duration, Instant};
 
 fn main() -> Result<(), std::io::Error> {
     //    space_domain::local_game::run();
@@ -14,20 +14,30 @@ fn main() -> Result<(), std::io::Error> {
     let mut game_api = FFIApi::new();
     game_api.new_game();
 
-    let time_rate = Duration::from_millis(1000);
-    let start = std::time::Instant::now();
-    let wait_time = Duration::from_secs(1);
+    let time_rate = Duration::from_millis(1000 / 60);
 
     loop {
-        info!(target: "main", "--------------------------------------------------");
-
+        let start = Instant::now();
         game_api.set_inputs(&vec![]);
         game_api.update(time_rate);
-        game_api.get_inputs(move |bytes| info!("receive {:?}", bytes));
+        let game_update_time = Instant::now();
+        let mut total_bytes = 0;
+        game_api.get_inputs(|bytes| total_bytes += bytes.len());
+        let input_time = Instant::now();
 
-        if start.elapsed() >= wait_time {
-            break;
+        let now = input_time;
+        let delta = now - start;
+        let wait_time = time_rate - delta;
+
+        eprintln!("gui - delta {:?}, wait_time: {:?}, ration: {:?}% usage", delta, wait_time, (100.0 / (time_rate.as_millis() as f64 / delta.as_millis() as f64)) as i32);
+        eprintln!("    - update {:?}, collect_inputs: {:?}", game_update_time - start, input_time - game_update_time);
+
+        if delta < time_rate {
+            std::thread::sleep(wait_time);
+        } else {
+            eprintln!("gui - delta {:?}, wait_time: 0.0: missing time frame", delta);
         }
+
     }
 
     Ok(())
