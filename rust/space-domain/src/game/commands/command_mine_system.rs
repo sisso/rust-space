@@ -178,32 +178,50 @@ mod test {
     use crate::test::test_system;
     use specs::DispatcherBuilder;
     use crate::game::order::Order;
+    use crate::game::sectors::test_scenery::SectorScenery;
 
     struct SceneryRequest {}
 
     #[derive(Debug)]
     struct SceneryResult {
+        sector_scenery: SectorScenery,
         miner: ObjId,
         asteroid: ObjId,
         station: ObjId,
         ware_id: WareId,
     }
 
+
+    fn create_asteroid(world: &mut World, location: Location, ware_id: WareId) -> ObjId {
+        world.create_entity()
+            .with(location)
+            .with(Extractable { ware_id })
+            .build()
+    }
+
+    fn create_miner(world: &mut World, location: Location) -> ObjId {
+        world
+            .create_entity()
+            .with(location)
+            .with(Command::mine())
+            .with(Cargo::new(10.0))
+            .build()
+    }
+
+    /// Setup a asteroid in sector 0, a mine station in sector 1, a miner docked in the station
     fn setup_scenery(world: &mut World) -> SceneryResult {
         let sector_scenery = crate::game::sectors::test_scenery::setup_sector_scenery(world);
 
         let ware_id = world.create_entity().build();
 
-        let extractable = Extractable { ware_id };
-
-        let asteroid = world
-            .create_entity()
-            .with(Location::Space {
-                pos: V2::new(0.0, 0.0),
-                sector_id: sector_scenery.sector_0,
-            })
-            .with(extractable)
-            .build();
+        let asteroid =
+            create_asteroid(
+                world,
+                Location::Space {
+                    pos: V2::new(0.0, 0.0),
+                    sector_id: sector_scenery.sector_0,
+                },
+                ware_id);
 
         let station = world
             .create_entity()
@@ -216,14 +234,9 @@ mod test {
             .with(Orders::new(Order::WareRequest { wares_id: vec![ware_id] }))
             .build();
 
-        let miner = world
-            .create_entity()
-            .with(Location::Dock {
-                docked_id: station,
-            })
-            .with(Command::mine())
-            .with(Cargo::new(10.0))
-            .build();
+        let miner = create_miner(world, Location::Dock {
+            docked_id: station,
+        });
 
         // inject objects into the location index
         let mut entities_per_sector = EntityPerSectorIndex::new();
@@ -232,6 +245,7 @@ mod test {
         world.insert(entities_per_sector);
 
         let scenery = SceneryResult {
+            sector_scenery,
             miner,
             asteroid,
             station,
@@ -380,5 +394,70 @@ mod test {
 
         let station_cargo = cargo_storage.get(scenery.station).unwrap();
         assert_eq!(10.0, station_cargo.get_current());
+    }
+
+    #[test]
+    fn test_command_mine_should_split_mining_targets() {
+        /// setup a scenery with 2 steroid in same sector with miners and another in neighbor sector
+        /// execute for X miner and check expectation.
+        fn execute(miners_count: usize, expect_targets_sector_0: u32, expect_targets_sector_1: u32) {
+            let (world, (scenery, asteroids, miners)) = test_system(CommandMineSystem, |world| {
+                let scenery = setup_scenery(world);
+
+                let asteroid_1 =
+                    create_asteroid(
+                        world,
+                        Location::Space {
+                            pos: V2::new(0.0, 0.0),
+                            sector_id: scenery.sector_scenery.sector_1,
+                        },
+                        scenery.ware_id);
+
+                let asteroid_2 =
+                    create_asteroid(
+                        world,
+                        Location::Space {
+                            pos: V2::new(0.5, 0.0),
+                            sector_id: scenery.sector_scenery.sector_1,
+                        },
+                        scenery.ware_id);
+
+                let mut asteroids = vec![scenery.asteroid, asteroid_1, asteroid_2];
+
+                let mut miners = vec![scenery.miner];
+                for _ in 1..miners_count {
+                    let miner = create_miner(world, Location::Dock {
+                        docked_id: scenery.station,
+                    });
+
+                    miners.push(miner);
+                }
+
+                (scenery, asteroids, miners)
+            });
+
+            let mut targets_sector_0 = 0i32;
+            let mut targets_sector_1 = 0i32;
+
+            for miner_id in miners {
+                let target_id = match world.read_storage::<ActionRequest>().get(scenery.miner).cloned() {
+                    Some(ActionRequest(Action::Extract { target_id, .. })) => target_id,
+                    other => panic!("unexpected {:?} for {:?}", other, miner_id),
+                };
+
+                if target_id == asteroids[0] {
+                    targets_sector_1 += 1;
+                } else {
+                    targets_sector_0 += 1;
+                }
+            }
+
+            assert_eq!(targets_sector_0, expect_targets_sector_0 as i32);
+            assert_eq!(targets_sector_1, expect_targets_sector_1 as i32);
+        }
+
+        execute(1, 0, 1);
+        execute(2, 0, 2);
+        execute(3, 1, 2);
     }
 }

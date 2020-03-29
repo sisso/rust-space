@@ -106,6 +106,7 @@ pub mod test_scenery {
     use crate::game::Game;
     use crate::game::locations::Location;
 
+    #[derive(Debug)]
     pub struct SectorScenery {
         pub sector_0: ObjId,
         pub sector_1: ObjId,
@@ -115,6 +116,7 @@ pub mod test_scenery {
         pub jump_1_to_0_pos: Position,
     }
 
+    /// Setup 2 sector with jump gate connecting
     pub fn setup_sector_scenery(world: &mut World) -> SectorScenery {
         world.register::<Location>();
         world.register::<Jump>();

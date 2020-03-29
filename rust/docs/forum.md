@@ -1,5 +1,35 @@
 # Forum
 
+## Spreading commands
+
+Both mining and trade have the issue of multiple AI will tend to select the same targets.
+
+To better balance during the high level command where a new target is selected, a reduction score should be applied
+for targets that are already destination.
+
+let asteroid_mining = 
+    mining_commands.all()
+    .map(|i| i.target_id)
+    .group_by(|i| (i, 1))
+    .map(|(id, vec)| (id, vec.len()))
+    .collect();
+      
+
+let candidates = 
+    search_by_distance[Type](sector_id)
+        .take_while(|i| i.distance < 3)
+        .map(|i| (i.id, i.distance + asteroid_mining.get(i.id).get_or_else(0))
+        .collect()
+        .sort()
+        .into_iter()
+        .next()
+
+
+
+## Generic search by position
+
+search_by_distance[Asteroid](sector_id)
+
 ## FFI events
 
 We should add new entities independent of location
