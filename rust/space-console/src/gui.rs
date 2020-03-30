@@ -17,7 +17,7 @@ use tui::Terminal;
 use events::{Config, Event, Events};
 use space_domain::utils::V2;
 
-mod events;
+pub mod events;
 
 //type TTerminal = Terminal<TermionBackend<AlternateScreen<RawTerminal<Stdout>>>>;
 type TTerminal = Terminal<TermionBackend<RawTerminal<Stdout>>>;
@@ -56,9 +56,8 @@ pub struct GuiSector {
 }
 
 pub struct Gui {
-    terminal: TTerminal,
-    events: Events,
-    exit: bool,
+    pub terminal: TTerminal,
+    pub events: Events,
 }
 
 pub trait ShowSectorView {
@@ -83,7 +82,6 @@ impl Gui {
         let gui = Gui {
             terminal,
             events,
-            exit: false,
         };
 
         Ok(gui)
@@ -132,20 +130,16 @@ impl Gui {
             })
             .unwrap();
 
-        match self.events.next().unwrap() {
-            Event::Input(input) => match input {
-                Key::Char('q') | Key::Ctrl('c') => {
-                    self.exit = true;
-                }
-                other => {}
-            },
-            Event::Tick => {
-                // ignore
-            }
-        }
-    }
-
-    pub fn exit(&self) -> bool {
-        self.exit
+        // match self.events.next().unwrap() {
+        //     Event::Input(input) => match input {
+        //         Key::Char('q') | Key::Ctrl('c') => {
+        //             self.exit = true;
+        //         }
+        //         other => {}
+        //     },
+        //     Event::Tick => {
+        //         // ignore
+        //     }
+        // }
     }
 }
