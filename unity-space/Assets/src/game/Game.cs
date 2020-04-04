@@ -7,7 +7,10 @@ namespace game
     public class Game : MonoBehaviour
     {
         public domain.Domain domain;
-
+        public float timeDilatation = 1f;
+        public int iterations = 1;
+        public double realTime = 0.0;
+        public double gameTime = 0.0;
         private core.Core core;
 
         void OnEnable()
@@ -26,8 +29,14 @@ namespace game
 
         void FixedUpdate()
         {
-            this.core.Update(Time.fixedDeltaTime);
-            this.core.GetData();
+            var delta = Time.fixedDeltaTime * timeDilatation;
+            this.realTime += Time.fixedDeltaTime;
+            for (int i = 0; i < iterations; i++)
+            {
+                this.gameTime += delta;
+                this.core.Update(delta);
+                this.core.GetData();
+            }
         }
     }
 }

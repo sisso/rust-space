@@ -386,3 +386,9 @@ MonoBehaviour:
     type: 3}
   prefabSector: {fileID: 2418066381407487532, guid: 9271f2aae672587f4be3223822f23df1,
     type: 3}
+  prefabJump: {fileID: 5599825325196837530, guid: a1bde30df2aa9d31883153764c34da98,
+    type: 3}
+  prefabAsteroid: {fileID: 5599825325196837530, guid: b53fec6e4fe316cdca0003f30472877e,
+    type: 3}
+  prefabStation: {fileID: 5599825325196837530, guid: 4469f48301321b2a88678eb3501c5667,
+    type: 3}

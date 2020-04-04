@@ -14,7 +14,7 @@ namespace utils {
 		public float radius = 1f;
 		public Vector3 localPos;
 		public bool draw = true;
-        public GizmoKind kind;
+       public GizmoKind kind;
 		
 		void OnDrawGizmos() {
 			if (draw) {

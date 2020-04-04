@@ -32,22 +32,50 @@ namespace game.domain
         public Transform root;
         public GenericObject prefabGeneric;
         public GenericObject prefabSector;
+        public GenericObject prefabJump;
+        public GenericObject prefabAsteroid;
+        public GenericObject prefabStation;
         public Dictionary<uint, GameObject> idMap = new Dictionary<uint, GameObject>();
         public Dictionary<uint, Vector3> sectorPos = new Dictionary<uint, Vector3>();
 
         public void AddJump(uint id, uint fromSectorId, V2 fromPos, uint toSectorId, V2 toPos)
         {
-            Debug.Log("AddJump");
+            Debug.Log("AddJump " + id + ", " + fromSectorId + "(" + fromPos + ") => " + toSectorId + "(" + toPos + ")");
+
+            var obj = Utils.Inst(prefabJump);
+            obj.id = new Id(id);
+            obj.kind = ObjKind.Jump;
+            obj.UpdateName();
+
+            SetAt(obj.gameObject, fromSectorId);
+            obj.transform.localPosition = ToV3(fromPos);
+
+            this.idMap.Add(id, obj.gameObject);
         }
 
         public void AddObj(uint id, EntityKind kind)
         {
             Debug.Log("AddObj " + id + "/" + kind);
 
-            var obj = Utils.Inst(prefabGeneric);
+            GenericObject prefab;
+
+            switch (kind) {
+                case EntityKind.Asteroid:
+                    prefab = this.prefabAsteroid;
+                    break;
+                case EntityKind.Station:
+                    prefab = this.prefabAsteroid;
+                    break;
+                default:
+                    prefab = this.prefabGeneric;
+                    break;
+            };
+
+            var obj = Utils.Inst(prefab);
             obj.id = new Id(id);
             obj.kind = (ObjKind)(short)kind;
             obj.UpdateName();
+            obj.Hide();
 
             Utils.SetParentZero(obj.transform, root);
 
@@ -65,7 +93,7 @@ namespace game.domain
             Utils.SetParentZero(obj.transform, root);
 
             var index = sectorPos.Count;
-            var pos = new Vector3((float) index * 10f, 0.0f, 0.0f);
+            var pos = new Vector3((float)index * 10f, 0.0f, 0.0f);
             obj.transform.position = pos;
 
             this.sectorPos.Add(id, pos);
@@ -74,16 +102,18 @@ namespace game.domain
 
         public void ObjDock(uint id, uint targetId)
         {
-            Debug.Log("ObjDock");
+            Debug.Log("ObjDock " + id + " at " + targetId);
             var obj = this.idMap[id];
-            obj.GetComponent<DrawGizmos>().enabled = false;
+            obj.GetComponent<GenericObject>().Hide();
+            obj.transform.localPosition = Vector3.zero;
+            SetAt(obj, targetId);
         }
 
         public void ObjJump(uint id, uint sectorId, V2 pos)
         {
-            Debug.Log("ObjJump");
+            Debug.Log("ObjJump " + id + " to " +sectorId + " " + pos);
             var obj = this.idMap[id];
-            SetSector(obj, sectorId);
+            SetAt(obj, sectorId);
             obj.transform.localPosition = new Vector3((float)pos.X, (float)pos.Y, 0f);
         }
 
@@ -96,32 +126,35 @@ namespace game.domain
 
         public void ObjTeleport(uint id, uint sectorId, V2 pos)
         {
-            Debug.Log("ObjTeleport " + id + " " + sectorId + "/" +pos.X + ", " +pos.Y);
+            Debug.Log("ObjTeleport " + id + " " + sectorId + "/" + pos.X + ", " + pos.Y);
             var obj = this.idMap[id];
-            SetSector(obj, sectorId);
+            SetAt(obj, sectorId);
             obj.transform.localPosition = new Vector3((float)pos.X, (float)pos.Y, 0f);
+            obj.GetComponent<GenericObject>().Show();
         }
 
         public void ObjUndock(uint id, uint sectorId, V2 pos)
         {
             Debug.Log("ObjUndock " + id + " " + sectorId + "/" + pos.X + ", " + pos.Y);
             var obj = this.idMap[id];
-            obj.GetComponent<DrawGizmos>().enabled = true;
+            obj.GetComponent<GenericObject>().Show();
             obj.transform.localPosition = new Vector3((float)pos.X, (float)pos.Y, 0f);
-            SetSector(obj, sectorId);
+            SetAt(obj, sectorId);
         }
 
-        /// <summary>
         ///  Local position is preserve
-        /// </summary>
-        /// <param name="obj">Object.</param>
-        /// <param name="sectorId">Sector identifier.</param>
-        private void SetSector(GameObject obj, uint sectorId)
+        private void SetAt(GameObject obj, uint parentId)
         {
-            var sector = this.idMap[sectorId];
+            var parent = this.idMap[parentId];
             var localPos = obj.transform.localPosition;
-            obj.transform.parent = sector.transform;
+            obj.transform.parent = parent.transform;
             obj.transform.localPosition = localPos;
+        }
+
+        private Vector3 ToV3(V2 pos)
+        {
+            return new Vector3(pos.X, pos.Y, 0f);
         }
     }
 }
+
