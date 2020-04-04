@@ -156,8 +156,8 @@ impl Cargo {
         self.current
     }
 
-    pub fn get_wares<'a>(&'a self) -> impl Iterator<Item = &'a WareId> + 'a {
-        self.wares.iter().map(|WareAmount(ware_id, _)| ware_id)
+    pub fn get_wares<'a>(&'a self) -> impl Iterator<Item = WareId> + 'a {
+        self.wares.iter().map(|WareAmount(ware_id, _)| *ware_id)
     }
 
     pub fn get_amount(&self, ware_id: WareId) -> f32 {

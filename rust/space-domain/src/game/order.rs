@@ -29,6 +29,33 @@ impl Order {
         }
         buffer
     }
+
+    pub fn is_provide(&self) -> bool {
+        match self {
+            Order::WareProvide { .. } => true,
+            _ => false,
+        }
+    }
+
+    pub fn request_any(&self, wares: &Vec<WareId>) -> Vec<WareId> {
+        match self {
+            Order::WareRequest { wares_id } =>
+                wares_id.iter()
+                    .filter(|ware_id| wares.contains(ware_id))
+                    .copied()
+                    .collect(),
+            _ => Vec::new(),
+        }
+    }
+
+    pub fn is_request_any(&self, wares: &Vec<WareId>) -> bool {
+        match self {
+            Order::WareRequest { wares_id } =>
+                wares_id.iter()
+                    .any(|ware_id| wares.contains(ware_id)),
+            _ => false,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Component)]
@@ -39,7 +66,7 @@ impl Orders {
         Orders(vec![order])
     }
 
-    pub fn ware_requests(&self) -> Vec<WareId> {
+    pub fn wares_requests(&self) -> Vec<WareId> {
         let mut requests = vec![];
         for order in &self.0 {
             order.add_wares_request(&mut requests);
@@ -51,6 +78,21 @@ impl Orders {
         self.0.iter().fold(vec![], |acc, i| {
             i.add_wares_provide(acc)
         })
+    }
+
+    pub fn is_provide(&self) -> bool {
+        self.0.iter().any(|order| order.is_provide())
+    }
+
+    pub fn request_any(&self, wares: &Vec<WareId>) -> Vec<WareId> {
+        self.wares_requests()
+            .into_iter()
+            .filter(|ware_id| wares.contains(ware_id))
+            .collect()
+    }
+
+    pub fn is_request_any(&self, wares: &Vec<WareId>) -> bool {
+        self.0.iter().any(|order| order.is_request_any(wares))
     }
 }
 

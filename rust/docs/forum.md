@@ -1,5 +1,35 @@
 # Forum
 
+## Sub-actions
+
+In case of trade deliver and miner deliver share same code. How to share same code? 
+
+Looks like have a specific system for each make sense and ECS friendly.
+
+## Search traders
+
+1. For each station by nearest, map for orders
+
+2. For each station, with orders, sort by nearest?
+
+3. Static sequence of nearest sectors? Search stations by sector?
+
+## Trade algorithm
+
+Giving
+sell_orders 
+buy_orders
+idle_traders
+active_traders_to_sell
+active_traders_to_buy
+
+1. Active traders keep whatever they are doing
+2. For Idle traders 
+    2.1 If have cargo, search place to deliver
+        2.2.1 select nearest place with a buy_order weight by active_traders_trying to sell
+    2.2 if have no cargo, search place to pick up
+        2.2.1 select nearest place with a sell_order weight by active_traders_trying to buy
+
 ## Spreading commands
 
 Both mining and trade have the issue of multiple AI will tend to select the same targets.

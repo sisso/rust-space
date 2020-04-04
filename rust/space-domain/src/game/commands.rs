@@ -3,8 +3,8 @@ use std::collections::{HashMap, VecDeque};
 use specs::prelude::*;
 
 use crate::game::extractables::Extractables;
-use crate::game::locations::{Location, Locations, INDEX_SECTOR_SYSTEM, EntityPerSectorIndex};
-use crate::game::wares::{Cargos, WareId};
+use crate::game::locations::{Location, Locations, INDEX_SECTOR_SYSTEM, EntityPerSectorIndex, SectorDistanceIndex};
+use crate::game::wares::{Cargos, WareId, Cargo};
 use crate::utils::*;
 
 use super::actions::*;
@@ -37,19 +37,15 @@ impl Default for MineState {
 }
 
 #[derive(Debug, Clone)]
-pub struct TradeState {
-    pub pickup_target_id: Option<ObjId>,
-    pub deliver_target_id: Option<ObjId>,
-    pub wares: Vec<WareId>,
+pub enum TradeState {
+    Idle,
+    PickUp { target_id: ObjId, wares: Vec<WareId> },
+    Deliver { target_id: ObjId, wares: Vec<WareId> },
 }
 
 impl Default for TradeState {
     fn default() -> Self {
-        TradeState {
-            pickup_target_id: None,
-            deliver_target_id: None,
-            wares: vec![],
-        }
+        TradeState::Idle
     }
 }
 
@@ -95,50 +91,68 @@ impl RequireInitializer for Commands {
 }
 
 impl Commands {
-    // pub fn set_command_mine(world: &mut World, entity: Entity) {
-    //     world.write_storage::<Command>()
-    //         .borrow_mut()
-    //         .insert(entity, Command::Mine(CommandMine::new()))
-    //         .unwrap();
-    //
-    //     info!("{:?} setting command to mine", entity);
-    // }
 }
 
 pub fn search_orders_target(
     sectors_index: &EntityPerSectorIndex,
     sector_id: SectorId,
     orders: &ReadStorage<Orders>,
-    wares_whitelist: Option<&Vec<WareId>>,
-    requests: bool,
+    wares_filter: Option<&Vec<WareId>>,
+    already_targeting: Vec<ObjId>,
+    to_pickup: bool,
 ) -> Option<(ObjId, Vec<WareId>)> {
-    let candidates = sectors_index.search_nearest_stations(sector_id);
+    if to_pickup {
+        assert!(wares_filter.is_none(), "pickup list of wares is not supported");
+    } else {
+        let deliver_count = wares_filter.map(|v| v.len()).unwrap_or(0);
+        assert!(deliver_count > 0, "deliver must define list of wares is not supported");
+    }
 
-    candidates.iter()
-        .flat_map(|(sector_id, candidate_id)| {
-            match orders.get(*candidate_id).map(|orders| {
-                if requests {
-                    orders.ware_requests()
-                } else {
-                    orders.wares_provider()
-                }
-            }) {
-                Some(wares) if !wares.is_empty() => {
-                    let is_valid = match wares_whitelist {
-                        Some(whitelist) =>
-                            whitelist.iter().any(|ware_id| wares.contains(ware_id)),
-                        None => true,
-                    };
+    let candidates =
+        sectors_index.search_nearest_stations(sector_id)
+            .flat_map(|(sector_id, distance, obj_id)| {
 
-                    if is_valid  {
-                        Some((*candidate_id, wares))
+                let order = orders.get(obj_id).map(|orders| {
+                    if to_pickup {
+                        orders.is_provide()
                     } else {
-                        None
+                        orders.is_request_any(wares_filter.unwrap())
                     }
-                },
-                _ => None,
-            }
-        })
-        .next()    // find nearest deliver
+                });
+
+                match order {
+                    Some(true) => {
+                        let active_traders= already_targeting.iter()
+                            .filter(|id| **id == obj_id)
+                            .count() as u32;
+
+                        let weight = distance + active_traders;
+                        Some((weight, obj_id))
+                    },
+                    _ => { None }
+                }
+            });
+
+    match crate::utils::next_lower(candidates) {
+        Some(target_id) => {
+            let wares = {
+                let orders = orders.get(target_id).unwrap();
+                if to_pickup {
+                    orders.wares_provider()
+                } else {
+                    orders.wares_requests()
+                }
+            };
+
+            let wares = wares.into_iter()
+                .filter(|ware_id| {
+                    wares_filter.is_none() || wares_filter.unwrap().contains(ware_id)
+                })
+                .collect::<Vec<WareId>>();
+
+            Some((target_id, wares))
+        },
+        _ => None,
+    }
 }
 

@@ -25,6 +25,7 @@ use crate::game::wares::{Cargo, WareId};
 use std::borrow::{Borrow, BorrowMut};
 use crate::game::dock::HasDock;
 use crate::game::order::{Order, Orders};
+use std::hash::Hash;
 
 pub struct CommandMineSystem;
 
@@ -99,9 +100,10 @@ impl<'a> System<'a> for CommandMineSystem {
                             .unwrap()
                             .sector_id;
 
-                        let wares_to_deliver: Vec<WareId> = cargo.get_wares().cloned().collect();
+                        let wares_to_deliver: Vec<WareId> = cargo.get_wares().collect();
 
-                        match search_orders_target(sectors_index, sector_id, &data.orders, Some(&wares_to_deliver), true) {
+                        // TODO: build list of delivers
+                        match search_orders_target(sectors_index, sector_id, &data.orders, Some(&wares_to_deliver), Vec::new(), false) {
                             Some((target_id, _wares)) => {
                                 command.deliver_target_id = Some(target_id);
                                 command.mine_target_id = None;

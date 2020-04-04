@@ -78,6 +78,10 @@ pub struct Moveable {
     pub speed: Speed,
 }
 
+pub trait SectorDistanceIndex {
+    fn distance(&self, a: SectorId, b: SectorId) -> u32;
+}
+
 // TODO: make more flexible, like tags?
 #[derive(Clone, Debug, Default, Component)]
 pub struct EntityPerSectorIndex {
@@ -126,28 +130,31 @@ impl EntityPerSectorIndex {
     pub fn search_nearest_extractable<'a>(&'a self, from_sector_id: SectorId) -> impl Iterator<Item = (SectorId, u32, ObjId)> + 'a {
         self.index_extractables
             .iter()
-            .flat_map(move |(sector_id, list)| {
+            .flat_map(move |(&sector_id, list)| {
                 // TODO: remove the collect
                 list.iter()
                     .map(|id| {
-                        let same_sector = *sector_id == from_sector_id;
+                        let same_sector = sector_id == from_sector_id;
                         let distance = if same_sector { 0 } else { 1 };
-                        (*sector_id, distance, *id)
+                        (sector_id, distance, *id)
                     })
                     .collect::<Vec<(SectorId, u32, ObjId)>>()
             })
     }
 
     // TODO: should be a iterator from nearest to far
-    pub fn search_nearest_stations(&self, from_sector_id: SectorId) -> Vec<(SectorId, ObjId)> {
+    pub fn search_nearest_stations<'a>(&'a self, from_sector_id: SectorId) -> impl Iterator<Item = (SectorId, u32, ObjId)> +  'a {
         self.index_stations
             .iter()
-            .flat_map(|(sector_id, list)| {
+            .flat_map(move |(&sector_id, list)| {
                 list.iter()
-                    .map(|id| (*sector_id, *id))
-                    .collect::<Vec<(SectorId, ObjId)>>()
+                    .map(|id| {
+                        let same_sector = sector_id == from_sector_id;
+                        let distance = if same_sector { 0 } else { 1 };
+                        (sector_id, distance, *id)
+                    })
+                    .collect::<Vec<(SectorId, u32, ObjId)>>()
             })
-            .collect()
     }
 }
 
@@ -210,6 +217,19 @@ impl Locations {
                 Locations::resolve_space_position(locations, *docked_id)
             }
             _ => None,
+        }
+    }
+
+    /// recursive search for position, but receive an already fettched one
+    pub fn resolve_space_position_from(
+        locations: &ReadStorage<Location>,
+        location: &Location,
+    ) -> Option<LocationSpace> {
+        match location {
+            location @ Location::Space { .. } => location.as_space(),
+            Location::Dock { docked_id } => {
+                Locations::resolve_space_position(locations, *docked_id)
+            }
         }
     }
 }

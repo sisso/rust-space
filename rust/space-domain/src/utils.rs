@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use specs::Entity;
+use std::hash::Hash;
+use std::collections::HashMap;
 
 pub const MIN_DISTANCE: f32 = 0.01;
 pub const MIN_DISTANCE_SQR: f32 = MIN_DISTANCE * MIN_DISTANCE;
@@ -182,6 +184,22 @@ impl IdAsU32Support for Entity {
     }
 }
 
+struct CountBy<T: Hash + Eq> {
+    index: HashMap<T, f32>,
+}
+
+impl<T: Hash + Eq> CountBy<T> {
+    pub fn new() -> Self {
+        CountBy {
+            index: Default::default(),
+        }
+    }
+
+    pub fn add(&mut self, key: T) {
+        *self.index.entry(key)
+            .or_insert(0.0) += 1.0;
+    }
+}
 
 #[test]
 fn test_total_time_give_us_hundred_years_game_60_fps_precision() {
@@ -195,4 +213,34 @@ fn test_total_time_give_us_hundred_years_game_60_fps_precision() {
     println!("{:?}", new_total);
     println!("{:?}", diff);
     assert!(diff_expected < 0.0166666);
+}
+
+pub fn next_lower<Value, Score, Iter>(iter: Iter) -> Option<Value>
+    where
+        Value: Sized,
+        Score: PartialOrd + Copy,
+        Iter: Iterator<Item = (Score, Value)>
+{
+
+    let mut selected: Option<Value> = None;
+    let mut selected_score: Option<Score> = None;
+
+    for (score, value) in iter {
+        match selected_score {
+            Some(selected) if score >= selected => {
+                break;
+            },
+            _ => {},
+        };
+
+        selected_score = Some(score);
+        selected = Some(value);
+    }
+
+    selected
+}
+
+#[test]
+fn test_find_next() {
+    assert_eq!(Some(0u32), next_lower(vec![(2, 0), (3, 1)].into_iter()));
 }
