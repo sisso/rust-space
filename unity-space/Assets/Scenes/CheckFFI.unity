@@ -384,3 +384,5 @@ MonoBehaviour:
   root: {fileID: 297937828}
   prefabGeneric: {fileID: 5599825325196837530, guid: e0deb1b14f783ebd886fa506cdbb336e,
     type: 3}
+  prefabSector: {fileID: 2418066381407487532, guid: 9271f2aae672587f4be3223822f23df1,
+    type: 3}
