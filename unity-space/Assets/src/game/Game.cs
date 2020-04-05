@@ -36,6 +36,7 @@ namespace game
                 this.gameTime += delta;
                 this.core.Update(delta);
                 this.core.GetData();
+
             }
         }
     }

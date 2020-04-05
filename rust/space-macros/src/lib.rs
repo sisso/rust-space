@@ -108,10 +108,10 @@ macro_rules! debugf {
         .open("/tmp/debug.log") {
             Ok(mut file) => {
                 use std::io::Write;
-                file.write_all(format!("{}\n", $fmt).as_bytes()).ok();
+                file.write_all(format!("{} {} {}\n", $fmt, line!(), file!()).as_bytes()).ok();
             }
-            Err(_) => {
-                panic!("failed to open log file")
+            Err(e) => {
+                panic!("failed to open log file: {:?}", e)
             },
         });
     ($fmt:expr, $($arg:tt)*) => (match ::std::fs::OpenOptions::new()

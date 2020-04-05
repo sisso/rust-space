@@ -40,7 +40,7 @@ impl<'a, 'b> Context<'a, 'b> {
 }
 
 #[no_mangle]
-pub extern "C" fn init<'a, 'b>(value: *const c_char) -> *mut FfiContext {
+pub extern "C" fn init_context<'a, 'b>(value: *const c_char) -> *mut FfiContext {
     let c_str = unsafe {
         assert!(!value.is_null());
         CStr::from_ptr(value)
@@ -53,7 +53,7 @@ pub extern "C" fn init<'a, 'b>(value: *const c_char) -> *mut FfiContext {
 }
 
 #[no_mangle]
-pub extern fn close(ctx_ptr: *mut FfiContext) {
+pub extern fn close_context(ctx_ptr: *mut FfiContext) {
     if ctx_ptr.is_null() { return }
     let ctx = unsafe { Box::from_raw(ctx_ptr) };
     debugf!("closing context");

@@ -19,7 +19,7 @@ fn test_game_should_mine_and_deliver_cargo_to_station() {
 
     let delta = DeltaTime(0.5);
 
-    for _ in 0..100 {
+    for _ in 0..10 {
         game.tick(delta);
 
         let cargo_storage = &game.world.read_storage::<Cargo>();

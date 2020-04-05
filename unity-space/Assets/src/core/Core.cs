@@ -25,11 +25,11 @@ namespace core
     static class Native
     {
         [DllImport("libspace.so", CharSet = CharSet.Unicode)]
-        internal static extern CoreHandler init(string args);
+        internal static extern CoreHandler init_context(string args);
         [DllImport("libspace.so", CharSet = CharSet.Unicode)]
         internal static extern UInt32 run_tick(CoreHandler ptr, UInt32 delta);
         [DllImport("libspace.so", CharSet = CharSet.Unicode)]
-        internal static extern void close(IntPtr ptr);
+        internal static extern void close_context(IntPtr ptr);
         [DllImport("libspace.so")]
         internal static extern UInt32 set_data(CoreHandler ptr, byte[] buffer, UInt32 len);
         [DllImport("libspace.so", CharSet = CharSet.Unicode)]
@@ -52,7 +52,7 @@ namespace core
 
         protected override bool ReleaseHandle()
         {
-            Native.close(handle);
+            Native.close_context(handle);
             return true;
         }
     }
@@ -65,7 +65,7 @@ namespace core
 
         public Core(string args, EventHandler eventHandler)
         {
-            this.coreHandler = Native.init(args);
+            this.coreHandler = Native.init_context(args);
             this.eventHandler = eventHandler;
             Debug.Log("core initialize");
         }
