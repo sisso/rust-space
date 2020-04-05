@@ -1,5 +1,33 @@
 # Forum
 
+## Trade system split
+
+More and more due increasing in complexity we see signals that TradeSystem need to be split into multiple sub-systems
+with different rules.
+
+1. Management
+- split traders for deliver and pickup
+- cancel deliver and pickps
+
+2. Execute deliver
+2.1 Move to deliver
+2.2 Transfer
+
+3. Execute pickup
+3.1 Move to pickup
+3.2 Transfer
+
+## Commands types
+
+Trade
+
+Deliver 
+Deliver until zero
+Deliver until zero at
+
+Pickup 
+Pickup until full at
+
 ## Sub-actions
 
 In case of trade deliver and miner deliver share same code. How to share same code? 
