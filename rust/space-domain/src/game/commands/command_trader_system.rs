@@ -43,7 +43,7 @@ impl<'a> System<'a> for CommandTradeSystem {
 
         // split traders between state
         for (entity, command, cargo, _) in
-            (&*data.entities, &data.commands, &data.cargos, !&data.navigation).join()
+            (&*data.entities, &mut data.commands, &data.cargos, !&data.navigation).join()
         {
             match command {
                 Command::Trade(TradeState::Idle) if cargo.is_empty() => {
@@ -52,9 +52,17 @@ impl<'a> System<'a> for CommandTradeSystem {
                 Command::Trade(TradeState::Idle) => {
                     idlers_deliver.add(entity.id());
                 },
+                Command::Trade(TradeState::PickUp { .. }) if cargo.is_full() => {
+                    *command = Command::Trade(TradeState::Idle);
+                    idlers_deliver.add(entity.id());
+                },
                 Command::Trade(TradeState::PickUp { target_id, .. }) => {
                     pickup_targets.push(*target_id);
                     pickup_traders.add(entity.id());
+                },
+                Command::Trade(TradeState::Deliver { .. }) if cargo.is_empty() => {
+                    *command = Command::Trade(TradeState::Idle);
+                    idlers_pickup.add(entity.id());
                 },
                 Command::Trade(TradeState::Deliver { target_id, .. }) => {
                     deliver_targets.push(*target_id);
@@ -215,7 +223,9 @@ impl<'a> System<'a> for CommandTradeSystem {
 
             if location.as_docked() == Some(target_id) {
                 let transfer = Cargos::move_only(&mut data.cargos, target_id, entity, wares);
-                info!("{:?} take wares {:?} from station {:?}", entity, transfer, target_id);
+                if !transfer.moved.is_empty() {
+                    info!("{:?} take wares {:?} from station {:?}", entity, transfer, target_id);
+                }
             } else {
                 debug!("{:?} navigating to pick wares {:?} at station {:?}", entity, wares, target_id);
                 data.nav_request
@@ -373,6 +383,20 @@ mod test {
             .unwrap();
     }
 
+    fn get_active_command(world: &World, ship_id: ObjId) -> Option<Command> {
+        world.write_storage::<Command>()
+            .borrow()
+            .get(ship_id)
+            .cloned()
+    }
+
+    fn set_active_command(world: &mut World, ship_id: ObjId, command: Command) {
+        world.write_storage::<Command>()
+            .borrow_mut()
+            .insert(ship_id, command)
+            .unwrap();
+    }
+
     #[test]
     fn command_trade_when_empty_should_move_to_pickup_cargo() {
         let (world, scenery) = test_system(CommandTradeSystem, |world| {
@@ -442,6 +466,23 @@ mod test {
     }
 
     #[test]
+    fn command_trade_when_pickup_but_full_cargo_should_move_to_deliver() {
+        let (world, scenery) = test_system(CommandTradeSystem, |mut world| {
+            let scenery = setup_scenery(world);
+
+            set_active_command(world, scenery.trader_id, Command::Trade(TradeState::PickUp {
+                target_id: scenery.producer_station_id,
+                wares: vec![scenery.ware0_id]
+            }));
+            add_cargo(world, scenery.trader_id, scenery.ware0_id, SHIP_CARGO);
+
+            scenery
+        });
+
+        assert_nav_request_dock_at(&world, scenery.trader_id, scenery.consumer_station_id);
+    }
+
+    #[test]
     fn command_trade_when_with_cargo_and_navigation_should_keep_moving() {
         let (world, scenery) = test_system(CommandTradeSystem, |mut world| {
             let scenery = setup_scenery(world);
@@ -453,6 +494,29 @@ mod test {
         });
 
         assert_no_nav_request(&world, scenery.trader_id);
+    }
+
+    #[test]
+    fn command_trade_when_with_empty_cargo_and_at_target_should_back_to_pickup() {
+        let (world, scenery) = test_system(CommandTradeSystem, |mut world| {
+            let scenery = setup_scenery(world);
+
+            set_active_command(world, scenery.trader_id, Command::Trade(TradeState::Deliver {
+                target_id: scenery.consumer_station_id,
+                wares: vec![scenery.ware0_id]
+            }));
+            set_docked_at(world, scenery.trader_id, scenery.consumer_station_id);
+
+            scenery
+        });
+
+        let command = get_active_command(&world, scenery.trader_id).unwrap();
+        match command {
+            Command::Trade(TradeState::PickUp { .. }) => {},
+            other => {
+                panic!("expected command pickup but found {:?}", other);
+            }
+        }
     }
 
     #[test]

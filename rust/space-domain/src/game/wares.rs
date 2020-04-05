@@ -170,7 +170,7 @@ impl Cargo {
         }).unwrap_or(0.0)
     }
 
-    pub fn get_total(&self) -> f32 {
+    pub fn get_max(&self) -> f32 {
         self.max
     }
 }

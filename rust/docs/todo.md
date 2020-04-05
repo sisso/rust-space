@@ -1,5 +1,6 @@
 # TODO
 
+- Orders should only be created when the transaction is possible
 - Clock, compute loop time wait and elapsed time of each step. Should generate statistics to log
 - Proper log
 - traders/miners always go to same targets

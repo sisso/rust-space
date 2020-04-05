@@ -45,7 +45,7 @@ impl<'a> System<'a> for ActionExtractSystem {
             };
 
             let amount_added = cargo.add_to_max(ware_id, amount_extracted);
-            trace!("{:?} extracted {:?} {:?}, cargo now is {:?}/{:?}", entity, amount_extracted, ware_id, cargo.get_current(), cargo.get_total());
+            trace!("{:?} extracted {:?} {:?}, cargo now is {:?}/{:?}", entity, amount_extracted, ware_id, cargo.get_current(), cargo.get_max());
             if amount_added < amount_extracted {
                 debug!("{:?} cargo is full, stopping to extract", entity);
                 extract_complete.push(entity);
