@@ -78,6 +78,45 @@ impl Loader {
         }
 
     }
+    /// Advanced scenery
+    pub fn load_advanced_scenery(world: &mut World) {
+        // init wares
+        let ware_ore_id = Loader::new_ware(world);
+        let ware_components_id = Loader::new_ware(world);
+        let ware_energy = Loader::new_ware(world);
+
+        // init sectors
+        let sector_0 = Loader::new_sector(world);
+        let sector_1 = Loader::new_sector(world);
+
+        Loader::new_jump(world, sector_0, V2::new(0.5, 0.3), sector_1, V2::new(0.0, 0.0));
+        SectorsIndex::update_index_from_world(world);
+
+        // init objects
+        Loader::new_asteroid(world, sector_1, V2::new(-2.0, 3.0), ware_ore_id);
+        Loader::new_asteroid(world, sector_1, V2::new(-2.2, 2.8), ware_ore_id);
+        Loader::new_asteroid(world, sector_1, V2::new(-2.8, 3.1), ware_ore_id);
+
+        let component_factory_id = Loader::new_factory(world,
+            sector_0,
+            V2::new(3.0, -1.0),
+            vec![WareAmount(ware_ore_id, 2.0), WareAmount(ware_energy, 1.0)],
+            vec![WareAmount(ware_components_id, 1.0)],
+            DeltaTime(1.0),
+        );
+
+        let energy_factory_id = Loader::new_factory(world,
+           sector_0,
+           V2::new(-0.5, 1.5),
+           vec![],
+           vec![WareAmount(ware_energy, 1.0)],
+           DeltaTime(5.0),
+        );
+
+        let shipyard_id = Loader::new_shipyard(world, sector_0, V2::new(1.0, -3.0), ware_components_id);
+        Loader::new_ship_miner(world, shipyard_id, 2.0);
+        Loader::new_ship_trader(world, component_factory_id, 2.0);
+    }
 
     pub fn new_asteroid(world: &mut World, sector_id: SectorId, pos: V2, ware_id: WareId) -> ObjId {
         Loader::add_object(

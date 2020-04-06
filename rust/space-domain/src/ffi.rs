@@ -41,7 +41,8 @@ impl<'a, 'b> FFIApi<'a, 'b> {
     }
 
     pub fn new_game(&mut self) {
-        Loader::load_basic_scenery(&mut self.game);
+        Loader::load_advanced_scenery(&mut self.game.world);
+        // Loader::load_basic_scenery(&mut self.game);
     }
 
     pub fn update(&mut self, elapsed: Duration) {
