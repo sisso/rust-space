@@ -61,7 +61,7 @@ impl<'a> System<'a> for FactorySystem {
     );
 
     fn run(&mut self, data: Self::SystemData) {
-        debug!("running");
+        trace!("running");
 
         let (
             total_time,

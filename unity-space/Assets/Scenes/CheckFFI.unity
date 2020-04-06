@@ -355,6 +355,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   domain: {fileID: 1379923362}
+  timeDilatation: 10
+  iterations: 1
+  realTime: 0
+  gameTime: 0
 --- !u!4 &1379923361
 Transform:
   m_ObjectHideFlags: 0

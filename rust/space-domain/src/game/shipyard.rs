@@ -41,7 +41,7 @@ impl<'a> System<'a> for ShipyardSystem {
     );
 
     fn run(&mut self, data: Self::SystemData) {
-        debug!("running");
+        trace!("running");
 
         let (
             total_time,

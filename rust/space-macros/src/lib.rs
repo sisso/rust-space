@@ -90,10 +90,10 @@ macro_rules! debug {
 #[macro_export]
 macro_rules! trace {
     (target: $target:expr, $($arg:tt)+) => (
-        log!(target: $target, "TRACE", $($arg)+);
+        // log!(target: $target, "TRACE", $($arg)+);
     );
     ($($arg:tt)+) => (
-        log!("TRACE", $($arg)+);
+        // log!("TRACE", $($arg)+);
     )
 }
 

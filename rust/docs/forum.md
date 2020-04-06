@@ -1,5 +1,16 @@
 # Forum
 
+## Trade still fail
+
+In case of storage with whitelist, trader is not smart enough to knwo that his cargo will be rejected and get stuck
+with some cargo that can not deliver.
+
+To things really work it is require a complete Demand and deliver system.
+
+What could be the simple way to workaround the issue?
+- throw away, If have cargo and have no-place to deliver, just throw everything out
+
+
 ## Trade system split
 
 More and more due increasing in complexity we see signals that TradeSystem need to be split into multiple sub-systems

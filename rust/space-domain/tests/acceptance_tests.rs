@@ -9,15 +9,14 @@ use space_domain::game::Game;
 use space_domain::game::commands::Command;
 use std::borrow::Borrow;
 
-fn load_objects(game: &mut Game) -> (ObjId, ObjId) {
-    let scenery = Loader::load_basic_scenery(game);
-    (scenery.shipyard_id, scenery.miner_id)
+fn load_objects(game: &mut Game) {
+    Loader::load_advanced_scenery(&mut game.world);
 }
 
 #[test]
 fn test_game_should_mine_and_deliver_cargo_to_station() {
     let mut game = Game::new();
-    let _ = load_objects(&mut game);
+    load_objects(&mut game);
 
     let delta = DeltaTime(0.5);
 
@@ -39,5 +38,5 @@ fn test_game_should_mine_and_deliver_cargo_to_station() {
         }
     }
 
-    panic!("looks like station never have cargo");
+    panic!("we never produce any ship");
 }

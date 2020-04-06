@@ -157,7 +157,9 @@ impl Cargo {
     }
 
     pub fn get_wares<'a>(&'a self) -> impl Iterator<Item = WareId> + 'a {
-        self.wares.iter().map(|WareAmount(ware_id, _)| *ware_id)
+        self.wares.iter()
+            .filter(|WareAmount(_, amount)| *amount > 0.0)
+            .map(|WareAmount(ware_id, _)| *ware_id)
     }
 
     pub fn get_amount(&self, ware_id: WareId) -> f32 {
@@ -378,5 +380,16 @@ mod test {
             assert_eq!(cargo.free_space(ware_id), 0.0);
             assert!(cargo.add(ware_id, 1.0).is_err());
         }
+    }
+
+    #[test]
+    fn test_cargo_should_not_return_empty_lists() {
+        let (ware_0, ware_1, _ware_2) = create_wares();
+
+        let mut cargo = Cargo::new(10.0);
+        cargo.add(ware_0, 4.0);
+        cargo.remove(ware_0, 4.0);
+
+        assert!(cargo.get_wares().next().is_none());
     }
 }

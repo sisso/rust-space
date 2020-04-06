@@ -42,6 +42,7 @@ impl<'a> System<'a> for CommandTradeSystem {
         let mut deliver_traders= BitSet::new();
 
         let mut back_to_idle = BitSet::new();
+        let mut discard_cargo = BitSet::new();
 
         // split traders between state
         for (entity, command, cargo, _) in
@@ -91,23 +92,25 @@ impl<'a> System<'a> for CommandTradeSystem {
 
             let candidates =
                 sectors_index.search_nearest_stations(sector_id)
-                    .flat_map(|(sector_id, distance, obj_id)| {
-                        match orders.get(obj_id).map(|orders| orders.is_provide()) {
-                            Some(true) => {
-                                let active_traders= pickup_targets.iter()
-                                    .filter(|id| **id == obj_id)
-                                    .count() as u32;
+                    .flat_map(|(sector_id, distance, candidate_id)| {
+                        match orders.get(candidate_id).map(|orders| orders.wares_provider()) {
+                            Some(wares) if !wares.is_empty() => {
+                                if let Some(station_cargo) = cargos.get(candidate_id) {
+                                    if wares.iter().any(|ware_id| station_cargo.get_amount(*ware_id) > 0.0) {
+                                        let active_traders = pickup_targets.iter()
+                                            .filter(|id| **id == candidate_id)
+                                            .count() as u32;
 
-                                let weight = distance + active_traders;
-                                Some((weight, obj_id))
+                                        let weight = distance + active_traders;
+                                        Some((weight, candidate_id))
+                                    } else {
+                                        None
+                                    }
+                                } else {
+                                    None
+                                }
                             },
                             _ => { None }
-                        }
-                    })
-                    .filter(|(weight, target_id)| {
-                        match cargos.get(*target_id) {
-                            Some(cargo) if !cargo.is_empty() => true,
-                            _ => false,
                         }
                     });
 
@@ -162,9 +165,15 @@ impl<'a> System<'a> for CommandTradeSystem {
                         }
                     })
                     .filter(|(weight, target_id)| {
-                        match cargos.get(*target_id) {
-                            Some(cargo) if !cargo.is_full() => true,
-                            _ => false,
+                        if let Some(cargo) = cargos.get(*target_id) {
+                            // check if any ware in cargo can be received by the stations
+                            wares_in_cargo.iter()
+                                .any(|ware_id| {
+                                    let amount = cargo.free_space(*ware_id);
+                                    amount > 0.0
+                                })
+                        } else {
+                            false
                         }
                     });
 
@@ -175,6 +184,7 @@ impl<'a> System<'a> for CommandTradeSystem {
 
                     let wares_requests = orders.get(target_id).unwrap().wares_requests();
                     assert!(!wares_requests.is_empty(), "request wares can not be empty");
+
                     let wares = wares_in_cargo.into_iter()
                         .filter(|ware_id| wares_requests.contains(ware_id))
                         .collect::<Vec<WareId>>();
@@ -189,7 +199,8 @@ impl<'a> System<'a> for CommandTradeSystem {
                     });
                 },
                 None => {
-                    warn!("{:?} can not find a station to deliver", entity);
+                    warn!("{:?} can not find a station to deliver, discarding cargo", entity);
+                    discard_cargo.add(entity.id());
                 }
             }
         }
@@ -211,7 +222,12 @@ impl<'a> System<'a> for CommandTradeSystem {
 
             if location.as_docked() == Some(target_id) {
                 let transfer = Cargos::move_only(&mut data.cargos, entity, target_id, wares);
-                info!("{:?} deliver wares {:?} to station {:?}", entity, transfer, target_id);
+                if transfer.moved.is_empty() {
+                    warn!("{:?} fail to deliver wares {:?} to station {:?}, trader cargo is {:?}, station cargo is {:?}", entity, wares, target_id, data.cargos.get(entity), data.cargos.get(target_id));
+                    back_to_idle.add(entity.id());
+                } else {
+                    info!("{:?} deliver wares {:?} to station {:?}", entity, transfer, target_id);
+                }
             } else {
                 debug!("{:?} navigating to deliver wares {:?} at station {:?}", entity, wares, target_id);
                 data.nav_request
@@ -239,7 +255,7 @@ impl<'a> System<'a> for CommandTradeSystem {
             if location.as_docked() == Some(target_id) {
                 let transfer = Cargos::move_only(&mut data.cargos, target_id, entity, wares);
                 if transfer.moved.is_empty() {
-                    info!("{:?} fail to take wares from station {:?}", entity, target_id);
+                    info!("{:?} fail to take wares {:?} from station {:?}, station cargo is {:?}", entity, wares, target_id, data.cargos.get(target_id));
                     back_to_idle.add(entity.id());
                 } else {
                     info!("{:?} take wares {:?} from station {:?}", entity, transfer, target_id);
@@ -257,6 +273,12 @@ impl<'a> System<'a> for CommandTradeSystem {
         for (entity, _, command) in (&*data.entities, back_to_idle, &mut data.commands).join() {
             info!("{:?} command set to trade idle", entity);
             *command = Command::trade();
+        }
+
+        for (_, entity, cargo) in (discard_cargo, &*data.entities, &mut data.cargos).join() {
+            info!("{:?} discarding cargo", entity);
+            cargo.clear();
+
         }
     }
 
@@ -453,7 +475,7 @@ mod test {
     }
 
     #[test]
-    fn command_trade_when_empty_station_is_empty_should_ignore() {
+    fn command_trade_when_empty_and_idle_and_station_is_empty_should_ignore() {
         let (world, scenery) = test_system(CommandTradeSystem, |world| {
             let scenery = setup_scenery(world);
             clear_cargo(world, scenery.producer_station_id);
@@ -608,9 +630,14 @@ mod test {
     }
 
     #[test]
-    fn command_trade_full_and_target_has_full_cargo_should_search_new_target() {
+    fn command_trade_full_and_target_has_full_cargo_should_back_to_idle() {
         let (world, scenery) = test_system(CommandTradeSystem, |mut world| {
             let scenery = setup_scenery(world);
+
+            set_active_command(world, scenery.trader_id, Command::Trade(TradeState::Deliver {
+                target_id: scenery.consumer_station_id,
+                wares: vec![scenery.ware0_id]
+            }));
 
             add_cargo(world, scenery.trader_id, scenery.ware0_id, SHIP_CARGO);
             set_docked_at(world, scenery.trader_id, scenery.consumer_station_id);
@@ -622,6 +649,23 @@ mod test {
         assert_cargo(&world, scenery.trader_id, scenery.ware0_id, SHIP_CARGO);
         assert_cargo(&world, scenery.consumer_station_id, scenery.ware0_id, STATION_CARGO);
         assert_command_trade_idle(&world, scenery.trader_id);
+    }
+
+    #[test]
+    fn command_trade_when_has_cargo_but_no_place_to_deliver_should_throw_cargo_away() {
+        let (world, scenery) = test_system(CommandTradeSystem, |mut world| {
+            let scenery = setup_scenery(world);
+
+            add_cargo(world, scenery.trader_id, scenery.ware0_id, SHIP_CARGO);
+            set_docked_at(world, scenery.trader_id, scenery.consumer_station_id);
+            add_cargo(world, scenery.consumer_station_id, scenery.ware0_id, STATION_CARGO);
+
+            scenery
+        });
+
+        assert_command_trade_idle(&world, scenery.trader_id);
+        assert_cargo(&world, scenery.trader_id, scenery.ware0_id, 0.0);
+        assert_cargo(&world, scenery.consumer_station_id, scenery.ware0_id, STATION_CARGO);
     }
 
     #[test]

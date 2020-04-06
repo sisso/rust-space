@@ -7,7 +7,9 @@ namespace game
     public class Game : MonoBehaviour
     {
         public domain.Domain domain;
+        [Range(0.1f, 10.0f)]
         public float timeDilatation = 1f;
+        [Range(1, 10)]
         public int iterations = 1;
         public double realTime = 0.0;
         public double gameTime = 0.0;
