@@ -41,6 +41,7 @@ pub enum TradeState {
     Idle,
     PickUp { target_id: ObjId, wares: Vec<WareId> },
     Deliver { target_id: ObjId, wares: Vec<WareId> },
+    Delay { deadline: TotalTime },
 }
 
 impl Default for TradeState {

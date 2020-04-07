@@ -10,12 +10,15 @@ use crate::game::objects::ObjId;
 use std::borrow::{BorrowMut, Borrow};
 use std::process::id;
 use crate::utils;
+use rand::RngCore;
+use crate::utils::{TotalTime, DeltaTime};
 
 pub struct CommandTradeSystem;
 
 #[derive(SystemData)]
 pub struct CommandTradeData<'a> {
     entities: Entities<'a>,
+    total_time: Read<'a, TotalTime>,
     locations: ReadStorage<'a, Location>,
     commands: WriteStorage<'a, Command>,
     nav_request: WriteStorage<'a, NavRequest>,
@@ -44,34 +47,49 @@ impl<'a> System<'a> for CommandTradeSystem {
         let mut back_to_idle = BitSet::new();
         let mut discard_cargo = BitSet::new();
 
+        let mut rnd = rand::thread_rng();
+
+        let total_time = data.total_time.borrow();
+
         // split traders between state
         for (entity, command, cargo, _) in
             (&*data.entities, &mut data.commands, &data.cargos, !&data.navigation).join()
         {
-            match command {
-                Command::Trade(TradeState::Idle) if cargo.is_empty() => {
+            let command: &mut Command = command;
+
+            let trade_state = match command {
+                Command::Trade(state) => state,
+                _ => continue,
+            };
+
+            match trade_state {
+                TradeState::Idle if cargo.is_empty() => {
                     idlers_pickup.add(entity.id());
                 },
-                Command::Trade(TradeState::Idle) => {
+                TradeState::Idle => {
                     idlers_deliver.add(entity.id());
                 },
-                Command::Trade(TradeState::PickUp { .. }) if cargo.is_full() => {
+                TradeState::PickUp { .. } if cargo.is_full() => {
                     *command = Command::Trade(TradeState::Idle);
                     idlers_deliver.add(entity.id());
                 },
-                Command::Trade(TradeState::PickUp { target_id, .. }) => {
+                TradeState::PickUp { target_id, .. } => {
                     pickup_targets.push(*target_id);
                     pickup_traders.add(entity.id());
                 },
-                Command::Trade(TradeState::Deliver { .. }) if cargo.is_empty() => {
+                TradeState::Deliver { .. } if cargo.is_empty() => {
                     *command = Command::Trade(TradeState::Idle);
                     idlers_pickup.add(entity.id());
                 },
-                Command::Trade(TradeState::Deliver { target_id, .. }) => {
+                TradeState::Deliver { target_id, .. } => {
                     deliver_targets.push(*target_id);
                     deliver_traders.add(entity.id());
                 },
-                _ => continue,
+                TradeState::Delay { deadline } if total_time.is_after(*deadline) => {
+                    *command = Command::Trade(TradeState::Idle);
+                    idlers_pickup.add(entity.id());
+                },
+                TradeState::Delay { .. } => {}
             };
         }
 
@@ -101,7 +119,8 @@ impl<'a> System<'a> for CommandTradeSystem {
                                             .filter(|id| **id == candidate_id)
                                             .count() as u32;
 
-                                        let weight = distance + active_traders;
+                                        let luck = (rnd.next_u32() % 1000) as f32 / 1000.0f32;
+                                        let weight: f32 = distance as f32 + active_traders as f32 + luck;
                                         Some((weight, candidate_id))
                                     } else {
                                         None
@@ -129,7 +148,10 @@ impl<'a> System<'a> for CommandTradeSystem {
                     });
                 },
                 None => {
-                    warn!("{:?} can not find a station to pickup", entity);
+                    let wait_time = (rnd.next_u32() % 1000) as f32 / 1000.0;
+                    let deadline = total_time.add(DeltaTime(wait_time));
+                    *command = Command::Trade(TradeState::Delay { deadline });
+                    warn!("{:?} can not find a station to pickup, setting wait time of {:?} seconds", entity, wait_time);
                 }
             }
         }
@@ -158,7 +180,8 @@ impl<'a> System<'a> for CommandTradeSystem {
                                     .filter(|id| **id == obj_id)
                                     .count() as u32;
 
-                                let weight = distance + active_traders;
+                                let luck = (rnd.next_u32() % 1000) as f32 / 1000.0f32;
+                                let weight: f32 = distance as f32 + active_traders as f32 + luck;
                                 Some((weight, obj_id))
                             },
                             _ => { None }
@@ -299,7 +322,7 @@ mod test {
     use crate::game::actions::Action;
     use std::borrow::{BorrowMut, Borrow};
     use crate::game::navigations::Navigation;
-    use crate::utils::{V2_ZERO, IdAsU32Support};
+    use crate::utils::{V2_ZERO, IdAsU32Support, TotalTime};
     use std::collections::HashSet;
 
     struct SceneryRequest {}
@@ -341,6 +364,8 @@ mod test {
     }
 
     fn setup_scenery(world: &mut World) -> SceneryResult {
+        world.insert(TotalTime(0.0));
+
         let sector_id = world.create_entity().build();
 
         let ware0_id = world.create_entity().build();
@@ -416,6 +441,15 @@ mod test {
         }
     }
 
+    fn assert_command_trade_delay(world: &World, id: ObjId) {
+        match world.read_storage::<Command>().borrow().get(id) {
+            Some(Command::Trade(TradeState::Delay { .. })) => {},
+            other => {
+                panic!("expected trade idle but found {:?} for {:?}", other, id);
+            }
+        }
+    }
+
     fn set_docked_at(world: &mut World, ship_id: ObjId, target_id: ObjId) {
         world.write_storage::<Location>()
             .borrow_mut()
@@ -475,14 +509,14 @@ mod test {
     }
 
     #[test]
-    fn command_trade_when_empty_and_idle_and_station_is_empty_should_ignore() {
+    fn command_trade_when_empty_and_idle_and_station_is_empty_should_become_delay() {
         let (world, scenery) = test_system(CommandTradeSystem, |world| {
             let scenery = setup_scenery(world);
             clear_cargo(world, scenery.producer_station_id);
             scenery
         });
 
-        assert_command_trade_idle(&world, scenery.trader_id);
+        assert_command_trade_delay(&world, scenery.trader_id);
     }
 
     #[test]
@@ -513,6 +547,34 @@ mod test {
         });
 
         assert_no_nav_request(&world, scenery.trader_id);
+    }
+
+    #[test]
+    fn command_trade_when_empty_in_delay_should_not_pick_new_target() {
+        let (world, scenery) = test_system(CommandTradeSystem, |world| {
+            let scenery = setup_scenery(world);
+            set_active_command(world, scenery.trader_id, Command::Trade(TradeState::Delay {
+                deadline: TotalTime(1.0),
+            }));
+            scenery
+        });
+
+        assert_command_trade_delay(&world, scenery.trader_id);
+        assert_no_nav_request(&world, scenery.trader_id);
+    }
+
+    #[test]
+    fn command_trade_when_empty_and_delay_is_complete_should_not_pick_new_target() {
+        let (world, scenery) = test_system(CommandTradeSystem, |world| {
+            let scenery = setup_scenery(world);
+            world.insert(TotalTime(1.1));
+            set_active_command(world, scenery.trader_id, Command::Trade(TradeState::Delay {
+                deadline: TotalTime(1.0),
+            }));
+            scenery
+        });
+
+        assert_nav_request_dock_at(&world, scenery.trader_id, scenery.producer_station_id);
     }
 
     #[test]
@@ -719,4 +781,5 @@ mod test {
 
         assert_eq!(targets, expected);
     }
+
 }
