@@ -1,6 +1,6 @@
-use specs::prelude::*;
-use crate::utils::TotalTime;
 use crate::game::actions::ActionProgress;
+use crate::utils::TotalTime;
+use specs::prelude::*;
 use std::borrow::BorrowMut;
 
 pub struct ActionProgressSystem;
@@ -21,13 +21,7 @@ impl<'a> System<'a> for ActionProgressSystem {
         let now = data.total_time.clone();
         let mut completed = vec![];
 
-        for (
-            entity,
-            action
-        ) in (
-            &*data.entities,
-            &data.action_progress,
-        ).join() {
+        for (entity, action) in (&*data.entities, &data.action_progress).join() {
             if now.is_after(action.complete_time) {
                 debug!("{:?} complete action progress", entity);
                 completed.push(entity);
@@ -43,17 +37,18 @@ impl<'a> System<'a> for ActionProgressSystem {
 
 #[cfg(test)]
 mod test {
-    use crate::test::test_system;
     use crate::game::actions::action_progress_system::ActionProgressSystem;
-    use specs::{WorldExt, Builder};
     use crate::game::actions::ActionProgress;
+    use crate::test::test_system;
     use crate::utils::TotalTime;
+    use specs::{Builder, WorldExt};
 
     #[test]
     fn action_progress_should_be_ignored_if_not_complete() {
         let (world, entity) = test_system(ActionProgressSystem, |world| {
             world.insert(TotalTime(1.0));
-            world.create_entity()
+            world
+                .create_entity()
                 .with(ActionProgress {
                     complete_time: TotalTime(2.0),
                 })
@@ -67,7 +62,8 @@ mod test {
     fn action_progress_should_be_removed_when_complete() {
         let (world, entity) = test_system(ActionProgressSystem, |world| {
             world.insert(TotalTime(1.0));
-            world.create_entity()
+            world
+                .create_entity()
                 .with(ActionProgress {
                     complete_time: TotalTime(0.5),
                 })
@@ -76,5 +72,4 @@ mod test {
 
         assert!(world.read_storage::<ActionProgress>().get(entity).is_none());
     }
-
 }

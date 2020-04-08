@@ -1,19 +1,19 @@
 use crate::game::actions::*;
-use crate::game::navigations::navigation_system::NavigationSystem;
+use crate::game::locations::Location;
 use crate::game::navigations::navigation_request_handler_system::NavRequestHandlerSystem;
+use crate::game::navigations::navigation_system::NavigationSystem;
 use crate::game::objects::ObjId;
-use crate::game::sectors::{JumpId, SectorId, SectorsIndex, Sector, Jump};
+use crate::game::sectors::{Jump, JumpId, Sector, SectorId, SectorsIndex};
+use crate::game::{GameInitContext, RequireInitializer};
 use crate::utils::Position;
 use specs::prelude::*;
+use specs::world::EntitiesRes;
 use specs::Entity;
 use specs_derive::*;
 use std::collections::VecDeque;
-use crate::game::locations::Location;
-use specs::world::EntitiesRes;
-use crate::game::{RequireInitializer, GameInitContext};
 
-mod navigation_system;
 mod navigation_request_handler_system;
+mod navigation_system;
 
 ///
 /// Systems:
@@ -39,7 +39,7 @@ pub struct NavigationPlan {
 
 impl NavigationPlan {
     pub fn append_dock(&mut self, target_id: ObjId) {
-       self.path.push_back(Action::Dock { target_id });
+        self.path.push_back(Action::Dock { target_id });
     }
 }
 
@@ -59,7 +59,9 @@ pub struct Navigations;
 
 impl RequireInitializer for Navigations {
     fn init(context: &mut GameInitContext) {
-        context.dispatcher.add(NavRequestHandlerSystem, "navigation_request_handler", &[]);
+        context
+            .dispatcher
+            .add(NavRequestHandlerSystem, "navigation_request_handler", &[]);
 
         context.dispatcher.add(
             NavigationSystem,
@@ -101,7 +103,10 @@ impl Navigations {
                 let jump = if let Some(jump) = sectors.find_jump(current_sector, to_sector_id) {
                     jump
                 } else {
-                    panic!("could not find jump from {:?} to {:?}", current_sector, to_sector_id);
+                    panic!(
+                        "could not find jump from {:?} to {:?}",
+                        current_sector, to_sector_id
+                    );
                 };
 
                 // move to gate and jump
@@ -114,7 +119,7 @@ impl Navigations {
             }
         }
 
-        NavigationPlan { path, }
+        NavigationPlan { path }
     }
 }
 
@@ -122,7 +127,7 @@ impl Navigations {
 mod test {
     use super::*;
     use crate::game::sectors::test_scenery::*;
-    use crate::game::sectors::{Sector, Jump};
+    use crate::game::sectors::{Jump, Sector};
 
     #[test]
     fn create_plan() {

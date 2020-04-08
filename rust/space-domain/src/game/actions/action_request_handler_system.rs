@@ -70,7 +70,7 @@ impl<'a> System<'a> for ActionRequestHandlerSystem {
                         .borrow_mut()
                         .insert(entity, ActionExtract)
                         .unwrap();
-                },
+                }
                 other => panic!("not implemented for {:?}", other),
             }
 

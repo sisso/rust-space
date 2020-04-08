@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
-use std::time::Duration;
 use specs::Entity;
-use std::hash::Hash;
 use std::collections::HashMap;
+use std::hash::Hash;
+use std::time::Duration;
 
 pub const MIN_DISTANCE: f32 = 0.01;
 pub const MIN_DISTANCE_SQR: f32 = MIN_DISTANCE * MIN_DISTANCE;
@@ -111,7 +111,6 @@ impl From<f32> for DeltaTime {
     }
 }
 
-
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq)]
 pub struct TotalTime(pub f64);
 
@@ -196,8 +195,7 @@ impl<T: Hash + Eq> CountBy<T> {
     }
 
     pub fn add(&mut self, key: T) {
-        *self.index.entry(key)
-            .or_insert(0.0) += 1.0;
+        *self.index.entry(key).or_insert(0.0) += 1.0;
     }
 }
 
@@ -216,12 +214,11 @@ fn test_total_time_give_us_hundred_years_game_60_fps_precision() {
 }
 
 pub fn next_lower<Value, Score, Iter>(iter: Iter) -> Option<Value>
-    where
-        Value: Sized,
-        Score: PartialOrd + Copy,
-        Iter: Iterator<Item = (Score, Value)>
+where
+    Value: Sized,
+    Score: PartialOrd + Copy,
+    Iter: Iterator<Item = (Score, Value)>,
 {
-
     let mut selected: Option<Value> = None;
     let mut selected_score: Option<Score> = None;
 
@@ -229,8 +226,8 @@ pub fn next_lower<Value, Score, Iter>(iter: Iter) -> Option<Value>
         match selected_score {
             Some(selected) if score >= selected => {
                 break;
-            },
-            _ => {},
+            }
+            _ => {}
         };
 
         selected_score = Some(score);

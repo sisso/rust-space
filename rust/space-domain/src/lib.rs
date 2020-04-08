@@ -7,8 +7,8 @@ extern crate specs_derive;
 #[macro_use]
 extern crate shred_derive;
 
-pub mod game;
 pub mod ffi;
+pub mod game;
 pub mod specs_extras;
 pub mod test;
 pub mod utils;

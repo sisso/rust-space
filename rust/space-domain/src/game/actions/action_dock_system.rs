@@ -3,8 +3,8 @@ use specs::prelude::*;
 use super::super::locations::*;
 use super::*;
 use crate::game::actions::*;
+use crate::game::events::{Event, EventKind, Events};
 use std::borrow::{Borrow, BorrowMut};
-use crate::game::events::{Events, Event, EventKind};
 
 pub struct DockSystem;
 
@@ -40,14 +40,16 @@ impl<'a> System<'a> for DockSystem {
             ));
         }
 
-        let events= &mut data.events;
+        let events = &mut data.events;
         for (entity, location) in processed {
             data.actions.borrow_mut().remove(entity).unwrap();
             data.actions_dock.borrow_mut().remove(entity).unwrap();
-            data.locations.borrow_mut().insert(entity, location).unwrap();
+            data.locations
+                .borrow_mut()
+                .insert(entity, location)
+                .unwrap();
             events.push(Event::new(entity, EventKind::Dock));
         }
-
     }
 }
 
@@ -55,8 +57,8 @@ impl<'a> System<'a> for DockSystem {
 mod test {
     use super::super::*;
     use super::*;
-    use crate::test::{assert_v2, test_system};
     use crate::game::loader::Loader;
+    use crate::test::{assert_v2, test_system};
 
     #[test]
     fn test_dock_system_should_dock() {

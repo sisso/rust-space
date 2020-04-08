@@ -79,10 +79,7 @@ impl Gui {
             ..Default::default()
         });
 
-        let gui = Gui {
-            terminal,
-            events,
-        };
+        let gui = Gui { terminal, events };
 
         Ok(gui)
     }

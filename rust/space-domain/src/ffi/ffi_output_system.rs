@@ -1,14 +1,14 @@
-use specs::prelude::*;
-use crate::game::events::{Event, EventKind, Events};
 use crate::ffi::FfiOutpusBuilder;
-use std::ops::DerefMut;
-use std::borrow::{BorrowMut, Borrow};
-use crate::game::locations::Location;
-use crate::space_outputs_generated::space_data::{V2, EntityKind, SectorNew, JumpNew};
+use crate::game::events::{Event, EventKind, Events};
 use crate::game::extractables::Extractable;
-use crate::utils::IdAsU32Support;
-use crate::game::sectors::{Sector, Jump};
+use crate::game::locations::Location;
+use crate::game::sectors::{Jump, Sector};
 use crate::game::station::Station;
+use crate::space_outputs_generated::space_data::{EntityKind, JumpNew, SectorNew, V2};
+use crate::utils::IdAsU32Support;
+use specs::prelude::*;
+use std::borrow::{Borrow, BorrowMut};
+use std::ops::DerefMut;
 
 /// Convert Events into FFI outputs
 pub struct FfiOutputSystem;
@@ -29,7 +29,7 @@ impl FfiOutputSystem {
     fn resolve_entity_kind(
         entity: Entity,
         station: &ReadStorage<Station>,
-        extractable: &ReadStorage< Extractable>,
+        extractable: &ReadStorage<Extractable>,
     ) -> EntityKind {
         if station.get(entity).is_some() {
             EntityKind::Station
@@ -46,8 +46,6 @@ impl<'a> System<'a> for FfiOutputSystem {
 
     fn run(&mut self, mut data: Self::SystemData) {
         let output = &mut data.output;
-        // TODO: the fetcher should be one that remove events
-        output.clear();
 
         for event in data.events.list() {
             let entity = event.id;
@@ -58,7 +56,12 @@ impl<'a> System<'a> for FfiOutputSystem {
                         output.sectors_new.push(SectorNew::new(entity.as_u32()));
                     } else if let Some(jump) = data.jumps.get(entity) {
                         let jump_location = data.location.get(entity).unwrap().as_space().unwrap();
-                        let target_jump = data.location.get(jump.target_id).unwrap().as_space().unwrap();
+                        let target_jump = data
+                            .location
+                            .get(jump.target_id)
+                            .unwrap()
+                            .as_space()
+                            .unwrap();
 
                         output.jumps_new.push(JumpNew::new(
                             entity.as_u32(),
@@ -70,81 +73,83 @@ impl<'a> System<'a> for FfiOutputSystem {
                     } else {
                         match data.location.get(entity) {
                             Some(Location::Space { pos, sector_id }) => {
-                                let entity_kind = FfiOutputSystem::resolve_entity_kind(entity, &data.station, &data.extractable);
+                                let entity_kind = FfiOutputSystem::resolve_entity_kind(
+                                    entity,
+                                    &data.station,
+                                    &data.extractable,
+                                );
                                 output.push_entity_new_in_space(
                                     entity.id(),
                                     entity_kind,
                                     pos.into(),
                                     sector_id.as_u32(),
                                 );
-                            },
+                            }
                             Some(Location::Dock { docked_id }) => {
-                                let entity_kind = FfiOutputSystem::resolve_entity_kind(entity, &data.station, &data.extractable);
+                                let entity_kind = FfiOutputSystem::resolve_entity_kind(
+                                    entity,
+                                    &data.station,
+                                    &data.extractable,
+                                );
                                 output.push_entity_new_docked(
                                     entity.id(),
                                     entity_kind,
                                     docked_id.as_u32(),
                                 );
-                            },
+                            }
                             other => {
                                 // ignore entities not visible in sector
-                                warn!("{:?} added entity with invalid position {:?}", entity, other);
-                            },
+                                warn!(
+                                    "{:?} added entity with invalid position {:?}",
+                                    entity, other
+                                );
+                            }
                         }
                     }
-                },
+                }
 
                 EventKind::Dock => {
                     match data.location.get(entity) {
                         Some(Location::Dock { docked_id }) => {
-                            output.push_entity_dock(
-                                entity.id(),
-                                docked_id.as_u32()
-                            );
-                        },
+                            output.push_entity_dock(entity.id(), docked_id.as_u32());
+                        }
                         other => {
                             // ignore entities not visible in sector
                             warn!("{:?} undock but has no space {:?}", entity, other);
-                        },
+                        }
                     }
-                },
+                }
 
                 EventKind::Undock => {
                     match data.location.get(entity) {
                         Some(Location::Space { pos, sector_id }) => {
-                            output.push_entity_undock(
-                                entity.id(),
-                                pos.into(),
-                                sector_id.as_u32()
-                            );
-                        },
+                            output.push_entity_undock(entity.id(), pos.into(), sector_id.as_u32());
+                        }
                         other => {
                             // ignore entities not visible in sector
                             warn!("{:?} undock but has no space {:?}", entity, other);
-                        },
+                        }
                     }
-                },
+                }
 
                 EventKind::Jump => {
                     match data.location.get(entity) {
                         Some(Location::Space { pos, sector_id }) => {
                             output.push_entity_jump(entity.id(), pos.into(), sector_id.as_u32());
-                        },
+                        }
                         other => {
                             // ignore entities not visible in sector
                             warn!("{:?} jump but has no space {:?}", entity, other);
-                        },
+                        }
                     }
-                },
+                }
 
-                EventKind::Move => {
-                    match data.location.get(entity) {
-                        Some(Location::Space { pos, .. }) => {
-                            output.push_entity_move(entity.id(), pos.into());
-                        },
-                        other => {
-                          warn!("{:?} moved but has no space position {:?}", entity, other);
-                        },
+                EventKind::Move => match data.location.get(entity) {
+                    Some(Location::Space { pos, .. }) => {
+                        output.push_entity_move(entity.id(), pos.into());
+                    }
+                    other => {
+                        warn!("{:?} moved but has no space position {:?}", entity, other);
                     }
                 },
 
@@ -159,8 +164,8 @@ impl<'a> System<'a> for FfiOutputSystem {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::test::{assert_v2, test_system};
     use crate::game::sectors::SectorId;
+    use crate::test::{assert_v2, test_system};
     use crate::utils::V2;
 
     #[test]
@@ -168,11 +173,15 @@ mod test {
         let (world, (id, station_id)) = test_system(FfiOutputSystem, |world| {
             let arbitrary_station = world.create_entity().build();
 
-            let arbitrary_entity = world.create_entity()
-                .with(Location::Dock { docked_id: arbitrary_station, })
+            let arbitrary_entity = world
+                .create_entity()
+                .with(Location::Dock {
+                    docked_id: arbitrary_station,
+                })
                 .build();
 
-            world.write_resource::<Events>()
+            world
+                .write_resource::<Events>()
                 .borrow_mut()
                 .push(Event::new(arbitrary_entity, EventKind::Add));
 
@@ -193,14 +202,16 @@ mod test {
         let (world, (id, sector_0)) = test_system(FfiOutputSystem, |world| {
             let sector_0 = world.create_entity().build();
 
-            let arbitrary_entity = world.create_entity()
+            let arbitrary_entity = world
+                .create_entity()
                 .with(Location::Space {
                     pos: V2::new(1.0, 2.0),
                     sector_id: sector_0,
                 })
                 .build();
 
-            world.write_resource::<Events>()
+            world
+                .write_resource::<Events>()
                 .borrow_mut()
                 .push(Event::new(arbitrary_entity, EventKind::Add));
 
@@ -223,14 +234,16 @@ mod test {
         let (world, (id, sector_0)) = test_system(FfiOutputSystem, |world| {
             let sector_0 = world.create_entity().build();
 
-            let arbitrary_entity = world.create_entity()
+            let arbitrary_entity = world
+                .create_entity()
                 .with(Location::Space {
                     pos: V2::new(1.0, 2.0),
                     sector_id: sector_0,
                 })
                 .build();
 
-            world.write_resource::<Events>()
+            world
+                .write_resource::<Events>()
                 .borrow_mut()
                 .push(Event::new(arbitrary_entity, EventKind::Undock));
 
@@ -250,14 +263,16 @@ mod test {
         let (world, (id, sector_0)) = test_system(FfiOutputSystem, |world| {
             let sector_0 = world.create_entity().build();
 
-            let arbitrary_entity = world.create_entity()
+            let arbitrary_entity = world
+                .create_entity()
                 .with(Location::Space {
                     pos: V2::new(1.0, 2.0),
                     sector_id: sector_0,
                 })
                 .build();
 
-            world.write_resource::<Events>()
+            world
+                .write_resource::<Events>()
                 .borrow_mut()
                 .push(Event::new(arbitrary_entity, EventKind::Jump));
 
@@ -277,14 +292,16 @@ mod test {
         let (world, (id, sector_0)) = test_system(FfiOutputSystem, |world| {
             let sector_0 = world.create_entity().build();
 
-            let arbitrary_entity = world.create_entity()
+            let arbitrary_entity = world
+                .create_entity()
                 .with(Location::Space {
                     pos: V2::new(1.0, 2.0),
                     sector_id: sector_0,
                 })
                 .build();
 
-            world.write_resource::<Events>()
+            world
+                .write_resource::<Events>()
                 .borrow_mut()
                 .push(Event::new(arbitrary_entity, EventKind::Move));
 
@@ -303,11 +320,15 @@ mod test {
         let (world, (id, station_id)) = test_system(FfiOutputSystem, |world| {
             let arbitrary_station = world.create_entity().build();
 
-            let arbitrary_entity = world.create_entity()
-                .with(Location::Dock { docked_id: arbitrary_station, })
+            let arbitrary_entity = world
+                .create_entity()
+                .with(Location::Dock {
+                    docked_id: arbitrary_station,
+                })
                 .build();
 
-            world.write_resource::<Events>()
+            world
+                .write_resource::<Events>()
                 .borrow_mut()
                 .push(Event::new(arbitrary_entity, EventKind::Dock));
 

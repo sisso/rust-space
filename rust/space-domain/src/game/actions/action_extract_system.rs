@@ -1,8 +1,8 @@
-use specs::prelude::*;
+use crate::game::actions::{Action, ActionActive, ActionExtract, ActionProgress};
 use crate::game::extractables::Extractable;
 use crate::game::wares::Cargo;
-use crate::utils::{TotalTime, DeltaTime};
-use crate::game::actions::{ActionExtract, ActionProgress, ActionActive, Action};
+use crate::utils::{DeltaTime, TotalTime};
+use specs::prelude::*;
 use std::borrow::BorrowMut;
 
 pub struct ActionExtractSystem;
@@ -18,34 +18,38 @@ pub struct ActionExtractData<'a> {
 }
 
 impl<'a> System<'a> for ActionExtractSystem {
-   type SystemData = ActionExtractData<'a>;
+    type SystemData = ActionExtractData<'a>;
 
     fn run(&mut self, mut data: ActionExtractData) {
-       trace!("running");
+        trace!("running");
 
         let delta = data.delta_time.clone();
         let mut extract_complete = Vec::<Entity>::new();
 
-        for (
-            entity,
-            active_action,
-            _,
-            cargo,
-        ) in (
+        for (entity, active_action, _, cargo) in (
             &*data.entities,
             &data.action_active,
             &data.action_extract,
             &mut data.cargo,
-        ).join() {
+        )
+            .join()
+        {
             let amount_extracted = delta.as_f32();
 
             let ware_id = match &active_action.0 {
-               Action::Extract { target_id, ware_id } => *ware_id,
-               other => panic!("{:?} unexpected action type {:?}", entity, active_action),
+                Action::Extract { target_id, ware_id } => *ware_id,
+                other => panic!("{:?} unexpected action type {:?}", entity, active_action),
             };
 
             let amount_added = cargo.add_to_max(ware_id, amount_extracted);
-            trace!("{:?} extracted {:?} {:?}, cargo now is {:?}/{:?}", entity, amount_extracted, ware_id, cargo.get_current(), cargo.get_max());
+            trace!(
+                "{:?} extracted {:?} {:?}, cargo now is {:?}/{:?}",
+                entity,
+                amount_extracted,
+                ware_id,
+                cargo.get_current(),
+                cargo.get_max()
+            );
             if amount_added < amount_extracted {
                 debug!("{:?} cargo is full, stopping to extract", entity);
                 extract_complete.push(entity);
@@ -61,10 +65,10 @@ impl<'a> System<'a> for ActionExtractSystem {
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use super::super::*;
+    use super::*;
     use crate::test::test_system;
-    use crate::utils::{DeltaTime};
+    use crate::utils::DeltaTime;
 
     #[test]
     fn should_extract_ware() {
@@ -73,11 +77,14 @@ mod test {
 
             let ware_id = world.create_entity().build();
 
-            let asteroid_id = world.create_entity()
-                .build();
+            let asteroid_id = world.create_entity().build();
 
-            let entity = world.create_entity()
-                .with(ActionActive(Action::Extract { target_id: asteroid_id, ware_id, }))
+            let entity = world
+                .create_entity()
+                .with(ActionActive(Action::Extract {
+                    target_id: asteroid_id,
+                    ware_id,
+                }))
                 .with(ActionExtract {})
                 .with(Cargo::new(10.0))
                 .build();
@@ -97,14 +104,17 @@ mod test {
 
             let ware_id = world.create_entity().build();
 
-            let asteroid_id = world.create_entity()
-                .build();
+            let asteroid_id = world.create_entity().build();
 
             let mut cargo = Cargo::new(10.0);
             cargo.add(ware_id, 9.5).unwrap();
 
-            let entity = world.create_entity()
-                .with(ActionActive(Action::Extract { target_id: asteroid_id, ware_id, }))
+            let entity = world
+                .create_entity()
+                .with(ActionActive(Action::Extract {
+                    target_id: asteroid_id,
+                    ware_id,
+                }))
                 .with(ActionExtract {})
                 .with(cargo)
                 .build();
@@ -120,4 +130,3 @@ mod test {
         assert!(world.read_storage::<ActionExtract>().get(entity).is_none());
     }
 }
-

@@ -1,10 +1,10 @@
 use specs::prelude::*;
 
 use super::*;
+use crate::game::events::{Event, EventKind, Events};
 use crate::game::locations::Location;
-use crate::game::sectors::{SectorsIndex, Jump};
+use crate::game::sectors::{Jump, SectorsIndex};
 use std::borrow::{Borrow, BorrowMut};
-use crate::game::events::{Events, Event, EventKind};
 
 pub struct ActionJumpSystem;
 
@@ -36,9 +36,12 @@ impl<'a> System<'a> for ActionJumpSystem {
             let jump_id = match action.get_action() {
                 Action::Jump { jump_id } => jump_id.clone(),
                 other => {
-                    warn!("{:?} has jump action component but action {:?} is not jump", entity, other);
-                    continue
-                },
+                    warn!(
+                        "{:?} has jump action component but action {:?} is not jump",
+                        entity, other
+                    );
+                    continue;
+                }
             };
 
             match action_jump.complete_time {
@@ -62,7 +65,10 @@ impl<'a> System<'a> for ActionJumpSystem {
 
             let (to_pos, to_sector_id) = match jump_location {
                 Some(Location::Space { pos, sector_id }) => (*pos, *sector_id),
-                _ => panic!("{:?} target jump has a invalid location {:?}", target_jump_id, jump_location),
+                _ => panic!(
+                    "{:?} target jump has a invalid location {:?}",
+                    target_jump_id, jump_location
+                ),
             };
 
             debug!(
@@ -83,7 +89,9 @@ impl<'a> System<'a> for ActionJumpSystem {
 
             data.actions.borrow_mut().remove(entity).unwrap();
             data.actions_jump.borrow_mut().remove(entity).unwrap();
-            data.events.borrow_mut().push(Event::new(entity, EventKind::Jump));
+            data.events
+                .borrow_mut()
+                .push(Event::new(entity, EventKind::Jump));
         }
     }
 }
@@ -94,11 +102,15 @@ mod test {
     use super::*;
     use crate::game::locations::Location;
     use crate::game::sectors::test_scenery;
+    use crate::game::sectors::test_scenery::SectorScenery;
     use crate::test::{assert_v2, test_system};
     use crate::utils::{Speed, TotalTime};
-    use crate::game::sectors::test_scenery::SectorScenery;
 
-    fn create_jump_entity(world: &mut World, scenery: &SectorScenery, jump_time: Option<TotalTime>) -> Entity {
+    fn create_jump_entity(
+        world: &mut World,
+        scenery: &SectorScenery,
+        jump_time: Option<TotalTime>,
+    ) -> Entity {
         let entity = world
             .create_entity()
             .with(ActionActive(Action::Jump {
@@ -140,7 +152,10 @@ mod test {
         let (world, (entity, sector_scenery)) = test_system(ActionJumpSystem, |world| {
             let sectors_scenery = test_scenery::setup_sector_scenery(world);
             world.insert(initial_time);
-            (create_jump_entity(world, &sectors_scenery, None), sectors_scenery)
+            (
+                create_jump_entity(world, &sectors_scenery, None),
+                sectors_scenery,
+            )
         });
 
         assert_not_jumped(&world, &sector_scenery, entity);
@@ -158,10 +173,13 @@ mod test {
         let (world, (entity, sector_scenery)) = test_system(ActionJumpSystem, |world| {
             let sectors_scenery = test_scenery::setup_sector_scenery(world);
             world.insert(TotalTime(1.0));
-            (create_jump_entity(world, &sectors_scenery, Some(TotalTime(1.5))), sectors_scenery)
+            (
+                create_jump_entity(world, &sectors_scenery, Some(TotalTime(1.5))),
+                sectors_scenery,
+            )
         });
 
-        assert_not_jumped(&world, &sector_scenery,  entity);
+        assert_not_jumped(&world, &sector_scenery, entity);
     }
 
     #[test]
@@ -169,7 +187,10 @@ mod test {
         let (world, (entity, sector_scenery)) = test_system(ActionJumpSystem, |world| {
             let sectors_scenery = test_scenery::setup_sector_scenery(world);
             world.insert(TotalTime(1.0));
-            (create_jump_entity(world, &sectors_scenery, Some(TotalTime(0.5))), sectors_scenery)
+            (
+                create_jump_entity(world, &sectors_scenery, Some(TotalTime(0.5))),
+                sectors_scenery,
+            )
         });
 
         assert_jumped(&world, &sector_scenery, entity);

@@ -89,12 +89,12 @@ macro_rules! debug {
 /// Logs a message at the trace level.
 #[macro_export]
 macro_rules! trace {
-    (target: $target:expr, $($arg:tt)+) => (
+    (target: $target:expr, $($arg:tt)+) => {
         // log!(target: $target, "TRACE", $($arg)+);
-    );
-    ($($arg:tt)+) => (
+    };
+    ($($arg:tt)+) => {
         // log!("TRACE", $($arg)+);
-    )
+    };
 }
 
 // ----------------------------------------------------

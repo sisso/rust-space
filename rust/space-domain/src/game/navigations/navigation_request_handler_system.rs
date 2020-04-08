@@ -34,8 +34,8 @@ impl<'a> System<'a> for NavRequestHandlerSystem {
         for (entity, request, location) in (&*data.entities, &data.requests, &data.locations).join()
         {
             let (target_id, should_dock) = match request {
-                NavRequest::MoveToTarget { target_id, } => (*target_id, false),
-                NavRequest::MoveAndDockAt { target_id, } => (*target_id, true),
+                NavRequest::MoveToTarget { target_id } => (*target_id, false),
+                NavRequest::MoveAndDockAt { target_id } => (*target_id, true),
             };
 
             processed_requests.push(entity);
@@ -59,11 +59,14 @@ impl<'a> System<'a> for NavRequestHandlerSystem {
                 plan.append_dock(target_id);
             }
 
-            debug!("{:?} handle navigation to {:?} by the plan {:?}", entity, request, plan);
+            debug!(
+                "{:?} handle navigation to {:?} by the plan {:?}",
+                entity, request, plan
+            );
 
             data.navigation.insert(entity, Navigation::MoveTo).unwrap();
             data.navigation_move_to
-                .insert(entity, NavigationMoveTo { target_id, plan, })
+                .insert(entity, NavigationMoveTo { target_id, plan })
                 .unwrap();
         }
 

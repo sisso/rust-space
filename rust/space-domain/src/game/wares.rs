@@ -21,7 +21,7 @@ impl WareAmount {
     }
 
     pub fn get_amount(&self) -> f32 {
-         self.1
+        self.1
     }
 }
 
@@ -61,10 +61,8 @@ impl Cargo {
                 self.wares[pos].1 -= amount;
                 self.current -= amount;
                 Result::Ok(())
-            },
-            _ => {
-                 Err(())
             }
+            _ => Err(()),
         }
     }
 
@@ -76,7 +74,7 @@ impl Cargo {
         match self.wares.iter().position(|i| i.0 == ware_id) {
             Some(pos) => {
                 self.wares[pos].1 += amount;
-            },
+            }
             None => {
                 self.wares.push(WareAmount(ware_id, amount));
             }
@@ -120,9 +118,7 @@ impl Cargo {
     pub fn add_to_max(&mut self, ware_id: WareId, amount: f32) -> f32 {
         let to_add = amount.min(self.free_space(ware_id));
 
-        self.add(ware_id, to_add)
-            .map(|i| to_add)
-            .unwrap_or(0.0)
+        self.add(ware_id, to_add).map(|i| to_add).unwrap_or(0.0)
     }
 
     /// Clear cargo only, leave configuration
@@ -157,19 +153,23 @@ impl Cargo {
     }
 
     pub fn get_wares<'a>(&'a self) -> impl Iterator<Item = WareId> + 'a {
-        self.wares.iter()
+        self.wares
+            .iter()
             .filter(|WareAmount(_, amount)| *amount > 0.0)
             .map(|WareAmount(ware_id, _)| *ware_id)
     }
 
     pub fn get_amount(&self, ware_id: WareId) -> f32 {
-        self.wares.iter().find_map(|WareAmount(i_ware_id, i_amount)| {
-            if ware_id == *i_ware_id {
-                Some(*i_amount)
-            } else {
-                None
-            }
-        }).unwrap_or(0.0)
+        self.wares
+            .iter()
+            .find_map(|WareAmount(i_ware_id, i_amount)| {
+                if ware_id == *i_ware_id {
+                    Some(*i_amount)
+                } else {
+                    None
+                }
+            })
+            .unwrap_or(0.0)
     }
 
     pub fn get_max(&self) -> f32 {
@@ -177,7 +177,7 @@ impl Cargo {
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct CargoTransfer {
     pub moved: Vec<WareAmount>,
 }
@@ -216,11 +216,11 @@ impl CargoTransfer {
         return change;
     }
 
-    fn apply_move_from(&self, cargo: &mut Cargo) -> Result<(),()> {
+    fn apply_move_from(&self, cargo: &mut Cargo) -> Result<(), ()> {
         cargo.remove_all(&self.moved)
     }
 
-    fn apply_move_to(&self, cargo: &mut Cargo) -> Result<(),()> {
+    fn apply_move_to(&self, cargo: &mut Cargo) -> Result<(), ()> {
         cargo.add_all(&self.moved)
     }
 }
@@ -228,26 +228,50 @@ impl CargoTransfer {
 pub struct Cargos;
 
 impl Cargos {
-    pub fn move_only(cargos: &mut WriteStorage<Cargo>, from_id: ObjId, to_id: ObjId, wares: &Vec<WareId>) -> CargoTransfer {
+    pub fn move_only(
+        cargos: &mut WriteStorage<Cargo>,
+        from_id: ObjId,
+        to_id: ObjId,
+        wares: &Vec<WareId>,
+    ) -> CargoTransfer {
         Cargos::move_impl(cargos, from_id, to_id, Some(wares))
     }
 
-    pub fn move_all(cargos: &mut WriteStorage<Cargo>, from_id: ObjId, to_id: ObjId) -> CargoTransfer {
+    pub fn move_all(
+        cargos: &mut WriteStorage<Cargo>,
+        from_id: ObjId,
+        to_id: ObjId,
+    ) -> CargoTransfer {
         Cargos::move_impl(cargos, from_id, to_id, None)
     }
 
-    fn move_impl(cargos: &mut WriteStorage<Cargo>, from_id: ObjId, to_id: ObjId, wares: Option<&Vec<WareId>>) -> CargoTransfer {
+    fn move_impl(
+        cargos: &mut WriteStorage<Cargo>,
+        from_id: ObjId,
+        to_id: ObjId,
+        wares: Option<&Vec<WareId>>,
+    ) -> CargoTransfer {
         let cargo_from = cargos.get(from_id).expect("Entity cargo not found");
         let cargo_to = cargos.get(to_id).expect("Deliver cargo not found");
         let transfer = CargoTransfer::transfer_impl(cargo_from, cargo_to, wares);
 
-        trace!("move wares {:?} from {:?} to {:?}, transfer is {:?}", wares, cargo_from, cargo_to, transfer);
+        trace!(
+            "move wares {:?} from {:?} to {:?}, transfer is {:?}",
+            wares,
+            cargo_from,
+            cargo_to,
+            transfer
+        );
 
         let cargo_from = cargos.get_mut(from_id).expect("Entity cargo not found");
-        transfer.apply_move_from(cargo_from).expect("To remove wares to be transfer");
+        transfer
+            .apply_move_from(cargo_from)
+            .expect("To remove wares to be transfer");
 
         let cargo_to = cargos.get_mut(to_id).expect("Deliver cargo not found");
-        transfer.apply_move_to(cargo_to).expect("To add wares to be transfer");
+        transfer
+            .apply_move_to(cargo_to)
+            .expect("To add wares to be transfer");
 
         transfer
     }

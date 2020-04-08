@@ -3,8 +3,8 @@ use specs::prelude::*;
 use super::super::locations::*;
 use super::*;
 use crate::game::actions::*;
+use crate::game::events::{Event, EventKind, Events};
 use std::borrow::{Borrow, BorrowMut};
-use crate::game::events::{Events, Event, EventKind};
 
 pub struct UndockSystem;
 
@@ -42,7 +42,10 @@ impl<'a> System<'a> for UndockSystem {
                     }
                 }
             } else {
-                debug!("{:?} can not un-dock, ship is already in space {:?}", entity, location);
+                debug!(
+                    "{:?} can not un-dock, ship is already in space {:?}",
+                    entity, location
+                );
                 processed.push((entity, None));
             }
         }

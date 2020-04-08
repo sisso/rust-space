@@ -18,13 +18,13 @@ use specs::prelude::*;
 use specs_derive::*;
 
 use super::*;
+use crate::game::dock::HasDock;
 use crate::game::extractables::Extractable;
 use crate::game::locations::{EntityPerSectorIndex, Location};
 use crate::game::navigations::{NavRequest, Navigation, NavigationMoveTo, Navigations};
+use crate::game::order::{Order, Orders};
 use crate::game::wares::{Cargo, WareId};
 use std::borrow::{Borrow, BorrowMut};
-use crate::game::dock::HasDock;
-use crate::game::order::{Order, Orders};
 use std::hash::Hash;
 
 pub struct CommandMineSystem;
@@ -62,11 +62,10 @@ impl<'a> System<'a> for CommandMineSystem {
             match command {
                 Command::Mine(mine) => {
                     for target_id in &mine.mine_target_id {
-                        *already_targets.entry(*target_id)
-                            .or_insert(0) += 1;
+                        *already_targets.entry(*target_id).or_insert(0) += 1;
                     }
-                },
-                _ => {},
+                }
+                _ => {}
             };
         }
 
@@ -103,12 +102,19 @@ impl<'a> System<'a> for CommandMineSystem {
                         let wares_to_deliver: Vec<WareId> = cargo.get_wares().collect();
 
                         // TODO: build list of delivers
-                        match search_orders_target(sectors_index, sector_id, &data.orders, Some(&wares_to_deliver), Vec::new(), false) {
+                        match search_orders_target(
+                            sectors_index,
+                            sector_id,
+                            &data.orders,
+                            Some(&wares_to_deliver),
+                            Vec::new(),
+                            false,
+                        ) {
                             Some((target_id, _wares)) => {
                                 command.deliver_target_id = Some(target_id);
                                 command.mine_target_id = None;
                                 target_id
-                            },
+                            }
                             None => {
                                 warn!("{:?} can not find a cargo for deliver", entity);
                                 continue;
@@ -118,10 +124,16 @@ impl<'a> System<'a> for CommandMineSystem {
                 };
 
                 if location.as_docked() == Some(target_id) {
-                    debug!("{:?} cargo full, transferring cargo to station {:?}", entity, target_id);
+                    debug!(
+                        "{:?} cargo full, transferring cargo to station {:?}",
+                        entity, target_id
+                    );
                     cargo_transfers.push((entity, target_id));
                 } else {
-                    debug!("{:?} cargo full, command to navigate to station {:?}", entity, target_id);
+                    debug!(
+                        "{:?} cargo full, command to navigate to station {:?}",
+                        entity, target_id
+                    );
                     data.nav_request
                         .borrow_mut()
                         .insert(entity, NavRequest::MoveAndDockAt { target_id })
@@ -136,12 +148,12 @@ impl<'a> System<'a> for CommandMineSystem {
                             .unwrap()
                             .sector_id;
 
-                        let target_id = search_mine_target(sectors_index, &already_targets, entity, sector_id);
+                        let target_id =
+                            search_mine_target(sectors_index, &already_targets, entity, sector_id);
                         command.mine_target_id = Some(target_id);
                         command.deliver_target_id = None;
 
-                        *already_targets.entry(target_id)
-                            .or_insert(0) += 1;
+                        *already_targets.entry(target_id).or_insert(0) += 1;
 
                         target_id
                     }
@@ -153,14 +165,23 @@ impl<'a> System<'a> for CommandMineSystem {
                     // find extractable ware id
                     let ware_id = data.extractable.get(target_id).unwrap().ware_id;
 
-                    debug!("{:?} arrive at extractable {:?}, start extraction of {:?}", entity, target_id, ware_id);
+                    debug!(
+                        "{:?} arrive at extractable {:?}, start extraction of {:?}",
+                        entity, target_id, ware_id
+                    );
 
                     data.action_request
                         .borrow_mut()
-                        .insert(entity, ActionRequest(Action::Extract { target_id, ware_id }))
+                        .insert(
+                            entity,
+                            ActionRequest(Action::Extract { target_id, ware_id }),
+                        )
                         .unwrap();
                 } else {
-                    debug!("{:?} command to move to extractable {:?}", entity, target_id);
+                    debug!(
+                        "{:?} command to move to extractable {:?}",
+                        entity, target_id
+                    );
                     // move to target
                     data.nav_request
                         .borrow_mut()
@@ -186,13 +207,14 @@ fn search_mine_target(
     sector_id: SectorId,
 ) -> ObjId {
     // find nearest extractable
-    let mut candidates =
-        sectors_index.search_nearest_extractable(sector_id)
-            .map(|(_, distance, obj_id)| {
-                let count = already_targets.get(&obj_id).cloned().unwrap_or(0);
-                let score = count * 10 + distance * 11;
-                (score, obj_id)
-            }).collect::<Vec<_>>();
+    let mut candidates = sectors_index
+        .search_nearest_extractable(sector_id)
+        .map(|(_, distance, obj_id)| {
+            let count = already_targets.get(&obj_id).cloned().unwrap_or(0);
+            let score = count * 10 + distance * 11;
+            (score, obj_id)
+        })
+        .collect::<Vec<_>>();
 
     candidates.sort_by_key(|(score, _id)| *score);
 
@@ -201,16 +223,15 @@ fn search_mine_target(
     *target_id
 }
 
-
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::game::order::Order;
     use crate::game::sectors::test_scenery;
+    use crate::game::sectors::test_scenery::SectorScenery;
     use crate::game::wares::WareId;
     use crate::test::test_system;
     use specs::DispatcherBuilder;
-    use crate::game::order::Order;
-    use crate::game::sectors::test_scenery::SectorScenery;
 
     struct SceneryRequest {}
 
@@ -223,9 +244,9 @@ mod test {
         ware_id: WareId,
     }
 
-
     fn create_asteroid(world: &mut World, location: Location, ware_id: WareId) -> ObjId {
-        world.create_entity()
+        world
+            .create_entity()
             .with(location)
             .with(Extractable { ware_id })
             .build()
@@ -246,14 +267,14 @@ mod test {
 
         let ware_id = world.create_entity().build();
 
-        let asteroid =
-            create_asteroid(
-                world,
-                Location::Space {
-                    pos: V2::new(0.0, 0.0),
-                    sector_id: sector_scenery.sector_0,
-                },
-                ware_id);
+        let asteroid = create_asteroid(
+            world,
+            Location::Space {
+                pos: V2::new(0.0, 0.0),
+                sector_id: sector_scenery.sector_0,
+            },
+            ware_id,
+        );
 
         let station = world
             .create_entity()
@@ -263,12 +284,12 @@ mod test {
             })
             .with(HasDock)
             .with(Cargo::new(100.0))
-            .with(Orders::new(Order::WareRequest { wares_id: vec![ware_id] }))
+            .with(Orders::new(Order::WareRequest {
+                wares_id: vec![ware_id],
+            }))
             .build();
 
-        let miner = create_miner(world, Location::Dock {
-            docked_id: station,
-        });
+        let miner = create_miner(world, Location::Dock { docked_id: station });
 
         // inject objects into the location index
         // TODO: how to test it easy?
@@ -282,7 +303,7 @@ mod test {
             miner,
             asteroid,
             station,
-            ware_id
+            ware_id,
         };
 
         debug!("setup scenery {:?}", scenery);
@@ -291,14 +312,20 @@ mod test {
     }
 
     fn remove_station_ware_order(world: &mut World, scenery: &SceneryResult) {
-        world.write_storage::<Orders>().borrow_mut().remove(scenery.station).unwrap();
+        world
+            .write_storage::<Orders>()
+            .borrow_mut()
+            .remove(scenery.station)
+            .unwrap();
     }
 
     fn move_miner_to_asteroid(world: &mut World, scenery: &SceneryResult) {
         // move ship to asteroid, should start to mine
         let location_storage = &mut world.write_storage::<Location>();
         let asteroid_location = location_storage.get(scenery.asteroid);
-        location_storage.insert(scenery.miner, asteroid_location.unwrap().clone()).unwrap();
+        location_storage
+            .insert(scenery.miner, asteroid_location.unwrap().clone())
+            .unwrap();
     }
 
     #[test]
@@ -332,9 +359,18 @@ mod test {
             move_miner_to_asteroid(world, &scenery);
             scenery
         });
-        let action = world.read_storage::<ActionRequest>().get(scenery.miner).cloned();
+        let action = world
+            .read_storage::<ActionRequest>()
+            .get(scenery.miner)
+            .cloned();
         assert!(action.is_some());
-        assert_eq!(action.unwrap().0, Action::Extract { target_id: scenery.asteroid, ware_id: scenery.ware_id });
+        assert_eq!(
+            action.unwrap().0,
+            Action::Extract {
+                target_id: scenery.asteroid,
+                ware_id: scenery.ware_id
+            }
+        );
     }
 
     #[test]
@@ -357,7 +393,7 @@ mod test {
         match nav_request_storage.get(scenery.miner) {
             None => {
                 // nothing, waiting until something happens
-            },
+            }
             other => panic!("unexpected nav request {:?}", other),
         }
     }
@@ -380,7 +416,7 @@ mod test {
         let nav_request_storage = world.read_storage::<NavRequest>();
 
         match nav_request_storage.get(scenery.miner) {
-            Some(NavRequest::MoveAndDockAt{ target_id: target }) => {
+            Some(NavRequest::MoveAndDockAt { target_id: target }) => {
                 assert_eq!(target.clone(), scenery.station);
             }
             other => panic!("unexpected nav request {:?}", other),
@@ -433,35 +469,42 @@ mod test {
     fn test_command_mine_should_split_mining_targets() {
         /// setup a scenery with 2 steroid in same sector with miners and another in neighbor sector
         /// execute for X miner and check expectation.
-        fn execute(miners_count: usize, expect_targets_sector_0: u32, expect_targets_sector_1: u32) {
+        fn execute(
+            miners_count: usize,
+            expect_targets_sector_0: u32,
+            expect_targets_sector_1: u32,
+        ) {
             let (world, (scenery, asteroids, miners)) = test_system(CommandMineSystem, |world| {
                 let scenery = setup_scenery(world);
 
-                let asteroid_1 =
-                    create_asteroid(
-                        world,
-                        Location::Space {
-                            pos: V2::new(0.0, 0.0),
-                            sector_id: scenery.sector_scenery.sector_1,
-                        },
-                        scenery.ware_id);
+                let asteroid_1 = create_asteroid(
+                    world,
+                    Location::Space {
+                        pos: V2::new(0.0, 0.0),
+                        sector_id: scenery.sector_scenery.sector_1,
+                    },
+                    scenery.ware_id,
+                );
 
-                let asteroid_2 =
-                    create_asteroid(
-                        world,
-                        Location::Space {
-                            pos: V2::new(0.5, 0.0),
-                            sector_id: scenery.sector_scenery.sector_1,
-                        },
-                        scenery.ware_id);
+                let asteroid_2 = create_asteroid(
+                    world,
+                    Location::Space {
+                        pos: V2::new(0.5, 0.0),
+                        sector_id: scenery.sector_scenery.sector_1,
+                    },
+                    scenery.ware_id,
+                );
 
                 let mut asteroids = vec![scenery.asteroid, asteroid_1, asteroid_2];
 
                 let mut miners = vec![scenery.miner];
                 for _ in 1..miners_count {
-                    let miner = create_miner(world, Location::Dock {
-                        docked_id: scenery.station,
-                    });
+                    let miner = create_miner(
+                        world,
+                        Location::Dock {
+                            docked_id: scenery.station,
+                        },
+                    );
 
                     miners.push(miner);
                 }

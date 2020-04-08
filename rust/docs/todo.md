@@ -1,12 +1,7 @@
 # TODO
 
-- Orders should only be created when the transaction is possible
-- Clock, compute loop time wait and elapsed time of each step. Should generate statistics to log
-- Proper log
-- traders/miners always go to same targets
-- fix multiples actions per tick
 - switch movements to curves instead interact every frame
-- create new movement system. 
+- Proper log
 
 ## Configuration files
 
@@ -17,10 +12,6 @@
 - make easy serialization using serde automatic bind    
     
 ## FFI    
-
-- game api uses plain structures
-- game api uses flatbuffers
-- send docked state
 
 ## GUI
 

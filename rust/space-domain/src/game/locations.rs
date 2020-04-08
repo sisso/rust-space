@@ -9,10 +9,10 @@ use crate::utils::*;
 
 use crate::game::jsons::JsonValueExtra;
 use crate::game::locations::index_per_sector_system::*;
+use crate::game::{GameInitContext, RequireInitializer};
 use shred::Fetch;
 use specs::storage::MaskedStorage;
 use std::borrow::Borrow;
-use crate::game::{RequireInitializer, GameInitContext};
 
 #[derive(Debug, Clone)]
 pub struct LocationSpace {
@@ -127,7 +127,10 @@ impl EntityPerSectorIndex {
 
     // TODO: return properly distance, not only 0 or 1
     /// returns the sector_id, distance, object_id
-    pub fn search_nearest_extractable<'a>(&'a self, from_sector_id: SectorId) -> impl Iterator<Item = (SectorId, u32, ObjId)> + 'a {
+    pub fn search_nearest_extractable<'a>(
+        &'a self,
+        from_sector_id: SectorId,
+    ) -> impl Iterator<Item = (SectorId, u32, ObjId)> + 'a {
         self.index_extractables
             .iter()
             .flat_map(move |(&sector_id, list)| {
@@ -143,7 +146,10 @@ impl EntityPerSectorIndex {
     }
 
     // TODO: should be a iterator from nearest to far
-    pub fn search_nearest_stations<'a>(&'a self, from_sector_id: SectorId) -> impl Iterator<Item = (SectorId, u32, ObjId)> +  'a {
+    pub fn search_nearest_stations<'a>(
+        &'a self,
+        from_sector_id: SectorId,
+    ) -> impl Iterator<Item = (SectorId, u32, ObjId)> + 'a {
         self.index_stations
             .iter()
             .flat_map(move |(&sector_id, list)| {
@@ -164,7 +170,9 @@ pub struct Locations {}
 
 impl RequireInitializer for Locations {
     fn init(context: &mut GameInitContext) {
-        context.dispatcher.add(IndexPerSectorSystem, INDEX_SECTOR_SYSTEM, &[]);
+        context
+            .dispatcher
+            .add(IndexPerSectorSystem, INDEX_SECTOR_SYSTEM, &[]);
     }
 }
 

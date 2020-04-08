@@ -39,7 +39,10 @@ impl<'a> System<'a> for NavigationSystem {
 
         let requests_storage = &mut data.action_request;
         for (entity, action) in requests {
-            debug!("{:?} navigation requesting next action {:?}", entity, action);
+            debug!(
+                "{:?} navigation requesting next action {:?}",
+                entity, action
+            );
             requests_storage.insert(entity, action).unwrap();
         }
 
@@ -69,7 +72,9 @@ mod test {
                 .with(Navigation::MoveTo)
                 .with(NavigationMoveTo {
                     target_id: target_id,
-                    plan: NavigationPlan { path: Default::default(), },
+                    plan: NavigationPlan {
+                        path: Default::default(),
+                    },
                 })
                 .build();
 

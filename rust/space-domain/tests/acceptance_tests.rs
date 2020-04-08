@@ -1,12 +1,12 @@
 extern crate space_domain;
 
-use space_domain::game::objects::ObjId;
-use space_domain::game::wares::{Cargo};
-use space_domain::utils::{DeltaTime};
-use specs::WorldExt;
-use space_domain::game::loader::Loader;
-use space_domain::game::Game;
 use space_domain::game::commands::Command;
+use space_domain::game::loader::Loader;
+use space_domain::game::objects::ObjId;
+use space_domain::game::wares::Cargo;
+use space_domain::game::Game;
+use space_domain::utils::DeltaTime;
+use specs::WorldExt;
 use std::borrow::Borrow;
 
 fn load_objects(game: &mut Game) {
@@ -23,10 +23,7 @@ fn test_game_should_mine_and_deliver_cargo_to_station() {
     for tick in 0..300 {
         game.tick(delta);
 
-        let total_commands =
-            game.world.read_storage::<Command>()
-                .borrow()
-                .count();
+        let total_commands = game.world.read_storage::<Command>().borrow().count();
 
         if total_commands > 2 {
             // we have new ship

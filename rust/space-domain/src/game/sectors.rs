@@ -4,11 +4,11 @@ use shred::{Read, ResourceId, SystemData, World, Write};
 use specs::prelude::*;
 use specs_derive::*;
 
-use crate::utils::*;
-use crate::game::objects::ObjId;
-use specs::world::EntitiesRes;
 use crate::game::locations::Location;
-use crate::game::{RequireInitializer, GameInitContext};
+use crate::game::objects::ObjId;
+use crate::game::{GameInitContext, RequireInitializer};
+use crate::utils::*;
+use specs::world::EntitiesRes;
 
 #[derive(Clone, Debug, Component)]
 pub struct Jump {
@@ -19,8 +19,7 @@ pub type JumpId = Entity;
 pub type SectorId = Entity;
 
 #[derive(Clone, Debug, Component)]
-pub struct Sector {
-}
+pub struct Sector {}
 
 pub struct Sectors;
 
@@ -57,25 +56,24 @@ impl SectorsIndex {
         sectors_index.update_index(entities, sectors_storage, jumps_storage, locations_storage);
     }
 
-    pub fn update_index(&mut self, entities: &Read<EntitiesRes>,
-                        sectors_storage: &ReadStorage<Sector>,
-                        jump_storage: &ReadStorage<Jump>,
-                        locations_storage: &ReadStorage<Location>) {
+    pub fn update_index(
+        &mut self,
+        entities: &Read<EntitiesRes>,
+        sectors_storage: &ReadStorage<Sector>,
+        jump_storage: &ReadStorage<Jump>,
+        locations_storage: &ReadStorage<Location>,
+    ) {
         self.jumps.clear();
 
         let mut jumps_data: HashMap<Entity, (SectorId, Position, JumpId)> = Default::default();
 
         for (entity, jump, location) in (entities, jump_storage, locations_storage).join() {
             let (pos, sector_id) = match location {
-                Location::Space { pos, sector_id} => (pos, sector_id),
+                Location::Space { pos, sector_id } => (pos, sector_id),
                 _ => panic!("{:?} jump has invalid location {:?}", entity, location),
             };
 
-            jumps_data.insert(entity, (
-                *sector_id,
-                *pos,
-                jump.target_id,
-            ));
+            jumps_data.insert(entity, (*sector_id, *pos, jump.target_id));
         }
 
         for (jump_id, (sector_id, pos, target_jump_id)) in jumps_data.iter() {
@@ -93,18 +91,22 @@ impl SectorsIndex {
         }
     }
 
-    pub fn find_jump(&self, from_sector_id: SectorId, to_sector_id: SectorId) -> Option<IndexedJump>{
-        self.jumps.iter().find(|jump| {
-            jump.from_sector_id == from_sector_id &&
-                jump.to_sector_id == to_sector_id
-        }).cloned()
+    pub fn find_jump(
+        &self,
+        from_sector_id: SectorId,
+        to_sector_id: SectorId,
+    ) -> Option<IndexedJump> {
+        self.jumps
+            .iter()
+            .find(|jump| jump.from_sector_id == from_sector_id && jump.to_sector_id == to_sector_id)
+            .cloned()
     }
 }
 
 pub mod test_scenery {
     use super::*;
-    use crate::game::Game;
     use crate::game::locations::Location;
+    use crate::game::Game;
 
     #[derive(Debug)]
     pub struct SectorScenery {
@@ -133,37 +135,67 @@ pub mod test_scenery {
         // encapsulate storage because the destructors hold mutability in world
         {
             let sectors = &mut world.write_storage::<Sector>();
-            sectors.insert(sector_0, Sector {
+            sectors
+                .insert(
+                    sector_0,
+                    Sector {
                 // jumps: vec![
                 //     jump_0_to_1
                 // ]
-            }).unwrap();
+            },
+                )
+                .unwrap();
 
-            sectors.insert(sector_1, Sector {
+            sectors
+                .insert(
+                    sector_1,
+                    Sector {
                 // jumps: vec![
                 //     jump_1_to_0
                 // ]
-            }).unwrap();
+            },
+                )
+                .unwrap();
 
             let jumps = &mut world.write_storage::<Jump>();
-            jumps.insert(jump_0_to_1, Jump {
-                target_id: jump_1_to_0,
-            }).unwrap();
+            jumps
+                .insert(
+                    jump_0_to_1,
+                    Jump {
+                        target_id: jump_1_to_0,
+                    },
+                )
+                .unwrap();
 
-            jumps.insert(jump_1_to_0, Jump {
-                target_id: jump_0_to_1,
-            }).unwrap();
+            jumps
+                .insert(
+                    jump_1_to_0,
+                    Jump {
+                        target_id: jump_0_to_1,
+                    },
+                )
+                .unwrap();
 
             let locations = &mut world.write_storage::<Location>();
-            locations.insert(jump_0_to_1, Location::Space {
-                pos: jump_0_to_1_pos,
-                sector_id: sector_0,
-            }).unwrap();
+            locations
+                .insert(
+                    jump_0_to_1,
+                    Location::Space {
+                        pos: jump_0_to_1_pos,
+                        sector_id: sector_0,
+                    },
+                )
+                .unwrap();
 
-            locations.insert(jump_1_to_0, Location::Space {
-                pos: jump_1_to_0_pos,
-                sector_id: sector_1,
-            }).unwrap();
+            locations
+                .insert(
+                    jump_1_to_0,
+                    Location::Space {
+                        pos: jump_1_to_0_pos,
+                        sector_id: sector_1,
+                    },
+                )
+                .unwrap();
         }
 
         SectorsIndex::update_index_from_world(world);
@@ -181,9 +213,9 @@ pub mod test_scenery {
 
 #[cfg(test)]
 mod test {
-    use crate::game::sectors::{SectorsIndex, Sector, Jump};
-    use specs::{World, WorldExt, Builder};
     use crate::game::locations::Location;
+    use crate::game::sectors::{Jump, Sector, SectorsIndex};
+    use specs::{Builder, World, WorldExt};
 
     #[test]
     fn test_sector_index() {

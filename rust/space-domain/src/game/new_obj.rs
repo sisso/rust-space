@@ -1,13 +1,13 @@
 use specs::prelude::*;
 
+use crate::game::commands::Command;
 use crate::game::extractables::Extractable;
+use crate::game::factory::Factory;
 use crate::game::locations::*;
 use crate::game::objects::ObjId;
 use crate::game::sectors::*;
-use crate::utils::*;
-use crate::game::factory::Factory;
 use crate::game::shipyard::Shipyard;
-use crate::game::commands::Command;
+use crate::utils::*;
 
 #[derive(Debug, Clone, Component)]
 pub struct NewObj {
@@ -93,7 +93,7 @@ impl NewObj {
     }
 
     pub fn with_sector(mut self) -> Self {
-        self.sector= true;
+        self.sector = true;
         self
     }
 

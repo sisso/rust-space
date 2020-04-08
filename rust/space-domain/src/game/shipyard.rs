@@ -1,12 +1,12 @@
-use specs::prelude::*;
-use crate::game::wares::{Cargo, WareId, WareAmount};
-use crate::game::new_obj::NewObj;
-use crate::utils::{Speed, TotalTime, DeltaTime};
-use crate::game::{GameInitContext, RequireInitializer};
 use crate::game::commands::Command;
+use crate::game::new_obj::NewObj;
+use crate::game::wares::{Cargo, WareAmount, WareId};
+use crate::game::{GameInitContext, RequireInitializer};
+use crate::utils::{DeltaTime, Speed, TotalTime};
 use rand::RngCore;
+use specs::prelude::*;
 
-#[derive(Debug,Clone,Component)]
+#[derive(Debug, Clone, Component)]
 pub struct Shipyard {
     pub input: WareAmount,
     pub production_time: DeltaTime,
@@ -25,7 +25,9 @@ impl Shipyard {
 
 impl RequireInitializer for Shipyard {
     fn init(context: &mut GameInitContext) {
-        context.dispatcher.add(ShipyardSystem, "shipyard_system", &[]);
+        context
+            .dispatcher
+            .add(ShipyardSystem, "shipyard_system", &[]);
     }
 }
 
@@ -37,19 +39,13 @@ impl<'a> System<'a> for ShipyardSystem {
         Entities<'a>,
         WriteStorage<'a, Cargo>,
         WriteStorage<'a, Shipyard>,
-        WriteStorage<'a, NewObj>
+        WriteStorage<'a, NewObj>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
         trace!("running");
 
-        let (
-            total_time,
-            entities,
-            mut cargos,
-            mut shipyards,
-            mut new_objects
-        ) = data;
+        let (total_time, entities, mut cargos, mut shipyards, mut new_objects) = data;
 
         let mut to_add = vec![];
 
@@ -74,10 +70,10 @@ impl<'a> System<'a> for ShipyardSystem {
                     to_add.push(new_obj);
 
                     debug!("{:?} complete production, scheduling new object", entity);
-                },
+                }
                 Some(_) => {
                     // still producing
-                },
+                }
                 None => {
                     let ware_id = shipyard.input.get_ware_id();
                     let amount = shipyard.input.get_amount();
@@ -88,17 +84,18 @@ impl<'a> System<'a> for ShipyardSystem {
                         let ready_time = total_time.add(shipyard.production_time);
                         shipyard.current_production = Some(ready_time);
 
-                        debug!("{:?} staring production, will be ready at {:?}", entity, ready_time);
+                        debug!(
+                            "{:?} staring production, will be ready at {:?}",
+                            entity, ready_time
+                        );
                     }
-                },
+                }
             }
         }
 
         // let new_objects = &mut new_objects;
         for obj in to_add {
-            entities.build_entity()
-                .with(obj, &mut new_objects)
-                .build();
+            entities.build_entity().with(obj, &mut new_objects).build();
         }
     }
 }
@@ -106,18 +103,17 @@ impl<'a> System<'a> for ShipyardSystem {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::test::test_system;
-    use crate::game::wares::WareId;
-    use std::borrow::Borrow;
-    use crate::game::locations::Location;
-    use crate::game::events::EventKind::Add;
-    use crate::utils::V2;
-    use crate::space_outputs_generated::space_data::EntityKind::Station;
     use crate::game::commands::MineState;
+    use crate::game::events::EventKind::Add;
+    use crate::game::locations::Location;
+    use crate::game::wares::WareId;
+    use crate::space_outputs_generated::space_data::EntityKind::Station;
+    use crate::test::test_system;
+    use crate::utils::V2;
+    use std::borrow::Borrow;
 
     const PRODUCTION_TIME: f32 = 5.0;
     const REQUIRE_CARGO: f32 = 5.0;
-
 
     #[test]
     fn test_shipyard_system_should_not_start_production_without_enough_cargo() {
@@ -129,14 +125,14 @@ mod test {
     #[test]
     fn test_shipyard_system_should_start_production_with_enough_cargo() {
         let (world, (entity, ware_id)) = scenery(0.0, REQUIRE_CARGO, None);
-        assert_shipyard_cargo(&world, entity,  ware_id,0.0);
+        assert_shipyard_cargo(&world, entity, ware_id, 0.0);
         assert_shipyard_production(&world, entity, Some(TotalTime(PRODUCTION_TIME as f64)));
     }
 
     #[test]
     fn test_shipyard_system_should_not_start_production_with_enough_cargo_and_already_producing() {
         let (world, (entity, ware_id)) = scenery(0.0, REQUIRE_CARGO, Some(1.0));
-        assert_shipyard_cargo(&world, entity,  ware_id,REQUIRE_CARGO);
+        assert_shipyard_cargo(&world, entity, ware_id, REQUIRE_CARGO);
         assert_shipyard_production(&world, entity, Some(TotalTime(1.0)));
     }
 
@@ -147,10 +143,7 @@ mod test {
 
         let storage = &world.read_storage::<NewObj>();
 
-        let new_obj: &NewObj = storage.as_slice()
-            .iter()
-            .next()
-            .unwrap();
+        let new_obj: &NewObj = storage.as_slice().iter().next().unwrap();
 
         assert!(new_obj.ai);
         assert!(new_obj.speed.is_some());
@@ -158,7 +151,7 @@ mod test {
         match &new_obj.location {
             Some(Location::Dock { docked_id }) => {
                 assert_eq!(*docked_id, entity);
-            },
+            }
             other => {
                 panic!("unexpected location {:?}", other);
             }
@@ -169,7 +162,8 @@ mod test {
     }
 
     fn assert_shipyard_cargo(world: &World, entity: Entity, ware_id: WareId, expected: f32) {
-        let current_cargo = world.read_storage::<Cargo>()
+        let current_cargo = world
+            .read_storage::<Cargo>()
             .get(entity)
             .unwrap()
             .get_amount(ware_id);
@@ -178,7 +172,9 @@ mod test {
     }
 
     fn assert_shipyard_production(world: &World, entity: Entity, expected: Option<TotalTime>) {
-        let current_production = world.read_storage::<Shipyard>().get(entity)
+        let current_production = world
+            .read_storage::<Shipyard>()
+            .get(entity)
             .unwrap()
             .current_production
             .clone()
@@ -188,7 +184,11 @@ mod test {
     }
 
     /// returns the world and shipyard entity
-    fn scenery(total_time: f64, cargo_amount: f32, current_production: Option<f64>) -> (World, (Entity, WareId)) {
+    fn scenery(
+        total_time: f64,
+        cargo_amount: f32,
+        current_production: Option<f64>,
+    ) -> (World, (Entity, WareId)) {
         test_system(ShipyardSystem, move |world| {
             let ware_id = world.create_entity().build();
 
@@ -199,14 +199,13 @@ mod test {
 
             world.insert(TotalTime(total_time));
 
-            let mut shipyard = Shipyard::new(WareAmount(ware_id, REQUIRE_CARGO), DeltaTime(PRODUCTION_TIME));
+            let mut shipyard = Shipyard::new(
+                WareAmount(ware_id, REQUIRE_CARGO),
+                DeltaTime(PRODUCTION_TIME),
+            );
             shipyard.current_production = current_production.map(|i| TotalTime(i));
 
-            let entity = world
-                .create_entity()
-                .with(cargo)
-                .with(shipyard)
-                .build();
+            let entity = world.create_entity().with(cargo).with(shipyard).build();
 
             (entity, ware_id)
         })

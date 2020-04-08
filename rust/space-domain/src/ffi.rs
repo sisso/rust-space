@@ -1,16 +1,16 @@
-use crate::game::events::{Events};
+use crate::ffi::ffi_output_system::FfiOutputSystem;
+use crate::game::events::Events;
+use crate::game::loader::Loader;
+use crate::game::sectors::SectorsIndex;
 #[allow(dead_code)]
 use crate::game::Game;
+use crate::game::{GameInitContext, RequireInitializer};
 use crate::space_outputs_generated::space_data;
 use crate::utils::{DeltaTime, Seconds, TotalTime, V2};
 use flatbuffers::FlatBufferBuilder;
+use specs::{DispatcherBuilder, World, WorldExt};
+use std::borrow::{Borrow, BorrowMut};
 use std::time::Duration;
-use crate::game::loader::Loader;
-use specs::{WorldExt, World, DispatcherBuilder};
-use std::borrow::{BorrowMut, Borrow};
-use crate::game::sectors::SectorsIndex;
-use crate::ffi::ffi_output_system::FfiOutputSystem;
-use crate::game::{GameInitContext, RequireInitializer};
 
 mod ffi_output_system;
 
@@ -35,9 +35,7 @@ impl From<&V2> for space_data::V2 {
 /// Represent same interface we intend to use through FFI
 impl<'a, 'b> FFIApi<'a, 'b> {
     pub fn new() -> Self {
-        FFIApi {
-            game: Game::new(),
-        }
+        FFIApi { game: Game::new() }
     }
 
     pub fn new_game(&mut self) {
@@ -79,13 +77,19 @@ impl<'a, 'b> FFIApi<'a, 'b> {
         // TODO: remove copy
         let bytes = outputs.build();
         callback(bytes);
+
+        // clean up outputs
+        outputs.clear();
+
         true
     }
 }
 
 impl RequireInitializer for FFI {
     fn init(context: &mut GameInitContext) {
-        context.late_dispatcher.add(FfiOutputSystem, "ffi_output_system", &[]);
+        context
+            .late_dispatcher
+            .add(FfiOutputSystem, "ffi_output_system", &[]);
     }
 }
 
@@ -136,7 +140,8 @@ impl FfiOutpusBuilder {
         sector_id: u32,
     ) {
         self.entities_new.push(space_data::EntityNew::new(id, kind));
-        self.entities_teleport.push(space_data::EntityTeleport::new(id, &pos, sector_id));
+        self.entities_teleport
+            .push(space_data::EntityTeleport::new(id, &pos, sector_id));
     }
 
     pub fn push_entity_new_docked(
@@ -149,21 +154,14 @@ impl FfiOutpusBuilder {
         self.push_entity_dock(id, docked_id);
     }
 
-    pub fn push_entity_dock(
-        &mut self,
-        id: u32,
-        docked_id: u32,
-    ) {
-        self.entities_dock.push(space_data::EntityDock::new(id, docked_id));
+    pub fn push_entity_dock(&mut self, id: u32, docked_id: u32) {
+        self.entities_dock
+            .push(space_data::EntityDock::new(id, docked_id));
     }
 
-    pub fn push_entity_undock(
-        &mut self,
-        id: u32,
-        pos: space_data::V2,
-        sector_id: u32,
-    ) {
-        self.entities_undock.push(space_data::EntityUndock::new(id, &pos, sector_id));
+    pub fn push_entity_undock(&mut self, id: u32, pos: space_data::V2, sector_id: u32) {
+        self.entities_undock
+            .push(space_data::EntityUndock::new(id, &pos, sector_id));
     }
 
     pub fn push_entity_move(&mut self, id: u32, pos: space_data::V2) {
@@ -187,13 +185,10 @@ impl FfiOutpusBuilder {
                     None
                 } else {
                     let v = std::mem::replace(&mut $field, vec![]);
-                    Some(
-                        builder.create_vector(v.as_ref()),
-                    )
+                    Some(builder.create_vector(v.as_ref()))
                 }
             };
         }
-
 
         let root_args = space_data::OutputsArgs {
             entities_new: create_vector!(self.entities_new),
@@ -217,9 +212,9 @@ impl FfiOutpusBuilder {
 
 #[cfg(test)]
 mod test {
-    use crate::game::events::{Events};
-    use crate::game::objects::ObjId;
     use crate::ffi::FfiOutpusBuilder;
+    use crate::game::events::Events;
+    use crate::game::objects::ObjId;
     use crate::space_outputs_generated::space_data;
 
     #[test]
@@ -235,11 +230,7 @@ mod test {
     #[test]
     fn test_events_to_flatoutputs_objects_added() {
         let mut builder = FfiOutpusBuilder::new();
-        builder.push_entity_new_docked(
-            0,
-            space_data::EntityKind::Fleet,
-            1,
-        );
+        builder.push_entity_new_docked(0, space_data::EntityKind::Fleet, 1);
         builder.push_entity_new_in_space(
             1,
             space_data::EntityKind::Station,

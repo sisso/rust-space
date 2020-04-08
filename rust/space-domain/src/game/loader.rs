@@ -1,25 +1,23 @@
-use crate::specs_extras::*;
-use crate::game::wares::{WareId, Cargo, WareAmount};
-use crate::game::sectors::{SectorId, SectorsIndex, Sector, Jump, JumpId};
-use crate::game::objects::ObjId;
-use crate::game::Game;
-use crate::game::new_obj::NewObj;
-use crate::game::extractables::Extractable;
-use crate::utils::{V2, Speed, Position, DeltaTime};
-use crate::game::commands::{Commands, MineState, Command};
-use specs::{WorldExt, Builder, World};
-use crate::game::locations::{Location, Moveable};
-use crate::game::events::{Event, EventKind, Events};
-use std::borrow::BorrowMut;
+use crate::game::commands::{Command, Commands, MineState};
 use crate::game::dock::HasDock;
+use crate::game::events::{Event, EventKind, Events};
+use crate::game::extractables::Extractable;
+use crate::game::factory::{Factory, Production};
+use crate::game::locations::{Location, Moveable};
+use crate::game::new_obj::NewObj;
+use crate::game::objects::ObjId;
+use crate::game::order::{Order, Orders};
+use crate::game::sectors::{Jump, JumpId, Sector, SectorId, SectorsIndex};
 use crate::game::shipyard::Shipyard;
 use crate::game::station::Station;
-use crate::game::factory::{Factory, Production};
-use crate::game::order::{Order, Orders};
+use crate::game::wares::{Cargo, WareAmount, WareId};
+use crate::game::Game;
+use crate::specs_extras::*;
+use crate::utils::{DeltaTime, Position, Speed, V2};
+use specs::{Builder, World, WorldExt};
+use std::borrow::BorrowMut;
 
-pub struct Loader {
-
-}
+pub struct Loader {}
 
 pub struct BasicScenery {
     pub asteroid_id: ObjId,
@@ -48,19 +46,27 @@ impl Loader {
         let sector_0 = Loader::new_sector(world);
         let sector_1 = Loader::new_sector(world);
 
-        Loader::new_jump(world, sector_0, V2::new(0.5, 0.3), sector_1, V2::new(0.0, 0.0));
+        Loader::new_jump(
+            world,
+            sector_0,
+            V2::new(0.5, 0.3),
+            sector_1,
+            V2::new(0.0, 0.0),
+        );
         SectorsIndex::update_index_from_world(world);
 
         // init objects
         let asteroid_id = Loader::new_asteroid(world, sector_1, V2::new(-2.0, 3.0), ware_ore_id);
-        let component_factory_id = Loader::new_factory(world,
-           sector_0,
-           V2::new(3.0, -1.0),
-           vec![WareAmount(ware_ore_id, 2.0)],
-           vec![WareAmount(ware_components_id, 1.0)],
+        let component_factory_id = Loader::new_factory(
+            world,
+            sector_0,
+            V2::new(3.0, -1.0),
+            vec![WareAmount(ware_ore_id, 2.0)],
+            vec![WareAmount(ware_components_id, 1.0)],
             DeltaTime(1.0),
         );
-        let shipyard_id = Loader::new_shipyard(world, sector_0, V2::new(1.0, -3.0), ware_components_id);
+        let shipyard_id =
+            Loader::new_shipyard(world, sector_0, V2::new(1.0, -3.0), ware_components_id);
         let miner_id = Loader::new_ship_miner(world, shipyard_id, 2.0);
         let trader_id = Loader::new_ship_trader(world, component_factory_id, 2.0);
 
@@ -76,7 +82,6 @@ impl Loader {
             sector_1,
             component_factory_id,
         }
-
     }
     /// Advanced scenery
     pub fn load_advanced_scenery(world: &mut World) {
@@ -89,7 +94,13 @@ impl Loader {
         let sector_0 = Loader::new_sector(world);
         let sector_1 = Loader::new_sector(world);
 
-        Loader::new_jump(world, sector_0, V2::new(0.5, 0.3), sector_1, V2::new(0.0, 0.0));
+        Loader::new_jump(
+            world,
+            sector_0,
+            V2::new(0.5, 0.3),
+            sector_1,
+            V2::new(0.0, 0.0),
+        );
         SectorsIndex::update_index_from_world(world);
 
         // init objects
@@ -97,7 +108,8 @@ impl Loader {
         Loader::new_asteroid(world, sector_1, V2::new(-2.2, 2.8), ware_ore_id);
         Loader::new_asteroid(world, sector_1, V2::new(-2.8, 3.1), ware_ore_id);
 
-        let component_factory_id = Loader::new_factory(world,
+        let component_factory_id = Loader::new_factory(
+            world,
             sector_0,
             V2::new(3.0, -1.0),
             vec![WareAmount(ware_ore_id, 2.0), WareAmount(ware_energy, 1.0)],
@@ -105,15 +117,17 @@ impl Loader {
             DeltaTime(1.0),
         );
 
-        let energy_factory_id = Loader::new_factory(world,
-           sector_0,
-           V2::new(-0.5, 1.5),
-           vec![],
-           vec![WareAmount(ware_energy, 1.0)],
-           DeltaTime(5.0),
+        let energy_factory_id = Loader::new_factory(
+            world,
+            sector_0,
+            V2::new(-0.5, 1.5),
+            vec![],
+            vec![WareAmount(ware_energy, 1.0)],
+            DeltaTime(5.0),
         );
 
-        let shipyard_id = Loader::new_shipyard(world, sector_0, V2::new(1.0, -3.0), ware_components_id);
+        let shipyard_id =
+            Loader::new_shipyard(world, sector_0, V2::new(1.0, -3.0), ware_components_id);
         Loader::new_ship_miner(world, shipyard_id, 2.0);
         Loader::new_ship_trader(world, component_factory_id, 2.0);
     }
@@ -139,11 +153,18 @@ impl Loader {
         )
     }
 
-    pub fn new_factory(world: &mut World, sector_id: SectorId, pos: V2, input: Vec<WareAmount>, output: Vec<WareAmount>, time: DeltaTime) -> ObjId {
+    pub fn new_factory(
+        world: &mut World,
+        sector_id: SectorId,
+        pos: V2,
+        input: Vec<WareAmount>,
+        output: Vec<WareAmount>,
+        time: DeltaTime,
+    ) -> ObjId {
         let production = Production {
             input,
             output,
-            time
+            time,
         };
 
         Loader::add_object(
@@ -160,16 +181,14 @@ impl Loader {
     pub fn new_ship_miner(world: &mut World, docked_at: ObjId, speed: f32) -> ObjId {
         Loader::add_object(
             world,
-           Loader::new_ship(docked_at, speed)
-               .with_command(Command::mine())
+            Loader::new_ship(docked_at, speed).with_command(Command::mine()),
         )
     }
 
     pub fn new_ship_trader(world: &mut World, docked_at: ObjId, speed: f32) -> ObjId {
         Loader::add_object(
             world,
-            Loader::new_ship(docked_at, speed)
-                .with_command(Command::trade())
+            Loader::new_ship(docked_at, speed).with_command(Command::trade()),
         )
     }
 
@@ -183,40 +202,62 @@ impl Loader {
     }
 
     pub fn new_sector(world: &mut World) -> ObjId {
-        Loader::add_object(
-            world,
-        NewObj::new().with_sector()
-        )
+        Loader::add_object(world, NewObj::new().with_sector())
     }
 
     pub fn new_ware(world: &mut World) -> WareId {
-        Loader::add_object(
-            world,
-            NewObj::new().with_ware()
-        )
+        Loader::add_object(world, NewObj::new().with_ware())
     }
 
-    pub fn new_jump(world: &mut World, from_sector_id: SectorId, from_pos: Position, to_sector_id: JumpId, to_pos: Position) -> (ObjId, ObjId) {
-        let jump_from_id = world.create_entity()
-            .with(Location::Space { pos: from_pos, sector_id: from_sector_id })
+    pub fn new_jump(
+        world: &mut World,
+        from_sector_id: SectorId,
+        from_pos: Position,
+        to_sector_id: JumpId,
+        to_pos: Position,
+    ) -> (ObjId, ObjId) {
+        let jump_from_id = world
+            .create_entity()
+            .with(Location::Space {
+                pos: from_pos,
+                sector_id: from_sector_id,
+            })
             .build();
 
-        let jump_to_id = world.create_entity()
-            .with(Location::Space { pos: to_pos, sector_id: to_sector_id })
-            .with(Jump { target_id: jump_from_id })
+        let jump_to_id = world
+            .create_entity()
+            .with(Location::Space {
+                pos: to_pos,
+                sector_id: to_sector_id,
+            })
+            .with(Jump {
+                target_id: jump_from_id,
+            })
             .build();
 
-        world.write_storage::<Jump>()
+        world
+            .write_storage::<Jump>()
             .borrow_mut()
-            .insert(jump_from_id, Jump { target_id: jump_to_id })
+            .insert(
+                jump_from_id,
+                Jump {
+                    target_id: jump_to_id,
+                },
+            )
             .unwrap();
 
         let events = &mut world.write_resource::<Events>();
         events.push(Event::new(jump_from_id, EventKind::Add));
         events.push(Event::new(jump_to_id, EventKind::Add));
 
-        info!("{:?} creating jump from {:?} to {:?}", jump_from_id, from_sector_id, to_sector_id);
-        info!("{:?} creating jump from {:?} to {:?}", jump_to_id, to_sector_id, from_sector_id);
+        info!(
+            "{:?} creating jump from {:?} to {:?}",
+            jump_from_id, from_sector_id, to_sector_id
+        );
+        info!(
+            "{:?} creating jump from {:?} to {:?}",
+            jump_to_id, to_sector_id, from_sector_id
+        );
 
         (jump_from_id, jump_to_id)
     }
@@ -243,7 +284,9 @@ impl Loader {
         }
 
         for speed in &new_obj.speed {
-            builder.set(Moveable { speed: speed.clone() });
+            builder.set(Moveable {
+                speed: speed.clone(),
+            });
         }
 
         for extractable in &new_obj.extractable {
@@ -269,7 +312,7 @@ impl Loader {
         for shipyard in &new_obj.shipyard {
             builder.set(shipyard.clone());
             orders.push(Order::WareRequest {
-                wares_id: vec![shipyard.input.get_ware_id()]
+                wares_id: vec![shipyard.input.get_ware_id()],
             });
         }
 
@@ -285,10 +328,10 @@ impl Loader {
         for factory in &new_obj.factory {
             builder.set(factory.clone());
             orders.push(Order::WareRequest {
-                wares_id: factory.production.request_wares_id()
+                wares_id: factory.production.request_wares_id(),
             });
             orders.push(Order::WareProvide {
-                wares_id: factory.production.provide_wares_id()
+                wares_id: factory.production.provide_wares_id(),
             });
         }
 

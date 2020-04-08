@@ -29,17 +29,27 @@ fn main() -> Result<(), std::io::Error> {
         let delta = now - start;
         let wait_time = time_rate - delta;
 
-        eprintln!("gui - delta {:?}, wait_time: {:?}, ration: {:?}% usage", delta, wait_time, (100.0 / (time_rate.as_millis() as f64 / delta.as_millis() as f64)) as i32);
-        eprintln!("    - update {:?}, collect_inputs: {:?}", game_update_time - start, input_time - game_update_time);
+        eprintln!(
+            "gui - delta {:?}, wait_time: {:?}, ration: {:?}% usage",
+            delta,
+            wait_time,
+            (100.0 / (time_rate.as_millis() as f64 / delta.as_millis() as f64)) as i32
+        );
+        eprintln!(
+            "    - update {:?}, collect_inputs: {:?}",
+            game_update_time - start,
+            input_time - game_update_time
+        );
 
         if delta < time_rate {
             std::thread::sleep(wait_time);
         } else {
-            eprintln!("gui - delta {:?}, wait_time: 0.0: missing time frame", delta);
+            eprintln!(
+                "gui - delta {:?}, wait_time: 0.0: missing time frame",
+                delta
+            );
         }
-
     }
 
     Ok(())
 }
-

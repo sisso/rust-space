@@ -1,7 +1,7 @@
-use specs::prelude::*;
 use crate::game::objects::ObjId;
 use crate::game::sectors::SectorId;
 use crate::game::{GameInitContext, RequireInitializer};
+use specs::prelude::*;
 use std::borrow::BorrowMut;
 
 #[derive(Debug, Clone)]
@@ -32,7 +32,7 @@ pub struct Events {
 impl Default for Events {
     fn default() -> Self {
         Events {
-            queue: Default::default()
+            queue: Default::default(),
         }
     }
 }
@@ -53,11 +53,9 @@ impl Events {
 
 impl RequireInitializer for Events {
     fn init(context: &mut GameInitContext) {
-        context.cleanup_dispatcher.add(
-            ClearEventsSystem,
-            "clear_events_system",
-            &[],
-        );
+        context
+            .cleanup_dispatcher
+            .add(ClearEventsSystem, "clear_events_system", &[]);
     }
 }
 
