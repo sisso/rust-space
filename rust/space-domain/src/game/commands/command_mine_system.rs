@@ -364,13 +364,15 @@ mod test {
             .get(scenery.miner)
             .cloned();
         assert!(action.is_some());
-        assert_eq!(
-            action.unwrap().0,
-            Action::Extract {
-                target_id: scenery.asteroid,
-                ware_id: scenery.ware_id
+
+        match action.unwrap().0 {
+            Action::Extract { target_id, ware_id } => {
+                assert_eq!(target_id, scenery.asteroid);
+                assert_eq!(ware_id, scenery.ware_id);
             }
-        );
+
+            other => panic!("unexpected {:?}", other),
+        }
     }
 
     #[test]

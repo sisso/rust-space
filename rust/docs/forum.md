@@ -1,5 +1,11 @@
 # Forum
 
+## Movement prediction should not be exposed to GUI
+
+GUI must not care and have no algorithm related with movements. We are not trying to simulate a networkcode.
+
+In the case we want reduced game time comparing with interface, we should introduce fixed time in the code.
+
 ## Trade still fail
 
 In case of storage with whitelist, trader is not smart enough to knwo that his cargo will be rejected and get stuck

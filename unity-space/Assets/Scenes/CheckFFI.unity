@@ -355,7 +355,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   domain: {fileID: 1379923362}
-  timeDilatation: 10
+  timeDilatation: 1
   iterations: 1
   realTime: 0
   gameTime: 0

@@ -1,7 +1,8 @@
 # TODO
 
-- switch movements to curves instead interact every frame
-- Proper log
+- loader from file
+- proper log
+- save game
 
 ## Configuration files
 
@@ -9,8 +10,6 @@
     
 ## Save game
 
-- make easy serialization using serde automatic bind    
-    
 ## FFI    
 
 ## GUI
