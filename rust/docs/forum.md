@@ -1,5 +1,18 @@
 # Forum
 
+## What the game is?
+
+Homeworld with X3 with Factorio
+
+Start from nothing, create a production scale until you domain many sectors.
+
+## We dont need auto trade
+
+Traders are kind of replacement of belts in factorio. User will need to define routes between stations and production, that level of automatiion is not necessary.
+- user defined routes, shis request. After construct ship and assignt o trade, they wil be automatic assign to one of free routes
+
+Same as miners. User should define ares to be mined, and fleets will be autoamtic assign,.
+
 ## Movement prediction should not be exposed to GUI
 
 GUI must not care and have no algorithm related with movements. We are not trying to simulate a networkcode.
