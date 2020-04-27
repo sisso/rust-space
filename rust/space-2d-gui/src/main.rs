@@ -4,38 +4,27 @@ use ggez::event::{self, EventHandler};
 use ggez::{graphics, timer, Context, ContextBuilder, GameResult};
 use specs::prelude::*;
 use specs::{World, WorldExt};
+use specs_derive::Component;
 use std::borrow::BorrowMut;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Component)]
 struct Moveable {
     pos: cgmath::Point2<f32>,
     max_speed: f32,
     vel: cgmath::Vector2<f32>,
 }
 
-impl Component for Moveable {
-    type Storage = VecStorage<Self>;
-}
-
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Component)]
 struct MoveableHistoric {
     list: Vec<Moveable>,
 }
 
-impl Component for MoveableHistoric {
-    type Storage = VecStorage<Self>;
-}
-
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Component)]
 struct MoveCommand {
     to: cgmath::Point2<f32>,
 }
 
-impl Component for MoveCommand {
-    type Storage = VecStorage<Self>;
-}
-
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Component)]
 struct PatrolCommand {
     index: usize,
     route: Vec<cgmath::Point2<f32>>,
@@ -52,17 +41,16 @@ impl PatrolCommand {
     }
 }
 
-impl Component for PatrolCommand {
-    type Storage = VecStorage<Self>;
+#[derive(Clone, Debug, Component)]
+struct FollowCommand {
+    target: Entity,
+    pos: cgmath::Vector2<f32>,
 }
 
-#[derive(Clone, Debug)]
-struct Ship {
+#[derive(Clone, Debug, Component)]
+struct Model {
     size: f32,
-}
-
-impl Component for Ship {
-    type Storage = VecStorage<Self>;
+    color: graphics::Color,
 }
 
 struct App {
@@ -73,17 +61,21 @@ impl App {
     pub fn new(ctx: &mut Context) -> GameResult<App> {
         // create world
         let mut world = World::new();
-        world.register::<Ship>();
+        world.register::<Model>();
         world.register::<Moveable>();
         world.register::<MoveableHistoric>();
         world.register::<MoveCommand>();
         world.register::<PatrolCommand>();
+        world.register::<FollowCommand>();
 
         // add elements
         {
-            world
+            let entity_0 = world
                 .create_entity()
-                .with(Ship { size: 4.0 })
+                .with(Model {
+                    size: 4.0,
+                    color: graphics::WHITE,
+                })
                 .with(Moveable {
                     pos: cgmath::Point2::new(400.0, 300.0),
                     max_speed: 100.0,
@@ -97,9 +89,41 @@ impl App {
                     ],
                 })
                 .build();
-        }
 
-        // world.setup();
+            world
+                .create_entity()
+                .with(Model {
+                    size: 3.0,
+                    color: graphics::Color::new(1.0, 0.0, 0.0, 1.0),
+                })
+                .with(Moveable {
+                    pos: cgmath::Point2::new(450.0, 320.0),
+                    max_speed: 110.0,
+                    vel: cgmath::Vector2::new(0.0, 0.0),
+                })
+                .with(FollowCommand {
+                    target: entity_0,
+                    pos: vec2(0.0, -10.0),
+                })
+                .build();
+
+            world
+                .create_entity()
+                .with(Model {
+                    size: 3.0,
+                    color: graphics::Color::new(0.0, 1.0, 0.0, 1.0),
+                })
+                .with(Moveable {
+                    pos: cgmath::Point2::new(450.0, 320.0),
+                    max_speed: 110.0,
+                    vel: cgmath::Vector2::new(0.0, 0.0),
+                })
+                .with(FollowCommand {
+                    target: entity_0,
+                    pos: vec2(0.0, 10.0),
+                })
+                .build();
+        }
 
         let game = App { world };
 
@@ -107,22 +131,65 @@ impl App {
     }
 }
 
-fn commands_system(world: &mut World) -> GameResult<()> {
+fn follow_system(world: &mut World) -> GameResult<()> {
+    let entities = world.entities();
+    let mut follow_commands = world.write_storage::<FollowCommand>();
+    let mut move_to_commands = world.write_storage::<MoveCommand>();
+    let movables = world.read_storage::<Moveable>();
+
+    //  collect for each follow the target position
+    for (entity, follow) in (&*entities, &follow_commands).join() {
+        let target_movable = if let Some(m) = (&movables).get(follow.target) {
+            m
+        } else {
+            continue;
+        };
+
+        // update movable with target position
+        let move_pos = target_movable.pos + (target_movable.vel * -0.1) + follow.pos;
+
+        // println!(
+        //     "{:?} following {:?} at {:?}",
+        //     entity, follow.target, move_pos
+        // );
+
+        move_to_commands
+            .borrow_mut()
+            .insert(entity, MoveCommand { to: move_pos })
+            .unwrap();
+    }
+
+    Ok(())
+}
+
+fn patrol_system(world: &mut World) -> GameResult<()> {
     let entities = world.entities();
     let mut patrols = world.write_storage::<PatrolCommand>();
     let mut move_commands = world.write_storage::<MoveCommand>();
     let mut movables = world.write_storage::<Moveable>();
 
+    // patrol
     for (entity, patrol) in (&*entities, &mut patrols).join() {
         if move_commands.get(entity).is_some() {
             continue;
         }
 
         let pos = patrol.next();
-        println!("{:?} next pos {:?}", entity, pos);
-        move_commands.insert(entity, MoveCommand { to: pos });
+        // println!("{:?} next pos {:?}", entity, pos);
+        move_commands
+            .insert(entity, MoveCommand { to: pos })
+            .unwrap();
     }
 
+    Ok(())
+}
+
+fn move_to_system(world: &mut World) -> GameResult<()> {
+    let entities = world.entities();
+    let mut move_commands = world.write_storage::<MoveCommand>();
+    let mut movables = world.write_storage::<Moveable>();
+
+    // move to position
     for (entity, movable) in (&*entities, &mut movables).join() {
         let move_command = if let Some(value) = move_commands.get_mut(entity) {
             value
@@ -137,7 +204,7 @@ fn commands_system(world: &mut World) -> GameResult<()> {
         if distance < 0.1 {
             // println!("{:?} complete", entity);
             movable.vel = vec2(0.0, 0.0);
-            move_commands.remove(entity);
+            move_commands.remove(entity).unwrap();
         } else {
             let dir = delta.normalize();
             let speed = movable.max_speed.min(distance * 10.0);
@@ -163,25 +230,29 @@ fn movable_system(delta: f32, world: &mut World) -> GameResult<()> {
 impl EventHandler for App {
     fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
         let delta = timer::delta(ctx).as_secs_f32();
-        commands_system(&mut self.world);
-        movable_system(delta, &mut self.world);
+        patrol_system(&mut self.world)?;
+        follow_system(&mut self.world)?;
+        move_to_system(&mut self.world)?;
+        movable_system(delta, &mut self.world)?;
         Ok(())
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
         graphics::clear(ctx, graphics::BLACK);
 
-        let ships = &self.world.read_storage::<Ship>();
+        let entities = self.world.entities();
+        let models = &self.world.read_storage::<Model>();
         let movables = &self.world.read_storage::<Moveable>();
 
-        for (s, m) in (ships, movables).join() {
+        for (e, model, mov) in (&*entities, models, movables).join() {
+            // println!("{:?} drawing {:?} at {:?}", e, model, mov);
             let circle = graphics::Mesh::new_circle(
                 ctx,
                 graphics::DrawMode::fill(),
-                m.pos,
-                s.size,
+                mov.pos,
+                model.size,
                 0.1,
-                graphics::WHITE,
+                model.color,
             )?;
             graphics::draw(ctx, &circle, graphics::DrawParam::default())?;
         }
