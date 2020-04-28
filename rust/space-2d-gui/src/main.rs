@@ -1,4 +1,4 @@
-use cgmath::{prelude::*, vec2};
+use cgmath::{prelude::*, vec2, vec3, Deg, Euler, Quaternion, Rad, Vector2};
 use ggez::conf::WindowMode;
 use ggez::event::{self, EventHandler};
 use ggez::{graphics, timer, Context, ContextBuilder, GameResult};
@@ -6,6 +6,12 @@ use specs::prelude::*;
 use specs::{World, WorldExt};
 use specs_derive::Component;
 use std::borrow::BorrowMut;
+use std::ops::Deref;
+
+#[derive(Clone, Debug, Component)]
+struct Cfg {
+    speed_reduction: f32,
+}
 
 #[derive(Clone, Debug, Component)]
 struct Moveable {
@@ -67,25 +73,32 @@ impl App {
         world.register::<MoveCommand>();
         world.register::<PatrolCommand>();
         world.register::<FollowCommand>();
+        world.register::<Cfg>();
+
+        world.insert(Cfg {
+            speed_reduction: 9.0,
+        });
 
         // add elements
         {
             let entity_0 = world
                 .create_entity()
                 .with(Model {
-                    size: 4.0,
+                    size: 6.0,
                     color: graphics::WHITE,
                 })
                 .with(Moveable {
                     pos: cgmath::Point2::new(400.0, 300.0),
-                    max_speed: 100.0,
+                    max_speed: 54.0,
                     vel: cgmath::Vector2::new(0.0, 0.0),
                 })
                 .with(PatrolCommand {
                     index: 0,
                     route: vec![
                         cgmath::Point2::new(200.0, 300.0),
+                        cgmath::Point2::new(400.0, 150.0),
                         cgmath::Point2::new(600.0, 300.0),
+                        cgmath::Point2::new(400.0, 550.0),
                     ],
                 })
                 .build();
@@ -93,12 +106,12 @@ impl App {
             world
                 .create_entity()
                 .with(Model {
-                    size: 3.0,
+                    size: 2.0,
                     color: graphics::Color::new(1.0, 0.0, 0.0, 1.0),
                 })
                 .with(Moveable {
                     pos: cgmath::Point2::new(450.0, 320.0),
-                    max_speed: 110.0,
+                    max_speed: 60.0,
                     vel: cgmath::Vector2::new(0.0, 0.0),
                 })
                 .with(FollowCommand {
@@ -110,12 +123,12 @@ impl App {
             world
                 .create_entity()
                 .with(Model {
-                    size: 3.0,
+                    size: 2.0,
                     color: graphics::Color::new(0.0, 1.0, 0.0, 1.0),
                 })
                 .with(Moveable {
                     pos: cgmath::Point2::new(450.0, 320.0),
-                    max_speed: 110.0,
+                    max_speed: 55.0,
                     vel: cgmath::Vector2::new(0.0, 0.0),
                 })
                 .with(FollowCommand {
@@ -132,13 +145,13 @@ impl App {
 }
 
 fn follow_system(world: &mut World) -> GameResult<()> {
-    let entities = world.entities();
-    let mut follow_commands = world.write_storage::<FollowCommand>();
-    let mut move_to_commands = world.write_storage::<MoveCommand>();
-    let movables = world.read_storage::<Moveable>();
+    let entities = &world.entities();
+    let follow_commands = &mut world.write_storage::<FollowCommand>();
+    let move_to_commands = &mut world.write_storage::<MoveCommand>();
+    let movables = &world.read_storage::<Moveable>();
 
     //  collect for each follow the target position
-    for (entity, follow) in (&*entities, &follow_commands).join() {
+    for (entity, follow) in (entities, follow_commands).join() {
         let target_movable = if let Some(m) = (&movables).get(follow.target) {
             m
         } else {
@@ -146,7 +159,12 @@ fn follow_system(world: &mut World) -> GameResult<()> {
         };
 
         // update movable with target position
-        let move_pos = target_movable.pos + (target_movable.vel * -0.1) + follow.pos;
+        let mut relative_pos = rotate_vector(target_movable.vel.normalize(), follow.pos);
+        if relative_pos.x.is_nan() || relative_pos.y.is_nan() {
+            relative_pos = follow.pos;
+        }
+
+        let move_pos = target_movable.pos + relative_pos;
 
         // println!(
         //     "{:?} following {:?} at {:?}",
@@ -163,13 +181,12 @@ fn follow_system(world: &mut World) -> GameResult<()> {
 }
 
 fn patrol_system(world: &mut World) -> GameResult<()> {
-    let entities = world.entities();
-    let mut patrols = world.write_storage::<PatrolCommand>();
-    let mut move_commands = world.write_storage::<MoveCommand>();
-    let mut movables = world.write_storage::<Moveable>();
+    let entities = &world.entities();
+    let patrols = &mut world.write_storage::<PatrolCommand>();
+    let move_commands = &mut world.write_storage::<MoveCommand>();
 
     // patrol
-    for (entity, patrol) in (&*entities, &mut patrols).join() {
+    for (entity, patrol) in (entities, patrols).join() {
         if move_commands.get(entity).is_some() {
             continue;
         }
@@ -185,12 +202,13 @@ fn patrol_system(world: &mut World) -> GameResult<()> {
 }
 
 fn move_to_system(world: &mut World) -> GameResult<()> {
-    let entities = world.entities();
-    let mut move_commands = world.write_storage::<MoveCommand>();
-    let mut movables = world.write_storage::<Moveable>();
+    let entities = &world.entities();
+    let move_commands = &mut world.write_storage::<MoveCommand>();
+    let movables = &mut world.write_storage::<Moveable>();
+    let cfg = &world.read_resource::<Cfg>();
 
     // move to position
-    for (entity, movable) in (&*entities, &mut movables).join() {
+    for (entity, movable) in (entities, movables).join() {
         let move_command = if let Some(value) = move_commands.get_mut(entity) {
             value
         } else {
@@ -207,7 +225,8 @@ fn move_to_system(world: &mut World) -> GameResult<()> {
             move_commands.remove(entity).unwrap();
         } else {
             let dir = delta.normalize();
-            let speed = movable.max_speed.min(distance * 10.0);
+            let speed = movable.max_speed.min(distance * cfg.speed_reduction);
+
             movable.vel = dir * speed;
             // println!("{:?} set vel {:?}", entity, movable);
         }
@@ -257,7 +276,15 @@ impl EventHandler for App {
             graphics::draw(ctx, &circle, graphics::DrawParam::default())?;
         }
 
+        let cfg = &self.world.read_resource::<Cfg>();
+        let text = graphics::Text::new(format!("{:?}", cfg.deref()));
+        graphics::draw(ctx, &text, (cgmath::Point2::new(0.0, 0.0), graphics::WHITE))?;
+
         graphics::present(ctx)
+    }
+
+    fn mouse_wheel_event(&mut self, _ctx: &mut Context, x: f32, y: f32) {
+        self.world.write_resource::<Cfg>().speed_reduction += y * 0.1;
     }
 }
 
@@ -283,5 +310,74 @@ fn main() -> GameResult<()> {
             println!("Error occured: {}", e);
             Err(e)
         }
+    }
+}
+
+fn rotate_vector(dir: Vector2<f32>, point: Vector2<f32>) -> Vector2<f32> {
+    let angle = dir.y.atan2(dir.x);
+
+    let qt = Quaternion::from(Euler {
+        x: Rad(0.0),
+        y: Rad(0.0),
+        z: Rad(angle),
+    });
+
+    let pointv3 = vec3(point.x, point.y, 0.0);
+    let rotated = qt * pointv3;
+    vec2(rotated.x, rotated.y)
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use cgmath::{Rad, Vector2};
+
+    macro_rules! assert_delta {
+        ($x:expr, $y:expr, $d:expr) => {
+            if !($x - $y < $d || $y - $x < $d) {
+                panic!();
+            }
+        };
+    }
+
+    #[test]
+    fn test_rotate_vector3() {
+        let v1 = vec3(1.0, 0.0, 0.0);
+        let qt = Quaternion::from(Euler {
+            x: Deg(0.0),
+            y: Deg(90.0),
+            z: Deg(0.0),
+        });
+        let vf = qt * v1;
+        assert!(vf.z == -1.0);
+    }
+
+    #[test]
+    fn test_vector_angle() {
+        let v1: Vector2<f32> = vec2(0.5, 0.5);
+        let angle: f32 = Deg::from(Rad(v1.y.atan2(v1.x))).0;
+        assert_eq!(angle, 45.0);
+
+        let v1: Vector2<f32> = vec2(-0.5, 0.5);
+        let angle: f32 = Deg::from(Rad(v1.y.atan2(v1.x))).0;
+        assert_eq!(angle, 135.0);
+
+        let v1: Vector2<f32> = vec2(0.5, -0.5);
+        let angle: f32 = Deg::from(Rad(v1.y.atan2(v1.x))).0;
+        assert_eq!(angle, -45.0);
+    }
+
+    #[test]
+    fn test_rotate_vector() {
+        let point = vec2(0.0, 1.0);
+
+        let dir = vec2(1.0, 0.0);
+        let rotated = rotate_vector(dir, point);
+        assert_eq!(rotated, vec2(0.0, 1.0));
+
+        let dir = vec2(-1.0, 0.0);
+        let rotated = rotate_vector(dir, point);
+        assert_delta!(rotated.x, 0.0, 0.001);
+        assert_delta!(rotated.y, -1.0, 0.001);
     }
 }
