@@ -13,6 +13,7 @@ use std::ops::Deref;
 struct Cfg {
     speed_reduction: f32,
     pause: bool,
+    vector_epsilon: f32,
 }
 
 #[derive(Clone, Debug, Component)]
@@ -22,10 +23,24 @@ struct Time {
 }
 
 #[derive(Clone, Debug, Component)]
-struct Moveable {
+struct Movable {
     pos: cgmath::Point2<f32>,
     max_speed: f32,
     vel: cgmath::Vector2<f32>,
+    desired_vel: cgmath::Vector2<f32>,
+    max_acc: f32,
+}
+
+impl Movable {
+    fn new(pos: cgmath::Point2<f32>, max_speed: f32, max_acc: f32) -> Self {
+        Movable {
+            pos,
+            max_speed,
+            vel: Vector2::zero(),
+            desired_vel: Vector2::zero(),
+            max_acc,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Component)]
@@ -89,7 +104,7 @@ impl App {
         // create world
         let mut world = World::new();
         world.register::<Model>();
-        world.register::<Moveable>();
+        world.register::<Movable>();
         world.register::<MoveCommand>();
         world.register::<PatrolCommand>();
         world.register::<FollowCommand>();
@@ -98,8 +113,9 @@ impl App {
         world.register::<Time>();
 
         world.insert(Cfg {
-            speed_reduction: 9.0,
+            speed_reduction: 19.0,
             pause: false,
+            vector_epsilon: 1.0,
         });
 
         world.insert(Time {
@@ -115,11 +131,7 @@ impl App {
                     size: 6.0,
                     color: graphics::WHITE,
                 })
-                .with(Moveable {
-                    pos: cgmath::Point2::new(400.0, 300.0),
-                    max_speed: 54.0,
-                    vel: cgmath::Vector2::new(0.0, 0.0),
-                })
+                .with(Movable::new(cgmath::Point2::new(400.0, 300.0), 54.0, 54.0))
                 .with(PatrolCommand {
                     index: 0,
                     route: vec![
@@ -137,11 +149,7 @@ impl App {
                     size: 2.0,
                     color: graphics::Color::new(1.0, 0.0, 0.0, 1.0),
                 })
-                .with(Moveable {
-                    pos: cgmath::Point2::new(450.0, 320.0),
-                    max_speed: 60.0,
-                    vel: cgmath::Vector2::new(0.0, 0.0),
-                })
+                .with(Movable::new(cgmath::Point2::new(450.0, 320.0), 70.0, 40.0))
                 .with(FollowCommand {
                     target: entity_0,
                     pos: vec2(0.0, -10.0),
@@ -154,11 +162,7 @@ impl App {
                     size: 2.0,
                     color: graphics::Color::new(0.0, 1.0, 0.0, 1.0),
                 })
-                .with(Moveable {
-                    pos: cgmath::Point2::new(450.0, 320.0),
-                    max_speed: 55.0,
-                    vel: cgmath::Vector2::new(0.0, 0.0),
-                })
+                .with(Movable::new(cgmath::Point2::new(450.0, 320.0), 55.0, 80.0))
                 .with(FollowCommand {
                     target: entity_0,
                     pos: vec2(0.0, 10.0),
@@ -176,7 +180,7 @@ fn follow_system(world: &mut World) -> GameResult<()> {
     let entities = &world.entities();
     let follow_commands = &mut world.write_storage::<FollowCommand>();
     let move_to_commands = &mut world.write_storage::<MoveCommand>();
-    let movables = &world.read_storage::<Moveable>();
+    let movables = &world.read_storage::<Movable>();
 
     //  collect for each follow the target position
     for (entity, follow) in (entities, follow_commands).join() {
@@ -256,7 +260,7 @@ fn patrol_system(world: &mut World) -> GameResult<()> {
 fn move_command_system(world: &mut World) -> GameResult<()> {
     let entities = &world.entities();
     let mut move_commands = world.write_storage::<MoveCommand>();
-    let mut movables = world.write_storage::<Moveable>();
+    let mut movables = world.write_storage::<Movable>();
     let mut predictions = world.write_storage::<MovementPrediction>();
     let cfg = &world.read_resource::<Cfg>();
     let total_time = world.read_resource::<Time>().borrow().total_time;
@@ -267,15 +271,15 @@ fn move_command_system(world: &mut World) -> GameResult<()> {
     for (entity, movable, move_command) in (entities, &mut movables, &mut move_commands).join() {
         let delta = move_command.to - movable.pos;
         let distance = delta.magnitude();
-        if distance < 0.1 {
+        if distance < cfg.vector_epsilon {
             // println!("{:?} complete", entity);
-            movable.vel = vec2(0.0, 0.0);
+            movable.desired_vel = vec2(0.0, 0.0);
             completes.push((entity, move_command.predict));
         } else {
             let dir = delta.normalize();
             let speed = movable.max_speed.min(distance * cfg.speed_reduction);
 
-            movable.vel = dir * speed;
+            movable.desired_vel = dir * speed;
             // println!("{:?} set vel {:?}", entity, movable);
 
             if move_command.predict {
@@ -303,10 +307,13 @@ fn move_command_system(world: &mut World) -> GameResult<()> {
 }
 
 fn movable_system(delta: f32, world: &mut World) -> GameResult<()> {
-    let mut movables = world.write_storage::<Moveable>();
+    let mut movables = world.write_storage::<Movable>();
 
     for (movable,) in (&mut movables,).join() {
         // println!("{:?} moving at {}", movable, delta);
+        let mut delta_vel = movable.desired_vel - movable.vel;
+        let acc = delta_vel.normalize() * movable.max_acc;
+        movable.vel = movable.vel + acc * delta;
         movable.pos = movable.pos + movable.vel * delta;
     }
 
@@ -338,7 +345,7 @@ impl EventHandler for App {
 
         let entities = self.world.entities();
         let models = &self.world.read_storage::<Model>();
-        let movables = &self.world.read_storage::<Moveable>();
+        let movables = &self.world.read_storage::<Movable>();
         let predictions = self.world.read_storage::<MovementPrediction>();
 
         for (e, model, mov, prediction) in
