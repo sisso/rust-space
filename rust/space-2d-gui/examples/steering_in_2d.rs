@@ -1,6 +1,7 @@
 use cgmath::{prelude::*, vec2, vec3, Deg, Euler, Quaternion, Rad, Vector2};
 use ggez::conf::WindowMode;
 use ggez::event::{self, EventHandler};
+use ggez::graphics::Color;
 use ggez::{graphics, timer, Context, ContextBuilder, GameResult};
 use specs::prelude::*;
 use specs::{World, WorldExt};
@@ -30,14 +31,13 @@ struct Moveable {
 #[derive(Clone, Debug, Component)]
 struct MoveCommand {
     to: cgmath::Point2<f32>,
-    // TODO: remove
-    predicted_dirt: bool,
+    predict: bool,
 }
 
 #[derive(Clone, Debug, Component)]
 struct PatrolCommand {
-    index: usize,
-    route: Vec<cgmath::Point2<f32>>,
+    pub index: usize,
+    pub route: Vec<cgmath::Point2<f32>>,
 }
 
 impl PatrolCommand {
@@ -48,6 +48,18 @@ impl PatrolCommand {
             self.index = 0;
         }
         value
+    }
+
+    pub fn route_from_current(&self) -> Vec<cgmath::Point2<f32>> {
+        let mut r = vec![];
+        for i in self.index..self.route.len() {
+            r.push(self.route[i]);
+        }
+        for i in 0..self.index {
+            r.push(self.route[i]);
+        }
+        r.push(r[0]);
+        r
     }
 }
 
@@ -65,8 +77,7 @@ struct Model {
 
 #[derive(Clone, Debug, Component)]
 struct MovementPrediction {
-    target: cgmath::Point2<f32>,
-    points: Vec<(f32, cgmath::Vector2<f32>)>,
+    points: Vec<(f32, cgmath::Point2<f32>)>,
 }
 
 struct App {
@@ -91,7 +102,10 @@ impl App {
             pause: false,
         });
 
-        world.insert(Time { total_time: 0.0 });
+        world.insert(Time {
+            total_time: 0.0,
+            delta_time: 0.0,
+        });
 
         // add elements
         {
@@ -191,7 +205,7 @@ fn follow_system(world: &mut World) -> GameResult<()> {
                 entity,
                 MoveCommand {
                     to: move_pos,
-                    predicted_dirt: true,
+                    predict: true,
                 },
             )
             .unwrap();
@@ -201,27 +215,39 @@ fn follow_system(world: &mut World) -> GameResult<()> {
 }
 
 fn patrol_system(world: &mut World) -> GameResult<()> {
-    let entities = &world.entities();
-    let patrols = &mut world.write_storage::<PatrolCommand>();
-    let move_commands = &mut world.write_storage::<MoveCommand>();
+    let entities = world.entities();
+    let mut patrols = world.write_storage::<PatrolCommand>();
+    let mut move_commands = world.write_storage::<MoveCommand>();
+    let mut predictions = world.write_storage::<MovementPrediction>();
+
+    let mut commands = vec![];
 
     // patrol
-    for (entity, patrol) in (entities, patrols).join() {
-        if move_commands.get(entity).is_some() {
-            continue;
-        }
-
+    for (entity, patrol, _) in (&*entities, &mut patrols, !&move_commands).join() {
         let pos = patrol.next();
         // println!("{:?} next pos {:?}", entity, pos);
-        move_commands
-            .insert(
-                entity,
-                MoveCommand {
-                    to: pos,
-                    predicted_dirt: true,
-                },
-            )
+        commands.push((
+            entity,
+            MoveCommand {
+                to: pos,
+                predict: false,
+            },
+        ));
+
+        let points = patrol
+            .route_from_current()
+            .into_iter()
+            .map(|pos| (0.0, pos))
+            .collect();
+
+        predictions
+            .borrow_mut()
+            .insert(entity, MovementPrediction { points })
             .unwrap();
+    }
+
+    for (entity, command) in commands {
+        move_commands.insert(entity, command).unwrap();
     }
 
     Ok(())
@@ -229,30 +255,47 @@ fn patrol_system(world: &mut World) -> GameResult<()> {
 
 fn move_command_system(world: &mut World) -> GameResult<()> {
     let entities = &world.entities();
-    let move_commands = &mut world.write_storage::<MoveCommand>();
-    let movables = &mut world.write_storage::<Moveable>();
+    let mut move_commands = world.write_storage::<MoveCommand>();
+    let mut movables = world.write_storage::<Moveable>();
+    let mut predictions = world.write_storage::<MovementPrediction>();
     let cfg = &world.read_resource::<Cfg>();
+    let total_time = world.read_resource::<Time>().borrow().total_time;
+
+    let mut completes = vec![];
 
     // move to position
-    for (entity, movable) in (entities, movables).join() {
-        let move_command = if let Some(value) = move_commands.get_mut(entity) {
-            value
-        } else {
-            continue;
-        };
-
+    for (entity, movable, move_command) in (entities, &mut movables, &mut move_commands).join() {
         let delta = move_command.to - movable.pos;
         let distance = delta.magnitude();
         if distance < 0.1 {
             // println!("{:?} complete", entity);
             movable.vel = vec2(0.0, 0.0);
-            move_commands.remove(entity).unwrap();
+            completes.push((entity, move_command.predict));
         } else {
             let dir = delta.normalize();
             let speed = movable.max_speed.min(distance * cfg.speed_reduction);
 
             movable.vel = dir * speed;
             // println!("{:?} set vel {:?}", entity, movable);
+
+            if move_command.predict {
+                let mut points = vec![];
+                points.push((total_time, movable.pos));
+
+                let arrival_time = distance / speed;
+                points.push((total_time + arrival_time, move_command.to));
+
+                predictions
+                    .insert(entity, MovementPrediction { points: points })
+                    .unwrap();
+            }
+        }
+    }
+
+    for (entity, was_predicted) in completes {
+        move_commands.remove(entity);
+        if was_predicted {
+            predictions.remove(entity);
         }
     }
 
@@ -270,64 +313,12 @@ fn movable_system(delta: f32, world: &mut World) -> GameResult<()> {
     Ok(())
 }
 
-fn move_prediction_system(world: &mut World) -> GameResult<()> {
-    let entities = &world.entities();
-    let move_commands = &world.read_storage::<MoveCommand>();
-    let movables = &world.read_storage::<Moveable>();
-    let predictions = &mut world.write_storage::<MovementPrediction>();
-    let time = &world.read_resource::<Time>();
-    let total_time = time.total_time;
-
-    let mut removed_predictions = vec![];
-    let mut new_predictions = vec![];
-
-    // move to position
-    for (entity, movable, move_command, prediction) in
-        (entities, movables, move_commands, predictions.maybe()).join()
-    {
-        let dirt = match prediction {
-            Some(prediction) => !is_same(prediction.target, move_command.to),
-            None => true,
-        };
-
-        if !dirt {
-            continue;
-        }
-
-        let mut points = vec![];
-        points.push((total_time, movable.pos));
-
-        new_predictions.push((
-            entity,
-            MovementPrediction {
-                target: move_command.to,
-                points: points,
-            },
-        ));
-    }
-
-    // TODO: implement
-    for entity in removed_predictions {
-        let _ = predictions.remove(entity);
-    }
-
-    for (entity, prediction) in new_predictions {
-        predictions.insert(entity, prediction).unwrap();
-    }
-
-    Ok(())
-}
-
-fn is_same(v1: cgmath::Point2<f32>, v2: cgmath::Point2<f32>) -> bool {
-    v1.distance2(v2) < 0.01
-}
-
 impl EventHandler for App {
     fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
         let delta = timer::delta(ctx).as_secs_f32();
 
         {
-            let time = self.world.write_resource::<Time>().borrow_mut();
+            let time = &mut self.world.write_resource::<Time>();
             time.total_time += delta;
             time.delta_time = delta;
         }
@@ -338,7 +329,7 @@ impl EventHandler for App {
             move_command_system(&mut self.world)?;
             movable_system(delta, &mut self.world)?;
         }
-        move_prediction_system(&mut self.world);
+
         Ok(())
     }
 
@@ -348,8 +339,11 @@ impl EventHandler for App {
         let entities = self.world.entities();
         let models = &self.world.read_storage::<Model>();
         let movables = &self.world.read_storage::<Moveable>();
+        let predictions = self.world.read_storage::<MovementPrediction>();
 
-        for (e, model, mov) in (&*entities, models, movables).join() {
+        for (e, model, mov, prediction) in
+            (&*entities, models, movables, predictions.maybe()).join()
+        {
             // println!("{:?} drawing {:?} at {:?}", e, model, mov);
             let circle = graphics::Mesh::new_circle(
                 ctx,
@@ -360,6 +354,20 @@ impl EventHandler for App {
                 model.color,
             )?;
             graphics::draw(ctx, &circle, graphics::DrawParam::default())?;
+
+            if let Some(prediction) = prediction {
+                if prediction.points.len() > 1 {
+                    let color = Color::new(0.9, 0.23, 0.1, 1.0);
+                    let points: Vec<cgmath::Point2<f32>> = prediction
+                        .points
+                        .iter()
+                        .map(|(time, pos)| pos.clone())
+                        .collect();
+
+                    let line_mesh = graphics::Mesh::new_line(ctx, points.as_slice(), 1.0, color)?;
+                    graphics::draw(ctx, &line_mesh, graphics::DrawParam::default())?;
+                }
+            }
         }
 
         let cfg = &self.world.read_resource::<Cfg>();
@@ -373,7 +381,7 @@ impl EventHandler for App {
         self.world.write_resource::<Cfg>().speed_reduction += y * 0.1;
     }
 
-    fn text_input_event(&mut self, ctx: &mut Context, character: char) {
+    fn text_input_event(&mut self, _ctx: &mut Context, character: char) {
         match character {
             ' ' => {
                 let cfg = &mut self.world.write_resource::<Cfg>();
