@@ -23,6 +23,12 @@ struct Time {
 }
 
 #[derive(Clone, Debug, Component)]
+struct Station {
+    pos: cgmath::Point2<f32>,
+    entrance_dir: cgmath::Vector2<f32>,
+}
+
+#[derive(Clone, Debug, Component)]
 struct Movable {
     pos: cgmath::Point2<f32>,
     max_speed: f32,
@@ -86,8 +92,19 @@ struct FollowCommand {
 
 #[derive(Clone, Debug, Component)]
 struct Model {
+    pos: cgmath::Point2<f32>,
     size: f32,
     color: graphics::Color,
+}
+
+impl Model {
+    pub fn new(size: f32, color: graphics::Color) -> Self {
+        Model {
+            pos: cgmath::Point2::new(0.0, 0.0),
+            size,
+            color,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Component)]
@@ -105,6 +122,7 @@ impl App {
         let mut world = World::new();
         world.register::<Model>();
         world.register::<Movable>();
+        world.register::<Station>();
         world.register::<MoveCommand>();
         world.register::<PatrolCommand>();
         world.register::<FollowCommand>();
@@ -124,13 +142,45 @@ impl App {
         });
 
         // add elements
+        // App::scenery_patrol_and_follow(&mut world);
+        App::scenery_two_stations(&mut world);
+
+        let game = App { world };
+
+        Ok(game)
+    }
+
+    fn scenery_two_stations(world: &mut World) {
+        let station_0 = world
+            .create_entity()
+            .with(Model::new(20.0, graphics::Color::new(0.0, 1.0, 0.0, 1.0)))
+            .with(Station {
+                pos: cgmath::Point2::new(200.0, 300.0),
+                entrance_dir: vec2(1.0, 0.0),
+            })
+            .build();
+
+        let station_1 = world
+            .create_entity()
+            .with(Model::new(20.0, graphics::Color::new(1.0, 0.0, 0.0, 1.0)))
+            .with(Station {
+                pos: cgmath::Point2::new(700.0, 300.0),
+                entrance_dir: vec2(0.0, 1.0),
+            })
+            .build();
+
+        let ship_0 = world
+            .create_entity()
+            .with(Model::new(2.0, graphics::WHITE))
+            .with(Movable::new(cgmath::Point2::new(400.0, 300.0), 54.0, 54.0))
+            .build();
+    }
+
+    fn scenery_patrol_and_follow(world: &mut World) {
         {
             let entity_0 = world
                 .create_entity()
-                .with(Model {
-                    size: 6.0,
-                    color: graphics::WHITE,
-                })
+                .with(Model::new(6.0, graphics::WHITE))
                 .with(Movable::new(cgmath::Point2::new(400.0, 300.0), 54.0, 54.0))
                 .with(PatrolCommand {
                     index: 0,
@@ -145,10 +195,7 @@ impl App {
 
             world
                 .create_entity()
-                .with(Model {
-                    size: 2.0,
-                    color: graphics::Color::new(1.0, 0.0, 0.0, 1.0),
-                })
+                .with(Model::new(2.0, graphics::Color::new(1.0, 0.0, 0.0, 1.0)))
                 .with(Movable::new(cgmath::Point2::new(450.0, 320.0), 70.0, 40.0))
                 .with(FollowCommand {
                     target: entity_0,
@@ -158,10 +205,7 @@ impl App {
 
             world
                 .create_entity()
-                .with(Model {
-                    size: 2.0,
-                    color: graphics::Color::new(0.0, 1.0, 0.0, 1.0),
-                })
+                .with(Model::new(2.0, graphics::Color::new(0.0, 1.0, 0.0, 1.0)))
                 .with(Movable::new(cgmath::Point2::new(450.0, 320.0), 55.0, 80.0))
                 .with(FollowCommand {
                     target: entity_0,
@@ -169,10 +213,6 @@ impl App {
                 })
                 .build();
         }
-
-        let game = App { world };
-
-        Ok(game)
     }
 }
 
@@ -320,6 +360,22 @@ fn movable_system(delta: f32, world: &mut World) -> GameResult<()> {
     Ok(())
 }
 
+fn model_system(world: &mut World) -> GameResult<()> {
+    let movables = world.read_storage::<Movable>();
+    let stations = world.read_storage::<Station>();
+    let mut models = world.write_storage::<Model>();
+
+    for (movable, model) in (&movables, &mut models).join() {
+        model.pos = movable.pos;
+    }
+
+    for (station, model) in (&stations, &mut models).join() {
+        model.pos = station.pos;
+    }
+
+    Ok(())
+}
+
 impl EventHandler for App {
     fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
         let delta = timer::delta(ctx).as_secs_f32();
@@ -337,6 +393,8 @@ impl EventHandler for App {
             movable_system(delta, &mut self.world)?;
         }
 
+        model_system(&mut self.world);
+
         Ok(())
     }
 
@@ -348,14 +406,12 @@ impl EventHandler for App {
         let movables = &self.world.read_storage::<Movable>();
         let predictions = self.world.read_storage::<MovementPrediction>();
 
-        for (e, model, mov, prediction) in
-            (&*entities, models, movables, predictions.maybe()).join()
-        {
+        for (e, model, prediction) in (&*entities, models, predictions.maybe()).join() {
             // println!("{:?} drawing {:?} at {:?}", e, model, mov);
             let circle = graphics::Mesh::new_circle(
                 ctx,
                 graphics::DrawMode::fill(),
-                mov.pos,
+                model.pos,
                 model.size,
                 0.1,
                 model.color,
