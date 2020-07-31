@@ -411,8 +411,8 @@ mod test {
         let (ware_0, ware_1, _ware_2) = create_wares();
 
         let mut cargo = Cargo::new(10.0);
-        cargo.add(ware_0, 4.0);
-        cargo.remove(ware_0, 4.0);
+        cargo.add(ware_0, 4.0).unwrap();
+        cargo.remove(ware_0, 4.0).unwrap();
 
         assert!(cargo.get_wares().next().is_none());
     }
