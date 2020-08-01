@@ -9,11 +9,16 @@ use specs_derive::Component;
 use std::borrow::{Borrow, BorrowMut};
 use std::ops::Deref;
 
+// TODO: docking station
+// TODO: arrival should be have reduction based on its acceleratoin
+// TODO: follow leader should have speed reduction if some members are behind
+
 #[derive(Clone, Debug, Component)]
 struct Cfg {
     speed_reduction: f32,
     pause: bool,
     vector_epsilon: f32,
+    patrol_arrival: bool,
 }
 
 #[derive(Clone, Debug, Component)]
@@ -52,6 +57,7 @@ impl Movable {
 #[derive(Clone, Debug, Component)]
 struct MoveCommand {
     to: cgmath::Point2<f32>,
+    arrival: bool,
     predict: bool,
 }
 
@@ -131,9 +137,10 @@ impl App {
         world.register::<Time>();
 
         world.insert(Cfg {
-            speed_reduction: 19.0,
+            speed_reduction: 1.5,
             pause: false,
             vector_epsilon: 1.0,
+            patrol_arrival: false,
         });
 
         world.insert(Time {
@@ -142,8 +149,8 @@ impl App {
         });
 
         // add elements
-        // App::scenery_patrol_and_follow(&mut world);
-        App::scenery_two_stations(&mut world);
+        App::scenery_patrol_and_follow(&mut world);
+        // App::scenery_two_stations(&mut world);
 
         let game = App { world };
 
@@ -249,6 +256,7 @@ fn follow_system(world: &mut World) -> GameResult<()> {
                 entity,
                 MoveCommand {
                     to: move_pos,
+                    arrival: true,
                     predict: true,
                 },
             )
@@ -260,6 +268,7 @@ fn follow_system(world: &mut World) -> GameResult<()> {
 
 fn patrol_system(world: &mut World) -> GameResult<()> {
     let entities = world.entities();
+    let cfg = world.read_resource::<Cfg>();
     let mut patrols = world.write_storage::<PatrolCommand>();
     let mut move_commands = world.write_storage::<MoveCommand>();
     let mut predictions = world.write_storage::<MovementPrediction>();
@@ -274,6 +283,7 @@ fn patrol_system(world: &mut World) -> GameResult<()> {
             entity,
             MoveCommand {
                 to: pos,
+                arrival: cfg.patrol_arrival,
                 predict: false,
             },
         ));
@@ -317,7 +327,11 @@ fn move_command_system(world: &mut World) -> GameResult<()> {
             completes.push((entity, move_command.predict));
         } else {
             let dir = delta.normalize();
-            let speed = movable.max_speed.min(distance * cfg.speed_reduction);
+            let speed = if move_command.arrival {
+                movable.max_speed.min(distance * cfg.speed_reduction)
+            } else {
+                movable.max_speed
+            };
 
             movable.desired_vel = dir * speed;
             // println!("{:?} set vel {:?}", entity, movable);
@@ -449,6 +463,11 @@ impl EventHandler for App {
             ' ' => {
                 let cfg = &mut self.world.write_resource::<Cfg>();
                 cfg.pause = !cfg.pause;
+            }
+
+            'A' => {
+                let cfg = &mut self.world.write_resource::<Cfg>();
+                cfg.patrol_arrival = !cfg.patrol_arrival;
             }
 
             _ => {}
