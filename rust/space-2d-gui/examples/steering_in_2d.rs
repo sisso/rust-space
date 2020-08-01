@@ -10,7 +10,6 @@ use std::borrow::{Borrow, BorrowMut};
 use std::ops::Deref;
 
 // TODO: docking station
-// TODO: arrival should be have reduction based on its acceleratoin
 // TODO: follow leader should have speed reduction if some members are behind
 
 #[derive(Clone, Debug, Component)]
@@ -327,7 +326,7 @@ fn move_command_system(world: &mut World) -> GameResult<()> {
             completes.push((entity, move_command.predict));
         } else {
             let dir = delta.normalize();
-            let speed = if move_command.arrival {
+            let speed = if move_command.arrival && distance * 2.0 < movable.max_acc {
                 movable.max_speed.min(distance * cfg.speed_reduction)
             } else {
                 movable.max_speed
