@@ -92,7 +92,19 @@ impl PatrolCommand {
 #[derive(Clone, Debug, Component)]
 struct FollowCommand {
     target: Entity,
+    /// relative position
     pos: cgmath::Vector2<f32>,
+    // current_pos: cgmath::Vector2<f32>,
+}
+
+impl FollowCommand {
+    pub fn new(target: Entity, pos: Vector2<f32>) -> Self {
+        FollowCommand {
+            target,
+            pos,
+            // current_pos: cgmath::vec2(0.0, 0.0),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Component)]
@@ -223,13 +235,15 @@ impl App {
 }
 
 fn follow_system(world: &mut World) -> GameResult<()> {
-    let entities = &world.entities();
-    let follow_commands = &mut world.write_storage::<FollowCommand>();
-    let move_to_commands = &mut world.write_storage::<MoveCommand>();
-    let movables = &world.read_storage::<Movable>();
+    let entities = world.entities();
+    let mut follow_commands = world.write_storage::<FollowCommand>();
+    let mut movables = world.write_storage::<Movable>();
+    let predictions = &mut world.write_storage::<MovementPrediction>();
 
     //  collect for each follow the target position
-    for (entity, follow) in (entities, follow_commands).join() {
+    let mut changes = vec![];
+
+    for (entity, follow, movable) in (&*entities, &follow_commands, &movables).join() {
         let target_movable = if let Some(m) = (&movables).get(follow.target) {
             m
         } else {
@@ -242,24 +256,24 @@ fn follow_system(world: &mut World) -> GameResult<()> {
             relative_pos = follow.pos;
         }
 
-        let move_pos = target_movable.pos + relative_pos;
+        let target_pos = target_movable.pos + relative_pos;
+        let delta_to_pos = target_pos - movable.pos;
+        let desired_vel = target_movable.vel + delta_to_pos;
 
-        // println!(
-        //     "{:?} following {:?} at {:?}",
-        //     entity, follow.target, move_pos
-        // );
+        changes.push((entity, desired_vel));
 
-        move_to_commands
-            .borrow_mut()
-            .insert(
-                entity,
-                MoveCommand {
-                    to: move_pos,
-                    arrival: true,
-                    predict: true,
-                },
-            )
-            .unwrap();
+        predictions.insert(
+            entity,
+            MovementPrediction {
+                points: vec![(0.0, movable.pos), (1.0, target_pos)],
+            },
+        );
+    }
+
+    let movables = &mut movables;
+    for (entity, desired_vel) in changes {
+        let movable = movables.get_mut(entity).unwrap();
+        movable.desired_vel = desired_vel;
     }
 
     Ok(())
@@ -406,7 +420,7 @@ impl EventHandler for App {
             movable_system(delta, &mut self.world)?;
         }
 
-        model_system(&mut self.world);
+        model_system(&mut self.world)?;
 
         Ok(())
     }
@@ -464,7 +478,7 @@ impl EventHandler for App {
                 cfg.pause = !cfg.pause;
             }
 
-            'A' => {
+            'a' => {
                 let cfg = &mut self.world.write_resource::<Cfg>();
                 cfg.patrol_arrival = !cfg.patrol_arrival;
             }
