@@ -12,6 +12,10 @@ use std::ops::Deref;
 // TODO: docking station
 // TODO: replace cgmath by nalge
 
+type Vec2 = cgmath::Vector2<f32>;
+type Pos2 = cgmath::Point2<f32>;
+const ARRIVAL_DISTANCE: f32 = 2.0;
+
 #[derive(Clone, Debug, Component)]
 struct Debug {
     lines: Vec<(cgmath::Point2<f32>, cgmath::Point2<f32>, Color)>,
@@ -101,34 +105,6 @@ impl PatrolCommand {
     }
 }
 
-#[cfg(test)]
-mod patrol_command_test {
-    use crate::PatrolCommand;
-
-    #[test]
-    fn test_route_from_next() {
-        let p0 = cgmath::Point2::new(200.0, 300.0);
-        let p1 = cgmath::Point2::new(400.0, 150.0);
-        let p2 = cgmath::Point2::new(600.0, 300.0);
-        let p3 = cgmath::Point2::new(400.0, 550.0);
-
-        let mut patrol = PatrolCommand {
-            index: 0,
-            route: vec![p0, p1, p2, p3],
-        };
-
-        assert_eq!(patrol.next(), p0);
-        assert_eq!(patrol.route_from_next(), vec![p1, p2, p3, p0,]);
-
-        assert_eq!(patrol.next(), p1);
-        assert_eq!(patrol.route_from_next(), vec![p2, p3, p0, p1,]);
-
-        assert_eq!(patrol.next(), p2);
-        assert_eq!(patrol.next(), p3);
-        assert_eq!(patrol.next(), p0);
-    }
-}
-
 #[derive(Clone, Debug, Component)]
 struct FollowCommand {
     target: Entity,
@@ -145,6 +121,11 @@ impl FollowCommand {
             // current_pos: cgmath::vec2(0.0, 0.0),
         }
     }
+}
+
+#[derive(Clone, Debug, Component)]
+struct TradeCommand {
+    stations: Vec<Entity>,
 }
 
 #[derive(Clone, Debug, Component)]
@@ -166,7 +147,7 @@ impl Model {
 
 #[derive(Clone, Debug, Component)]
 struct MovementPrediction {
-    points: Vec<(f32, cgmath::Point2<f32>)>,
+    points: Vec<cgmath::Point2<f32>>,
 }
 
 struct App {
@@ -186,6 +167,7 @@ impl App {
         world.register::<MovementPrediction>();
         world.register::<Cfg>();
         world.register::<Time>();
+        world.register::<TradeCommand>();
 
         world.insert(Debug::new());
 
@@ -233,6 +215,9 @@ impl App {
             .create_entity()
             .with(Model::new(2.0, graphics::WHITE))
             .with(Movable::new(cgmath::Point2::new(400.0, 300.0), 54.0, 54.0))
+            .with(TradeCommand {
+                stations: vec![station_0, station_1],
+            })
             .build();
     }
 
@@ -309,7 +294,7 @@ fn follow_command_system(world: &mut World) -> GameResult<()> {
         predictions.insert(
             entity,
             MovementPrediction {
-                points: vec![(0.0, movable.pos), (1.0, target_pos)],
+                points: vec![movable.pos, target_pos],
             },
         );
 
@@ -364,9 +349,9 @@ fn patrol_command_system(world: &mut World) -> GameResult<()> {
                 ));
 
                 let mut points = vec![];
-                points.push((0.0, movable.pos));
-                points.push((0.0, next_pos));
-                points.extend(patrol.route_from_next().into_iter().map(|pos| (0.0, pos)));
+                points.push(movable.pos);
+                points.push(next_pos);
+                points.extend(patrol.route_from_next());
 
                 predictions
                     .borrow_mut()
@@ -374,11 +359,10 @@ fn patrol_command_system(world: &mut World) -> GameResult<()> {
                     .unwrap();
             }
 
-            Some(move_command) => {
+            Some(_) => {
                 // update prediction of first point
                 let mp = predictions.borrow_mut().get_mut(entity).unwrap();
-
-                mp.points[0] = (0.0, movable.pos);
+                mp.points[0] = movable.pos;
             }
         }
     }
@@ -395,51 +379,44 @@ fn move_command_system(world: &mut World) -> GameResult<()> {
     let mut move_commands = world.write_storage::<MoveCommand>();
     let mut movables = world.write_storage::<Movable>();
     let mut predictions = world.write_storage::<MovementPrediction>();
-    let cfg = &world.read_resource::<Cfg>();
-    let total_time = world.read_resource::<Time>().borrow().total_time;
-    let debug = &mut world.write_resource::<Debug>();
-
     let mut completes = vec![];
 
     // move to position
     for (entity, movable, move_command) in (entities, &mut movables, &mut move_commands).join() {
-        let delta = move_command.to - movable.pos;
-        let distance = delta.magnitude();
-        if distance < cfg.vector_epsilon {
-            // println!("{:?} complete", entity);
-            movable.desired_vel = vec2(0.0, 0.0);
-            completes.push((entity, move_command.predict));
+        // check if a follower is behind and clear the flag
+        let max_speed = if let Some(v) = movable.follower_behind_max_speed.take() {
+            // follower_reduction = true;
+            movable.max_speed.min(v * 0.8)
         } else {
-            // let mut follower_reduction = false;
-            // let mut arrival_reduction = false;
-            let dir = delta.normalize();
+            movable.max_speed
+        };
 
-            // check if a follower is behind and clear the flag
-            let max_speed = if let Some(v) = movable.follower_behind_max_speed.take() {
-                // follower_reduction = true;
-                movable.max_speed.min(v * 0.8)
-            } else {
-                movable.max_speed
-            };
+        match action_move(
+            movable.pos,
+            move_command.to,
+            max_speed,
+            move_command.arrival,
+        ) {
+            Ok(result) => {
+                movable.desired_vel = result.desired_vel;
 
-            let speed = if move_command.arrival {
-                max_speed.min(distance)
-            } else {
-                max_speed
-            };
+                if result.complete {
+                    completes.push((entity, move_command.predict));
+                } else {
+                    if move_command.predict {
+                        let mut points = vec![];
+                        points.push(movable.pos);
+                        points.push(move_command.to);
 
-            movable.desired_vel = dir * speed;
+                        predictions
+                            .insert(entity, MovementPrediction { points: points })
+                            .unwrap();
+                    }
+                }
+            }
 
-            if move_command.predict {
-                let mut points = vec![];
-                points.push((total_time, movable.pos));
-
-                let arrival_time = distance / speed;
-                points.push((total_time + arrival_time, move_command.to));
-
-                predictions
-                    .insert(entity, MovementPrediction { points: points })
-                    .unwrap();
+            Err(e) => {
+                eprintln!("error: {:?}", e);
             }
         }
     }
@@ -452,6 +429,41 @@ fn move_command_system(world: &mut World) -> GameResult<()> {
     }
 
     Ok(())
+}
+
+struct ActionMoveResult {
+    desired_vel: Vec2,
+    complete: bool,
+}
+
+fn action_move(
+    current_pos: Pos2,
+    target_pos: Pos2,
+    max_speed: f32,
+    arrival: bool,
+) -> GameResult<ActionMoveResult> {
+    let delta = target_pos - current_pos;
+    let distance = delta.magnitude();
+
+    if distance < ARRIVAL_DISTANCE {
+        Ok(ActionMoveResult {
+            desired_vel: vec2(0.0, 0.0),
+            complete: true,
+        })
+    } else {
+        let dir = delta / distance;
+        let speed = if arrival {
+            max_speed.min(distance)
+        } else {
+            max_speed
+        };
+
+        let desired_vel = dir * speed;
+        Ok(ActionMoveResult {
+            desired_vel,
+            complete: false,
+        })
+    }
 }
 
 fn movable_system(delta: f32, world: &mut World) -> GameResult<()> {
@@ -531,11 +543,7 @@ impl EventHandler for App {
             if let Some(prediction) = prediction {
                 if prediction.points.len() > 1 {
                     let color = Color::new(0.9, 0.23, 0.1, 0.5);
-                    let points: Vec<cgmath::Point2<f32>> = prediction
-                        .points
-                        .iter()
-                        .map(|(time, pos)| pos.clone())
-                        .collect();
+                    let points: Vec<cgmath::Point2<f32>> = prediction.points.clone();
 
                     let line_mesh = graphics::Mesh::new_line(ctx, points.as_slice(), 1.0, color)?;
                     graphics::draw(ctx, &line_mesh, graphics::DrawParam::default())?;
@@ -684,5 +692,33 @@ mod test {
         let rotated = rotate_vector(dir, point);
         assert_delta!(rotated.x, 0.0, 0.001);
         assert_delta!(rotated.y, -1.0, 0.001);
+    }
+}
+
+#[cfg(test)]
+mod patrol_command_test {
+    use crate::PatrolCommand;
+
+    #[test]
+    fn test_route_from_next() {
+        let p0 = cgmath::Point2::new(200.0, 300.0);
+        let p1 = cgmath::Point2::new(400.0, 150.0);
+        let p2 = cgmath::Point2::new(600.0, 300.0);
+        let p3 = cgmath::Point2::new(400.0, 550.0);
+
+        let mut patrol = PatrolCommand {
+            index: 0,
+            route: vec![p0, p1, p2, p3],
+        };
+
+        assert_eq!(patrol.next(), p0);
+        assert_eq!(patrol.route_from_next(), vec![p1, p2, p3, p0,]);
+
+        assert_eq!(patrol.next(), p1);
+        assert_eq!(patrol.route_from_next(), vec![p2, p3, p0, p1,]);
+
+        assert_eq!(patrol.next(), p2);
+        assert_eq!(patrol.next(), p3);
+        assert_eq!(patrol.next(), p0);
     }
 }
