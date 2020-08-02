@@ -13,7 +13,7 @@ use std::ops::Deref;
 // TODO: replace cgmath by nalge
 
 type Vec2 = cgmath::Vector2<f32>;
-type Pos2 = cgmath::Point2<f32>;
+type P2 = cgmath::Point2<f32>;
 const ARRIVAL_DISTANCE: f32 = 2.0;
 
 #[derive(Clone, Debug, Component)]
@@ -68,6 +68,11 @@ impl Movable {
             follower_behind_max_speed: None,
         }
     }
+
+    /// max speed considering followers
+    fn get_max_speed(&self) -> f32 {
+        self.follower_behind_max_speed.unwrap_or(self.max_speed)
+    }
 }
 
 #[derive(Clone, Debug, Component)]
@@ -84,13 +89,16 @@ struct PatrolCommand {
 }
 
 impl PatrolCommand {
-    pub fn next(&mut self) -> cgmath::Point2<f32> {
-        let value = self.route[self.index];
+    pub fn current(&self) -> P2 {
+        self.route[self.index]
+    }
+
+    /// move to next point
+    pub fn next(&mut self) {
         self.index += 1;
         if self.index >= self.route.len() {
             self.index = 0;
         }
-        value
     }
 
     pub fn route_from_next(&self) -> Vec<cgmath::Point2<f32>> {
@@ -110,16 +118,11 @@ struct FollowCommand {
     target: Entity,
     /// relative position
     pos: cgmath::Vector2<f32>,
-    // current_pos: cgmath::Vector2<f32>,
 }
 
 impl FollowCommand {
     pub fn new(target: Entity, pos: Vector2<f32>) -> Self {
-        FollowCommand {
-            target,
-            pos,
-            // current_pos: cgmath::vec2(0.0, 0.0),
-        }
+        FollowCommand { target, pos }
     }
 }
 
@@ -291,12 +294,14 @@ fn follow_command_system(world: &mut World) -> GameResult<()> {
 
         changes.push((entity, desired_vel));
 
-        predictions.insert(
-            entity,
-            MovementPrediction {
-                points: vec![movable.pos, target_pos],
-            },
-        );
+        predictions
+            .insert(
+                entity,
+                MovementPrediction {
+                    points: vec![movable.pos, target_pos],
+                },
+            )
+            .unwrap();
 
         if delta_to_pos.magnitude() > 10.0 {
             follower_behind_flag.push((follow.target, movable.max_speed));
@@ -325,50 +330,50 @@ fn patrol_command_system(world: &mut World) -> GameResult<()> {
     let entities = world.entities();
     let cfg = world.read_resource::<Cfg>();
     let mut patrols = world.write_storage::<PatrolCommand>();
-    let mut move_commands = world.write_storage::<MoveCommand>();
     let mut predictions = world.write_storage::<MovementPrediction>();
-    let movable = world.read_storage::<Movable>();
-
-    let mut commands = vec![];
+    let mut movable = world.write_storage::<Movable>();
 
     // patrol
-    for (entity, patrol, maybe_move, movable) in
-        (&*entities, &mut patrols, move_commands.maybe(), &movable).join()
-    {
-        match maybe_move {
-            None => {
-                // move to next patrol step
-                let next_pos = patrol.next();
-                commands.push((
-                    entity,
-                    MoveCommand {
-                        to: next_pos,
-                        arrival: cfg.patrol_arrival,
-                        predict: false,
-                    },
-                ));
+    for (entity, command, movable) in (&*entities, &mut patrols, &mut movable).join() {
+        let mut result = action_move(
+            movable.pos,
+            command.current(),
+            movable.get_max_speed(),
+            false,
+        )?;
 
-                let mut points = vec![];
-                points.push(movable.pos);
-                points.push(next_pos);
-                points.extend(patrol.route_from_next());
+        let is_complete = result.complete;
 
-                predictions
-                    .borrow_mut()
-                    .insert(entity, MovementPrediction { points })
-                    .unwrap();
-            }
+        // if we complete, get path for next step
+        if result.complete {
+            command.next();
 
-            Some(_) => {
-                // update prediction of first point
-                let mp = predictions.borrow_mut().get_mut(entity).unwrap();
-                mp.points[0] = movable.pos;
-            }
+            result = action_move(
+                movable.pos,
+                command.current(),
+                movable.get_max_speed(),
+                false,
+            )?;
         }
-    }
 
-    for (entity, command) in commands {
-        move_commands.insert(entity, command).unwrap();
+        // update movement
+        movable.desired_vel = result.desired_vel;
+
+        // update prediction
+        let prediction = predictions.borrow_mut().get_mut(entity);
+        if is_complete || prediction.is_none() {
+            let mut points = vec![];
+            points.push(movable.pos);
+            points.push(command.current());
+            points.extend(command.route_from_next());
+
+            predictions
+                .borrow_mut()
+                .insert(entity, MovementPrediction { points })
+                .unwrap();
+        } else {
+            prediction.unwrap().points[0] = movable.pos;
+        }
     }
 
     Ok(())
@@ -437,8 +442,8 @@ struct ActionMoveResult {
 }
 
 fn action_move(
-    current_pos: Pos2,
-    target_pos: Pos2,
+    current_pos: P2,
+    target_pos: P2,
     max_speed: f32,
     arrival: bool,
 ) -> GameResult<ActionMoveResult> {
@@ -470,8 +475,7 @@ fn movable_system(delta: f32, world: &mut World) -> GameResult<()> {
     let mut movables = world.write_storage::<Movable>();
 
     for (movable,) in (&mut movables,).join() {
-        // println!("{:?} moving at {}", movable, delta);
-        let mut delta_vel = movable.desired_vel - movable.vel;
+        let delta_vel = movable.desired_vel - movable.vel;
         let acc = delta_vel.normalize() * movable.max_acc;
         movable.vel = movable.vel + acc * delta;
         movable.pos = movable.pos + movable.vel * delta;
