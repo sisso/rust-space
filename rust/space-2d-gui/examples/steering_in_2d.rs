@@ -10,7 +10,17 @@ use std::borrow::{Borrow, BorrowMut};
 use std::ops::Deref;
 
 // TODO: docking station
-// TODO: follow leader should have speed reduction if some members are behind
+
+#[derive(Clone, Debug, Component)]
+struct Debug {
+    lines: Vec<(cgmath::Point2<f32>, cgmath::Point2<f32>, Color)>,
+}
+
+impl Debug {
+    pub fn new() -> Self {
+        Debug { lines: Vec::new() }
+    }
+}
 
 #[derive(Clone, Debug, Component)]
 struct Cfg {
@@ -39,6 +49,7 @@ struct Movable {
     vel: cgmath::Vector2<f32>,
     desired_vel: cgmath::Vector2<f32>,
     max_acc: f32,
+    follower_behind_max_speed: Option<f32>,
 }
 
 impl Movable {
@@ -49,6 +60,7 @@ impl Movable {
             vel: Vector2::zero(),
             desired_vel: Vector2::zero(),
             max_acc,
+            follower_behind_max_speed: None,
         }
     }
 }
@@ -147,11 +159,13 @@ impl App {
         world.register::<Cfg>();
         world.register::<Time>();
 
+        world.insert(Debug::new());
+
         world.insert(Cfg {
             speed_reduction: 1.5,
             pause: false,
-            vector_epsilon: 1.0,
-            patrol_arrival: false,
+            vector_epsilon: 2.0,
+            patrol_arrival: true,
         });
 
         world.insert(Time {
@@ -199,7 +213,7 @@ impl App {
             let entity_0 = world
                 .create_entity()
                 .with(Model::new(6.0, graphics::WHITE))
-                .with(Movable::new(cgmath::Point2::new(400.0, 300.0), 54.0, 54.0))
+                .with(Movable::new(cgmath::Point2::new(400.0, 300.0), 80.0, 70.0))
                 .with(PatrolCommand {
                     index: 0,
                     route: vec![
@@ -234,14 +248,16 @@ impl App {
     }
 }
 
-fn follow_system(world: &mut World) -> GameResult<()> {
+fn follow_command_system(world: &mut World) -> GameResult<()> {
     let entities = world.entities();
     let mut follow_commands = world.write_storage::<FollowCommand>();
     let mut movables = world.write_storage::<Movable>();
     let predictions = &mut world.write_storage::<MovementPrediction>();
+    let mut debug = world.write_resource::<Debug>();
 
     //  collect for each follow the target position
     let mut changes = vec![];
+    let mut follower_behind_flag = vec![];
 
     for (entity, follow, movable) in (&*entities, &follow_commands, &movables).join() {
         let target_movable = if let Some(m) = (&movables).get(follow.target) {
@@ -268,12 +284,25 @@ fn follow_system(world: &mut World) -> GameResult<()> {
                 points: vec![(0.0, movable.pos), (1.0, target_pos)],
             },
         );
+
+        if delta_to_pos.magnitude() > 10.0 {
+            follower_behind_flag.push((follow.target, movable.max_speed));
+        }
     }
 
-    let movables = &mut movables;
     for (entity, desired_vel) in changes {
         let movable = movables.get_mut(entity).unwrap();
         movable.desired_vel = desired_vel;
+    }
+
+    for (entity, speed) in follower_behind_flag {
+        let movable = movables.get_mut(entity).unwrap();
+
+        movable.follower_behind_max_speed = match &movable.follower_behind_max_speed {
+            Some(value) if *value > speed => Some(speed),
+            Some(value) => Some(*value),
+            None => Some(speed),
+        };
     }
 
     Ok(())
@@ -327,6 +356,7 @@ fn move_command_system(world: &mut World) -> GameResult<()> {
     let mut predictions = world.write_storage::<MovementPrediction>();
     let cfg = &world.read_resource::<Cfg>();
     let total_time = world.read_resource::<Time>().borrow().total_time;
+    let debug = &mut world.write_resource::<Debug>();
 
     let mut completes = vec![];
 
@@ -339,15 +369,25 @@ fn move_command_system(world: &mut World) -> GameResult<()> {
             movable.desired_vel = vec2(0.0, 0.0);
             completes.push((entity, move_command.predict));
         } else {
+            // let mut follower_reduction = false;
+            // let mut arrival_reduction = false;
             let dir = delta.normalize();
-            let speed = if move_command.arrival && distance * 2.0 < movable.max_acc {
-                movable.max_speed.min(distance * cfg.speed_reduction)
+
+            // check if a follower is behind and clear the flag
+            let max_speed = if let Some(v) = movable.follower_behind_max_speed.take() {
+                // follower_reduction = true;
+                movable.max_speed.min(v * 0.8)
             } else {
                 movable.max_speed
             };
 
+            let speed = if move_command.arrival {
+                max_speed.min(distance)
+            } else {
+                max_speed
+            };
+
             movable.desired_vel = dir * speed;
-            // println!("{:?} set vel {:?}", entity, movable);
 
             if move_command.predict {
                 let mut points = vec![];
@@ -415,7 +455,7 @@ impl EventHandler for App {
 
         if !self.world.read_resource::<Cfg>().borrow().pause {
             patrol_system(&mut self.world)?;
-            follow_system(&mut self.world)?;
+            follow_command_system(&mut self.world)?;
             move_command_system(&mut self.world)?;
             movable_system(delta, &mut self.world)?;
         }
@@ -433,7 +473,9 @@ impl EventHandler for App {
         let movables = &self.world.read_storage::<Movable>();
         let predictions = self.world.read_storage::<MovementPrediction>();
 
-        for (e, model, prediction) in (&*entities, models, predictions.maybe()).join() {
+        for (e, model, prediction, movable) in
+            (&*entities, models, predictions.maybe(), movables).join()
+        {
             // println!("{:?} drawing {:?} at {:?}", e, model, mov);
             let circle = graphics::Mesh::new_circle(
                 ctx,
@@ -447,7 +489,7 @@ impl EventHandler for App {
 
             if let Some(prediction) = prediction {
                 if prediction.points.len() > 1 {
-                    let color = Color::new(0.9, 0.23, 0.1, 1.0);
+                    let color = Color::new(0.9, 0.23, 0.1, 0.5);
                     let points: Vec<cgmath::Point2<f32>> = prediction
                         .points
                         .iter()
@@ -458,6 +500,28 @@ impl EventHandler for App {
                     graphics::draw(ctx, &line_mesh, graphics::DrawParam::default())?;
                 }
             }
+
+            if movable.vel.magnitude2() > 1.0 {
+                let color = Color::new(0.0, 0.0, 0.9, 0.25);
+                let points: Vec<cgmath::Point2<f32>> = vec![movable.pos, movable.pos + movable.vel];
+                let line_mesh = graphics::Mesh::new_line(ctx, points.as_slice(), 1.0, color)?;
+                graphics::draw(ctx, &line_mesh, graphics::DrawParam::default())?;
+            }
+
+            if movable.desired_vel.magnitude2() > 1.0 {
+                let color = Color::new(0.0, 0.9, 0.0, 0.25);
+                let points: Vec<cgmath::Point2<f32>> =
+                    vec![movable.pos, movable.pos + movable.desired_vel];
+                let line_mesh = graphics::Mesh::new_line(ctx, points.as_slice(), 1.0, color)?;
+                graphics::draw(ctx, &line_mesh, graphics::DrawParam::default())?;
+            }
+        }
+
+        let debug = &mut self.world.write_resource::<Debug>();
+        for (a, b, color) in std::mem::replace(&mut debug.lines, Vec::new()) {
+            let points: Vec<cgmath::Point2<f32>> = vec![a, b];
+            let line_mesh = graphics::Mesh::new_line(ctx, points.as_slice(), 1.0, color)?;
+            graphics::draw(ctx, &line_mesh, graphics::DrawParam::default())?;
         }
 
         let cfg = &self.world.read_resource::<Cfg>();
