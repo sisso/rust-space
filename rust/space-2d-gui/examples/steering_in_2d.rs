@@ -1,7 +1,7 @@
 use cgmath::{prelude::*, vec2, vec3, Deg, Euler, Quaternion, Rad, Vector2};
 use ggez::conf::WindowMode;
 use ggez::event::{self, EventHandler};
-use ggez::graphics::Color;
+use ggez::graphics::{Color, StrokeOptions};
 use ggez::{graphics, timer, Context, ContextBuilder, GameResult};
 use specs::prelude::*;
 use specs::{World, WorldExt};
@@ -12,7 +12,7 @@ use std::ops::Deref;
 // TODO: docking station
 // TODO: replace cgmath by nalge
 
-type Vec2 = cgmath::Vector2<f32>;
+type V2 = cgmath::Vector2<f32>;
 type P2 = cgmath::Point2<f32>;
 const ARRIVAL_DISTANCE: f32 = 2.0;
 
@@ -42,9 +42,24 @@ struct Time {
 }
 
 #[derive(Clone, Debug, Component)]
-struct Station {
+pub struct Station {
     pos: cgmath::Point2<f32>,
     entrance_dir: cgmath::Vector2<f32>,
+    entrance_distance: f32,
+}
+
+impl Station {
+    pub fn new(pos: P2, entrance_dir: V2, entrance_distance: f32) -> Self {
+        Station {
+            pos,
+            entrance_dir,
+            entrance_distance,
+        }
+    }
+
+    pub fn get_entrance_pos(&self) -> P2 {
+        self.pos + self.entrance_dir * self.entrance_distance
+    }
 }
 
 #[derive(Clone, Debug, Component)]
@@ -126,9 +141,40 @@ impl FollowCommand {
     }
 }
 
+#[derive(Clone, Debug)]
+pub enum TradeCommandState {
+    MoveToDock,
+    Docking,
+    Docked,
+    Undocking,
+}
+
 #[derive(Clone, Debug, Component)]
-struct TradeCommand {
+pub struct TradeCommand {
     stations: Vec<Entity>,
+    index: usize,
+    state: TradeCommandState,
+}
+
+impl TradeCommand {
+    pub fn new(stations: Vec<Entity>) -> Self {
+        TradeCommand {
+            stations,
+            index: 0,
+            state: TradeCommandState::MoveToDock,
+        }
+    }
+
+    pub fn current(&self) -> Entity {
+        self.stations[self.index]
+    }
+
+    pub fn next(&mut self) {
+        self.index += 1;
+        if self.index >= self.stations.len() {
+            self.index = 0;
+        }
+    }
 }
 
 #[derive(Clone, Debug, Component)]
@@ -151,117 +197,6 @@ impl Model {
 #[derive(Clone, Debug, Component)]
 struct MovementPrediction {
     points: Vec<cgmath::Point2<f32>>,
-}
-
-struct App {
-    world: World,
-}
-
-impl App {
-    pub fn new(ctx: &mut Context) -> GameResult<App> {
-        // create world
-        let mut world = World::new();
-        world.register::<Model>();
-        world.register::<Movable>();
-        world.register::<Station>();
-        world.register::<MoveCommand>();
-        world.register::<PatrolCommand>();
-        world.register::<FollowCommand>();
-        world.register::<MovementPrediction>();
-        world.register::<Cfg>();
-        world.register::<Time>();
-        world.register::<TradeCommand>();
-
-        world.insert(Debug::new());
-
-        world.insert(Cfg {
-            speed_reduction: 1.5,
-            pause: false,
-            vector_epsilon: 2.0,
-            patrol_arrival: true,
-        });
-
-        world.insert(Time {
-            total_time: 0.0,
-            delta_time: 0.0,
-        });
-
-        // add elements
-        App::scenery_patrol_and_follow(&mut world);
-        // App::scenery_two_stations(&mut world);
-
-        let game = App { world };
-
-        Ok(game)
-    }
-
-    fn scenery_two_stations(world: &mut World) {
-        let station_0 = world
-            .create_entity()
-            .with(Model::new(20.0, graphics::Color::new(0.0, 1.0, 0.0, 1.0)))
-            .with(Station {
-                pos: cgmath::Point2::new(200.0, 300.0),
-                entrance_dir: vec2(1.0, 0.0),
-            })
-            .build();
-
-        let station_1 = world
-            .create_entity()
-            .with(Model::new(20.0, graphics::Color::new(1.0, 0.0, 0.0, 1.0)))
-            .with(Station {
-                pos: cgmath::Point2::new(700.0, 300.0),
-                entrance_dir: vec2(0.0, 1.0),
-            })
-            .build();
-
-        let ship_0 = world
-            .create_entity()
-            .with(Model::new(2.0, graphics::WHITE))
-            .with(Movable::new(cgmath::Point2::new(400.0, 300.0), 54.0, 54.0))
-            .with(TradeCommand {
-                stations: vec![station_0, station_1],
-            })
-            .build();
-    }
-
-    fn scenery_patrol_and_follow(world: &mut World) {
-        {
-            let entity_0 = world
-                .create_entity()
-                .with(Model::new(6.0, graphics::WHITE))
-                .with(Movable::new(cgmath::Point2::new(400.0, 300.0), 80.0, 70.0))
-                .with(PatrolCommand {
-                    index: 0,
-                    route: vec![
-                        cgmath::Point2::new(200.0, 300.0),
-                        cgmath::Point2::new(400.0, 150.0),
-                        cgmath::Point2::new(600.0, 300.0),
-                        cgmath::Point2::new(400.0, 550.0),
-                    ],
-                })
-                .build();
-
-            world
-                .create_entity()
-                .with(Model::new(2.0, graphics::Color::new(1.0, 0.0, 0.0, 1.0)))
-                .with(Movable::new(cgmath::Point2::new(450.0, 320.0), 70.0, 40.0))
-                .with(FollowCommand {
-                    target: entity_0,
-                    pos: vec2(0.0, -10.0),
-                })
-                .build();
-
-            world
-                .create_entity()
-                .with(Model::new(2.0, graphics::Color::new(0.0, 1.0, 0.0, 1.0)))
-                .with(Movable::new(cgmath::Point2::new(450.0, 320.0), 55.0, 80.0))
-                .with(FollowCommand {
-                    target: entity_0,
-                    pos: vec2(0.0, 10.0),
-                })
-                .build();
-        }
-    }
 }
 
 fn follow_command_system(world: &mut World) -> GameResult<()> {
@@ -335,7 +270,7 @@ fn patrol_command_system(world: &mut World) -> GameResult<()> {
 
     // patrol
     for (entity, command, movable) in (&*entities, &mut patrols, &mut movable).join() {
-        let mut result = action_move(
+        let mut result = action_move_to(
             movable.pos,
             command.current(),
             movable.get_max_speed(),
@@ -348,7 +283,7 @@ fn patrol_command_system(world: &mut World) -> GameResult<()> {
         if result.complete {
             command.next();
 
-            result = action_move(
+            result = action_move_to(
                 movable.pos,
                 command.current(),
                 movable.get_max_speed(),
@@ -396,7 +331,7 @@ fn move_command_system(world: &mut World) -> GameResult<()> {
             movable.max_speed
         };
 
-        match action_move(
+        match action_move_to(
             movable.pos,
             move_command.to,
             max_speed,
@@ -437,11 +372,11 @@ fn move_command_system(world: &mut World) -> GameResult<()> {
 }
 
 struct ActionMoveResult {
-    desired_vel: Vec2,
+    desired_vel: V2,
     complete: bool,
 }
 
-fn action_move(
+fn action_move_to(
     current_pos: P2,
     target_pos: P2,
     max_speed: f32,
@@ -475,10 +410,44 @@ fn movable_system(delta: f32, world: &mut World) -> GameResult<()> {
     let mut movables = world.write_storage::<Movable>();
 
     for (movable,) in (&mut movables,).join() {
-        let delta_vel = movable.desired_vel - movable.vel;
-        let acc = delta_vel.normalize() * movable.max_acc;
+        tick_movable(delta, movable);
+    }
+
+    Ok(())
+}
+
+fn tick_movable(delta: f32, movable: &mut Movable) {
+    let delta_vel = movable.desired_vel - movable.vel;
+    let delta_vel_mag2 = delta_vel.magnitude2();
+    if delta_vel_mag2 > 0.01 {
+        let acc = delta_vel / delta_vel_mag2.sqrt() * movable.max_acc;
         movable.vel = movable.vel + acc * delta;
-        movable.pos = movable.pos + movable.vel * delta;
+    }
+    movable.pos = movable.pos + movable.vel * delta;
+}
+
+fn trade_command_system(world: &mut World) -> GameResult<()> {
+    let entities = &world.entities();
+    let mut trade_commands = world.write_storage::<TradeCommand>();
+    let mut movables = world.write_storage::<Movable>();
+    let mut predictions = world.write_storage::<MovementPrediction>();
+    let stations = &world.read_storage::<Station>();
+
+    for (entity, command, movable, prediction) in (
+        *&entities,
+        &mut trade_commands,
+        &mut movables,
+        predictions.maybe(),
+    )
+        .join()
+    {
+        let station = stations.get(command.current()).unwrap();
+
+        match command.state {
+            TradeCommandState::MoveToDock => {}
+
+            _ => unimplemented!(),
+        }
     }
 
     Ok(())
@@ -500,6 +469,117 @@ fn model_system(world: &mut World) -> GameResult<()> {
     Ok(())
 }
 
+struct App {
+    world: World,
+}
+
+impl App {
+    pub fn new(ctx: &mut Context) -> GameResult<App> {
+        // create world
+        let mut world = World::new();
+        world.register::<Model>();
+        world.register::<Movable>();
+        world.register::<Station>();
+        world.register::<MoveCommand>();
+        world.register::<PatrolCommand>();
+        world.register::<FollowCommand>();
+        world.register::<MovementPrediction>();
+        world.register::<Cfg>();
+        world.register::<Time>();
+        world.register::<TradeCommand>();
+
+        world.insert(Debug::new());
+
+        world.insert(Cfg {
+            speed_reduction: 1.5,
+            pause: false,
+            vector_epsilon: 2.0,
+            patrol_arrival: true,
+        });
+
+        world.insert(Time {
+            total_time: 0.0,
+            delta_time: 0.0,
+        });
+
+        // add elements
+        App::scenery_patrol_and_follow(&mut world);
+        App::scenery_two_stations(&mut world);
+
+        let game = App { world };
+
+        Ok(game)
+    }
+
+    fn scenery_patrol_and_follow(world: &mut World) {
+        {
+            let entity_0 = world
+                .create_entity()
+                .with(Model::new(6.0, graphics::WHITE))
+                .with(Movable::new(cgmath::Point2::new(400.0, 300.0), 80.0, 70.0))
+                .with(PatrolCommand {
+                    index: 0,
+                    route: vec![
+                        cgmath::Point2::new(200.0, 300.0),
+                        cgmath::Point2::new(400.0, 150.0),
+                        cgmath::Point2::new(600.0, 300.0),
+                        cgmath::Point2::new(400.0, 550.0),
+                    ],
+                })
+                .build();
+
+            world
+                .create_entity()
+                .with(Model::new(2.0, graphics::Color::new(1.0, 0.0, 0.0, 1.0)))
+                .with(Movable::new(cgmath::Point2::new(450.0, 320.0), 70.0, 40.0))
+                .with(FollowCommand {
+                    target: entity_0,
+                    pos: vec2(0.0, -10.0),
+                })
+                .build();
+
+            world
+                .create_entity()
+                .with(Model::new(2.0, graphics::Color::new(0.0, 1.0, 0.0, 1.0)))
+                .with(Movable::new(cgmath::Point2::new(450.0, 320.0), 55.0, 80.0))
+                .with(FollowCommand {
+                    target: entity_0,
+                    pos: vec2(0.0, 10.0),
+                })
+                .build();
+        }
+    }
+
+    fn scenery_two_stations(world: &mut World) {
+        let station_0 = world
+            .create_entity()
+            .with(Model::new(15.0, graphics::Color::new(0.0, 1.0, 0.0, 1.0)))
+            .with(Station {
+                pos: cgmath::Point2::new(110.0, 200.0),
+                entrance_dir: vec2(1.0, 0.0),
+                entrance_distance: 40.0,
+            })
+            .build();
+
+        let station_1 = world
+            .create_entity()
+            .with(Model::new(15.0, graphics::Color::new(1.0, 0.0, 0.0, 1.0)))
+            .with(Station {
+                pos: cgmath::Point2::new(700.0, 300.0),
+                entrance_dir: vec2(0.0, 1.0),
+                entrance_distance: 40.0,
+            })
+            .build();
+
+        let ship_0 = world
+            .create_entity()
+            .with(Model::new(2.0, graphics::WHITE))
+            .with(Movable::new(cgmath::Point2::new(400.0, 300.0), 54.0, 54.0))
+            .with(TradeCommand::new(vec![station_0, station_1]))
+            .build();
+    }
+}
+
 impl EventHandler for App {
     fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
         let delta = timer::delta(ctx).as_secs_f32();
@@ -515,6 +595,7 @@ impl EventHandler for App {
             follow_command_system(&mut self.world)?;
             move_command_system(&mut self.world)?;
             movable_system(delta, &mut self.world)?;
+            trade_command_system(&mut self.world)?;
         }
 
         model_system(&mut self.world)?;
@@ -526,14 +607,23 @@ impl EventHandler for App {
         graphics::clear(ctx, graphics::BLACK);
 
         let entities = self.world.entities();
-        let models = &self.world.read_storage::<Model>();
-        let movables = &self.world.read_storage::<Movable>();
+        let models = self.world.read_storage::<Model>();
+        let movables = self.world.read_storage::<Movable>();
         let predictions = self.world.read_storage::<MovementPrediction>();
+        let stations = self.world.read_storage::<Station>();
 
-        for (e, model, prediction, movable) in
-            (&*entities, models, predictions.maybe(), movables).join()
+        for (e, model, prediction, movable, station) in (
+            &*entities,
+            &models,
+            predictions.maybe(),
+            movables.maybe(),
+            stations.maybe(),
+        )
+            .join()
         {
-            // println!("{:?} drawing {:?} at {:?}", e, model, mov);
+            // println!("drawing {:?}: {:?}", e, model);
+
+            // draw ship
             let circle = graphics::Mesh::new_circle(
                 ctx,
                 graphics::DrawMode::fill(),
@@ -544,6 +634,7 @@ impl EventHandler for App {
             )?;
             graphics::draw(ctx, &circle, graphics::DrawParam::default())?;
 
+            // draw prediction
             if let Some(prediction) = prediction {
                 if prediction.points.len() > 1 {
                     let color = Color::new(0.9, 0.23, 0.1, 0.5);
@@ -554,19 +645,43 @@ impl EventHandler for App {
                 }
             }
 
-            if movable.vel.magnitude2() > 1.0 {
-                let color = Color::new(0.0, 0.0, 0.9, 0.25);
-                let points: Vec<cgmath::Point2<f32>> = vec![movable.pos, movable.pos + movable.vel];
-                let line_mesh = graphics::Mesh::new_line(ctx, points.as_slice(), 1.0, color)?;
-                graphics::draw(ctx, &line_mesh, graphics::DrawParam::default())?;
+            // draw movements
+            if let Some(movable) = movable {
+                if movable.vel.magnitude2() > 1.0 {
+                    let color = Color::new(0.0, 0.0, 0.9, 0.25);
+                    let points: Vec<cgmath::Point2<f32>> =
+                        vec![movable.pos, movable.pos + movable.vel];
+                    let line_mesh = graphics::Mesh::new_line(ctx, points.as_slice(), 1.0, color)?;
+                    graphics::draw(ctx, &line_mesh, graphics::DrawParam::default())?;
+                }
+
+                if movable.desired_vel.magnitude2() > 1.0 {
+                    let color = Color::new(0.0, 0.9, 0.0, 0.25);
+                    let points: Vec<cgmath::Point2<f32>> =
+                        vec![movable.pos, movable.pos + movable.desired_vel];
+                    let line_mesh = graphics::Mesh::new_line(ctx, points.as_slice(), 1.0, color)?;
+                    graphics::draw(ctx, &line_mesh, graphics::DrawParam::default())?;
+                }
             }
 
-            if movable.desired_vel.magnitude2() > 1.0 {
-                let color = Color::new(0.0, 0.9, 0.0, 0.25);
-                let points: Vec<cgmath::Point2<f32>> =
-                    vec![movable.pos, movable.pos + movable.desired_vel];
+            // draw stations entrance
+            if let Some(station) = station {
+                let color = Color::new(0.1, 0.5, 1.0, 0.5);
+                let entrance_incoming_pos = station.get_entrance_pos();
+
+                let points: Vec<cgmath::Point2<f32>> = vec![station.pos, entrance_incoming_pos];
                 let line_mesh = graphics::Mesh::new_line(ctx, points.as_slice(), 1.0, color)?;
                 graphics::draw(ctx, &line_mesh, graphics::DrawParam::default())?;
+
+                let circle = graphics::Mesh::new_circle(
+                    ctx,
+                    graphics::DrawMode::Stroke(StrokeOptions::default()),
+                    entrance_incoming_pos,
+                    10.0,
+                    0.1,
+                    model.color,
+                )?;
+                graphics::draw(ctx, &circle, graphics::DrawParam::default())?;
             }
         }
 
@@ -699,30 +814,19 @@ mod test {
     }
 }
 
+fn point2(x: f32, y: f32) -> P2 {
+    cgmath::Point2::new(x, y)
+}
+
 #[cfg(test)]
-mod patrol_command_test {
-    use crate::PatrolCommand;
+mod tick_move_test {
+    use crate::{point2, tick_movable, Movable};
 
     #[test]
-    fn test_route_from_next() {
-        let p0 = cgmath::Point2::new(200.0, 300.0);
-        let p1 = cgmath::Point2::new(400.0, 150.0);
-        let p2 = cgmath::Point2::new(600.0, 300.0);
-        let p3 = cgmath::Point2::new(400.0, 550.0);
-
-        let mut patrol = PatrolCommand {
-            index: 0,
-            route: vec![p0, p1, p2, p3],
-        };
-
-        assert_eq!(patrol.next(), p0);
-        assert_eq!(patrol.route_from_next(), vec![p1, p2, p3, p0,]);
-
-        assert_eq!(patrol.next(), p1);
-        assert_eq!(patrol.route_from_next(), vec![p2, p3, p0, p1,]);
-
-        assert_eq!(patrol.next(), p2);
-        assert_eq!(patrol.next(), p3);
-        assert_eq!(patrol.next(), p0);
+    fn test_tick_move_with_empty_movable() {
+        let mut movable = Movable::new(point2(400.0, 300.0), 10.0, 10.0);
+        tick_movable(0.0, &mut movable);
+        assert_eq!(movable.pos.x, 400.0);
+        assert_eq!(movable.pos.y, 300.0);
     }
 }
