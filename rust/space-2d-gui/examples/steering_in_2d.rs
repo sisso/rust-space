@@ -10,6 +10,7 @@ use std::borrow::{Borrow, BorrowMut};
 use std::ops::Deref;
 
 // TODO: docking station
+// TODO: replace cgmath by nalge
 
 #[derive(Clone, Debug, Component)]
 struct Debug {
@@ -88,7 +89,7 @@ impl PatrolCommand {
         value
     }
 
-    pub fn route_from_current(&self) -> Vec<cgmath::Point2<f32>> {
+    pub fn route_from_next(&self) -> Vec<cgmath::Point2<f32>> {
         let mut r = vec![];
         for i in self.index..self.route.len() {
             r.push(self.route[i]);
@@ -96,8 +97,35 @@ impl PatrolCommand {
         for i in 0..self.index {
             r.push(self.route[i]);
         }
-        r.push(r[0]);
         r
+    }
+}
+
+#[cfg(test)]
+mod patrol_command_test {
+    use crate::PatrolCommand;
+
+    #[test]
+    fn test_route_from_next() {
+        let p0 = cgmath::Point2::new(200.0, 300.0);
+        let p1 = cgmath::Point2::new(400.0, 150.0);
+        let p2 = cgmath::Point2::new(600.0, 300.0);
+        let p3 = cgmath::Point2::new(400.0, 550.0);
+
+        let mut patrol = PatrolCommand {
+            index: 0,
+            route: vec![p0, p1, p2, p3],
+        };
+
+        assert_eq!(patrol.next(), p0);
+        assert_eq!(patrol.route_from_next(), vec![p1, p2, p3, p0,]);
+
+        assert_eq!(patrol.next(), p1);
+        assert_eq!(patrol.route_from_next(), vec![p2, p3, p0, p1,]);
+
+        assert_eq!(patrol.next(), p2);
+        assert_eq!(patrol.next(), p3);
+        assert_eq!(patrol.next(), p0);
     }
 }
 
@@ -308,38 +336,51 @@ fn follow_command_system(world: &mut World) -> GameResult<()> {
     Ok(())
 }
 
-fn patrol_system(world: &mut World) -> GameResult<()> {
+fn patrol_command_system(world: &mut World) -> GameResult<()> {
     let entities = world.entities();
     let cfg = world.read_resource::<Cfg>();
     let mut patrols = world.write_storage::<PatrolCommand>();
     let mut move_commands = world.write_storage::<MoveCommand>();
     let mut predictions = world.write_storage::<MovementPrediction>();
+    let movable = world.read_storage::<Movable>();
 
     let mut commands = vec![];
 
     // patrol
-    for (entity, patrol, _) in (&*entities, &mut patrols, !&move_commands).join() {
-        let pos = patrol.next();
-        // println!("{:?} next pos {:?}", entity, pos);
-        commands.push((
-            entity,
-            MoveCommand {
-                to: pos,
-                arrival: cfg.patrol_arrival,
-                predict: false,
-            },
-        ));
+    for (entity, patrol, maybe_move, movable) in
+        (&*entities, &mut patrols, move_commands.maybe(), &movable).join()
+    {
+        match maybe_move {
+            None => {
+                // move to next patrol step
+                let next_pos = patrol.next();
+                commands.push((
+                    entity,
+                    MoveCommand {
+                        to: next_pos,
+                        arrival: cfg.patrol_arrival,
+                        predict: false,
+                    },
+                ));
 
-        let points = patrol
-            .route_from_current()
-            .into_iter()
-            .map(|pos| (0.0, pos))
-            .collect();
+                let mut points = vec![];
+                points.push((0.0, movable.pos));
+                points.push((0.0, next_pos));
+                points.extend(patrol.route_from_next().into_iter().map(|pos| (0.0, pos)));
 
-        predictions
-            .borrow_mut()
-            .insert(entity, MovementPrediction { points })
-            .unwrap();
+                predictions
+                    .borrow_mut()
+                    .insert(entity, MovementPrediction { points })
+                    .unwrap();
+            }
+
+            Some(move_command) => {
+                // update prediction of first point
+                let mp = predictions.borrow_mut().get_mut(entity).unwrap();
+
+                mp.points[0] = (0.0, movable.pos);
+            }
+        }
     }
 
     for (entity, command) in commands {
@@ -454,7 +495,7 @@ impl EventHandler for App {
         }
 
         if !self.world.read_resource::<Cfg>().borrow().pause {
-            patrol_system(&mut self.world)?;
+            patrol_command_system(&mut self.world)?;
             follow_command_system(&mut self.world)?;
             move_command_system(&mut self.world)?;
             movable_system(delta, &mut self.world)?;
