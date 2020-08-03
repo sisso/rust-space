@@ -3,6 +3,7 @@ use ggez::conf::WindowMode;
 use ggez::event::{self, EventHandler};
 use ggez::graphics::{Color, StrokeOptions};
 use ggez::{graphics, timer, Context, ContextBuilder, GameResult};
+use rand::{thread_rng, Rng};
 use specs::prelude::*;
 use specs::{World, WorldExt};
 use specs_derive::Component;
@@ -145,7 +146,7 @@ impl FollowCommand {
 pub enum TradeCommandState {
     MoveToDock,
     Docking,
-    Docked,
+    Docked { complete_time: f32 },
     Undocking,
 }
 
@@ -275,7 +276,7 @@ fn patrol_command_system(world: &mut World) -> GameResult<()> {
             command.current(),
             movable.get_max_speed(),
             false,
-        )?;
+        );
 
         let is_complete = result.complete;
 
@@ -288,7 +289,7 @@ fn patrol_command_system(world: &mut World) -> GameResult<()> {
                 command.current(),
                 movable.get_max_speed(),
                 false,
-            )?;
+            );
         }
 
         // update movement
@@ -331,32 +332,25 @@ fn move_command_system(world: &mut World) -> GameResult<()> {
             movable.max_speed
         };
 
-        match action_move_to(
+        let result = action_move_to(
             movable.pos,
             move_command.to,
             max_speed,
             move_command.arrival,
-        ) {
-            Ok(result) => {
-                movable.desired_vel = result.desired_vel;
+        );
+        movable.desired_vel = result.desired_vel;
 
-                if result.complete {
-                    completes.push((entity, move_command.predict));
-                } else {
-                    if move_command.predict {
-                        let mut points = vec![];
-                        points.push(movable.pos);
-                        points.push(move_command.to);
+        if result.complete {
+            completes.push((entity, move_command.predict));
+        } else {
+            if move_command.predict {
+                let mut points = vec![];
+                points.push(movable.pos);
+                points.push(move_command.to);
 
-                        predictions
-                            .insert(entity, MovementPrediction { points: points })
-                            .unwrap();
-                    }
-                }
-            }
-
-            Err(e) => {
-                eprintln!("error: {:?}", e);
+                predictions
+                    .insert(entity, MovementPrediction { points: points })
+                    .unwrap();
             }
         }
     }
@@ -381,15 +375,15 @@ fn action_move_to(
     target_pos: P2,
     max_speed: f32,
     arrival: bool,
-) -> GameResult<ActionMoveResult> {
+) -> ActionMoveResult {
     let delta = target_pos - current_pos;
     let distance = delta.magnitude();
 
     if distance < ARRIVAL_DISTANCE {
-        Ok(ActionMoveResult {
+        ActionMoveResult {
             desired_vel: vec2(0.0, 0.0),
             complete: true,
-        })
+        }
     } else {
         let dir = delta / distance;
         let speed = if arrival {
@@ -399,10 +393,10 @@ fn action_move_to(
         };
 
         let desired_vel = dir * speed;
-        Ok(ActionMoveResult {
+        ActionMoveResult {
             desired_vel,
             complete: false,
-        })
+        }
     }
 }
 
@@ -432,6 +426,7 @@ fn trade_command_system(world: &mut World) -> GameResult<()> {
     let mut movables = world.write_storage::<Movable>();
     let mut predictions = world.write_storage::<MovementPrediction>();
     let stations = &world.read_storage::<Station>();
+    let total_time = world.read_resource::<Time>().total_time;
 
     for (entity, command, movable, prediction) in (
         *&entities,
@@ -444,9 +439,48 @@ fn trade_command_system(world: &mut World) -> GameResult<()> {
         let station = stations.get(command.current()).unwrap();
 
         match command.state {
-            TradeCommandState::MoveToDock => {}
+            TradeCommandState::MoveToDock => {
+                let entrance_pos = station.get_entrance_pos();
 
-            _ => unimplemented!(),
+                let result =
+                    action_move_to(movable.pos, entrance_pos, movable.get_max_speed(), true);
+
+                movable.desired_vel = result.desired_vel;
+                if result.complete {
+                    command.state = TradeCommandState::Docking;
+                }
+            }
+
+            TradeCommandState::Docking => {
+                let result =
+                    action_move_to(movable.pos, station.pos, movable.get_max_speed(), true);
+
+                movable.desired_vel = result.desired_vel;
+                if result.complete {
+                    command.state = TradeCommandState::Docked {
+                        complete_time: total_time + 1.0,
+                    };
+                }
+            }
+
+            TradeCommandState::Docked { complete_time } if total_time > complete_time => {
+                command.state = TradeCommandState::Undocking;
+            }
+
+            TradeCommandState::Docked { .. } => {}
+
+            TradeCommandState::Undocking => {
+                let entrance_pos = station.get_entrance_pos();
+
+                let result =
+                    action_move_to(movable.pos, entrance_pos, movable.get_max_speed(), false);
+
+                movable.desired_vel = result.desired_vel;
+                if result.complete {
+                    command.next();
+                    command.state = TradeCommandState::MoveToDock;
+                }
+            }
         }
     }
 
@@ -571,12 +605,21 @@ impl App {
             })
             .build();
 
-        let ship_0 = world
-            .create_entity()
-            .with(Model::new(2.0, graphics::WHITE))
-            .with(Movable::new(cgmath::Point2::new(400.0, 300.0), 54.0, 54.0))
-            .with(TradeCommand::new(vec![station_0, station_1]))
-            .build();
+        let mut rng = thread_rng();
+
+        for _ in 0..50 {
+            let x = rng.gen_range(0, 800) as f32;
+            let y = rng.gen_range(0, 600) as f32;
+            let speed = rng.gen_range(20, 100) as f32;
+            let acc = rng.gen_range(50, 100) as f32;
+
+            world
+                .create_entity()
+                .with(Model::new(4.0, graphics::WHITE))
+                .with(Movable::new(cgmath::Point2::new(x, y), speed, acc))
+                .with(TradeCommand::new(vec![station_0, station_1]))
+                .build();
+        }
     }
 }
 
