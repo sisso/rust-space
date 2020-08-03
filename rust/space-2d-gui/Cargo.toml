@@ -8,8 +8,9 @@ edition = "2018"
 
 [dependencies]
 ggez = "0.5"
-cgmath = { version = "0.17", features = ["mint"]}
 mint = "0.5"
+nalgebra = { version = "0.21.0", features = ["mint"] }
+approx = "0.3.2"
 
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
