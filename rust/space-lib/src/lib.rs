@@ -35,7 +35,7 @@ impl<'a, 'b> Context<'a, 'b> {
 }
 
 #[no_mangle]
-pub extern "C" fn init_context<'a, 'b>(value: *const c_char) -> *mut FfiContext {
+pub extern "C" fn space_domain_init_context<'a, 'b>(value: *const c_char) -> *mut FfiContext {
     let c_str = unsafe {
         assert!(!value.is_null());
         CStr::from_ptr(value)
@@ -48,7 +48,7 @@ pub extern "C" fn init_context<'a, 'b>(value: *const c_char) -> *mut FfiContext 
 }
 
 #[no_mangle]
-pub extern "C" fn close_context(ctx_ptr: *mut FfiContext) {
+pub extern "C" fn space_domain_close_context(ctx_ptr: *mut FfiContext) {
     if ctx_ptr.is_null() {
         return;
     }
@@ -58,9 +58,9 @@ pub extern "C" fn close_context(ctx_ptr: *mut FfiContext) {
 }
 
 #[no_mangle]
-pub extern "C" fn set_data(
+pub extern "C" fn space_domain_set_data(
     ctx_ptr: *mut FfiContext,
-    kind: u32,
+    kind: u16,
     buffer: *mut u8,
     length: u32,
 ) -> u32 {
@@ -72,20 +72,20 @@ pub extern "C" fn set_data(
 }
 
 #[no_mangle]
-pub extern "C" fn get_data(
+pub extern "C" fn space_domain_get_data(
     ctx_ptr: *mut FfiContext,
-    callback: extern "stdcall" fn(*mut u8, u32),
+    callback: extern "stdcall" fn(u16, *mut u8, u32),
 ) -> u32 {
     let ctx = Context::from_ptr(ctx_ptr);
     ctx.api.get_inputs(|mut bytes| {
         debugf!("get_data: {:?}", bytes);
-        callback(bytes.as_mut_ptr(), bytes.len() as u32);
+        callback(0, bytes.as_mut_ptr(), bytes.len() as u32);
     });
     0
 }
 
 #[no_mangle]
-pub extern "C" fn run_tick(ctx_ptr: *mut FfiContext, delta_time: u32) -> u32 {
+pub extern "C" fn space_domain_run_tick(ctx_ptr: *mut FfiContext, delta_time: u32) -> u32 {
     debugf!("run_tick");
     let ctx = Context::from_ptr(ctx_ptr);
     ctx.api.update(Duration::from_millis(delta_time as u64));

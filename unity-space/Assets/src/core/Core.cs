@@ -25,15 +25,15 @@ namespace core
     static class Native
     {
         [DllImport("libspace.so", CharSet = CharSet.Unicode)]
-        internal static extern CoreHandler init_context(string args);
+        internal static extern CoreHandler space_domain_init_context(string args);
         [DllImport("libspace.so", CharSet = CharSet.Unicode)]
-        internal static extern UInt32 run_tick(CoreHandler ptr, UInt32 delta);
+        internal static extern UInt32 space_domain_run_tick(CoreHandler ptr, UInt32 delta);
         [DllImport("libspace.so", CharSet = CharSet.Unicode)]
-        internal static extern void close_context(IntPtr ptr);
+        internal static extern void space_domain_close_context(IntPtr ptr);
         [DllImport("libspace.so")]
-        internal static extern UInt32 set_data(CoreHandler ptr, byte[] buffer, UInt32 len);
+        internal static extern UInt32 space_domain_set_data(CoreHandler ptr, UInt16 kind, byte[] buffer, UInt32 len);
         [DllImport("libspace.so", CharSet = CharSet.Unicode)]
-        internal static extern UInt32 get_data(CoreHandler ptr, Action<IntPtr, UInt32> callback);
+        internal static extern UInt32 space_domain_get_data(CoreHandler ptr, Action<UInt16, IntPtr, UInt32> callback);
     }
 
     internal class CoreHandler : SafeHandle
@@ -52,7 +52,7 @@ namespace core
 
         protected override bool ReleaseHandle()
         {
-            Native.close_context(handle);
+            Native.space_domain_close_context(handle);
             return true;
         }
     }
@@ -65,7 +65,7 @@ namespace core
 
         public Core(string args, EventHandler eventHandler)
         {
-            this.coreHandler = Native.init_context(args);
+            this.coreHandler = Native.space_domain_init_context(args);
             this.eventHandler = eventHandler;
             Debug.Log("core initialize");
         }
@@ -79,7 +79,7 @@ namespace core
         public void Update(float delta) 
         {
             var delta_u32 = (UInt32) Math.Floor(delta * 1000);
-            var result = Native.run_tick(coreHandler, delta_u32);
+            var result = Native.space_domain_run_tick(coreHandler, delta_u32);
 
             if (result != 0)
             {
@@ -93,7 +93,7 @@ namespace core
 
             byte[] bytes = null;
 
-            var result = Native.get_data(this.coreHandler, (ptr, length) =>
+            var result = Native.space_domain_get_data(this.coreHandler, (kind, ptr, length) =>
             {
                 // TODO: why moving parser and call to handler here crash rust with already borrow?
                 bytes = ToByteArray(ptr, length);
