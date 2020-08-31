@@ -59,3 +59,7 @@ sysinfo.txt
 crashlytics-build.properties
 build
 .vscode
+
+# libraries
+Assets/Plugins/*.so
+Assets/Plugins/*.so.meta

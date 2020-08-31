@@ -1,4 +1,6 @@
-﻿using System.Collections;
+﻿// #define STATIC_BIND
+
+using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System;
@@ -22,17 +24,18 @@ namespace core
         void ObjUndock(UInt32 id, UInt32 sectorId, space_data.V2 pos);
     }
 
+#if STATIC_BIND
     static class Native
     {
-        [DllImport("libspace.so", CharSet = CharSet.Unicode)]
+        [DllImport("ffi_space.so", CharSet = CharSet.Unicode)]
         internal static extern CoreHandler space_domain_init_context(string args);
-        [DllImport("libspace.so", CharSet = CharSet.Unicode)]
+        [DllImport("ffi_space.so", CharSet = CharSet.Unicode)]
         internal static extern UInt32 space_domain_run_tick(CoreHandler ptr, UInt32 delta);
-        [DllImport("libspace.so", CharSet = CharSet.Unicode)]
+        [DllImport("ffi_space.so", CharSet = CharSet.Unicode)]
         internal static extern void space_domain_close_context(IntPtr ptr);
-        [DllImport("libspace.so")]
+        [DllImport("ffi_space.so")]
         internal static extern UInt32 space_domain_set_data(CoreHandler ptr, UInt16 kind, byte[] buffer, UInt32 len);
-        [DllImport("libspace.so", CharSet = CharSet.Unicode)]
+        [DllImport("ffi_space.so", CharSet = CharSet.Unicode)]
         internal static extern UInt32 space_domain_get_data(CoreHandler ptr, Action<UInt16, IntPtr, UInt32> callback);
     }
 
@@ -56,30 +59,148 @@ namespace core
             return true;
         }
     }
+#endif
 
     public class Core : IDisposable
     {
+        #if STATIC_BIND
         private CoreHandler coreHandler;
+
+        #else
+        [DllImport("__Internal")]
+        public static extern IntPtr dlopen(string path, int flag);
+        
+        [DllImport("__Internal")]
+        public static extern IntPtr dlerror();
+ 
+        [DllImport("__Internal")]
+        public static extern IntPtr dlsym(IntPtr handle, string symbolName);
+ 
+        [DllImport("__Internal")]
+        public static extern int dlclose(IntPtr handle);
+
+        public static IntPtr LoadLibrary(string path)
+        {
+            Debug.Log($"Loading native library at {path}");
+            IntPtr handle = dlopen(path, 2); // 1 lazy, 2 now, 0 ??
+            if (handle == IntPtr.Zero)
+            {
+                var error = GetDLError();
+                throw new Exception("Couldn't open native library at [" + path + "]: " + error);
+            }
+
+            return handle;
+        }
+
+        private static string GetDLError()
+        {
+            var errPtr = dlerror();
+
+            if (errPtr == IntPtr.Zero)
+            {
+                return "Null pointer was returned from dlerror.";
+            }
+            else
+            {
+                return Marshal.PtrToStringAnsi(errPtr);
+            }
+        }
+
+        public static void CloseLibrary(IntPtr libraryHandle)
+        {
+            if (libraryHandle != IntPtr.Zero)
+            {
+                Debug.Log("Closing native library");
+                dlclose(libraryHandle);
+            }
+        } 
+        
+        public static T GetLibraryFunction<T>(
+            IntPtr libraryHandle,
+            string functionName) where T : class
+        {
+            // Debug.Log("Load native function "+functionName);
+            
+            IntPtr symbol = dlsym(libraryHandle, functionName);
+            if (symbol == IntPtr.Zero)
+            {
+                var error = GetDLError();
+                throw new Exception("Couldn't get function: " + functionName + ": "+ error);
+            }
+            return Marshal.GetDelegateForFunctionPointer(
+                symbol,
+                typeof(T)) as T;
+        }
+        
+        delegate IntPtr CreateContext(string args);
+        delegate void ContextClose(IntPtr ptr);
+        delegate UInt32 ContextPush(IntPtr ptr, UInt16 kind, byte[] buffer, UInt32 len);
+        delegate UInt32 ContextTake(IntPtr ptr, Action<UInt16, IntPtr, UInt32> callback);
+        delegate UInt32 ContextTick(IntPtr ptr, UInt32 delta);
+
+        private ContextClose nativeContextClose;
+        private ContextPush nativeContextPush;
+        private ContextTake nativeContextTake;
+        private ContextTick nativeContextTick;
+        
+        private IntPtr libraryHandle;
+        private IntPtr contextHandle;
+        #endif
 
         public EventHandler eventHandler;
 
         public Core(string args, EventHandler eventHandler)
         {
-            this.coreHandler = Native.space_domain_init_context(args);
             this.eventHandler = eventHandler;
+
+            #if STATIC_BIND
+            this.coreHandler = Native.space_domain_init_context(args);
+            #else
+            var libName = "libffi_space.so";
+            var dataPath = Application.dataPath + "/Plugins/" + libName;
+            libraryHandle = LoadLibrary(dataPath);
+
+            // load methods
+            this.nativeContextClose = GetLibraryFunction<ContextClose>(libraryHandle, "space_domain_close_context");
+            this.nativeContextPush = GetLibraryFunction<ContextPush>(libraryHandle, "space_domain_set_data");
+            this.nativeContextTake = GetLibraryFunction<ContextTake>(libraryHandle, "space_domain_get_data");
+            this.nativeContextTick = GetLibraryFunction<ContextTick>(libraryHandle, "space_domain_run_tick");
+            
+            // start ffi context
+            CreateContext createContext = GetLibraryFunction<CreateContext>(libraryHandle, "space_domain_init_context");
+            contextHandle = createContext.Invoke(args);
+            #endif
             Debug.Log("core initialize");
         }
 
         public void Dispose()
         {
+            #if STATIC_BIND
             coreHandler.Dispose();
+            #else
+                        // close ffi context
+            if (contextHandle != IntPtr.Zero && this.nativeContextClose != null)
+            {
+                this.nativeContextClose.Invoke(contextHandle);
+                contextHandle = IntPtr.Zero;
+            }
+
+            // unload library
+            CloseLibrary(libraryHandle);
+            libraryHandle = IntPtr.Zero;
+            #endif
+
             Debug.Log("core disposed");
         }
 
         public void Update(float delta) 
         {
-            var delta_u32 = (UInt32) Math.Floor(delta * 1000);
+            var delta_u32 = Convert.ToUInt32((int) Math.Floor(delta * 1000));
+            #if STATIC_BIND
             var result = Native.space_domain_run_tick(coreHandler, delta_u32);
+            #else
+            var result = this.nativeContextTick(this.contextHandle, delta_u32);
+            #endif
 
             if (result != 0)
             {
@@ -93,11 +214,18 @@ namespace core
 
             byte[] bytes = null;
 
+            #if STATIC_BIND
             var result = Native.space_domain_get_data(this.coreHandler, (kind, ptr, length) =>
             {
                 // TODO: why moving parser and call to handler here crash rust with already borrow?
                 bytes = ToByteArray(ptr, length);
             });
+            #else
+            var result = this.nativeContextTake(this.contextHandle, (kind, ptr, length) =>
+            {
+                bytes = ToByteArray(ptr, length);
+            });
+            #endif
 
             if (result != 0)
             {
