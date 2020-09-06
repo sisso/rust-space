@@ -57,8 +57,10 @@ namespace utils
         public static bool IsPrefab(GameObject obj)
         {
 #if UNITY_EDITOR
+
             // var isPrefab = PrefabUtility.GetPrefabParent(obj) == null && PrefabUtility.GetPrefabObject(obj) != obj;
-            var isPrefab = PrefabUtility.GetPrefabType(obj) != PrefabType.None;
+            // var isPrefab = PrefabUtility.GetPrefabType(obj) != PrefabType.None;
+            var isPrefab = PrefabUtility.GetPrefabInstanceStatus(obj) == PrefabInstanceStatus.NotAPrefab;
             return isPrefab;
 #else
 		Debug.LogWarning("Invalid request for runtime");
@@ -174,7 +176,7 @@ namespace utils
             return Vector3.Dot(v1, v2) > 0f;
         }
 
-        public static void CleanUp(Transform transform)
+        public static void CleanUp(this Transform transform)
         {
             if (!transform)
             {
@@ -1057,7 +1059,7 @@ namespace utils
             var fullName = "Base Layer." + stateName;
             var hash = Animator.StringToHash(fullName);
             var state = animator.GetNextAnimatorStateInfo(0);
-            return state.nameHash == hash;
+            return state.fullPathHash == hash;
         }
 
         public static bool IsState(this Animator animator, string stateName)
@@ -1065,7 +1067,7 @@ namespace utils
             var fullName = "Base Layer." + stateName;
             var hash = Animator.StringToHash(fullName);
             var state = animator.GetCurrentAnimatorStateInfo(0);
-            return state.nameHash == hash;
+            return state.fullPathHash == hash;
         }
 
         public static void ReplaceChild(Transform parent, string name, GameObject newChild)

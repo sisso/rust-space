@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using utils;
 
 namespace game
 {
@@ -36,9 +37,13 @@ namespace game
             for (int i = 0; i < iterations; i++)
             {
                 this.gameTime += delta;
+                // // get commands from domain to core
+                // var requests = this.domain.TakeRequests();
+                // this.core.Push(requests);
+                // update time
                 this.core.Update(delta);
+                // get all data and send to domain
                 this.core.GetData();
-
             }
         }
     }

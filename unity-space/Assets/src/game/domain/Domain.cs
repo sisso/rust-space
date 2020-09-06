@@ -2,6 +2,7 @@
 using space_data;
 using UnityEngine;
 using game;
+using game.ui;
 using utils;
 using System.Collections;
 using System.Collections.Generic;
@@ -11,6 +12,7 @@ using System.Collections.Generic;
  */
 namespace game.domain
 {
+    /// used to serialize a uint
     [System.Serializable]
     public class Id
     {
@@ -26,7 +28,8 @@ namespace game.domain
             this.value = value;
         }
     }
-
+    
+    /// Hold all game logic in Unity3d
     public class Domain : MonoBehaviour, core.EventHandler
     {
         public Transform root;
@@ -35,8 +38,24 @@ namespace game.domain
         public GenericObject prefabJump;
         public GenericObject prefabAsteroid;
         public GenericObject prefabStation;
-        public Dictionary<uint, GameObject> idMap = new Dictionary<uint, GameObject>();
-        public Dictionary<uint, Vector3> sectorPos = new Dictionary<uint, Vector3>();
+        private Dictionary<uint, GameObject> idMap = new Dictionary<uint, GameObject>();
+        private List<GenericObject> sectors = new List<GenericObject>();
+
+        public UIController ui;
+
+        void Start() 
+        {
+        }
+
+        public List<GenericObject> ListSectors() 
+        {
+            return sectors;
+        }
+
+        public List<uint> ListObjectsAtSector(uint sectorId) 
+        {
+            return new List<uint>();
+        }
 
         public void AddJump(uint id, uint fromSectorId, V2 fromPos, uint toSectorId, V2 toPos)
         {
@@ -51,6 +70,8 @@ namespace game.domain
             obj.transform.localPosition = ToV3(fromPos);
 
             this.idMap.Add(id, obj.gameObject);
+
+            ui.Refresh();
         }
 
         public void AddObj(uint id, EntityKind kind)
@@ -92,12 +113,13 @@ namespace game.domain
             obj.UpdateName();
             Utils.SetParentZero(obj.transform, root);
 
-            var index = sectorPos.Count;
+            var index = sectors.Count;
             var pos = new Vector3((float)index * 10f, 0.0f, 0.0f);
             obj.transform.position = pos;
 
-            this.sectorPos.Add(id, pos);
             this.idMap.Add(id, obj.gameObject);
+
+            this.sectors.Add(obj);
         }
 
         public void ObjDock(uint id, uint targetId)
