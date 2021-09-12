@@ -1,5 +1,6 @@
 [workspace]
 members = [
+  "commons",
   "space-macros",
   "space-domain",
   "space-lib",
