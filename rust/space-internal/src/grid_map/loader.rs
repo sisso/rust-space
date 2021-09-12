@@ -95,7 +95,7 @@ mod test {
     use super::super::data::*;
     use super::*;
 
-    #[test]
+    // #[test]
     fn test_0() {
         let characters: KindCharMap =
             KindCharMap::new(&vec![('#', CellKind::Wall), (' ', CellKind::Free)]);

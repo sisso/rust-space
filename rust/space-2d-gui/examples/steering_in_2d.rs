@@ -2,7 +2,7 @@ use approx::assert_relative_eq;
 use ggez::conf::WindowMode;
 use ggez::event::{self, EventHandler};
 use ggez::graphics::{Color, StrokeOptions};
-use ggez::{graphics, timer, Context, ContextBuilder, GameResult};
+use ggez::{graphics, timer, Context, ContextBuilder, GameResult, GameError};
 use nalgebra::{self as na, Point2, Rotation2, Similarity2, Vector2};
 use rand::{thread_rng, Rng};
 use specs::prelude::*;
@@ -554,7 +554,7 @@ impl App {
         {
             let entity_0 = world
                 .create_entity()
-                .with(Model::new(6.0, graphics::WHITE))
+                .with(Model::new(6.0, graphics::Color::WHITE))
                 .with(Movable::new(Point2::new(400.0, 300.0), 80.0, 70.0))
                 .with(PatrolCommand {
                     index: 0,
@@ -613,14 +613,14 @@ impl App {
         let mut rng = thread_rng();
 
         for _ in 0..10 {
-            let x = rng.gen_range(0, 800) as f32;
-            let y = rng.gen_range(0, 600) as f32;
-            let speed = rng.gen_range(20, 100) as f32;
-            let acc = rng.gen_range(50, 100) as f32;
+            let x = rng.gen_range(0..800) as f32;
+            let y = rng.gen_range(0..600) as f32;
+            let speed = rng.gen_range(20..100) as f32;
+            let acc = rng.gen_range(50..100) as f32;
 
             world
                 .create_entity()
-                .with(Model::new(4.0, graphics::WHITE))
+                .with(Model::new(4.0, graphics::Color::WHITE))
                 .with(Movable::new(Point2::new(x, y), speed, acc))
                 .with(TradeCommand::new(vec![station_0, station_1]))
                 .build();
@@ -628,7 +628,7 @@ impl App {
     }
 }
 
-impl EventHandler for App {
+impl EventHandler<GameError> for App {
     fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
         let delta = timer::delta(ctx).as_secs_f32();
 
@@ -652,7 +652,7 @@ impl EventHandler for App {
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
-        graphics::clear(ctx, graphics::BLACK);
+        graphics::clear(ctx, graphics::Color::BLACK);
 
         let entities = self.world.entities();
         let models = self.world.read_storage::<Model>();
@@ -740,7 +740,7 @@ impl EventHandler for App {
 
         let cfg = &self.world.read_resource::<Cfg>();
         let text = graphics::Text::new(format!("{:?}", cfg.deref()));
-        graphics::draw(ctx, &text, (Point2::new(0.0, 0.0), graphics::WHITE))?;
+        graphics::draw(ctx, &text, (Point2::new(0.0, 0.0), graphics::Color::WHITE))?;
 
         graphics::present(ctx)
     }
@@ -766,7 +766,7 @@ impl EventHandler for App {
     }
 }
 
-fn main() -> GameResult<()> {
+fn main() {
     // Make a Context.
     let mut window_mode: WindowMode = Default::default();
     window_mode.resizable = true;
@@ -776,19 +776,10 @@ fn main() -> GameResult<()> {
         .build()
         .expect("aieee, could not create ggez context!");
 
-    let mut app = App::new(&mut ctx)?;
+    let mut app = App::new(&mut ctx).unwrap();
 
     // Run!
-    match event::run(&mut ctx, &mut event_loop, &mut app) {
-        Ok(_) => {
-            println!("Exited cleanly.");
-            Ok(())
-        }
-        Err(e) => {
-            println!("Error occured: {}", e);
-            Err(e)
-        }
-    }
+    event::run(ctx, event_loop, app);
 }
 
 pub fn angle_vector(v: V2) -> f32 {
