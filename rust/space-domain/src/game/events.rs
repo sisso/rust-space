@@ -42,31 +42,7 @@ impl Events {
         self.queue.push(event);
     }
 
-    pub fn clear(&mut self) {
-        self.queue.clear();
-    }
-
-    pub fn list<'a>(&'a self) -> impl Iterator<Item = &'a Event> + 'a {
-        self.queue.iter()
-    }
-}
-
-impl RequireInitializer for Events {
-    fn init(context: &mut GameInitContext) {
-        context
-            .cleanup_dispatcher
-            .add(ClearEventsSystem, "clear_events_system", &[]);
-    }
-}
-
-/// Remove all entities with events
-pub struct ClearEventsSystem;
-
-impl<'a> System<'a> for ClearEventsSystem {
-    type SystemData = (Write<'a, Events>);
-
-    fn run(&mut self, (mut events): Self::SystemData) {
-        trace!("running");
-        events.borrow_mut().clear();
+    pub fn take(&mut self) -> Vec<Event> {
+        std::mem::replace(&mut self.queue, vec![])
     }
 }

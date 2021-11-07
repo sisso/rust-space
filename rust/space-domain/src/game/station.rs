@@ -1,3 +1,4 @@
+use crate::game::{GameInitContext, RequireInitializer};
 use specs::prelude::*;
 
 // TODO: not in used
@@ -13,6 +14,8 @@ impl Station {
 
 pub struct Stations;
 
-impl Stations {
-    pub fn init_world(world: &mut World, dispatcher: &mut DispatcherBuilder) {}
+impl RequireInitializer for Stations {
+    fn init(context: &mut GameInitContext) {
+        context.world.register::<Station>();
+    }
 }

@@ -16,8 +16,8 @@ mod ffi_output_system;
 
 pub struct FFI;
 
-pub struct FFIApi<'a, 'b> {
-    game: Game<'a, 'b>,
+pub struct FFIApi {
+    game: Game,
 }
 
 impl From<V2> for space_data::V2 {
@@ -33,7 +33,7 @@ impl From<&V2> for space_data::V2 {
 }
 
 /// Represent same interface we intend to use through FFI
-impl<'a, 'b> FFIApi<'a, 'b> {
+impl FFIApi {
     pub fn new() -> Self {
         FFIApi { game: Game::new() }
     }

@@ -22,6 +22,7 @@ use crate::game::loader::Loader;
 use crate::game::navigations::Navigations;
 use crate::game::order::Orders;
 use crate::game::shipyard::Shipyard;
+use crate::game::station::Stations;
 
 pub mod actions;
 pub mod commands;
@@ -44,37 +45,29 @@ pub mod station;
 pub mod wares;
 
 // TODO: add tick to game field
-pub struct Game<'a, 'b> {
+pub struct Game {
     pub total_time: TotalTime,
     pub world: World,
-    pub dispatcher: Dispatcher<'a, 'b>,
-    /// Dispatchers that execute after normal execution and after all lazy update get applied
-    /// This dispatcher is where all events should be processed
-    pub late_dispatcher: Dispatcher<'a, 'b>,
-    pub cleanup_dispatcher: Dispatcher<'a, 'b>,
+    pub dispatcher: Dispatcher<'static, 'static>,
 }
 
-pub struct GameInitContext<'a, 'b, 'c> {
-    pub world: &'c mut World,
-    pub dispatcher: DispatcherBuilder<'a, 'b>,
-    pub late_dispatcher: DispatcherBuilder<'a, 'b>,
-    pub cleanup_dispatcher: DispatcherBuilder<'a, 'b>,
+pub struct GameInitContext {
+    pub world: World,
+    pub dispatcher: DispatcherBuilder<'static, 'static>,
+    pub late_dispatcher: DispatcherBuilder<'static, 'static>,
 }
 
 pub trait RequireInitializer {
     fn init(context: &mut GameInitContext);
 }
 
-impl<'a, 'b> Game<'a, 'b> {
+impl Game {
     pub fn new() -> Self {
-        let mut world = World::new();
-
         // initialize all
         let mut init_context = GameInitContext {
-            world: &mut world,
+            world: World::new(),
             dispatcher: Default::default(),
             late_dispatcher: Default::default(),
-            cleanup_dispatcher: Default::default(),
         };
 
         // initializations
@@ -85,24 +78,19 @@ impl<'a, 'b> Game<'a, 'b> {
         Navigations::init(&mut init_context);
         Shipyard::init(&mut init_context);
         FFI::init(&mut init_context);
-        Events::init(&mut init_context);
         Factory::init(&mut init_context);
         Orders::init(&mut init_context);
+        Stations::init(&mut init_context);
 
         let mut dispatcher = init_context.dispatcher.build();
-        let mut late_dispatcher = init_context.late_dispatcher.build();
-        let mut cleanup_dispatcher = init_context.cleanup_dispatcher.build();
 
+        let mut world = init_context.world;
         dispatcher.setup(&mut world);
-        late_dispatcher.setup(&mut world);
-        cleanup_dispatcher.setup(&mut world);
 
         Game {
             total_time: TotalTime(0.0),
             world,
             dispatcher,
-            late_dispatcher,
-            cleanup_dispatcher,
         }
     }
 
@@ -123,10 +111,6 @@ impl<'a, 'b> Game<'a, 'b> {
         self.tick_new_objects_system();
         // apply all lazy updates
         self.world.maintain();
-        // run later dispatcher (this dispatcher is not calling maintain
-        self.late_dispatcher.dispatch(&mut self.world);
-        // run later dispatcher
-        self.cleanup_dispatcher.dispatch(&mut self.world);
         // apply all lazy updates from later dispatcher
         self.world.maintain();
     }

@@ -16,7 +16,7 @@ pub struct FfiOutputSystem;
 #[derive(SystemData)]
 pub struct FfiOutputData<'a> {
     entities: Entities<'a>,
-    events: Read<'a, Events>,
+    events: Write<'a, Events>,
     output: Write<'a, FfiOutpusBuilder>,
     location: ReadStorage<'a, Location>,
     station: ReadStorage<'a, Station>,
@@ -47,7 +47,7 @@ impl<'a> System<'a> for FfiOutputSystem {
     fn run(&mut self, mut data: Self::SystemData) {
         let output = &mut data.output;
 
-        for event in data.events.list() {
+        for event in data.events.take() {
             let entity = event.id;
 
             match &event.kind {
