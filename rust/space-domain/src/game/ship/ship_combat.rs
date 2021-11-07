@@ -1,7 +1,7 @@
-use std::borrow::BorrowMut;
-use std::collections::{HashMap, HashSet};
 
-use rand::{Rng, RngCore};
+use std::collections::{HashMap};
+
+use rand::{Rng};
 
 use crate::utils::Speed;
 
@@ -224,7 +224,7 @@ impl Combat {
     // TODO: the ration should not be speed speed, but tracking speed vs difference in speed
     /// =POW(0.5, B12/A12)+POW(0.1, 100 /C12)
     fn compute_hit_chance(
-        weapon: &Weapon,
+        _weapon: &Weapon,
         attack_speed: Speed,
         target_width: u32,
         target_speed: Speed,
@@ -255,8 +255,8 @@ impl Combat {
         let mut candidates = ctx
             .ships
             .iter()
-            .filter(|(id, other)| other.team_id != team_id)
-            .map(|(id, other)| (*id, ctx.distances.get(&(attacker_id, *id)).unwrap()))
+            .filter(|(_id, other)| other.team_id != team_id)
+            .map(|(id, _other)| (*id, ctx.distances.get(&(attacker_id, *id)).unwrap()))
             .collect::<Vec<_>>();
 
         candidates.sort_unstable_by(|a, b| a.1.partial_cmp(b.1).unwrap());

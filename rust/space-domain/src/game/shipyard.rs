@@ -1,6 +1,6 @@
 use crate::game::commands::Command;
 use crate::game::new_obj::NewObj;
-use crate::game::wares::{Cargo, WareAmount, WareId};
+use crate::game::wares::{Cargo, WareAmount};
 use crate::game::{GameInitContext, RequireInitializer};
 use crate::utils::{DeltaTime, Speed, TotalTime};
 use rand::RngCore;
@@ -103,14 +103,14 @@ impl<'a> System<'a> for ShipyardSystem {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::game::commands::MineState;
-    use crate::game::events::EventKind::Add;
+    
+    
     use crate::game::locations::Location;
     use crate::game::wares::WareId;
-    use crate::space_outputs_generated::space_data::EntityKind::Station;
+    
     use crate::test::test_system;
-    use crate::utils::V2;
-    use std::borrow::Borrow;
+    
+    
 
     const PRODUCTION_TIME: f32 = 5.0;
     const REQUIRE_CARGO: f32 = 5.0;
@@ -138,7 +138,7 @@ mod test {
 
     #[test]
     fn test_shipyard_system_should_complete_production() {
-        let (world, (entity, ware_id)) = scenery(2.0, 0.0, Some(1.0));
+        let (world, (entity, _ware_id)) = scenery(2.0, 0.0, Some(1.0));
         assert_shipyard_production(&world, entity, None);
 
         let storage = &world.read_storage::<NewObj>();

@@ -2,9 +2,9 @@ use specs::prelude::*;
 
 use super::super::locations::*;
 use super::*;
-use crate::game::actions::*;
+
 use crate::game::events::{Event, EventKind, Events};
-use crate::game::objects::Objects;
+
 use crate::utils::V2;
 
 pub struct ActionMoveToSystem;

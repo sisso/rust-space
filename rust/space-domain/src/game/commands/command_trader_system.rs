@@ -1,17 +1,16 @@
-use crate::game::commands::{Command, Commands, MineState, TradeState};
+use crate::game::commands::{Command, TradeState};
 use crate::game::dock::HasDock;
-use crate::game::locations::{EntityPerSectorIndex, Location, Locations, SectorDistanceIndex};
+use crate::game::locations::{EntityPerSectorIndex, Location, Locations};
 use crate::game::navigations::{NavRequest, Navigation};
 use crate::game::objects::ObjId;
-use crate::game::order::{Order, Orders};
-use crate::game::sectors::SectorId;
+use crate::game::order::Orders;
+
 use crate::game::wares::{Cargo, Cargos, WareId};
 use crate::utils;
 use crate::utils::{DeltaTime, TotalTime};
 use rand::RngCore;
 use specs::prelude::*;
 use std::borrow::{Borrow, BorrowMut};
-use std::process::id;
 
 pub struct CommandTradeSystem;
 
@@ -115,7 +114,7 @@ impl<'a> System<'a> for CommandTradeSystem {
                 .sector_id;
 
             let candidates = sectors_index.search_nearest_stations(sector_id).flat_map(
-                |(sector_id, distance, candidate_id)| match orders
+                |(_sector_id, distance, candidate_id)| match orders
                     .get(candidate_id)
                     .map(|orders| orders.wares_provider())
                 {
@@ -185,11 +184,11 @@ impl<'a> System<'a> for CommandTradeSystem {
                 .unwrap()
                 .sector_id;
 
-            let mut wares_in_cargo: Vec<WareId> = cargo.get_wares().collect();
+            let wares_in_cargo: Vec<WareId> = cargo.get_wares().collect();
 
             let candidates = sectors_index
                 .search_nearest_stations(sector_id)
-                .flat_map(|(sector_id, distance, obj_id)| {
+                .flat_map(|(_sector_id, distance, obj_id)| {
                     match orders
                         .get(obj_id)
                         .map(|orders| orders.request_any(&wares_in_cargo))
@@ -205,7 +204,7 @@ impl<'a> System<'a> for CommandTradeSystem {
                         _ => None,
                     }
                 })
-                .filter(|(weight, target_id)| {
+                .filter(|(_weight, target_id)| {
                     if let Some(cargo) = cargos.get(*target_id) {
                         // check if any ware in cargo can be received by the stations
                         wares_in_cargo.iter().any(|ware_id| {
@@ -345,20 +344,20 @@ impl<'a> System<'a> for CommandTradeSystem {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::game::actions::Action;
+    
     use crate::game::commands::Command;
     use crate::game::dock::HasDock;
-    use crate::game::locations::{EntityPerSectorIndex, Locations};
+    use crate::game::locations::{EntityPerSectorIndex};
     use crate::game::navigations::Navigation;
     use crate::game::objects::ObjId;
     use crate::game::order::{Order, Orders};
-    use crate::game::sectors::test_scenery;
+    use crate::game::sectors::{SectorId};
     use crate::game::wares::{Cargo, WareId};
     use crate::test::test_system;
-    use crate::utils::{IdAsU32Support, TotalTime, V2_ZERO};
-    use specs::DispatcherBuilder;
+    use crate::utils::{TotalTime, V2_ZERO};
+    
     use std::borrow::{Borrow, BorrowMut};
-    use std::collections::HashSet;
+    
 
     struct SceneryRequest {}
 
@@ -653,7 +652,7 @@ mod test {
 
     #[test]
     fn command_trade_when_empty_and_at_target_should_pickup_cargo() {
-        let (world, scenery) = test_system(CommandTradeSystem, |mut world| {
+        let (world, scenery) = test_system(CommandTradeSystem, |world| {
             let scenery = setup_scenery(world);
 
             set_docked_at(world, scenery.trader_id, scenery.producer_station_id);
@@ -672,7 +671,7 @@ mod test {
 
     #[test]
     fn command_trade_when_pickup_should_only_take_valid_cargo() {
-        let (world, scenery) = test_system(CommandTradeSystem, |mut world| {
+        let (world, scenery) = test_system(CommandTradeSystem, |world| {
             let scenery = setup_scenery(world);
 
             set_docked_at(world, scenery.trader_id, scenery.producer_station_id);
@@ -692,7 +691,7 @@ mod test {
 
     #[test]
     fn command_trade_when_full_should_move_to_deliver() {
-        let (world, scenery) = test_system(CommandTradeSystem, |mut world| {
+        let (world, scenery) = test_system(CommandTradeSystem, |world| {
             let scenery = setup_scenery(world);
 
             add_cargo(world, scenery.trader_id, scenery.ware0_id, SHIP_CARGO);
@@ -705,7 +704,7 @@ mod test {
 
     #[test]
     fn command_trade_when_full_with_pickup_should_move_to_deliver() {
-        let (world, scenery) = test_system(CommandTradeSystem, |mut world| {
+        let (world, scenery) = test_system(CommandTradeSystem, |world| {
             let scenery = setup_scenery(world);
 
             set_active_command(
@@ -726,7 +725,7 @@ mod test {
 
     #[test]
     fn command_trade_full_and_navigation_should_keep_moving() {
-        let (world, scenery) = test_system(CommandTradeSystem, |mut world| {
+        let (world, scenery) = test_system(CommandTradeSystem, |world| {
             let scenery = setup_scenery(world);
 
             add_cargo(world, scenery.trader_id, scenery.ware0_id, SHIP_CARGO);
@@ -740,7 +739,7 @@ mod test {
 
     #[test]
     fn command_trade_when_deliver_and_empty_cargo_and_at_target_should_back_to_pickup() {
-        let (world, scenery) = test_system(CommandTradeSystem, |mut world| {
+        let (world, scenery) = test_system(CommandTradeSystem, |world| {
             let scenery = setup_scenery(world);
 
             set_active_command(
@@ -767,7 +766,7 @@ mod test {
 
     #[test]
     fn command_trade_full_and_at_target_should_transfer_cargo() {
-        let (world, scenery) = test_system(CommandTradeSystem, |mut world| {
+        let (world, scenery) = test_system(CommandTradeSystem, |world| {
             let scenery = setup_scenery(world);
             add_cargo(world, scenery.trader_id, scenery.ware0_id, SHIP_CARGO);
             set_docked_at(world, scenery.trader_id, scenery.consumer_station_id);
@@ -785,7 +784,7 @@ mod test {
 
     #[test]
     fn command_trade_full_and_target_has_full_cargo_should_back_to_idle() {
-        let (world, scenery) = test_system(CommandTradeSystem, |mut world| {
+        let (world, scenery) = test_system(CommandTradeSystem, |world| {
             let scenery = setup_scenery(world);
 
             set_active_command(
@@ -821,7 +820,7 @@ mod test {
 
     #[test]
     fn command_trade_when_has_cargo_but_no_place_to_deliver_should_throw_cargo_away() {
-        let (world, scenery) = test_system(CommandTradeSystem, |mut world| {
+        let (world, scenery) = test_system(CommandTradeSystem, |world| {
             let scenery = setup_scenery(world);
 
             add_cargo(world, scenery.trader_id, scenery.ware0_id, SHIP_CARGO);
@@ -848,7 +847,7 @@ mod test {
 
     #[test]
     fn command_trade_when_deliver_should_only_deliver_valid_cargo() {
-        let (world, scenery) = test_system(CommandTradeSystem, |mut world| {
+        let (world, scenery) = test_system(CommandTradeSystem, |world| {
             let scenery = setup_scenery(world);
 
             set_docked_at(world, scenery.trader_id, scenery.consumer_station_id);
@@ -867,7 +866,7 @@ mod test {
     #[test]
     fn command_trade_should_split_trade_between_stations() {
         let (world, (scenery, station_id_2, trader_id_2)) =
-            test_system(CommandTradeSystem, |mut world| {
+            test_system(CommandTradeSystem, |world| {
                 let scenery = setup_scenery(world);
 
                 let station_2 = add_station(

@@ -1,11 +1,11 @@
 use specs::prelude::*;
 
-use serde_json::{json, Value};
-use std::collections::{BTreeMap, HashMap, HashSet};
+
+
 
 use super::objects::ObjId;
-use crate::game::jsons::JsonValueExtra;
-use std::borrow::Borrow;
+
+
 
 pub type WareId = Entity;
 
@@ -118,7 +118,7 @@ impl Cargo {
     pub fn add_to_max(&mut self, ware_id: WareId, amount: f32) -> f32 {
         let to_add = amount.min(self.free_space(ware_id));
 
-        self.add(ware_id, to_add).map(|i| to_add).unwrap_or(0.0)
+        self.add(ware_id, to_add).map(|_i| to_add).unwrap_or(0.0)
     }
 
     /// Clear cargo only, leave configuration
@@ -280,7 +280,7 @@ impl Cargos {
 #[cfg(test)]
 mod test {
     use super::*;
-    use specs::world::Generation;
+    
 
     // TODO: how to create entities without a world?
     fn create_wares() -> (WareId, WareId, WareId) {
@@ -374,7 +374,7 @@ mod test {
 
     #[test]
     fn test_cargo_whitelist_should_accept_valid_ware() {
-        let (ware_0, ware_1, _ware_2) = create_wares();
+        let (ware_0, _ware_1, _ware_2) = create_wares();
 
         let mut cargo = Cargo::new(10.0);
         cargo.set_whitelist(vec![ware_0]);
@@ -408,7 +408,7 @@ mod test {
 
     #[test]
     fn test_cargo_should_not_return_empty_lists() {
-        let (ware_0, ware_1, _ware_2) = create_wares();
+        let (ware_0, _ware_1, _ware_2) = create_wares();
 
         let mut cargo = Cargo::new(10.0);
         cargo.add(ware_0, 4.0).unwrap();

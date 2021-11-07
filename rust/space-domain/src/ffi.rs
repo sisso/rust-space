@@ -1,15 +1,15 @@
 use crate::ffi::ffi_output_system::FfiOutputSystem;
-use crate::game::events::Events;
+
 use crate::game::loader::Loader;
-use crate::game::sectors::SectorsIndex;
+
 #[allow(dead_code)]
 use crate::game::Game;
 use crate::game::{GameInitContext, RequireInitializer};
 use crate::space_outputs_generated::space_data;
-use crate::utils::{DeltaTime, Seconds, TotalTime, V2};
+use crate::utils::{DeltaTime, V2};
 use flatbuffers::FlatBufferBuilder;
-use specs::{DispatcherBuilder, World, WorldExt};
-use std::borrow::{Borrow, BorrowMut};
+use specs::{WorldExt};
+
 use std::time::Duration;
 
 mod ffi_output_system;
@@ -48,7 +48,7 @@ impl FFIApi {
         self.game.tick(delta)
     }
 
-    pub fn set_inputs(&mut self, bytes: &Vec<u8>) -> bool {
+    pub fn set_inputs(&mut self, _bytes: &Vec<u8>) -> bool {
         false
     }
 
@@ -61,8 +61,8 @@ impl FFIApi {
             return false;
         }
 
-        let mut sectors_to_add = vec![];
-        let mut jumps_to_add = vec![];
+        let sectors_to_add = vec![];
+        let jumps_to_add = vec![];
 
         let outputs = &mut self.game.world.write_resource::<FfiOutpusBuilder>();
 
@@ -213,8 +213,8 @@ impl FfiOutpusBuilder {
 #[cfg(test)]
 mod test {
     use crate::ffi::FfiOutpusBuilder;
-    use crate::game::events::Events;
-    use crate::game::objects::ObjId;
+    
+    
     use crate::space_outputs_generated::space_data;
 
     #[test]

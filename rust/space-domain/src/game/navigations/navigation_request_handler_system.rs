@@ -2,7 +2,7 @@ use specs::prelude::*;
 
 use super::super::locations::*;
 use super::*;
-use std::borrow::{Borrow, BorrowMut};
+use std::borrow::{Borrow};
 
 ///
 /// Setup navigation for the request
@@ -107,7 +107,7 @@ mod test {
     fn test_nav_request_handler_should_create_navigation_from_requests() {
         let (world, (asteroid, miner)) = test_system(NavRequestHandlerSystem, |world| {
             let sector_scenery = crate::game::sectors::test_scenery::setup_sector_scenery(world);
-            let (station, asteroid) = setup_station_and_asteroid(world, &sector_scenery);
+            let (_station, asteroid) = setup_station_and_asteroid(world, &sector_scenery);
 
             let miner = world
                 .create_entity()
@@ -138,7 +138,7 @@ mod test {
 
     #[test]
     fn test_nav_request_handler_should_create_navigation_from_requests_when_docked() {
-        let (world, (asteroid, miner)) = test_system(NavRequestHandlerSystem, |world| {
+        let (world, (_asteroid, miner)) = test_system(NavRequestHandlerSystem, |world| {
             let sector_scenery = crate::game::sectors::test_scenery::setup_sector_scenery(world);
             let (station, asteroid) = setup_station_and_asteroid(world, &sector_scenery);
 

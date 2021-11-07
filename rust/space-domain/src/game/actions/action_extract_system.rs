@@ -1,7 +1,7 @@
-use crate::game::actions::{Action, ActionActive, ActionExtract, ActionProgress};
+use crate::game::actions::{Action, ActionActive, ActionExtract};
 use crate::game::extractables::Extractable;
 use crate::game::wares::Cargo;
-use crate::utils::{DeltaTime, TotalTime};
+use crate::utils::{DeltaTime};
 use specs::prelude::*;
 use std::borrow::BorrowMut;
 
@@ -37,8 +37,8 @@ impl<'a> System<'a> for ActionExtractSystem {
             let amount_extracted = delta.as_f32();
 
             let ware_id = match &active_action.0 {
-                Action::Extract { target_id, ware_id } => *ware_id,
-                other => panic!("{:?} unexpected action type {:?}", entity, active_action),
+                Action::Extract { target_id: _, ware_id } => *ware_id,
+                _other => panic!("{:?} unexpected action type {:?}", entity, active_action),
             };
 
             let amount_added = cargo.add_to_max(ware_id, amount_extracted);

@@ -1,4 +1,4 @@
-use shred::{Read, ResourceId, SystemData, World, Write};
+use shred::{Read, ResourceId, SystemData, World};
 ///
 /// System plans:
 ///
@@ -15,17 +15,17 @@ use shred::{Read, ResourceId, SystemData, World, Write};
 ///
 ///
 use specs::prelude::*;
-use specs_derive::*;
+
 
 use super::*;
 use crate::game::dock::HasDock;
 use crate::game::extractables::Extractable;
 use crate::game::locations::{EntityPerSectorIndex, Location};
-use crate::game::navigations::{NavRequest, Navigation, NavigationMoveTo, Navigations};
-use crate::game::order::{Order, Orders};
+use crate::game::navigations::{NavRequest, Navigation};
+use crate::game::order::{Orders};
 use crate::game::wares::{Cargo, WareId};
-use std::borrow::{Borrow, BorrowMut};
-use std::hash::Hash;
+use std::borrow::{BorrowMut};
+
 
 pub struct CommandMineSystem;
 
@@ -203,7 +203,7 @@ impl<'a> System<'a> for CommandMineSystem {
 fn search_mine_target(
     sectors_index: &EntityPerSectorIndex,
     already_targets: &HashMap<ObjId, u32>,
-    entity: Entity,
+    _entity: Entity,
     sector_id: SectorId,
 ) -> ObjId {
     // find nearest extractable
@@ -227,11 +227,11 @@ fn search_mine_target(
 mod test {
     use super::*;
     use crate::game::order::Order;
-    use crate::game::sectors::test_scenery;
+    
     use crate::game::sectors::test_scenery::SectorScenery;
     use crate::game::wares::WareId;
     use crate::test::test_system;
-    use specs::DispatcherBuilder;
+    
 
     struct SceneryRequest {}
 
@@ -476,7 +476,7 @@ mod test {
             expect_targets_sector_0: u32,
             expect_targets_sector_1: u32,
         ) {
-            let (world, (scenery, asteroids, miners)) = test_system(CommandMineSystem, |world| {
+            let (world, (_scenery, asteroids, miners)) = test_system(CommandMineSystem, |world| {
                 let scenery = setup_scenery(world);
 
                 let asteroid_1 = create_asteroid(
@@ -497,7 +497,7 @@ mod test {
                     scenery.ware_id,
                 );
 
-                let mut asteroids = vec![scenery.asteroid, asteroid_1, asteroid_2];
+                let asteroids = vec![scenery.asteroid, asteroid_1, asteroid_2];
 
                 let mut miners = vec![scenery.miner];
                 for _ in 1..miners_count {

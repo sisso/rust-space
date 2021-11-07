@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use shred::{Read, ResourceId, SystemData, World, Write};
+use shred::{Read, World};
 use specs::prelude::*;
 use specs_derive::*;
 
@@ -59,7 +59,7 @@ impl SectorsIndex {
     pub fn update_index(
         &mut self,
         entities: &Read<EntitiesRes>,
-        sectors_storage: &ReadStorage<Sector>,
+        _sectors_storage: &ReadStorage<Sector>,
         jump_storage: &ReadStorage<Jump>,
         locations_storage: &ReadStorage<Location>,
     ) {
@@ -106,7 +106,7 @@ impl SectorsIndex {
 pub mod test_scenery {
     use super::*;
     use crate::game::locations::Location;
-    use crate::game::Game;
+    
 
     #[derive(Debug)]
     pub struct SectorScenery {
@@ -213,9 +213,9 @@ pub mod test_scenery {
 
 #[cfg(test)]
 mod test {
-    use crate::game::locations::Location;
-    use crate::game::sectors::{Jump, Sector, SectorsIndex};
-    use specs::{Builder, World, WorldExt};
+    
+    use crate::game::sectors::{SectorsIndex};
+    use specs::{World, WorldExt};
 
     #[test]
     fn test_sector_index() {

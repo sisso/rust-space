@@ -130,7 +130,7 @@ impl<T> Grid<T> {
             }
 
             match self.get_at(current) {
-                Some(value) => result.push(current),
+                Some(_value) => result.push(current),
                 None => break,
             }
         }
@@ -145,7 +145,7 @@ mod test {
 
     #[test]
     pub fn test_grid_get_neighbors() {
-        let mut grid = Grid::<u32>::new(2, 2);
+        let grid = Grid::<u32>::new(2, 2);
         let neighbours = grid.get_neighbours(GridCoord::new(0, 0));
         assert_eq!(
             neighbours,

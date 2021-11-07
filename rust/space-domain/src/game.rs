@@ -1,22 +1,22 @@
 use specs::prelude::*;
 use std::borrow::BorrowMut;
-use std::collections::HashMap;
 
-use crate::game::extractables::Extractable;
-use crate::game::locations::{Location, Locations, Moveable};
+
+
+use crate::game::locations::{Locations};
 use crate::utils::*;
 
-use self::extractables::Extractables;
+
 use self::new_obj::NewObj;
-use self::objects::*;
-use self::save::{CanLoad, CanSave, Load, Save};
+
+use self::save::{Load, Save};
 use self::sectors::*;
-use self::wares::*;
-use crate::ffi::{FFIApi, FFI};
+
+use crate::ffi::{FFI};
 use crate::game::actions::Actions;
-use crate::game::commands::{Commands, MineState};
-use crate::game::dock::HasDock;
-use crate::game::events::{Event, EventKind, Events};
+use crate::game::commands::{Commands};
+
+
 use crate::game::factory::Factory;
 use crate::game::loader::Loader;
 use crate::game::navigations::Navigations;
@@ -115,9 +115,9 @@ impl Game {
         self.world.maintain();
     }
 
-    pub fn save(&self, save: &mut impl Save) {}
+    pub fn save(&self, _save: &mut impl Save) {}
 
-    pub fn load(&mut self, load: &mut impl Load) {}
+    pub fn load(&mut self, _load: &mut impl Load) {}
 
     pub fn reindex_sectors(&mut self) {
         info!("reindex_sectors");

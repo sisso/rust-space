@@ -8,8 +8,8 @@ use std::ffi::CStr;
 use std::os::raw::c_char;
 use std::time::Duration;
 
-pub struct Context<'a, 'b> {
-    api: FFIApi<'a, 'b>,
+pub struct Context {
+    api: FFIApi,
 }
 
 #[repr(C)]
@@ -17,14 +17,14 @@ pub struct FfiContext {
     _priv: [u8; 0],
 }
 
-impl<'a, 'b> Context<'a, 'b> {
-    fn from_ptr<'c>(ptr: *mut FfiContext) -> &'c mut Context<'a, 'b> {
+impl Context {
+    fn from_ptr<'c>(ptr: *mut FfiContext) -> &'c mut Context {
         assert!(!ptr.is_null());
 
         unsafe { &mut *(ptr.cast()) }
     }
 
-    pub fn new(args: &str) -> Context<'a, 'b> {
+    pub fn new(args: &str) -> Context {
         debugf!("creating context with arguments {:?}", args);
 
         let mut api = FFIApi::new();
@@ -35,7 +35,7 @@ impl<'a, 'b> Context<'a, 'b> {
 }
 
 #[no_mangle]
-pub extern "C" fn space_domain_init_context<'a, 'b>(value: *const c_char) -> *mut FfiContext {
+pub extern "C" fn space_domain_init_context(value: *const c_char) -> *mut FfiContext {
     let c_str = unsafe {
         assert!(!value.is_null());
         CStr::from_ptr(value)
@@ -43,7 +43,7 @@ pub extern "C" fn space_domain_init_context<'a, 'b>(value: *const c_char) -> *mu
 
     let value = c_str.to_str().unwrap();
 
-    let mut context = Context::new(value);
+    let context = Context::new(value);
     Box::into_raw(Box::new(context)).cast()
 }
 
@@ -60,11 +60,11 @@ pub extern "C" fn space_domain_close_context(ctx_ptr: *mut FfiContext) {
 #[no_mangle]
 pub extern "C" fn space_domain_set_data(
     ctx_ptr: *mut FfiContext,
-    kind: u16,
+    _kind: u16,
     buffer: *mut u8,
     length: u32,
 ) -> u32 {
-    let ctx = Context::from_ptr(ctx_ptr);
+    let _ctx = Context::from_ptr(ctx_ptr);
     let ref_data = unsafe { std::slice::from_raw_parts(buffer, length as usize) };
     let bytes = ref_data.to_vec();
     debugf!("set_data: {:?}", bytes);

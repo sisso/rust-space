@@ -1,9 +1,9 @@
-use approx::assert_relative_eq;
+
 use ggez::conf::WindowMode;
 use ggez::event::{self, EventHandler};
 use ggez::graphics::{Color, StrokeOptions};
 use ggez::{graphics, timer, Context, ContextBuilder, GameResult, GameError};
-use nalgebra::{self as na, Point2, Rotation2, Similarity2, Vector2};
+use nalgebra::{Point2, Rotation2, Vector2};
 use rand::{thread_rng, Rng};
 use specs::prelude::*;
 use specs::{World, WorldExt};
@@ -206,10 +206,10 @@ struct MovementPrediction {
 
 fn follow_command_system(world: &mut World) -> GameResult<()> {
     let entities = world.entities();
-    let mut follow_commands = world.write_storage::<FollowCommand>();
+    let follow_commands = world.write_storage::<FollowCommand>();
     let mut movables = world.write_storage::<Movable>();
     let predictions = &mut world.write_storage::<MovementPrediction>();
-    let mut debug = world.write_resource::<Debug>();
+    let _debug = world.write_resource::<Debug>();
 
     //  collect for each follow the target position
     let mut changes = vec![];
@@ -269,7 +269,7 @@ fn follow_command_system(world: &mut World) -> GameResult<()> {
 
 fn patrol_command_system(world: &mut World) -> GameResult<()> {
     let entities = world.entities();
-    let cfg = world.read_resource::<Cfg>();
+    let _cfg = world.read_resource::<Cfg>();
     let mut patrols = world.write_storage::<PatrolCommand>();
     let mut predictions = world.write_storage::<MovementPrediction>();
     let mut movable = world.write_storage::<Movable>();
@@ -429,11 +429,11 @@ fn trade_command_system(world: &mut World) -> GameResult<()> {
     let entities = &world.entities();
     let mut trade_commands = world.write_storage::<TradeCommand>();
     let mut movables = world.write_storage::<Movable>();
-    let mut predictions = world.write_storage::<MovementPrediction>();
+    let predictions = world.write_storage::<MovementPrediction>();
     let stations = &world.read_storage::<Station>();
     let total_time = world.read_resource::<Time>().total_time;
 
-    for (entity, command, movable, prediction) in (
+    for (_entity, command, movable, _prediction) in (
         *&entities,
         &mut trade_commands,
         &mut movables,
@@ -513,7 +513,7 @@ struct App {
 }
 
 impl App {
-    pub fn new(ctx: &mut Context) -> GameResult<App> {
+    pub fn new(_ctx: &mut Context) -> GameResult<App> {
         // create world
         let mut world = World::new();
         world.register::<Model>();
@@ -660,7 +660,7 @@ impl EventHandler<GameError> for App {
         let predictions = self.world.read_storage::<MovementPrediction>();
         let stations = self.world.read_storage::<Station>();
 
-        for (e, model, prediction, movable, station) in (
+        for (_e, model, prediction, movable, station) in (
             &*entities,
             &models,
             predictions.maybe(),
@@ -745,7 +745,7 @@ impl EventHandler<GameError> for App {
         graphics::present(ctx)
     }
 
-    fn mouse_wheel_event(&mut self, _ctx: &mut Context, x: f32, y: f32) {
+    fn mouse_wheel_event(&mut self, _ctx: &mut Context, _x: f32, y: f32) {
         self.world.write_resource::<Cfg>().speed_reduction += y * 0.1;
     }
 
@@ -771,12 +771,12 @@ fn main() {
     let mut window_mode: WindowMode = Default::default();
     window_mode.resizable = true;
 
-    let (mut ctx, mut event_loop) = ContextBuilder::new("my_game", "Cool Game Author")
+    let (mut ctx, event_loop) = ContextBuilder::new("my_game", "Cool Game Author")
         .window_mode(window_mode)
         .build()
         .expect("aieee, could not create ggez context!");
 
-    let mut app = App::new(&mut ctx).unwrap();
+    let app = App::new(&mut ctx).unwrap();
 
     // Run!
     event::run(ctx, event_loop, app);

@@ -119,8 +119,8 @@ fn generate_explosive_damage_indexes(
     let mut width = 0;
     let mut left: bool = true;
     let mut max_width = 0;
-    for i in 0..amount.0 {
-        let mut relative;
+    for _i in 0..amount.0 {
+        let relative;
 
         if width == 0 {
             left = true;
@@ -196,12 +196,12 @@ fn generate_penetration_damage_indexes(
 
 /// return true if was not absorb by armor
 fn ship_apply_damage(
-    logs: &mut Vec<CombatLog>,
+    _logs: &mut Vec<CombatLog>,
     ship: &mut ShipInstance,
     damage_index: ArmorIndex,
 ) -> bool {
     let mut i = damage_index;
-    for layer in 0..ship.spec.armor.height {
+    for _layer in 0..ship.spec.armor.height {
         if !ship.armor_damage.contains(&i) {
             //                info!("combat", &format!("{:?} check damage at {:?}/{:?} hit armor", ship.id, damage_index, layer));
             ship.armor_damage.insert(i);
@@ -219,7 +219,7 @@ fn ship_apply_hulldamage(
     logs: &mut Vec<CombatLog>,
     components: &Components,
     ship: &mut ShipInstance,
-    hull_index: ArmorIndex,
+    _hull_index: ArmorIndex,
 ) {
     let mut rng = rand::thread_rng();
     let mut hit = rng.gen_range(0, ship.spec.component_table.total as i32);
@@ -272,7 +272,7 @@ fn normalize_width(value: i32, max: i32) -> Option<u32> {
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::Speed;
+    
 
     use super::*;
 

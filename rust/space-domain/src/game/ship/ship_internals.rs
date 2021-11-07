@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::utils::{NextId, Speed};
+use crate::utils::{Speed};
 
 #[derive(Clone, Debug)]
 pub struct Armor {

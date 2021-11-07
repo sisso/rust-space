@@ -1,9 +1,9 @@
 use specs::prelude::*;
 
-use super::super::locations::*;
+
 use super::*;
-use crate::game::actions::*;
-use std::borrow::{Borrow, BorrowMut};
+
+use std::borrow::{BorrowMut};
 
 pub struct ActionRequestHandlerSystem;
 

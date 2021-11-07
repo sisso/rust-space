@@ -3,8 +3,8 @@ use specs::prelude::*;
 use super::*;
 use crate::game::events::{Event, EventKind, Events};
 use crate::game::locations::Location;
-use crate::game::sectors::{Jump, SectorsIndex};
-use std::borrow::{Borrow, BorrowMut};
+use crate::game::sectors::{Jump};
+use std::borrow::{BorrowMut};
 
 pub struct ActionJumpSystem;
 
@@ -104,7 +104,7 @@ mod test {
     use crate::game::sectors::test_scenery;
     use crate::game::sectors::test_scenery::SectorScenery;
     use crate::test::{assert_v2, test_system};
-    use crate::utils::{Speed, TotalTime};
+    use crate::utils::{TotalTime};
 
     fn create_jump_entity(
         world: &mut World,

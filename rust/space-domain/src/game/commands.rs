@@ -1,16 +1,16 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap};
 
 use specs::prelude::*;
 
-use crate::game::extractables::Extractables;
+
 use crate::game::locations::{
-    EntityPerSectorIndex, Location, Locations, SectorDistanceIndex, INDEX_SECTOR_SYSTEM,
+    EntityPerSectorIndex, Locations, INDEX_SECTOR_SYSTEM,
 };
-use crate::game::wares::{Cargo, Cargos, WareId};
+use crate::game::wares::{Cargos, WareId};
 use crate::utils::*;
 
 use super::actions::*;
-use super::jsons;
+
 use super::objects::*;
 use super::sectors::*;
 
@@ -18,7 +18,7 @@ use crate::game::commands::command_trader_system::CommandTradeSystem;
 use crate::game::order::Orders;
 use crate::game::{GameInitContext, RequireInitializer};
 use command_mine_system::*;
-use std::borrow::BorrowMut;
+
 
 pub mod command_mine_system;
 pub mod command_trader_system;
@@ -121,7 +121,7 @@ pub fn search_orders_target(
     }
 
     let candidates = sectors_index.search_nearest_stations(sector_id).flat_map(
-        |(sector_id, distance, obj_id)| {
+        |(_sector_id, distance, obj_id)| {
             let order = orders.get(obj_id).map(|orders| {
                 if to_pickup {
                     orders.is_provide()

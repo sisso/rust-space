@@ -2,9 +2,9 @@ use specs::prelude::*;
 
 use super::super::locations::*;
 use super::*;
-use crate::game::actions::*;
+
 use crate::game::events::{Event, EventKind, Events};
-use std::borrow::{Borrow, BorrowMut};
+use std::borrow::{BorrowMut};
 
 pub struct DockSystem;
 
@@ -25,7 +25,7 @@ impl<'a> System<'a> for DockSystem {
 
         let mut processed: Vec<(Entity, Location)> = vec![];
 
-        for (entity, action, dock) in (&*data.entities, &data.actions, &data.actions_dock).join() {
+        for (entity, action, _dock) in (&*data.entities, &data.actions, &data.actions_dock).join() {
             let target_id = match action.get_action() {
                 Action::Dock { target_id } => target_id.clone(),
                 _ => continue,
@@ -57,8 +57,8 @@ impl<'a> System<'a> for DockSystem {
 mod test {
     use super::super::*;
     use super::*;
-    use crate::game::loader::Loader;
-    use crate::test::{assert_v2, test_system};
+    
+    use crate::test::{test_system};
 
     #[test]
     fn test_dock_system_should_dock() {

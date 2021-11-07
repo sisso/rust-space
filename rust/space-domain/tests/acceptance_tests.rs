@@ -2,8 +2,8 @@ extern crate space_domain;
 
 use space_domain::game::commands::Command;
 use space_domain::game::loader::Loader;
-use space_domain::game::objects::ObjId;
-use space_domain::game::wares::Cargo;
+
+
 use space_domain::game::Game;
 use space_domain::utils::DeltaTime;
 use specs::WorldExt;

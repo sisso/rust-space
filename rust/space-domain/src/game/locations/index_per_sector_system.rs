@@ -1,9 +1,9 @@
 use super::*;
 use crate::game::dock::HasDock;
 use crate::game::extractables::Extractable;
-use shred::{Read, ResourceId, SystemData, World, Write};
+use shred::{ResourceId, SystemData, World, Write};
 use specs::prelude::*;
-use specs_derive::*;
+
 use std::borrow::BorrowMut;
 
 /// Index entities to provide fast look up like:

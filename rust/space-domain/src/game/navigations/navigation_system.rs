@@ -1,9 +1,9 @@
 use specs::prelude::*;
 
-use super::super::locations::*;
+
 use super::*;
-use crate::game::actions::*;
-use std::borrow::{Borrow, BorrowMut};
+
+
 
 ///
 /// Execute actions for each NavigationMoveto without Action
@@ -64,7 +64,7 @@ mod test {
 
     #[test]
     fn test_navigation_move_to_system_should_complete_when_path_is_empty() {
-        let (world, (entity, target)) = test_system(NavigationSystem, |world| {
+        let (world, (entity, _target)) = test_system(NavigationSystem, |world| {
             let target_id = world.create_entity().build();
 
             let entity = world

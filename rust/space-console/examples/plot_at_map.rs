@@ -1,6 +1,6 @@
 extern crate rand;
 
-use rand::{Rng, RngCore};
+use rand::{Rng};
 use space_console::gui::events::Event;
 use space_console::gui::Gui;
 use std::time::Duration;
@@ -108,7 +108,7 @@ fn main() {
                     asteroids.clear();
                     generate(&mut asteroids);
                 }
-                other => {}
+                _other => {}
             },
             Event::Tick => {
                 // ignore

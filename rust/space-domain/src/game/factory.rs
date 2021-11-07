@@ -2,7 +2,7 @@ use crate::game::wares::{Cargo, WareAmount, WareId};
 use crate::game::{GameInitContext, RequireInitializer};
 use crate::utils::{DeltaTime, TotalTime};
 use specs::prelude::*;
-use std::collections::HashMap;
+
 
 #[derive(Debug, Clone)]
 pub struct Production {
@@ -88,7 +88,7 @@ impl<'a> System<'a> for FactorySystem {
                     }
                 }
 
-                Some(time) => {
+                Some(_time) => {
                     // producing
                 }
 
@@ -109,14 +109,14 @@ impl<'a> System<'a> for FactorySystem {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::game::commands::MineState;
-    use crate::game::events::EventKind::Add;
-    use crate::game::locations::Location;
-    use crate::game::wares::WareId;
-    use crate::space_outputs_generated::space_data::EntityKind::Station;
+    
+    
+    
+    
+    
     use crate::test::test_system;
-    use crate::utils::V2;
-    use std::borrow::Borrow;
+    
+    
 
     const REQUIRE_ORE: f32 = 1.0;
     const REQUIRE_ENERGY: f32 = 10.0;
@@ -180,8 +180,8 @@ mod test {
         total_time: f64,
         production_time: Option<f64>,
         expect_produce_at: Option<f64>,
-        expected_ore: f32,
-        expected_energy: f32,
+        _expected_ore: f32,
+        _expected_energy: f32,
         expected_plates: f32,
     ) {
         let (world, (entity, plate_id)) = test_system(FactorySystem, move |world| {

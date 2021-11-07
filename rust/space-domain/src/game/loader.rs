@@ -1,4 +1,4 @@
-use crate::game::commands::{Command, Commands, MineState};
+use crate::game::commands::{Command};
 use crate::game::dock::HasDock;
 use crate::game::events::{Event, EventKind, Events};
 use crate::game::extractables::Extractable;
@@ -117,7 +117,7 @@ impl Loader {
             DeltaTime(1.0),
         );
 
-        let energy_factory_id = Loader::new_factory(
+        let _energy_factory_id = Loader::new_factory(
             world,
             sector_0,
             V2::new(-0.5, 1.5),
@@ -269,10 +269,10 @@ impl Loader {
         let mut orders = vec![];
 
         if new_obj.can_dock && new_obj.speed.is_none() {
-            panic!(format!(
+            panic!(
                 "fatal {:?}: entity that can dock should be moveable",
                 new_obj
-            ));
+            );
         }
 
         if new_obj.has_dock {

@@ -1,13 +1,13 @@
 use crate::game::actions::*;
-use crate::game::locations::Location;
+
 use crate::game::navigations::navigation_request_handler_system::NavRequestHandlerSystem;
 use crate::game::navigations::navigation_system::NavigationSystem;
 use crate::game::objects::ObjId;
-use crate::game::sectors::{Jump, JumpId, Sector, SectorId, SectorsIndex};
+use crate::game::sectors::{SectorId, SectorsIndex};
 use crate::game::{GameInitContext, RequireInitializer};
 use crate::utils::Position;
 use specs::prelude::*;
-use specs::world::EntitiesRes;
+
 use specs::Entity;
 use specs_derive::*;
 use std::collections::VecDeque;
@@ -127,7 +127,7 @@ impl Navigations {
 mod test {
     use super::*;
     use crate::game::sectors::test_scenery::*;
-    use crate::game::sectors::{Jump, Sector};
+    
 
     #[test]
     fn create_plan() {
@@ -149,22 +149,22 @@ mod test {
 
         match plan.path.get(0).unwrap() {
             Action::Undock => {}
-            other => panic!(),
+            _other => panic!(),
         }
 
         match plan.path.get(1).unwrap() {
             Action::MoveTo { pos } => assert_eq!(pos.clone(), sector_scenery.jump_0_to_1_pos),
-            other => panic!(),
+            _other => panic!(),
         }
 
         match plan.path.get(2).unwrap() {
             Action::Jump { jump_id } => assert_eq!(jump_id.clone(), sector_scenery.jump_0_to_1),
-            other => panic!(),
+            _other => panic!(),
         }
 
         match plan.path.get(3).unwrap() {
             Action::MoveTo { pos } => assert_eq!(pos.clone(), Position::new(0.0, 10.0)),
-            other => panic!(),
+            _other => panic!(),
         }
     }
 }

@@ -1,8 +1,8 @@
 use super::data::*;
-use crate::grid::{Grid, GridCoord};
+use crate::grid::{GridCoord};
 use std::collections::HashMap;
 use std::fmt::Formatter;
-use std::io::BufReader;
+
 
 pub struct KindCharMap {
     by_char: HashMap<char, CellKind>,
@@ -88,11 +88,11 @@ impl Loader {
     }
 }
 
-fn print_shipgrid(ship_grid: &ShipGrid) {}
+fn print_shipgrid(_ship_grid: &ShipGrid) {}
 
 #[cfg(test)]
 mod test {
-    use super::super::data::*;
+    
     use super::*;
 
     // #[test]

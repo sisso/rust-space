@@ -1,4 +1,4 @@
-use commons::prob::{RDistrib, Weighted};
+use commons::prob::{Weighted};
 use rand::prelude::*;
 use space_2d_gui::system_generator::*;
 use std::path::PathBuf;
@@ -9,7 +9,7 @@ fn main() {
     let cfg =
         space_2d_gui::system_generator::new_config(PathBuf::from("space-2d-gui/data").as_path());
 
-    let params = GenerateParams {};
+    let _params = GenerateParams {};
 
     let system = new_system(&cfg, &mut rng);
 

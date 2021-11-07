@@ -1,14 +1,12 @@
 use crate::ffi::FfiOutpusBuilder;
-use crate::game::events::{Event, EventKind, Events};
+use crate::game::events::{EventKind, Events};
 use crate::game::extractables::Extractable;
 use crate::game::locations::Location;
 use crate::game::sectors::{Jump, Sector};
 use crate::game::station::Station;
-use crate::space_outputs_generated::space_data::{EntityKind, JumpNew, SectorNew, V2};
+use crate::space_outputs_generated::space_data::{EntityKind, JumpNew, SectorNew};
 use crate::utils::IdAsU32Support;
 use specs::prelude::*;
-use std::borrow::{Borrow, BorrowMut};
-use std::ops::DerefMut;
 
 /// Convert Events into FFI outputs
 pub struct FfiOutputSystem;
@@ -153,7 +151,7 @@ impl<'a> System<'a> for FfiOutputSystem {
                     }
                 },
 
-                other => {
+                _other => {
                     debug!("unknown event {:?}", event);
                 }
             }
@@ -164,9 +162,11 @@ impl<'a> System<'a> for FfiOutputSystem {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::game::sectors::SectorId;
-    use crate::test::{assert_v2, test_system};
+    use crate::game::events::Event;
+    
+    use crate::test::{test_system};
     use crate::utils::V2;
+    use std::borrow::BorrowMut;
 
     #[test]
     fn test_ffi_output_system_added_docked_create_new_entity_and_dock_output() {
@@ -289,7 +289,7 @@ mod test {
 
     #[test]
     fn test_ffi_output_system_moved_should_generate_move_output() {
-        let (world, (id, sector_0)) = test_system(FfiOutputSystem, |world| {
+        let (world, (id, _sector_0)) = test_system(FfiOutputSystem, |world| {
             let sector_0 = world.create_entity().build();
 
             let arbitrary_entity = world
@@ -317,7 +317,7 @@ mod test {
 
     #[test]
     fn test_ffi_output_system_docked_should_create_dock_output() {
-        let (world, (id, station_id)) = test_system(FfiOutputSystem, |world| {
+        let (world, (_id, station_id)) = test_system(FfiOutputSystem, |world| {
             let arbitrary_station = world.create_entity().build();
 
             let arbitrary_entity = world

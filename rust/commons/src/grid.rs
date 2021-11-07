@@ -131,7 +131,7 @@ pub fn coords_to_index(width: i32, xy: &Coord) -> Index {
     xy.y * width + xy.x
 }
 
-pub fn index_to_coord(width: Index) -> Coord {
+pub fn index_to_coord(_width: Index) -> Coord {
     todo!()
 }
 
