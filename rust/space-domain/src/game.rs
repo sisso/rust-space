@@ -1,21 +1,17 @@
 use specs::prelude::*;
 use std::borrow::BorrowMut;
 
-
-
-use crate::game::locations::{Locations};
+use crate::game::locations::Locations;
 use crate::utils::*;
-
 
 use self::new_obj::NewObj;
 
 use self::save::{Load, Save};
 use self::sectors::*;
 
-use crate::ffi::{FFI};
+use crate::ffi::FFI;
 use crate::game::actions::Actions;
-use crate::game::commands::{Commands};
-
+use crate::game::commands::Commands;
 
 use crate::game::factory::Factory;
 use crate::game::loader::Loader;
@@ -31,6 +27,7 @@ pub mod events;
 pub mod extractables;
 pub mod factory;
 pub mod jsons;
+pub mod label;
 pub mod loader;
 pub mod locations;
 pub mod navigations;
@@ -64,27 +61,28 @@ pub trait RequireInitializer {
 impl Game {
     pub fn new() -> Self {
         // initialize all
-        let mut init_context = GameInitContext {
+        let mut ictx = GameInitContext {
             world: World::new(),
             dispatcher: Default::default(),
             late_dispatcher: Default::default(),
         };
 
         // initializations
-        Sectors::init(&mut init_context);
-        Locations::init(&mut init_context);
-        Actions::init(&mut init_context);
-        Commands::init(&mut init_context);
-        Navigations::init(&mut init_context);
-        Shipyard::init(&mut init_context);
-        FFI::init(&mut init_context);
-        Factory::init(&mut init_context);
-        Orders::init(&mut init_context);
-        Stations::init(&mut init_context);
+        ictx.world.register::<label::Label>();
+        Sectors::init(&mut ictx);
+        Locations::init(&mut ictx);
+        Actions::init(&mut ictx);
+        Commands::init(&mut ictx);
+        Navigations::init(&mut ictx);
+        Shipyard::init(&mut ictx);
+        FFI::init(&mut ictx);
+        Factory::init(&mut ictx);
+        Orders::init(&mut ictx);
+        Stations::init(&mut ictx);
 
-        let mut dispatcher = init_context.dispatcher.build();
+        let mut dispatcher = ictx.dispatcher.build();
 
-        let mut world = init_context.world;
+        let mut world = ictx.world;
         dispatcher.setup(&mut world);
 
         Game {

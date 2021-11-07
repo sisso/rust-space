@@ -1,4 +1,4 @@
-use crate::game::commands::{Command};
+use crate::game::commands::Command;
 use crate::game::dock::HasDock;
 use crate::game::events::{Event, EventKind, Events};
 use crate::game::extractables::Extractable;
@@ -39,12 +39,12 @@ impl Loader {
         let world = &mut game.world;
 
         // init wares
-        let ware_ore_id = Loader::new_ware(world);
-        let ware_components_id = Loader::new_ware(world);
+        let ware_ore_id = Loader::new_ware(world, "ore".to_string());
+        let ware_components_id = Loader::new_ware(world, "components".to_string());
 
         // init sectors
-        let sector_0 = Loader::new_sector(world);
-        let sector_1 = Loader::new_sector(world);
+        let sector_0 = Loader::new_sector(world, "Sector 0".to_string());
+        let sector_1 = Loader::new_sector(world, "Sector 1".to_string());
 
         Loader::new_jump(
             world,
@@ -86,13 +86,13 @@ impl Loader {
     /// Advanced scenery
     pub fn load_advanced_scenery(world: &mut World) {
         // init wares
-        let ware_ore_id = Loader::new_ware(world);
-        let ware_components_id = Loader::new_ware(world);
-        let ware_energy = Loader::new_ware(world);
+        let ware_ore_id = Loader::new_ware(world, "ore".to_string());
+        let ware_components_id = Loader::new_ware(world, "components".to_string());
+        let ware_energy = Loader::new_ware(world, "ware".to_string());
 
         // init sectors
-        let sector_0 = Loader::new_sector(world);
-        let sector_1 = Loader::new_sector(world);
+        let sector_0 = Loader::new_sector(world, "sector 0".to_string());
+        let sector_1 = Loader::new_sector(world, "sector 1".to_string());
 
         Loader::new_jump(
             world,
@@ -201,12 +201,12 @@ impl Loader {
             .with_command(Command::mine())
     }
 
-    pub fn new_sector(world: &mut World) -> ObjId {
-        Loader::add_object(world, NewObj::new().with_sector())
+    pub fn new_sector(world: &mut World, name: String) -> ObjId {
+        Loader::add_object(world, NewObj::new().with_sector().with_label(name))
     }
 
-    pub fn new_ware(world: &mut World) -> WareId {
-        Loader::add_object(world, NewObj::new().with_ware())
+    pub fn new_ware(world: &mut World, name: String) -> WareId {
+        Loader::add_object(world, NewObj::new().with_ware().with_label(name))
     }
 
     pub fn new_jump(

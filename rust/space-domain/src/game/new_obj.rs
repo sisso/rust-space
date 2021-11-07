@@ -9,7 +9,7 @@ use crate::game::sectors::*;
 use crate::game::shipyard::Shipyard;
 use crate::utils::*;
 
-#[derive(Debug, Clone, Component)]
+#[derive(Debug, Clone, Component, Default)]
 pub struct NewObj {
     pub speed: Option<Speed>,
     pub cargo_size: f32,
@@ -25,26 +25,12 @@ pub struct NewObj {
     pub shipyard: Option<Shipyard>,
     pub ware: bool,
     pub factory: Option<Factory>,
+    pub label: Option<String>,
 }
 
 impl NewObj {
     pub fn new() -> NewObj {
-        NewObj {
-            speed: Default::default(),
-            cargo_size: 0.0,
-            extractable: Default::default(),
-            location: Default::default(),
-            can_dock: Default::default(),
-            has_dock: Default::default(),
-            ai: Default::default(),
-            station: Default::default(),
-            sector: Default::default(),
-            jump_to: Default::default(),
-            command: Default::default(),
-            shipyard: Default::default(),
-            ware: Default::default(),
-            factory: Default::default(),
-        }
+        Default::default()
     }
 
     pub fn with_cargo(mut self, cargo: f32) -> Self {
@@ -119,6 +105,11 @@ impl NewObj {
 
     pub fn with_factory(mut self, factory: Factory) -> Self {
         self.factory = Some(factory);
+        self
+    }
+
+    pub fn with_label(mut self, label: String) -> Self {
+        self.label = Some(label);
         self
     }
 }
