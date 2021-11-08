@@ -9,7 +9,6 @@ use self::new_obj::NewObj;
 use self::save::{Load, Save};
 use self::sectors::*;
 
-use crate::ffi::FFI;
 use crate::game::actions::Actions;
 use crate::game::commands::Commands;
 
@@ -51,7 +50,6 @@ pub struct Game {
 pub struct GameInitContext {
     pub world: World,
     pub dispatcher: DispatcherBuilder<'static, 'static>,
-    pub late_dispatcher: DispatcherBuilder<'static, 'static>,
 }
 
 pub trait RequireInitializer {
@@ -64,7 +62,6 @@ impl Game {
         let mut ictx = GameInitContext {
             world: World::new(),
             dispatcher: Default::default(),
-            late_dispatcher: Default::default(),
         };
 
         // initializations
@@ -75,7 +72,6 @@ impl Game {
         Commands::init(&mut ictx);
         Navigations::init(&mut ictx);
         Shipyard::init(&mut ictx);
-        FFI::init(&mut ictx);
         Factory::init(&mut ictx);
         Orders::init(&mut ictx);
         Stations::init(&mut ictx);

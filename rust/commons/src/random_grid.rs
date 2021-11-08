@@ -1,6 +1,7 @@
 use rand::prelude::StdRng;
-use rand::{Rng};
+use rand::Rng;
 use std::collections::HashSet;
+use std::fmt::{Debug, Formatter};
 
 pub struct RandomGridCfg {
     pub width: usize,
@@ -15,6 +16,8 @@ pub struct RandomGrid {
 
 impl RandomGrid {
     pub fn new(cfg: &RandomGridCfg, rng: &mut StdRng) -> Self {
+        assert!(cfg.deep_levels > 0);
+
         let mut levels = vec![];
         for deep in 0..cfg.deep_levels {
             let mut grid = LevelGrid::new(cfg, rng);
@@ -33,6 +36,16 @@ impl RandomGrid {
         }
 
         RandomGrid { levels }
+    }
+}
+
+impl Debug for RandomGrid {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "randomgrid")?;
+        for level in &self.levels {
+            writeln!(f, "{}", level.print())?;
+        }
+        Ok(())
     }
 }
 

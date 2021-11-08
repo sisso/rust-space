@@ -1,5 +1,3 @@
-use crate::ffi::ffi_output_system::FfiOutputSystem;
-
 use crate::game::loader::Loader;
 
 #[allow(dead_code)]
@@ -8,8 +6,9 @@ use crate::game::{GameInitContext, RequireInitializer};
 use crate::space_outputs_generated::space_data;
 use crate::utils::{DeltaTime, V2};
 use flatbuffers::FlatBufferBuilder;
-use specs::{WorldExt};
+use specs::prelude::*;
 
+use crate::ffi::ffi_output_system::FfiOutputSystem;
 use std::time::Duration;
 
 mod ffi_output_system;
@@ -18,6 +17,7 @@ pub struct FFI;
 
 pub struct FFIApi {
     game: Game,
+    ffi_dispatcher: Dispatcher<'static, 'static>,
 }
 
 impl From<V2> for space_data::V2 {
@@ -35,7 +35,17 @@ impl From<&V2> for space_data::V2 {
 /// Represent same interface we intend to use through FFI
 impl FFIApi {
     pub fn new() -> Self {
-        FFIApi { game: Game::new() }
+        let mut dispatcher: Dispatcher = DispatcherBuilder::new()
+            .with(FfiOutputSystem, "ffi", &[])
+            .build();
+
+        let mut game = Game::new();
+        dispatcher.setup(&mut game.world);
+
+        FFIApi {
+            game: game,
+            ffi_dispatcher: dispatcher,
+        }
     }
 
     pub fn new_game(&mut self) {
@@ -45,7 +55,8 @@ impl FFIApi {
 
     pub fn update(&mut self, elapsed: Duration) {
         let delta = DeltaTime((elapsed.as_millis() as f32) / 1000.0);
-        self.game.tick(delta)
+        self.game.tick(delta);
+        self.ffi_dispatcher.run_now(&mut self.game.world);
     }
 
     pub fn set_inputs(&mut self, _bytes: &Vec<u8>) -> bool {
@@ -82,14 +93,6 @@ impl FFIApi {
         outputs.clear();
 
         true
-    }
-}
-
-impl RequireInitializer for FFI {
-    fn init(context: &mut GameInitContext) {
-        context
-            .late_dispatcher
-            .add(FfiOutputSystem, "ffi_output_system", &[]);
     }
 }
 
@@ -213,8 +216,7 @@ impl FfiOutpusBuilder {
 #[cfg(test)]
 mod test {
     use crate::ffi::FfiOutpusBuilder;
-    
-    
+
     use crate::space_outputs_generated::space_data;
 
     #[test]

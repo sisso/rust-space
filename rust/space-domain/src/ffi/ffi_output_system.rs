@@ -9,6 +9,7 @@ use crate::utils::IdAsU32Support;
 use specs::prelude::*;
 
 /// Convert Events into FFI outputs
+#[derive(Default)]
 pub struct FfiOutputSystem;
 
 #[derive(SystemData)]
@@ -163,8 +164,8 @@ impl<'a> System<'a> for FfiOutputSystem {
 mod test {
     use super::*;
     use crate::game::events::Event;
-    
-    use crate::test::{test_system};
+
+    use crate::test::test_system;
     use crate::utils::V2;
     use std::borrow::BorrowMut;
 

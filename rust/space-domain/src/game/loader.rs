@@ -14,7 +14,7 @@ use crate::game::wares::{Cargo, WareAmount, WareId};
 use crate::game::Game;
 use crate::specs_extras::*;
 use crate::utils::{DeltaTime, Position, Speed, V2};
-use specs::{Builder, World, WorldExt};
+use specs::{Builder, Entity, World, WorldExt};
 use std::borrow::BorrowMut;
 
 pub struct Loader {}
@@ -32,6 +32,33 @@ pub struct BasicScenery {
 }
 
 impl Loader {
+    pub fn load_wares(game: &mut Game) -> Vec<WareId> {
+        vec![
+            Loader::new_ware(&mut game.world, "ore".to_string()),
+            Loader::new_ware(&mut game.world, "component".to_string()),
+        ]
+    }
+
+    pub fn load_random_map(game: &mut Game, seed: u64) {
+        use commons::random_grid;
+        use rand::prelude::*;
+        let mut rng: StdRng = SeedableRng::seed_from_u64(0);
+
+        let world = &mut game.world;
+
+        let rgcfg = random_grid::RandomGridCfg {
+            width: 4,
+            height: 4,
+            portal_prob: 0.5,
+            deep_levels: 1,
+        };
+
+        let rg = random_grid::RandomGrid::new(&rgcfg, &mut rng);
+        println!("{:?}", rg);
+
+        let wares = Loader::load_wares(game);
+    }
+
     /// Basic scenery used for testing and samples
     ///
     /// Is defined as a simple 2 sector, one miner ship, a station and asteroid
@@ -348,4 +375,10 @@ impl Loader {
 
         entity
     }
+}
+
+#[test]
+pub fn test_random_scenery() {
+    let mut game = Game::new();
+    Loader::load_random_map(&mut game, 0);
 }

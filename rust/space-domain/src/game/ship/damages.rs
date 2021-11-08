@@ -222,7 +222,7 @@ fn ship_apply_hulldamage(
     _hull_index: ArmorIndex,
 ) {
     let mut rng = rand::thread_rng();
-    let mut hit = rng.gen_range(0, ship.spec.component_table.total as i32);
+    let mut hit = rng.gen_range(0..ship.spec.component_table.total as i32);
 
     //        Log::debug("combat", &format!("{:?} component table, total {:?}, hit {:?}: {:?}", ship.id, ship.spec.component_table.total, hit, ship.spec.component_table));
 
@@ -272,7 +272,6 @@ fn normalize_width(value: i32, max: i32) -> Option<u32> {
 
 #[cfg(test)]
 mod tests {
-    
 
     use super::*;
 
