@@ -126,7 +126,7 @@ impl Game {
 
     pub fn reindex_sectors(&mut self) {
         info!("reindex_sectors");
-        SectorsIndex::update_index_from_world(&mut self.world);
+        sectors::update_sectors_index(&mut self.world);
     }
 
     pub fn tick_new_objects_system(&mut self) {

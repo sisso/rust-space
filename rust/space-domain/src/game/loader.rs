@@ -7,15 +7,15 @@ use crate::game::locations::{Location, Moveable};
 use crate::game::new_obj::NewObj;
 use crate::game::objects::ObjId;
 use crate::game::order::{Order, Orders};
-use crate::game::sectors::{Jump, JumpId, Sector, SectorId, SectorsIndex};
+use crate::game::sectors::{Jump, JumpId, Sector, SectorId};
 use crate::game::shipyard::Shipyard;
 use crate::game::station::Station;
 use crate::game::wares::{Cargo, WareAmount, WareId};
-use crate::game::Game;
+use crate::game::{sectors, Game};
 use crate::specs_extras::*;
 use crate::utils::{DeltaTime, Position, Speed, V2};
 use specs::prelude::*;
-use std::borrow::{Borrow, BorrowMut};
+use std::borrow::BorrowMut;
 use std::collections::HashSet;
 
 pub struct Loader {}
@@ -232,7 +232,7 @@ impl Loader {
             sector_1,
             V2::new(0.0, 0.0),
         );
-        SectorsIndex::update_index_from_world(world);
+        sectors::update_sectors_index(world);
 
         // init objects
         let asteroid_id = Loader::new_asteroid(world, sector_1, V2::new(-2.0, 3.0), ware_ore_id);
@@ -295,7 +295,7 @@ impl Loader {
             sector_1,
             V2::new(0.0, 0.0),
         );
-        SectorsIndex::update_index_from_world(world);
+        sectors::update_sectors_index(world);
 
         // init objects
         Loader::new_asteroid(world, sector_1, V2::new(-2.0, 3.0), ware_ore_id);
