@@ -1,5 +1,6 @@
 use specs::prelude::*;
 use std::borrow::BorrowMut;
+use std::sync::Arc;
 
 use crate::game::locations::Locations;
 use crate::utils::*;
@@ -45,6 +46,7 @@ pub struct Game {
     pub total_time: TotalTime,
     pub world: World,
     pub dispatcher: Dispatcher<'static, 'static>,
+    pub thread_pool: Arc<rayon_core::ThreadPool>,
 }
 
 pub struct GameInitContext {
@@ -58,10 +60,18 @@ pub trait RequireInitializer {
 
 impl Game {
     pub fn new() -> Self {
+        let thread_pool: Arc<rayon_core::ThreadPool> = Arc::new(
+            rayon_core::ThreadPoolBuilder::new()
+                .build()
+                .expect("Invalid configuration"),
+        );
+
+        let mut dispatcher_builder = DispatcherBuilder::new().with_pool(thread_pool.clone());
+
         // initialize all
         let mut ictx = GameInitContext {
             world: World::new(),
-            dispatcher: Default::default(),
+            dispatcher: dispatcher_builder,
         };
 
         // initializations
@@ -85,6 +95,7 @@ impl Game {
             total_time: TotalTime(0.0),
             world,
             dispatcher,
+            thread_pool,
         }
     }
 

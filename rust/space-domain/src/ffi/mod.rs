@@ -35,16 +35,18 @@ impl From<&V2> for space_data::V2 {
 /// Represent same interface we intend to use through FFI
 impl FFIApi {
     pub fn new() -> Self {
-        let mut dispatcher: Dispatcher = DispatcherBuilder::new()
+        let mut game = Game::new();
+
+        let mut ffi_dispatcher: Dispatcher = DispatcherBuilder::new()
             .with(FfiOutputSystem, "ffi", &[])
+            .with_pool(game.thread_pool.clone())
             .build();
 
-        let mut game = Game::new();
-        dispatcher.setup(&mut game.world);
+        ffi_dispatcher.setup(&mut game.world);
 
         FFIApi {
             game: game,
-            ffi_dispatcher: dispatcher,
+            ffi_dispatcher,
         }
     }
 
