@@ -1,6 +1,6 @@
-use std::collections::HashMap;
-use space_domain::utils::{TotalTime, DeltaTime};
 use space_domain::game::wares::Cargo;
+use space_domain::utils::{DeltaTime, TotalTime};
+use std::collections::HashMap;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
 pub struct WareId(pub u32);
@@ -9,7 +9,7 @@ pub struct WareId(pub u32);
 pub struct ObjId(pub u32);
 
 #[derive(Clone, Debug)]
-pub struct Production {
+pub struct Receipt {
     pub input: HashMap<WareId, f32>,
     pub output: HashMap<WareId, f32>,
     pub time: DeltaTime,
@@ -22,21 +22,24 @@ struct ProductionState {
 
 impl ProductionState {
     pub fn new() -> Self {
-        ProductionState { complete_time: None }
+        ProductionState {
+            complete_time: None,
+        }
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct Factory {
-    production: Vec<(Production, ProductionState)>,
+    production: Vec<(Receipt, ProductionState)>,
 }
 
 impl Factory {
-    pub fn new(production: Vec<Production>) -> Self {
+    pub fn new(production: Vec<Receipt>) -> Self {
         Factory {
-            production: production.into_iter().map(|production| {
-                (production, ProductionState::new())
-            }).collect()
+            production: production
+                .into_iter()
+                .map(|production| (production, ProductionState::new()))
+                .collect(),
         }
     }
 
@@ -45,17 +48,20 @@ impl Factory {
     }
 
     pub fn get_percentage(&self, index: usize, time: TotalTime) -> f32 {
-        self.production.get(index).and_then(|(production, state)| {
-            state.complete_time.map(|complete_time| {
-                let require_time = complete_time.sub(time);
+        self.production
+            .get(index)
+            .and_then(|(production, state)| {
+                state.complete_time.map(|complete_time| {
+                    let require_time = complete_time.sub(time);
 
-                if require_time.as_f32() <= 0.0 {
-                    0.0
-                } else {
-                    1.0 - require_time.as_f32() / production.time.as_f32()
-                }
+                    if require_time.as_f32() <= 0.0 {
+                        0.0
+                    } else {
+                        1.0 - require_time.as_f32() / production.time.as_f32()
+                    }
+                })
             })
-        }).unwrap_or(0.0)
+            .unwrap_or(0.0)
     }
 
     pub fn update(&mut self, time: TotalTime, cargo: &mut Cargo) {
@@ -65,8 +71,8 @@ impl Factory {
                     if Factory::complete_production(cargo, production, state).is_ok() {
                         Factory::try_start_production(time, cargo, production, state);
                     }
-                },
-                Some(_) => {},
+                }
+                Some(_) => {}
                 None => {
                     Factory::try_start_production(time, cargo, production, state);
                 }
@@ -79,7 +85,11 @@ impl Factory {
         state.complete_time.is_some()
     }
 
-    fn complete_production(cargo: &mut Cargo, production: &mut Production, state: &mut ProductionState) -> Result<(),()> {
+    fn complete_production(
+        cargo: &mut Cargo,
+        production: &mut Receipt,
+        state: &mut ProductionState,
+    ) -> Result<(), ()> {
         let total_to_add = production.output.iter().map(|(_, amount)| amount).sum();
         if cargo.free_space() < total_to_add {
             // not enough space to complete production
@@ -87,24 +97,34 @@ impl Factory {
         }
 
         for (ware_id, amount) in &production.output {
-            cargo.add(*ware_id, *amount).expect("not able to add produced cargo, it is full")
+            cargo
+                .add(*ware_id, *amount)
+                .expect("not able to add produced cargo, it is full")
         }
 
         state.complete_time = None;
         Ok(())
     }
 
-    fn try_start_production(time: TotalTime, cargo: &mut Cargo, production: &mut Production, state: &mut ProductionState) {
-        let has_enough_input = production.input.iter().all(|(ware_id, require_amount)| {
-            cargo.get_amount(*ware_id) >= *require_amount
-        });
+    fn try_start_production(
+        time: TotalTime,
+        cargo: &mut Cargo,
+        production: &mut Receipt,
+        state: &mut ProductionState,
+    ) {
+        let has_enough_input = production
+            .input
+            .iter()
+            .all(|(ware_id, require_amount)| cargo.get_amount(*ware_id) >= *require_amount);
 
         if !has_enough_input {
             return;
         }
 
         for (ware_id, amount) in &production.input {
-            cargo.remove(*ware_id, *amount).expect("failed to remove cargo");
+            cargo
+                .remove(*ware_id, *amount)
+                .expect("failed to remove cargo");
         }
 
         state.complete_time = Some(time.add(production.time))
@@ -113,14 +133,12 @@ impl Factory {
 
 #[derive(Clone, Debug)]
 struct State {
-    factory: Factory
+    factory: Factory,
 }
 
 impl State {
     pub fn new(factory: Factory) -> Self {
-        State {
-            factory
-        }
+        State { factory }
     }
 }
 
@@ -131,7 +149,7 @@ pub struct Factories {
 impl Factories {
     pub fn new() -> Self {
         Factories {
-            index: HashMap::new()
+            index: HashMap::new(),
         }
     }
 
@@ -153,8 +171,8 @@ impl Factories {
 #[cfg(test)]
 mod test {
     use super::*;
-    use space_domain::utils::{TotalTime, DeltaTime};
-    use space_domain::game::wares::{WareId, Cargo};
+    use space_domain::game::wares::{Cargo, WareId};
+    use space_domain::utils::{DeltaTime, TotalTime};
 
     const WARE_ORE: WareId = WareId(0);
     const WARE_POWER: WareId = WareId(1);
@@ -164,18 +182,22 @@ mod test {
 
     #[test]
     fn test_factory_production_acceptance() {
-        let ore_production = Production {
-            input: vec![(WARE_ORE, 1.0), (WARE_POWER, 2.0)].into_iter().collect(),
-            output: vec![(WARE_IRON, 1.0), (WARE_COPPER, 0.25)].into_iter().collect(),
+        let ore_production = Receipt {
+            input: vec![(WARE_ORE, 1.0), (WARE_POWER, 2.0)]
+                .into_iter()
+                .collect(),
+            output: vec![(WARE_IRON, 1.0), (WARE_COPPER, 0.25)]
+                .into_iter()
+                .collect(),
             time: DeltaTime(2.0),
         };
 
-        let plate_production = Production {
+        let plate_production = Receipt {
             input: vec![(WARE_IRON, 1.0)].into_iter().collect(),
             output: vec![(WARE_PLATE, 2.0)].into_iter().collect(),
             time: DeltaTime(1.0),
         };
-        
+
         let mut factory = Factory::new(vec![ore_production, plate_production]);
         let mut cargo = Cargo::new(100.0);
 
@@ -230,7 +252,10 @@ mod test {
         assert!(factory.is_producing(1));
         assert_eq!(9.25, cargo.get_current());
         assert_eq!(0.0, factory.get_percentage(0, total_time));
-        assert_eq!(90, (factory.get_percentage(1, TotalTime(6.9)) * 100.0) as i32);
+        assert_eq!(
+            90,
+            (factory.get_percentage(1, TotalTime(6.9)) * 100.0) as i32
+        );
 
         // complete both productions
         let total_time = TotalTime(7.0);
@@ -244,7 +269,7 @@ mod test {
 
     #[test]
     fn test_factory_production_continuous_production() {
-        let ore_production = Production {
+        let ore_production = Receipt {
             input: vec![(WARE_ORE, 1.0)].into_iter().collect(),
             output: vec![(WARE_IRON, 1.0)].into_iter().collect(),
             time: DeltaTime(1.0),
@@ -284,7 +309,7 @@ mod test {
 
     #[test]
     fn test_factory_should_stop_if_can_not_unload_production() {
-        let ore_production = Production {
+        let ore_production = Receipt {
             input: vec![(WARE_ORE, 1.0)].into_iter().collect(),
             output: vec![(WARE_IRON, 3.0)].into_iter().collect(),
             time: DeltaTime(1.0),

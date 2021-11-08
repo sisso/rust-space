@@ -106,7 +106,6 @@ impl SectorsIndex {
 pub mod test_scenery {
     use super::*;
     use crate::game::locations::Location;
-    
 
     #[derive(Debug)]
     pub struct SectorScenery {
@@ -213,8 +212,8 @@ pub mod test_scenery {
 
 #[cfg(test)]
 mod test {
-    
-    use crate::game::sectors::{SectorsIndex};
+
+    use crate::game::sectors::SectorsIndex;
     use specs::{World, WorldExt};
 
     #[test]
@@ -229,5 +228,10 @@ mod test {
         assert_eq!(jump.to_sector_id, scenery.sector_1);
         assert_eq!(jump.from_pos, scenery.jump_0_to_1_pos);
         assert_eq!(jump.to_pos, scenery.jump_1_to_0_pos);
+    }
+
+    #[test]
+    fn test_sector_index_pathfind() {
+        todo!()
     }
 }

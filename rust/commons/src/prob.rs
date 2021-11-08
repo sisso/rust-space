@@ -48,6 +48,7 @@ impl RDistrib {
                 let index = rng.gen_range(0..values.len());
                 values[index]
             }
+
             RDistrib::WeightedList { values } => {
                 let weights: Vec<f32> = values.iter().map(|(_, value)| *value).collect();
                 let index = select_one(rng, &weights).expect("select one receive a empty list");
@@ -65,12 +66,22 @@ impl RDistrib {
     }
 }
 
-pub fn select<'a, R: rand::Rng, K: Clone>(
+pub fn select_weighted<'a, R: rand::Rng, K: Clone>(
     rng: &mut R,
     candidates: &'a Vec<Weighted<K>>,
 ) -> Option<&'a K> {
     let weights: Vec<f32> = candidates.iter().map(|i| i.prob).collect();
     select_one(rng, &weights).map(|index| &candidates[index].value)
+}
+
+pub fn select<'a, R: rand::Rng, T>(rng: &mut R, candidates: &'a Vec<T>) -> Option<&'a T> {
+    let index = rng.gen_range(0..candidates.len());
+    candidates.get(index)
+}
+
+pub fn select_array<'a, R: rand::Rng, T>(rng: &mut R, candidates: &'a [T]) -> &'a T {
+    let index = rng.gen_range(0..candidates.len());
+    &candidates[index]
 }
 
 // giving a vector of prob weights, returns the index of the choose sorted option

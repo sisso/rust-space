@@ -1,8 +1,7 @@
-use crate::game::loader::Loader;
+use crate::game::loader::{Loader, RandomMapCfg};
 
 #[allow(dead_code)]
 use crate::game::Game;
-use crate::game::{GameInitContext, RequireInitializer};
 use crate::space_outputs_generated::space_data;
 use crate::utils::{DeltaTime, V2};
 use flatbuffers::FlatBufferBuilder;
@@ -51,8 +50,16 @@ impl FFIApi {
     }
 
     pub fn new_game(&mut self) {
-        Loader::load_advanced_scenery(&mut self.game.world);
+        // Loader::load_advanced_scenery(&mut self.game.world);
         // Loader::load_basic_scenery(&mut self.game);
+        Loader::load_random_map(
+            &mut self.game,
+            &RandomMapCfg {
+                size: 5,
+                seed: 5,
+                ships: 10,
+            },
+        );
     }
 
     pub fn update(&mut self, elapsed: Duration) {

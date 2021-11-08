@@ -66,7 +66,7 @@ impl Game {
                 .expect("Invalid configuration"),
         );
 
-        let mut dispatcher_builder = DispatcherBuilder::new().with_pool(thread_pool.clone());
+        let dispatcher_builder = DispatcherBuilder::new().with_pool(thread_pool.clone());
 
         // initialize all
         let mut ictx = GameInitContext {

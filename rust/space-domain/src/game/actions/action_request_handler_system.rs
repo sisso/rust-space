@@ -1,9 +1,8 @@
 use specs::prelude::*;
 
-
 use super::*;
 
-use std::borrow::{BorrowMut};
+use std::borrow::BorrowMut;
 
 pub struct ActionRequestHandlerSystem;
 
@@ -71,7 +70,6 @@ impl<'a> System<'a> for ActionRequestHandlerSystem {
                         .insert(entity, ActionExtract)
                         .unwrap();
                 }
-                other => panic!("not implemented for {:?}", other),
             }
 
             data.actions

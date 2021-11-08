@@ -1,5 +1,5 @@
 use commons::math::V2;
-use commons::prob::{self, select, RDistrib, Weighted};
+use commons::prob::{self, select_weighted, RDistrib, Weighted};
 use commons::tree::Tree;
 use rand::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -135,7 +135,7 @@ impl IdGen {
 pub fn new_system(cfg: &UniverseCfg, rng: &mut StdRng) -> System {
     let mut igen = IdGen { v: 0 };
 
-    let star_kind = prob::select(rng, &cfg.star_kinds).unwrap();
+    let star_kind = prob::select_weighted(rng, &cfg.star_kinds).unwrap();
 
     let star_i = igen.next();
     let star = SpaceBody {
@@ -211,9 +211,13 @@ fn new_planet(
 ) -> Vec<SpaceBody> {
     let planet_i = igen.next();
     let distance = cfg.planets_prob.distance_prob.next(rng);
-    let atm = prob::select(rng, &cfg.atm_kinds).unwrap().clone();
-    let biome = prob::select(rng, &cfg.biomes_kinds).unwrap().clone();
-    let ocean = prob::select(rng, &cfg.ocean_kinds).unwrap().clone();
+    let atm = prob::select_weighted(rng, &cfg.atm_kinds).unwrap().clone();
+    let biome = prob::select_weighted(rng, &cfg.biomes_kinds)
+        .unwrap()
+        .clone();
+    let ocean = prob::select_weighted(rng, &cfg.ocean_kinds)
+        .unwrap()
+        .clone();
     let resources = generate_resources(&cfg, rng, &atm, &biome, &ocean);
     let angle = prob::RDistrib::MinMax(0., 360.).next(rng);
     let speed = cfg.planets_prob.rotation_speed_prob.next(rng);
@@ -270,9 +274,13 @@ fn new_moon(
     }
 
     let planet_i = igen.next();
-    let atm = prob::select(rng, &cfg.atm_kinds).unwrap().clone();
-    let biome = prob::select(rng, &cfg.biomes_kinds).unwrap().clone();
-    let ocean = prob::select(rng, &cfg.ocean_kinds).unwrap().clone();
+    let atm = prob::select_weighted(rng, &cfg.atm_kinds).unwrap().clone();
+    let biome = prob::select_weighted(rng, &cfg.biomes_kinds)
+        .unwrap()
+        .clone();
+    let ocean = prob::select_weighted(rng, &cfg.ocean_kinds)
+        .unwrap()
+        .clone();
     let resources = generate_resources(&cfg, rng, &atm, &biome, &ocean);
     let angle = prob::RDistrib::MinMax(0., 360.).next(rng);
     let speed = cfg.moons_prob.rotation_speed_prob.next(rng);
@@ -343,7 +351,7 @@ fn generate_resources(
         });
 
     for _ in resources.len()..(cfg.system_resources_max as usize) {
-        let selected = select(rng, &candidates);
+        let selected = select_weighted(rng, &candidates);
         if selected.is_none() {
             continue;
         }

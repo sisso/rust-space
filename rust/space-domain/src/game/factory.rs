@@ -3,15 +3,14 @@ use crate::game::{GameInitContext, RequireInitializer};
 use crate::utils::{DeltaTime, TotalTime};
 use specs::prelude::*;
 
-
 #[derive(Debug, Clone)]
-pub struct Production {
+pub struct Receipt {
     pub input: Vec<WareAmount>,
     pub output: Vec<WareAmount>,
     pub time: DeltaTime,
 }
 
-impl Production {
+impl Receipt {
     pub fn request_wares_id(&self) -> Vec<WareId> {
         self.input
             .iter()
@@ -29,12 +28,12 @@ impl Production {
 
 #[derive(Debug, Clone, Component)]
 pub struct Factory {
-    pub production: Production,
+    pub production: Receipt,
     pub production_time: Option<TotalTime>,
 }
 
 impl Factory {
-    pub fn new(production: Production) -> Self {
+    pub fn new(production: Receipt) -> Self {
         Factory {
             production,
             production_time: None,
@@ -109,14 +108,8 @@ impl<'a> System<'a> for FactorySystem {
 #[cfg(test)]
 mod test {
     use super::*;
-    
-    
-    
-    
-    
+
     use crate::test::test_system;
-    
-    
 
     const REQUIRE_ORE: f32 = 1.0;
     const REQUIRE_ENERGY: f32 = 10.0;
@@ -189,7 +182,7 @@ mod test {
             let energy_id = world.create_entity().build();
             let plate_id = world.create_entity().build();
 
-            let production = Production {
+            let production = Receipt {
                 input: vec![
                     WareAmount(ore_id, REQUIRE_ORE),
                     WareAmount(energy_id, REQUIRE_ENERGY),

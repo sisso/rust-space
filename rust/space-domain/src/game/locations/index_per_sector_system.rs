@@ -25,8 +25,6 @@ impl<'a> System<'a> for IndexPerSectorSystem {
     type SystemData = IndexPerSectorData<'a>;
 
     fn run(&mut self, mut data: IndexPerSectorData) {
-        use specs::Join;
-
         trace!("running");
 
         let index = data.index.borrow_mut();

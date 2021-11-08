@@ -1,11 +1,6 @@
 use specs::prelude::*;
 
-
-
-
 use super::objects::ObjId;
-
-
 
 pub type WareId = Entity;
 
@@ -280,7 +275,6 @@ impl Cargos {
 #[cfg(test)]
 mod test {
     use super::*;
-    
 
     // TODO: how to create entities without a world?
     fn create_wares() -> (WareId, WareId, WareId) {

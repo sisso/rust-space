@@ -26,6 +26,7 @@ pub struct NewObj {
     pub ware: bool,
     pub factory: Option<Factory>,
     pub label: Option<String>,
+    pub pos: Option<V2>,
 }
 
 impl NewObj {
@@ -110,6 +111,11 @@ impl NewObj {
 
     pub fn with_label(mut self, label: String) -> Self {
         self.label = Some(label);
+        self
+    }
+
+    pub fn with_pos(mut self, pos: V2) -> Self {
+        self.pos = Some(pos);
         self
     }
 }

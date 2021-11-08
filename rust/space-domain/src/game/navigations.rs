@@ -127,7 +127,6 @@ impl Navigations {
 mod test {
     use super::*;
     use crate::game::sectors::test_scenery::*;
-    
 
     #[test]
     fn create_plan() {
