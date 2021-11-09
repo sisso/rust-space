@@ -2,7 +2,9 @@ use specs::prelude::*;
 
 use super::super::locations::*;
 use super::*;
-use std::borrow::{Borrow};
+use crate::game::navigations;
+use crate::game::sectors::{Jump, Sector};
+use std::borrow::Borrow;
 
 ///
 /// Setup navigation for the request
@@ -13,7 +15,8 @@ pub struct NavRequestHandlerSystem;
 #[derive(SystemData)]
 pub struct NavRequestHandlerData<'a> {
     entities: Entities<'a>,
-    sectors: Read<'a, SectorsIndex>,
+    sectors: ReadStorage<'a, Sector>,
+    jumps: ReadStorage<'a, Jump>,
     locations: ReadStorage<'a, Location>,
     requests: WriteStorage<'a, NavRequest>,
     navigation: WriteStorage<'a, Navigation>,
@@ -21,12 +24,8 @@ pub struct NavRequestHandlerData<'a> {
 }
 
 impl<'a> System<'a> for NavRequestHandlerSystem {
-    type SystemData = NavRequestHandlerData<'a>;
-
     fn run(&mut self, mut data: NavRequestHandlerData) {
         trace!("running");
-
-        let sectors = data.sectors.borrow();
 
         let mut processed_requests = vec![];
         let locations = data.locations.borrow();
@@ -46,8 +45,11 @@ impl<'a> System<'a> for NavRequestHandlerSystem {
             let target_location = Locations::resolve_space_position(locations, target_id)
                 .expect("target has no location");
 
-            let mut plan = Navigations::create_plan(
-                sectors,
+            let mut plan = navigations::create_plan(
+                &data.entities,
+                &data.sectors,
+                &data.jumps,
+                &data.locations,
                 location.sector_id,
                 location.pos,
                 target_location.sector_id,
@@ -75,6 +77,8 @@ impl<'a> System<'a> for NavRequestHandlerSystem {
             request_storage.remove(e).unwrap();
         }
     }
+
+    type SystemData = NavRequestHandlerData<'a>;
 }
 
 #[cfg(test)]

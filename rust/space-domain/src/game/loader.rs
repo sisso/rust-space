@@ -1,3 +1,7 @@
+use std::collections::HashSet;
+
+use specs::prelude::*;
+
 use crate::game::commands::Command;
 use crate::game::dock::HasDock;
 use crate::game::events::{Event, EventKind, Events};
@@ -14,9 +18,6 @@ use crate::game::wares::{Cargo, WareAmount, WareId};
 use crate::game::{sectors, Game};
 use crate::specs_extras::*;
 use crate::utils::{DeltaTime, Position, Speed, V2};
-use specs::prelude::*;
-use std::borrow::BorrowMut;
-use std::collections::HashSet;
 
 pub struct Loader {}
 
@@ -396,6 +397,10 @@ impl Loader {
     ) -> (ObjId, ObjId) {
         let jump_from_id = world
             .create_entity()
+            .with(Jump {
+                target_sector_id: from_sector_id,
+                target_pos: from_pos,
+            })
             .with(Location::Space {
                 pos: from_pos,
                 sector_id: from_sector_id,
@@ -404,25 +409,15 @@ impl Loader {
 
         let jump_to_id = world
             .create_entity()
+            .with(Jump {
+                target_sector_id: from_sector_id,
+                target_pos: from_pos,
+            })
             .with(Location::Space {
                 pos: to_pos,
                 sector_id: to_sector_id,
             })
-            .with(Jump {
-                target_id: jump_from_id,
-            })
             .build();
-
-        world
-            .write_storage::<Jump>()
-            .borrow_mut()
-            .insert(
-                jump_from_id,
-                Jump {
-                    target_id: jump_to_id,
-                },
-            )
-            .unwrap();
 
         let events = &mut world.write_resource::<Events>();
         events.push(Event::new(jump_from_id, EventKind::Add));
@@ -479,8 +474,11 @@ impl Loader {
             builder.set(Sector {});
         }
 
-        for target_id in new_obj.jump_to {
-            builder.set(Jump { target_id });
+        for (target_sector_id, target_pos) in &new_obj.jump_to {
+            builder.set(Jump {
+                target_sector_id: *target_sector_id,
+                target_pos: *target_pos,
+            });
         }
 
         for command in &new_obj.command {

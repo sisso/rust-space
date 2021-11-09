@@ -3,11 +3,12 @@ use crate::game::actions::*;
 use crate::game::navigations::navigation_request_handler_system::NavRequestHandlerSystem;
 use crate::game::navigations::navigation_system::NavigationSystem;
 use crate::game::objects::ObjId;
-use crate::game::sectors::{SectorId, SectorsIndex};
+use crate::game::sectors::{Jump, Sector, SectorId};
 use crate::game::{GameInitContext, RequireInitializer};
 use crate::utils::Position;
 use specs::prelude::*;
 
+use crate::game::locations::Location;
 use specs::Entity;
 use specs_derive::*;
 use std::collections::VecDeque;
@@ -71,61 +72,51 @@ impl RequireInitializer for Navigations {
     }
 }
 
-impl Navigations {
-    pub fn create_plan(
-        sectors: &SectorsIndex,
-        from_sector_id: SectorId,
-        from_pos: Position,
-        to_sector_id: SectorId,
-        to_pos: Position,
-        is_docked: bool,
-    ) -> NavigationPlan {
-        let safe = 100;
-        let mut path = VecDeque::new();
-
-        if is_docked {
-            path.push_back(Action::Undock);
-        }
-
-        let mut current_pos = from_pos;
-        let mut current_sector = from_sector_id;
-
-        for i in 0..safe {
-            // panic i is last operation
-            if i + 1 == safe {
-                panic!();
-            }
-
-            if current_sector == to_sector_id {
-                path.push_back(Action::MoveTo { pos: to_pos });
-                break;
-            } else {
-                let jump = if let Some(jump) = sectors.find_jump(current_sector, to_sector_id) {
-                    jump
-                } else {
-                    panic!(
-                        "could not find jump from {:?} to {:?}",
-                        current_sector, to_sector_id
-                    );
-                };
-
-                // move to gate and jump
-                path.push_back(Action::MoveTo { pos: jump.from_pos });
-                path.push_back(Action::Jump { jump_id: jump.id });
-
-                // now we are in next sector
-                current_sector = jump.to_sector_id;
-                current_pos = jump.to_pos;
-            }
-        }
-
-        NavigationPlan { path }
+pub fn create_plan<'a>(
+    entities: &Entities<'a>,
+    sectors: &ReadStorage<'a, Sector>,
+    jumps: &ReadStorage<'a, Jump>,
+    locations: &ReadStorage<'a, Location>,
+    from_sector_id: SectorId,
+    _from_pos: Position,
+    to_sector_id: SectorId,
+    to_pos: Position,
+    is_docked: bool,
+) -> NavigationPlan {
+    let mut path = VecDeque::new();
+    if is_docked {
+        path.push_back(Action::Undock);
     }
+
+    let sector_path = super::sectors::find_path(
+        entities,
+        sectors,
+        jumps,
+        locations,
+        from_sector_id,
+        to_sector_id,
+    )
+    .unwrap();
+
+    for leg in sector_path {
+        if leg.sector_id == to_sector_id {
+            path.push_back(Action::MoveTo { pos: to_pos });
+            return NavigationPlan { path };
+        }
+
+        path.push_back(Action::MoveTo { pos: leg.jump_pos });
+        path.push_back(Action::Jump {
+            jump_id: leg.jump_id,
+        });
+    }
+
+    panic!("fail to find sector");
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::game::navigations;
     use crate::game::sectors::test_scenery::*;
 
     #[test]
@@ -133,10 +124,17 @@ mod test {
         let mut world = World::new();
 
         let sector_scenery = setup_sector_scenery(&mut world);
-        let sectors = &world.read_resource::<SectorsIndex>();
 
-        let plan = Navigations::create_plan(
+        let entities = world.entities();
+        let sectors = world.read_storage::<Sector>();
+        let jumps = world.read_storage::<Jump>();
+        let locations = world.read_storage::<Location>();
+
+        let plan = navigations::create_plan(
+            &entities,
             &sectors,
+            &jumps,
+            &locations,
             sector_scenery.sector_0,
             Position::new(10.0, 0.0),
             sector_scenery.sector_1,

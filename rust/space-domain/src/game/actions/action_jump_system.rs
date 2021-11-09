@@ -3,8 +3,8 @@ use specs::prelude::*;
 use super::*;
 use crate::game::events::{Event, EventKind, Events};
 use crate::game::locations::Location;
-use crate::game::sectors::{Jump};
-use std::borrow::{BorrowMut};
+use crate::game::sectors::Jump;
+use std::borrow::BorrowMut;
 
 pub struct ActionJumpSystem;
 
@@ -58,22 +58,16 @@ impl<'a> System<'a> for ActionJumpSystem {
             }
         }
 
-        for (entity, jump_id) in completed {
-            let current_jump = data.jumps.get(jump_id).unwrap();
-            let target_jump_id = current_jump.target_id;
-            let jump_location = data.locations.get(target_jump_id);
+        let actions = data.actions.borrow_mut();
+        let actions_jump = data.actions_jump.borrow_mut();
+        let events = data.events.borrow_mut();
 
-            let (to_pos, to_sector_id) = match jump_location {
-                Some(Location::Space { pos, sector_id }) => (*pos, *sector_id),
-                _ => panic!(
-                    "{:?} target jump has a invalid location {:?}",
-                    target_jump_id, jump_location
-                ),
-            };
+        for (entity, jump_id) in completed {
+            let jump = data.jumps.get(jump_id).unwrap();
 
             debug!(
                 "{:?} jump complete to sector {:?} at position {:?}",
-                entity, to_sector_id, to_pos
+                entity, jump.target_sector_id, jump.target_pos,
             );
 
             data.locations
@@ -81,17 +75,15 @@ impl<'a> System<'a> for ActionJumpSystem {
                 .insert(
                     entity,
                     Location::Space {
-                        pos: to_pos,
-                        sector_id: to_sector_id,
+                        pos: jump.target_pos,
+                        sector_id: jump.target_sector_id,
                     },
                 )
                 .unwrap();
 
-            data.actions.borrow_mut().remove(entity).unwrap();
-            data.actions_jump.borrow_mut().remove(entity).unwrap();
-            data.events
-                .borrow_mut()
-                .push(Event::new(entity, EventKind::Jump));
+            actions.remove(entity).unwrap();
+            actions_jump.remove(entity).unwrap();
+            events.push(Event::new(entity, EventKind::Jump));
         }
     }
 }
@@ -104,7 +96,7 @@ mod test {
     use crate::game::sectors::test_scenery;
     use crate::game::sectors::test_scenery::SectorScenery;
     use crate::test::{assert_v2, test_system};
-    use crate::utils::{TotalTime};
+    use crate::utils::TotalTime;
 
     fn create_jump_entity(
         world: &mut World,

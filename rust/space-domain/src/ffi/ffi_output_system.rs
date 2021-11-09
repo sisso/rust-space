@@ -55,19 +55,13 @@ impl<'a> System<'a> for FfiOutputSystem {
                         output.sectors_new.push(SectorNew::new(entity.as_u32()));
                     } else if let Some(jump) = data.jumps.get(entity) {
                         let jump_location = data.location.get(entity).unwrap().as_space().unwrap();
-                        let target_jump = data
-                            .location
-                            .get(jump.target_id)
-                            .unwrap()
-                            .as_space()
-                            .unwrap();
 
                         output.jumps_new.push(JumpNew::new(
                             entity.as_u32(),
                             jump_location.sector_id.as_u32(),
                             &jump_location.pos.into(),
-                            target_jump.sector_id.as_u32(),
-                            &target_jump.pos.into(),
+                            jump.target_sector_id.as_u32(),
+                            &jump.target_pos.into(),
                         ));
                     } else {
                         match data.location.get(entity) {

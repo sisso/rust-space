@@ -20,7 +20,7 @@ pub struct NewObj {
     pub ai: bool,
     pub station: bool,
     pub sector: bool,
-    pub jump_to: Option<Entity>,
+    pub jump_to: Option<(SectorId, Position)>,
     pub command: Option<Command>,
     pub shipyard: Option<Shipyard>,
     pub ware: bool,
@@ -84,8 +84,8 @@ impl NewObj {
         self
     }
 
-    pub fn with_jump(mut self, jump_to: Entity) -> Self {
-        self.jump_to = Some(jump_to);
+    pub fn with_jump(mut self, target_sector_id: SectorId, target_pos: Position) -> Self {
+        self.jump_to = Some((target_sector_id, target_pos));
         self
     }
 
