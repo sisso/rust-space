@@ -88,29 +88,35 @@ pub fn create_plan<'a>(
         path.push_back(Action::Undock);
     }
 
-    let sector_path = super::sectors::find_path(
+    let sector_path = match super::sectors::find_path(
         entities,
         sectors,
         jumps,
         locations,
         from_sector_id,
         to_sector_id,
-    )
-    .unwrap();
+    ) {
+        Some(path) => path,
+        None => panic!(
+            "fail to find path from sectors {:?} to {:?}",
+            from_sector_id, to_sector_id
+        ),
+    };
 
-    for leg in sector_path {
-        if leg.sector_id == to_sector_id {
-            path.push_back(Action::MoveTo { pos: to_pos });
-            return NavigationPlan { path };
-        }
-
+    for leg in &sector_path {
         path.push_back(Action::MoveTo { pos: leg.jump_pos });
         path.push_back(Action::Jump {
             jump_id: leg.jump_id,
         });
     }
 
-    panic!("fail to find sector");
+    path.push_back(Action::MoveTo { pos: to_pos });
+    return NavigationPlan { path };
+
+    panic!(
+        "fail to find path from {:?} to {:?} with sector paths {:?}",
+        from_sector_id, to_sector_id, sector_path
+    );
 }
 
 #[cfg(test)]

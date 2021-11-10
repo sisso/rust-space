@@ -147,6 +147,7 @@ pub mod test_scenery {
     }
 }
 
+#[derive(Debug)]
 pub struct PathLeg {
     pub sector_id: SectorId,
     pub jump_id: JumpId,

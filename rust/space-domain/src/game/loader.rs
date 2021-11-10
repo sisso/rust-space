@@ -398,8 +398,8 @@ impl Loader {
         let jump_from_id = world
             .create_entity()
             .with(Jump {
-                target_sector_id: from_sector_id,
-                target_pos: from_pos,
+                target_sector_id: to_sector_id,
+                target_pos: to_pos,
             })
             .with(Location::Space {
                 pos: from_pos,
