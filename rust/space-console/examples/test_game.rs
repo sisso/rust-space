@@ -27,7 +27,11 @@ fn main() -> Result<(), std::io::Error> {
 
         let now = input_time;
         let delta = now - start;
-        let wait_time = time_rate - delta;
+        let wait_time = if delta > time_rate {
+            Duration::new(0, 0)
+        } else {
+            time_rate - delta
+        };
 
         eprintln!(
             "gui - delta {:?}, wait_time: {:?}, ration: {:?}% usage",
@@ -42,7 +46,7 @@ fn main() -> Result<(), std::io::Error> {
         );
 
         if delta < time_rate {
-            std::thread::sleep(wait_time);
+            // std::thread::sleep(wait_time);
         } else {
             eprintln!(
                 "gui - delta {:?}, wait_time: 0.0: missing time frame",

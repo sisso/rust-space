@@ -55,9 +55,9 @@ impl FFIApi {
         Loader::load_random_map(
             &mut self.game,
             &RandomMapCfg {
-                size: 5,
-                seed: 5,
-                ships: 10,
+                size: 50,
+                seed: 50,
+                ships: 100,
             },
         );
     }

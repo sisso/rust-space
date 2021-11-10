@@ -12,6 +12,7 @@ use crate::game::locations::Location;
 use specs::Entity;
 use specs_derive::*;
 use std::collections::VecDeque;
+use std::time::Instant;
 
 mod navigation_request_handler_system;
 mod navigation_system;
@@ -83,6 +84,8 @@ pub fn create_plan<'a>(
     to_pos: Position,
     is_docked: bool,
 ) -> NavigationPlan {
+    let start = Instant::now();
+
     let mut path = VecDeque::new();
     if is_docked {
         path.push_back(Action::Undock);
@@ -111,6 +114,10 @@ pub fn create_plan<'a>(
     }
 
     path.push_back(Action::MoveTo { pos: to_pos });
+
+    let plan_complete = Instant::now();
+    info!("create plan find_path {:?}", plan_complete - start);
+
     return NavigationPlan { path };
 
     panic!(

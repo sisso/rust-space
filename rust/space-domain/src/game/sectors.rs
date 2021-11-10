@@ -205,18 +205,6 @@ pub fn find_path<'a>(
     }
 
     Some(result)
-
-    // path.into_iter()
-    //     .tuple_windows()
-    //     .map(|(a, b)| PathLeg {
-    //         sector_id: (),
-    //         jump_id: (),
-    //         jump_pos: V2 {},
-    //         target_jump_id: (),
-    //         target_sector_id: (),
-    //         target_pos: V2 {},
-    //     })
-    //     .collect()
 }
 
 #[cfg(test)]

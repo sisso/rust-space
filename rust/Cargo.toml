@@ -8,3 +8,6 @@ members = [
   "space-2d-gui",
   "space-internal",
 ]
+
+[profile.dev]
+opt-level = 1
