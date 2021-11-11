@@ -41,7 +41,7 @@ impl<'a> System<'a> for ActionMoveToSystem {
             .join()
         {
             let to = match action.get_action() {
-                Action::MoveTo { pos } => pos.clone(),
+                Action::MoveTo { pos } => pos,
                 _ => continue,
             };
 
@@ -66,7 +66,7 @@ impl<'a> System<'a> for ActionMoveToSystem {
             // if current move distance is bigger that distance to arrive, move to the position
             if complete {
                 debug!("{:?} move complete", entity);
-                location.set_pos(to).unwrap();
+                location.set_pos(*to).unwrap();
                 moved.push(entity);
                 completed.push(entity);
             } else {

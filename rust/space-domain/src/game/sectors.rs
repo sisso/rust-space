@@ -1,8 +1,9 @@
-use std::collections::HashMap;
-
 use shred::World;
 use specs::prelude::*;
 use specs_derive::*;
+use std::borrow::BorrowMut;
+use std::collections::HashMap;
+use std::time::Instant;
 
 use crate::game::locations::Location;
 use crate::game::objects::ObjId;
@@ -19,7 +20,25 @@ pub type JumpId = Entity;
 pub type SectorId = Entity;
 
 #[derive(Clone, Debug, Component)]
-pub struct Sector {}
+pub struct JumpCache {
+    pub jump_id: Entity,
+    pub to_sector: Entity,
+}
+
+#[derive(Clone, Debug, Component)]
+pub struct Sector {
+    pub coords: Position,
+    pub jumps_cache: Option<Vec<JumpCache>>,
+}
+
+impl Sector {
+    pub fn new(coords: Position) -> Self {
+        Sector {
+            coords,
+            jumps_cache: None,
+        }
+    }
+}
 
 pub struct Sectors;
 
@@ -42,12 +61,34 @@ pub struct UpdateIndexSystem;
 impl<'a> System<'a> for UpdateIndexSystem {
     type SystemData = (
         Entities<'a>,
-        ReadStorage<'a, Sector>,
+        WriteStorage<'a, Sector>,
         ReadStorage<'a, Jump>,
         ReadStorage<'a, Location>,
     );
 
-    fn run(&mut self, (entities, sectors, jumps, locations): Self::SystemData) {}
+    fn run(&mut self, (entities, mut sectors, jumps, locations): Self::SystemData) {
+        info!("indexing sectors");
+        let start = Instant::now();
+        let sectors = sectors.borrow_mut();
+
+        for (e, j, l) in (&entities, &jumps, &locations).join() {
+            let cache = JumpCache {
+                jump_id: e,
+                to_sector: j.target_sector_id,
+            };
+
+            let sector_id = l.get_sector_id().expect("jump must be in a sector");
+            let sector = sectors.get_mut(sector_id).expect("jump sector not found");
+
+            match sector.jumps_cache.as_mut() {
+                Some(list) => list.push(cache),
+                None => sector.jumps_cache = Some(vec![cache]),
+            }
+        }
+
+        let total = Instant::now() - start;
+        info!("indexing sector complete in {:?}", total);
+    }
 }
 
 pub mod test_scenery {
@@ -75,9 +116,18 @@ pub mod test_scenery {
         world.register::<Jump>();
         world.register::<Sector>();
 
-        let sector_0 = world.create_entity().with(Sector {}).build();
-        let sector_1 = world.create_entity().with(Sector {}).build();
-        let sector_2 = world.create_entity().with(Sector {}).build();
+        let sector_0 = world
+            .create_entity()
+            .with(Sector::new(V2::new(0.0, 0.0)))
+            .build();
+        let sector_1 = world
+            .create_entity()
+            .with(Sector::new(V2::new(1.0, 0.0)))
+            .build();
+        let sector_2 = world
+            .create_entity()
+            .with(Sector::new(V2::new(2.0, 0.0)))
+            .build();
         let jump_0_to_1_pos = V2::new(0.0, 1.0);
         let jump_1_to_0_pos = V2::new(1.0, 0.0);
         let jump_1_to_2_pos = V2::new(1.0, 2.0);
@@ -174,34 +224,45 @@ pub fn find_path<'a>(
     let path = bfs(
         &from,
         |current| {
-            let mut list = vec![];
-
-            // TODO: optimize search
-            for (e, j, l) in (entities, jumps, locations).join() {
-                if l.get_sector_id() == Some(*current) {
-                    list.push(j.target_sector_id);
-                }
-            }
-
-            list
+            let sector = sectors.get(*current).unwrap();
+            let jump_cache = sector.jumps_cache.as_ref();
+            let successors: Vec<SectorId> = jump_cache
+                .expect("sector jump cache is empty")
+                .iter()
+                .map(|i| i.to_sector)
+                .collect();
+            successors
         },
         |current| *current == to,
     )?;
 
     let mut result = vec![];
     for (from, to) in path.into_iter().tuple_windows() {
-        // TODO: optimize search
-        for (e, j, l) in (entities, jumps, locations).join() {
-            if l.get_sector_id() == Some(from) && j.target_sector_id == to {
-                result.push(PathLeg {
-                    sector_id: from,
-                    jump_id: e,
-                    jump_pos: l.get_pos().unwrap(),
-                    target_sector_id: to,
-                    target_pos: j.target_pos,
-                });
-            }
-        }
+        let sector = sectors.get(from).unwrap();
+
+        let jc = sector
+            .jumps_cache
+            .as_ref()
+            .and_then(|i| i.iter().find(|j| j.to_sector == to))
+            .unwrap();
+
+        let jump_pos = locations
+            .get(jc.jump_id)
+            .expect("jump id has no location")
+            .get_pos()
+            .unwrap();
+        let jump_target_pos = &jumps
+            .get(jc.jump_id)
+            .expect("jump id has no jump")
+            .target_pos;
+
+        result.push(PathLeg {
+            sector_id: from,
+            jump_id: jc.jump_id,
+            jump_pos: *jump_pos,
+            target_sector_id: to,
+            target_pos: *jump_target_pos,
+        });
     }
 
     Some(result)

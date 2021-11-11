@@ -7,12 +7,8 @@ use super::objects::*;
 use super::sectors::*;
 use crate::utils::*;
 
-
 use crate::game::locations::index_per_sector_system::*;
 use crate::game::{GameInitContext, RequireInitializer};
-
-
-
 
 #[derive(Debug, Clone)]
 pub struct LocationSpace {
@@ -49,9 +45,9 @@ impl Location {
     }
 
     /// Utility method since we can not easily reference a enum type
-    pub fn get_pos(&self) -> Option<Position> {
+    pub fn get_pos(&self) -> Option<&Position> {
         match self {
-            Location::Space { pos, .. } => Some(pos.clone()),
+            Location::Space { pos, .. } => Some(pos),
             _ => None,
         }
     }

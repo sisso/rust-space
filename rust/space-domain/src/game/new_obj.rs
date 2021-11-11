@@ -19,7 +19,7 @@ pub struct NewObj {
     pub has_dock: bool,
     pub ai: bool,
     pub station: bool,
-    pub sector: bool,
+    pub sector: Option<Position>,
     pub jump_to: Option<(SectorId, Position)>,
     pub command: Option<Command>,
     pub shipyard: Option<Shipyard>,
@@ -79,8 +79,8 @@ impl NewObj {
         self
     }
 
-    pub fn with_sector(mut self) -> Self {
-        self.sector = true;
+    pub fn with_sector(mut self, pos: Position) -> Self {
+        self.sector = Some(pos);
         self
     }
 

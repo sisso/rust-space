@@ -162,7 +162,7 @@ impl<'a> System<'a> for CommandTradeSystem {
                     let wait_time = (rnd.next_u32() % 1000) as f32 / 1000.0;
                     let deadline = total_time.add(DeltaTime(wait_time));
                     *command = Command::Trade(TradeState::Delay { deadline });
-                    warn!(
+                    debug!(
                         "{:?} can not find a station to pickup, setting wait time of {:?} seconds",
                         entity, wait_time
                     );
@@ -344,20 +344,19 @@ impl<'a> System<'a> for CommandTradeSystem {
 #[cfg(test)]
 mod test {
     use super::*;
-    
+
     use crate::game::commands::Command;
     use crate::game::dock::HasDock;
-    use crate::game::locations::{EntityPerSectorIndex};
+    use crate::game::locations::EntityPerSectorIndex;
     use crate::game::navigations::Navigation;
     use crate::game::objects::ObjId;
     use crate::game::order::{Order, Orders};
-    use crate::game::sectors::{SectorId};
+    use crate::game::sectors::SectorId;
     use crate::game::wares::{Cargo, WareId};
     use crate::test::test_system;
     use crate::utils::{TotalTime, V2_ZERO};
-    
+
     use std::borrow::{Borrow, BorrowMut};
-    
 
     struct SceneryRequest {}
 

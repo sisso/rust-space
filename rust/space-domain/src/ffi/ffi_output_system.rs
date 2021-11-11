@@ -51,6 +51,7 @@ impl<'a> System<'a> for FfiOutputSystem {
 
             match &event.kind {
                 EventKind::Add => {
+                    // TODO: add ware
                     if data.sectors.get(entity).is_some() {
                         output.sectors_new.push(SectorNew::new(entity.as_u32()));
                     } else if let Some(jump) = data.jumps.get(entity) {

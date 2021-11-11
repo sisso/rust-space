@@ -140,6 +140,8 @@ impl Loader {
                         );
                     }
                 }
+
+                sectors::update_sectors_index(world);
             }
 
             // add stations
@@ -378,10 +380,7 @@ impl Loader {
     }
 
     pub fn new_sector(world: &mut World, pos: V2, name: String) -> ObjId {
-        Loader::add_object(
-            world,
-            NewObj::new().with_sector().with_label(name).with_pos(pos),
-        )
+        Loader::add_object(world, NewObj::new().with_sector(pos).with_label(name))
     }
 
     pub fn new_ware(world: &mut World, name: String) -> WareId {
@@ -470,8 +469,8 @@ impl Loader {
             builder.set(Station {});
         }
 
-        if new_obj.sector {
-            builder.set(Sector {});
+        if let Some(sector_pos) = &new_obj.sector {
+            builder.set(Sector::new(sector_pos.clone()));
         }
 
         for (target_sector_id, target_pos) in &new_obj.jump_to {

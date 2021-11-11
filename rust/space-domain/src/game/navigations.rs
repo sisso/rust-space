@@ -119,11 +119,6 @@ pub fn create_plan<'a>(
     info!("create plan find_path {:?}", plan_complete - start);
 
     return NavigationPlan { path };
-
-    panic!(
-        "fail to find path from {:?} to {:?} with sector paths {:?}",
-        from_sector_id, to_sector_id, sector_path
-    );
 }
 
 #[cfg(test)]
