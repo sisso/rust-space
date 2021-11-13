@@ -4,6 +4,7 @@ use super::super::locations::*;
 use super::*;
 use crate::game::navigations;
 use crate::game::sectors::{Jump, Sector};
+use log::{debug, info, log, trace, warn};
 use std::borrow::Borrow;
 
 ///
@@ -25,7 +26,7 @@ pub struct NavRequestHandlerData<'a> {
 
 impl<'a> System<'a> for NavRequestHandlerSystem {
     fn run(&mut self, mut data: NavRequestHandlerData) {
-        trace!("running");
+        log::trace!("running");
 
         let mut processed_requests = vec![];
         let locations = data.locations.borrow();
@@ -61,9 +62,11 @@ impl<'a> System<'a> for NavRequestHandlerSystem {
                 plan.append_dock(target_id);
             }
 
-            debug!(
+            log::debug!(
                 "{:?} handle navigation to {:?} by the plan {:?}",
-                entity, request, plan
+                entity,
+                request,
+                plan,
             );
 
             data.navigation.insert(entity, Navigation::MoveTo).unwrap();

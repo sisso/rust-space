@@ -1,13 +1,13 @@
+use std::collections::HashMap;
 
-use std::collections::{HashMap};
-
-use rand::{Rng};
+use rand::Rng;
 
 use crate::utils::Speed;
 
 use super::damages;
 use super::ship_internals::*;
 use crate::game::ship::damages::DamageToApply;
+use log::{debug, info, log, trace, warn};
 
 #[derive(Clone, Debug)]
 pub enum CombatLog {
@@ -233,9 +233,9 @@ impl Combat {
         let size_bonus: f32 = 0.1_f32.powf(100.0 / target_width as f32);
         let value = speed_ration + size_bonus;
         if value < 0.01 || value > 0.99 {
-            warn!(target: "combat", "hit chance {:?}, target {:?}, width {:?}. speed_ration {:?}, size_bonus {:?}, value {:?}", attack_speed, target_speed, target_width, speed_ration, size_bonus, value);
+            log::warn!("combat - hit chance {:?}, target {:?}, width {:?}. speed_ration {:?}, size_bonus {:?}, value {:?}", attack_speed, target_speed, target_width, speed_ration, size_bonus, value);
         } else {
-            debug!(target: "combat", "hit chance {:?}, target {:?}, width {:?}. speed_ration {:?}, size_bonus {:?}, value {:?}", attack_speed, target_speed, target_width, speed_ration, size_bonus, value);
+            log::debug!("combat - hit chance {:?}, target {:?}, width {:?}. speed_ration {:?}, size_bonus {:?}, value {:?}", attack_speed, target_speed, target_width, speed_ration, size_bonus, value);
         }
         value
     }

@@ -4,6 +4,7 @@ use super::*;
 
 use std::borrow::BorrowMut;
 
+use log::{debug, info, log, trace, warn};
 pub struct ActionRequestHandlerSystem;
 
 #[derive(SystemData)]
@@ -22,7 +23,7 @@ impl<'a> System<'a> for ActionRequestHandlerSystem {
     type SystemData = ActionRequestHandlerData<'a>;
 
     fn run(&mut self, mut data: ActionRequestHandlerData) {
-        trace!("running");
+        log::trace!("running");
 
         let mut processed = vec![];
 

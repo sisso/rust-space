@@ -43,7 +43,7 @@ impl<'a> System<'a> for ShipyardSystem {
     );
 
     fn run(&mut self, data: Self::SystemData) {
-        trace!("running");
+        log::trace!("running");
 
         let (total_time, entities, mut cargos, mut shipyards, mut new_objects) = data;
 
@@ -69,7 +69,7 @@ impl<'a> System<'a> for ShipyardSystem {
 
                     to_add.push(new_obj);
 
-                    debug!("{:?} complete production, scheduling new object", entity);
+                    log::debug!("{:?} complete production, scheduling new object", entity);
                 }
                 Some(_) => {
                     // still producing
@@ -84,9 +84,10 @@ impl<'a> System<'a> for ShipyardSystem {
                         let ready_time = total_time.add(shipyard.production_time);
                         shipyard.current_production = Some(ready_time);
 
-                        debug!(
+                        log::debug!(
                             "{:?} staring production, will be ready at {:?}",
-                            entity, ready_time
+                            entity,
+                            ready_time,
                         );
                     }
                 }
@@ -103,14 +104,11 @@ impl<'a> System<'a> for ShipyardSystem {
 #[cfg(test)]
 mod test {
     use super::*;
-    
-    
+
     use crate::game::locations::Location;
     use crate::game::wares::WareId;
-    
+
     use crate::test::test_system;
-    
-    
 
     const PRODUCTION_TIME: f32 = 5.0;
     const REQUIRE_CARGO: f32 = 5.0;

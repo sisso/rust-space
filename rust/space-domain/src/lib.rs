@@ -1,8 +1,6 @@
 //#![allow(warnings)]
 
 #[macro_use]
-extern crate space_macros;
-#[macro_use]
 extern crate specs_derive;
 #[macro_use]
 extern crate shred_derive;

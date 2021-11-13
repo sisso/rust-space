@@ -1,3 +1,4 @@
+use log::{debug, info, log, trace, warn};
 use shred::World;
 use specs::prelude::*;
 use specs_derive::*;
@@ -67,7 +68,7 @@ impl<'a> System<'a> for UpdateIndexSystem {
     );
 
     fn run(&mut self, (entities, mut sectors, jumps, locations): Self::SystemData) {
-        info!("indexing sectors");
+        log::info!("indexing sectors");
         let start = Instant::now();
         let sectors = sectors.borrow_mut();
 
@@ -87,7 +88,7 @@ impl<'a> System<'a> for UpdateIndexSystem {
         }
 
         let total = Instant::now() - start;
-        info!("indexing sector complete in {:?}", total);
+        log::info!("indexing sector complete in {:?}", total);
     }
 }
 

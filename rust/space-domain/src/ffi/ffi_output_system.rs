@@ -6,6 +6,7 @@ use crate::game::sectors::{Jump, Sector};
 use crate::game::station::Station;
 use crate::space_outputs_generated::space_data::{EntityKind, JumpNew, SectorNew};
 use crate::utils::IdAsU32Support;
+use log::{debug, info, log, trace, warn};
 use specs::prelude::*;
 
 /// Convert Events into FFI outputs
@@ -93,9 +94,10 @@ impl<'a> System<'a> for FfiOutputSystem {
                             }
                             other => {
                                 // ignore entities not visible in sector
-                                warn!(
+                                log::warn!(
                                     "{:?} added entity with invalid position {:?}",
-                                    entity, other
+                                    entity,
+                                    other,
                                 );
                             }
                         }
@@ -109,7 +111,7 @@ impl<'a> System<'a> for FfiOutputSystem {
                         }
                         other => {
                             // ignore entities not visible in sector
-                            warn!("{:?} undock but has no space {:?}", entity, other);
+                            log::warn!("{:?} undock but has no space {:?}", entity, other);
                         }
                     }
                 }
@@ -121,7 +123,7 @@ impl<'a> System<'a> for FfiOutputSystem {
                         }
                         other => {
                             // ignore entities not visible in sector
-                            warn!("{:?} undock but has no space {:?}", entity, other);
+                            log::warn!("{:?} undock but has no space {:?}", entity, other);
                         }
                     }
                 }
@@ -133,7 +135,7 @@ impl<'a> System<'a> for FfiOutputSystem {
                         }
                         other => {
                             // ignore entities not visible in sector
-                            warn!("{:?} jump but has no space {:?}", entity, other);
+                            log::warn!("{:?} jump but has no space {:?}", entity, other);
                         }
                     }
                 }
@@ -143,12 +145,12 @@ impl<'a> System<'a> for FfiOutputSystem {
                         output.push_entity_move(entity.id(), pos.into());
                     }
                     other => {
-                        warn!("{:?} moved but has no space position {:?}", entity, other);
+                        log::warn!("{:?} moved but has no space position {:?}", entity, other);
                     }
                 },
 
                 _other => {
-                    debug!("unknown event {:?}", event);
+                    log::debug!("unknown event {:?}", event);
                 }
             }
         }

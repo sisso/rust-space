@@ -1,15 +1,18 @@
 extern crate space_domain;
-extern crate space_macros;
 
+use log::info;
 use space_domain::ffi::FFIApi;
-use space_macros::{info, log};
 use std::time::{Duration, Instant};
 
 fn main() -> Result<(), std::io::Error> {
+    env_logger::builder()
+        .filter(None, log::LevelFilter::Info)
+        .init();
+
     //    space_domain::local_game::run();
-    info!(target: "main", "--------------------------------------------------");
-    info!(target: "main", "start");
-    info!(target: "main", "--------------------------------------------------");
+    log::info!(target: "main", "--------------------------------------------------");
+    log::info!(target: "main", "start");
+    log::info!(target: "main", "--------------------------------------------------");
 
     let mut game_api = FFIApi::new();
     game_api.new_game();
@@ -33,24 +36,25 @@ fn main() -> Result<(), std::io::Error> {
             time_rate - delta
         };
 
-        eprintln!(
+        log::info!(
             "gui - delta {:?}, wait_time: {:?}, ration: {:?}% usage",
             delta,
             wait_time,
             (100.0 / (time_rate.as_millis() as f64 / delta.as_millis() as f64)) as i32
         );
-        eprintln!(
+        log::debug!(
             "    - update {:?}, collect_inputs: {:?}",
             game_update_time - start,
             input_time - game_update_time
         );
 
         if delta < time_rate {
-            // std::thread::sleep(wait_time);
+            std::thread::sleep(wait_time);
         } else {
-            eprintln!(
-                "gui - delta {:?}, wait_time: 0.0: missing time frame",
-                delta
+            log::warn!(
+                "gui - delta {:?}, wait_time: 0.0: missing time frame ofr {:?}",
+                delta,
+                time_rate
             );
         }
     }

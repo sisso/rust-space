@@ -16,16 +16,16 @@ use shred::{Read, ResourceId, SystemData, World};
 ///
 use specs::prelude::*;
 
-
 use super::*;
 use crate::game::dock::HasDock;
 use crate::game::extractables::Extractable;
 use crate::game::locations::{EntityPerSectorIndex, Location};
 use crate::game::navigations::{NavRequest, Navigation};
-use crate::game::order::{Orders};
+use crate::game::order::Orders;
 use crate::game::wares::{Cargo, WareId};
-use std::borrow::{BorrowMut};
+use std::borrow::BorrowMut;
 
+use log::{debug, info, log, trace, warn};
 
 pub struct CommandMineSystem;
 
@@ -49,7 +49,7 @@ impl<'a> System<'a> for CommandMineSystem {
     type SystemData = CommandMineData<'a>;
 
     fn run(&mut self, mut data: CommandMineData) {
-        trace!("running");
+        log::trace!("running");
 
         let sectors_index = &data.sector_index;
         let locations = &data.locations;
@@ -116,7 +116,7 @@ impl<'a> System<'a> for CommandMineSystem {
                                 target_id
                             }
                             None => {
-                                warn!("{:?} can not find a cargo for deliver", entity);
+                                log::warn!("{:?} can not find a cargo for deliver", entity);
                                 continue;
                             }
                         }
@@ -124,15 +124,17 @@ impl<'a> System<'a> for CommandMineSystem {
                 };
 
                 if location.as_docked() == Some(target_id) {
-                    debug!(
+                    log::debug!(
                         "{:?} cargo full, transferring cargo to station {:?}",
-                        entity, target_id
+                        entity,
+                        target_id,
                     );
                     cargo_transfers.push((entity, target_id));
                 } else {
-                    debug!(
+                    log::debug!(
                         "{:?} cargo full, command to navigate to station {:?}",
-                        entity, target_id
+                        entity,
+                        target_id,
                     );
                     data.nav_request
                         .borrow_mut()
@@ -165,9 +167,11 @@ impl<'a> System<'a> for CommandMineSystem {
                     // find extractable ware id
                     let ware_id = data.extractable.get(target_id).unwrap().ware_id;
 
-                    debug!(
+                    log::debug!(
                         "{:?} arrive at extractable {:?}, start extraction of {:?}",
-                        entity, target_id, ware_id
+                        entity,
+                        target_id,
+                        ware_id,
                     );
 
                     data.action_request
@@ -178,9 +182,10 @@ impl<'a> System<'a> for CommandMineSystem {
                         )
                         .unwrap();
                 } else {
-                    debug!(
+                    log::debug!(
                         "{:?} command to move to extractable {:?}",
-                        entity, target_id
+                        entity,
+                        target_id,
                     );
                     // move to target
                     data.nav_request
@@ -195,7 +200,7 @@ impl<'a> System<'a> for CommandMineSystem {
         let cargos = data.cargos.borrow_mut();
         for (from_id, to_id) in cargo_transfers {
             let transfer = Cargos::move_all(cargos, from_id, to_id);
-            info!("{:?} transfer {:?} to {:?}", from_id, transfer, to_id);
+            log::info!("{:?} transfer {:?} to {:?}", from_id, transfer, to_id);
         }
     }
 }
@@ -227,11 +232,10 @@ fn search_mine_target(
 mod test {
     use super::*;
     use crate::game::order::Order;
-    
+
     use crate::game::sectors::test_scenery::SectorScenery;
     use crate::game::wares::WareId;
     use crate::test::test_system;
-    
 
     struct SceneryRequest {}
 
@@ -306,7 +310,7 @@ mod test {
             ware_id,
         };
 
-        debug!("setup scenery {:?}", scenery);
+        log::debug!("setup scenery {:?}", scenery);
 
         scenery
     }

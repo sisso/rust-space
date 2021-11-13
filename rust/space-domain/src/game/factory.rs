@@ -3,6 +3,7 @@ use crate::game::{GameInitContext, RequireInitializer};
 use crate::utils::{DeltaTime, TotalTime};
 use specs::prelude::*;
 
+use log::{debug, info, log, trace, warn};
 #[derive(Debug, Clone)]
 pub struct Receipt {
     pub input: Vec<WareAmount>,
@@ -65,7 +66,7 @@ impl<'a> System<'a> for FactorySystem {
     );
 
     fn run(&mut self, data: Self::SystemData) {
-        trace!("running");
+        log::trace!("running");
 
         let (total_time, entities, mut cargos, mut factories) = data;
 
@@ -77,9 +78,10 @@ impl<'a> System<'a> for FactorySystem {
                     // production ready
                     match cargo.add_all(&factory.production.output) {
                         Ok(()) => {
-                            debug!(
+                            log::debug!(
                                 "{:?} adding production to cargo: {:?}",
-                                entity, &factory.production.output
+                                entity,
+                                &factory.production.output,
                             );
                             factory.production_time = None;
                         }

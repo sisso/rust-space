@@ -6,6 +6,7 @@ use super::*;
 use crate::game::events::{Event, EventKind, Events};
 
 use crate::utils::V2;
+use log::{debug, info, log, trace, warn};
 
 pub struct ActionMoveToSystem;
 
@@ -24,7 +25,7 @@ impl<'a> System<'a> for ActionMoveToSystem {
     type SystemData = ActionMoveToData<'a>;
 
     fn run(&mut self, mut data: ActionMoveToData) {
-        trace!("running");
+        log::trace!("running");
 
         let mut moved = vec![];
         let mut completed = vec![];
@@ -49,9 +50,9 @@ impl<'a> System<'a> for ActionMoveToSystem {
             let pos = match location.get_pos() {
                 Some(pos) => pos,
                 _ => {
-                    warn!(
+                    log::warn!(
                         "{:?} can not do action move since it is not in space",
-                        entity
+                        entity,
                     );
                     completed.push(entity);
                     continue;
@@ -65,16 +66,16 @@ impl<'a> System<'a> for ActionMoveToSystem {
 
             // if current move distance is bigger that distance to arrive, move to the position
             if complete {
-                debug!("{:?} move complete", entity);
+                log::debug!("{:?} move complete", entity);
                 location.set_pos(*to).unwrap();
                 moved.push(entity);
                 completed.push(entity);
             } else {
-                trace!(
+                log::trace!(
                     "{:?} moving to {:?}, new position is {:?}",
                     entity,
                     to,
-                    new_pos
+                    new_pos,
                 );
                 location.set_pos(new_pos).unwrap();
                 moved.push(entity);

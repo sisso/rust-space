@@ -4,6 +4,7 @@ use super::super::locations::*;
 use super::*;
 
 use crate::game::events::{Event, EventKind, Events};
+use log::{debug, info, log, trace, warn};
 use std::borrow::{Borrow, BorrowMut};
 
 pub struct UndockSystem;
@@ -21,7 +22,7 @@ impl<'a> System<'a> for UndockSystem {
     type SystemData = UndockData<'a>;
 
     fn run(&mut self, mut data: UndockData) {
-        trace!("running");
+        log::trace!("running");
 
         let mut processed: Vec<(Entity, Option<Location>)> = vec![];
 
@@ -33,18 +34,19 @@ impl<'a> System<'a> for UndockSystem {
                 let target_location = locations_storage.get(docked_id);
                 match target_location {
                     Some(location @ Location::Space { .. }) => {
-                        debug!("{:?} un-docking from {:?}", entity, docked_id);
+                        log::debug!("{:?} un-docking from {:?}", entity, docked_id);
                         processed.push((entity, Some(location.clone())));
                     }
                     _ => {
-                        debug!("{:?} can not un-dock from {:?}", entity, target_location);
+                        log::debug!("{:?} can not un-dock from {:?}", entity, target_location);
                         processed.push((entity, None))
                     }
                 }
             } else {
-                debug!(
+                log::debug!(
                     "{:?} can not un-dock, ship is already in space {:?}",
-                    entity, location
+                    entity,
+                    location,
                 );
                 processed.push((entity, None));
             }
@@ -70,7 +72,7 @@ impl<'a> System<'a> for UndockSystem {
 mod test {
     use super::super::*;
     use super::*;
-    
+
     use crate::test::{assert_v2, test_system};
 
     #[test]

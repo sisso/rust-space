@@ -6,6 +6,7 @@ use crate::game::objects::ObjId;
 use crate::game::sectors::{Jump, Sector, SectorId};
 use crate::game::{GameInitContext, RequireInitializer};
 use crate::utils::Position;
+use log::{debug, info, log, trace, warn};
 use specs::prelude::*;
 
 use crate::game::locations::Location;
@@ -116,7 +117,7 @@ pub fn create_plan<'a>(
     path.push_back(Action::MoveTo { pos: to_pos });
 
     let plan_complete = Instant::now();
-    info!("create plan find_path {:?}", plan_complete - start);
+    log::info!("create plan find_path {:?}", plan_complete - start);
 
     return NavigationPlan { path };
 }

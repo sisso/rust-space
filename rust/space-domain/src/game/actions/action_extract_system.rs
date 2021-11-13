@@ -1,7 +1,8 @@
 use crate::game::actions::{Action, ActionActive, ActionExtract};
 use crate::game::extractables::Extractable;
 use crate::game::wares::Cargo;
-use crate::utils::{DeltaTime};
+use crate::utils::DeltaTime;
+use log::{debug, info, log, trace, warn};
 use specs::prelude::*;
 use std::borrow::BorrowMut;
 
@@ -21,7 +22,7 @@ impl<'a> System<'a> for ActionExtractSystem {
     type SystemData = ActionExtractData<'a>;
 
     fn run(&mut self, mut data: ActionExtractData) {
-        trace!("running");
+        log::trace!("running");
 
         let delta = data.delta_time.clone();
         let mut extract_complete = Vec::<Entity>::new();
@@ -37,21 +38,24 @@ impl<'a> System<'a> for ActionExtractSystem {
             let amount_extracted = delta.as_f32();
 
             let ware_id = match &active_action.0 {
-                Action::Extract { target_id: _, ware_id } => *ware_id,
+                Action::Extract {
+                    target_id: _,
+                    ware_id,
+                } => *ware_id,
                 _other => panic!("{:?} unexpected action type {:?}", entity, active_action),
             };
 
             let amount_added = cargo.add_to_max(ware_id, amount_extracted);
-            trace!(
+            log::trace!(
                 "{:?} extracted {:?} {:?}, cargo now is {:?}/{:?}",
                 entity,
                 amount_extracted,
                 ware_id,
                 cargo.get_current(),
-                cargo.get_max()
+                cargo.get_max(),
             );
             if amount_added < amount_extracted {
-                debug!("{:?} cargo is full, stopping to extract", entity);
+                log::debug!("{:?} cargo is full, stopping to extract", entity);
                 extract_complete.push(entity);
             }
         }

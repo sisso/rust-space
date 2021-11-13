@@ -1,9 +1,7 @@
+use log::{debug, info, log, trace, warn};
 use specs::prelude::*;
 
-
 use super::*;
-
-
 
 ///
 /// Execute actions for each NavigationMoveto without Action
@@ -23,7 +21,7 @@ impl<'a> System<'a> for NavigationSystem {
     type SystemData = NavigationData<'a>;
 
     fn run(&mut self, mut data: NavigationData) {
-        trace!("running");
+        log::trace!("running");
 
         let mut completed = vec![];
         let mut requests = vec![];
@@ -39,9 +37,10 @@ impl<'a> System<'a> for NavigationSystem {
 
         let requests_storage = &mut data.action_request;
         for (entity, action) in requests {
-            debug!(
+            log::debug!(
                 "{:?} navigation requesting next action {:?}",
-                entity, action
+                entity,
+                action,
             );
             requests_storage.insert(entity, action).unwrap();
         }
@@ -49,7 +48,7 @@ impl<'a> System<'a> for NavigationSystem {
         let navigation = &mut data.navigation;
         let navigation_move_to_storage = &mut data.navigation_move_to;
         for entity in completed {
-            debug!("{:?} navigation complete", entity);
+            log::debug!("{:?} navigation complete", entity);
 
             navigation.remove(entity).unwrap();
             navigation_move_to_storage.remove(entity).unwrap();

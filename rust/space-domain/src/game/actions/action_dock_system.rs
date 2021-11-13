@@ -4,7 +4,8 @@ use super::super::locations::*;
 use super::*;
 
 use crate::game::events::{Event, EventKind, Events};
-use std::borrow::{BorrowMut};
+use log::{debug, info, log, trace, warn};
+use std::borrow::BorrowMut;
 
 pub struct DockSystem;
 
@@ -21,7 +22,7 @@ impl<'a> System<'a> for DockSystem {
     type SystemData = DockData<'a>;
 
     fn run(&mut self, mut data: DockData) {
-        trace!("running");
+        log::trace!("running");
 
         let mut processed: Vec<(Entity, Location)> = vec![];
 
@@ -31,7 +32,7 @@ impl<'a> System<'a> for DockSystem {
                 _ => continue,
             };
 
-            debug!("{:?} docked at {:?}", entity, target_id);
+            log::debug!("{:?} docked at {:?}", entity, target_id);
             processed.push((
                 entity,
                 Location::Dock {
@@ -57,8 +58,8 @@ impl<'a> System<'a> for DockSystem {
 mod test {
     use super::super::*;
     use super::*;
-    
-    use crate::test::{test_system};
+
+    use crate::test::test_system;
 
     #[test]
     fn test_dock_system_should_dock() {

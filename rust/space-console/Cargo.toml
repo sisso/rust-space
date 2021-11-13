@@ -6,8 +6,8 @@ edition = "2018"
 
 [dependencies]
 space-domain = { version = "*", path = "../space-domain" }
-space-macros = { version = "*", path = "../space-macros" }
 tui = "0.6.*"
 termion = "*"
 rand = "0.7"
-
+log="0.4.*"
+env_logger="0.9.*"

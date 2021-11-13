@@ -7,6 +7,7 @@ use crate::game::sectors::Jump;
 use std::borrow::BorrowMut;
 
 pub struct ActionJumpSystem;
+use log::{debug, info, log, trace, warn};
 
 #[derive(SystemData)]
 pub struct ActionJumpData<'a> {
@@ -24,7 +25,7 @@ impl<'a> System<'a> for ActionJumpSystem {
     type SystemData = ActionJumpData<'a>;
 
     fn run(&mut self, mut data: ActionJumpData) {
-        trace!("running");
+        log::trace!("running");
 
         let total_time: TotalTime = *data.total_time;
 
@@ -36,9 +37,10 @@ impl<'a> System<'a> for ActionJumpSystem {
             let jump_id = match action.get_action() {
                 Action::Jump { jump_id } => jump_id.clone(),
                 other => {
-                    warn!(
+                    log::warn!(
                         "{:?} has jump action component but action {:?} is not jump",
-                        entity, other
+                        entity,
+                        other,
                     );
                     continue;
                 }
@@ -49,10 +51,10 @@ impl<'a> System<'a> for ActionJumpSystem {
                     completed.push((entity, jump_id));
                 }
                 Some(_) => {
-                    trace!("{:?} jumping", entity);
+                    log::trace!("{:?} jumping", entity);
                 }
                 None => {
-                    debug!("{:?} start to jump", entity);
+                    log::debug!("{:?} start to jump", entity);
                     action_jump.complete_time = Some(total_time.add(ACTION_JUMP_TOTAL_TIME));
                 }
             }
@@ -65,9 +67,11 @@ impl<'a> System<'a> for ActionJumpSystem {
         for (entity, jump_id) in completed {
             let jump = data.jumps.get(jump_id).unwrap();
 
-            debug!(
+            log::debug!(
                 "{:?} jump complete to sector {:?} at position {:?}",
-                entity, jump.target_sector_id, jump.target_pos,
+                entity,
+                jump.target_sector_id,
+                jump.target_pos,
             );
 
             data.locations

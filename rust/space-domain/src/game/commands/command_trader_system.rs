@@ -8,6 +8,7 @@ use crate::game::order::Orders;
 use crate::game::wares::{Cargo, Cargos, WareId};
 use crate::utils;
 use crate::utils::{DeltaTime, TotalTime};
+use log::{debug, info, log, trace, warn};
 use rand::RngCore;
 use specs::prelude::*;
 use std::borrow::{Borrow, BorrowMut};
@@ -32,7 +33,7 @@ impl<'a> System<'a> for CommandTradeSystem {
     type SystemData = CommandTradeData<'a>;
 
     fn run(&mut self, mut data: Self::SystemData) {
-        trace!("running");
+        log::trace!("running");
         let sectors_index = &data.sector_index;
 
         let mut deliver_targets: Vec<ObjId> = vec![];
@@ -151,9 +152,11 @@ impl<'a> System<'a> for CommandTradeSystem {
 
                     let wares = orders.get(target_id).unwrap().wares_provider();
 
-                    debug!(
+                    log::debug!(
                         "{:?} found station {:?} to pickup {:?}",
-                        entity, target_id, wares
+                        entity,
+                        target_id,
+                        wares,
                     );
 
                     *command = Command::Trade(TradeState::PickUp { target_id, wares });
@@ -162,9 +165,10 @@ impl<'a> System<'a> for CommandTradeSystem {
                     let wait_time = (rnd.next_u32() % 1000) as f32 / 1000.0;
                     let deadline = total_time.add(DeltaTime(wait_time));
                     *command = Command::Trade(TradeState::Delay { deadline });
-                    debug!(
+                    log::debug!(
                         "{:?} can not find a station to pickup, setting wait time of {:?} seconds",
-                        entity, wait_time
+                        entity,
+                        wait_time,
                     );
                 }
             }
@@ -231,17 +235,19 @@ impl<'a> System<'a> for CommandTradeSystem {
 
                     assert!(!wares.is_empty());
 
-                    debug!(
+                    log::debug!(
                         "{:?} found station {:?} to deliver {:?}",
-                        entity, target_id, wares
+                        entity,
+                        target_id,
+                        wares,
                     );
 
                     *command = Command::Trade(TradeState::Deliver { target_id, wares });
                 }
                 None => {
-                    warn!(
+                    log::warn!(
                         "{:?} can not find a station to deliver, discarding cargo",
-                        entity
+                        entity,
                     );
                     discard_cargo.add(entity.id());
                 }
@@ -265,18 +271,22 @@ impl<'a> System<'a> for CommandTradeSystem {
             if location.as_docked() == Some(target_id) {
                 let transfer = Cargos::move_only(&mut data.cargos, entity, target_id, wares);
                 if transfer.moved.is_empty() {
-                    warn!("{:?} fail to deliver wares {:?} to station {:?}, trader cargo is {:?}, station cargo is {:?}", entity, wares, target_id, data.cargos.get(entity), data.cargos.get(target_id));
+                    log::warn!("{:?} fail to deliver wares {:?} to station {:?}, trader cargo is {:?}, station cargo is {:?}", entity, wares, target_id, data.cargos.get(entity), data.cargos.get(target_id));
                     back_to_idle.add(entity.id());
                 } else {
-                    info!(
+                    log::info!(
                         "{:?} deliver wares {:?} to station {:?}",
-                        entity, transfer, target_id
+                        entity,
+                        transfer,
+                        target_id,
                     );
                 }
             } else {
-                debug!(
+                log::debug!(
                     "{:?} navigating to deliver wares {:?} at station {:?}",
-                    entity, wares, target_id
+                    entity,
+                    wares,
+                    target_id,
                 );
                 data.nav_request
                     .borrow_mut()
@@ -302,24 +312,28 @@ impl<'a> System<'a> for CommandTradeSystem {
             if location.as_docked() == Some(target_id) {
                 let transfer = Cargos::move_only(&mut data.cargos, target_id, entity, wares);
                 if transfer.moved.is_empty() {
-                    info!(
+                    log::info!(
                         "{:?} fail to take wares {:?} from station {:?}, station cargo is {:?}",
                         entity,
                         wares,
                         target_id,
-                        data.cargos.get(target_id)
+                        data.cargos.get(target_id),
                     );
                     back_to_idle.add(entity.id());
                 } else {
-                    info!(
+                    log::info!(
                         "{:?} take wares {:?} from station {:?}",
-                        entity, transfer, target_id
+                        entity,
+                        transfer,
+                        target_id,
                     );
                 }
             } else {
-                debug!(
+                log::debug!(
                     "{:?} navigating to pick wares {:?} at station {:?}",
-                    entity, wares, target_id
+                    entity,
+                    wares,
+                    target_id,
                 );
                 data.nav_request
                     .borrow_mut()
@@ -330,12 +344,12 @@ impl<'a> System<'a> for CommandTradeSystem {
 
         // switch back to idle
         for (entity, _, command) in (&*data.entities, back_to_idle, &mut data.commands).join() {
-            info!("{:?} command set to trade idle", entity);
+            log::info!("{:?} command set to trade idle", entity);
             *command = Command::trade();
         }
 
         for (_, entity, cargo) in (discard_cargo, &*data.entities, &mut data.cargos).join() {
-            info!("{:?} discarding cargo", entity);
+            log::info!("{:?} discarding cargo", entity);
             cargo.clear();
         }
     }
@@ -449,7 +463,7 @@ mod test {
             sector_id,
         };
 
-        debug!("setup scenery {:?}", scenery);
+        log::debug!("setup scenery {:?}", scenery);
 
         scenery
     }

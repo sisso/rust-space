@@ -104,10 +104,10 @@ impl Game {
         self.total_time = self.total_time.add(delta_time);
         self.world.insert(delta_time);
         self.world.insert(self.total_time);
-        info!(
+        log::info!(
             "tick delta {} total {}",
             delta_time.as_f32(),
-            self.total_time.as_f64()
+            self.total_time.as_f64(),
         );
 
         // update systems
@@ -125,7 +125,7 @@ impl Game {
     pub fn load(&mut self, _load: &mut impl Load) {}
 
     pub fn reindex_sectors(&mut self) {
-        info!("reindex_sectors");
+        log::info!("reindex_sectors");
         sectors::update_sectors_index(&mut self.world);
     }
 

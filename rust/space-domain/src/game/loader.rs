@@ -18,6 +18,7 @@ use crate::game::wares::{Cargo, WareAmount, WareId};
 use crate::game::{sectors, Game};
 use crate::specs_extras::*;
 use crate::utils::{DeltaTime, Position, Speed, V2};
+use log::{debug, info, log, trace, warn};
 
 pub struct Loader {}
 
@@ -422,13 +423,17 @@ impl Loader {
         events.push(Event::new(jump_from_id, EventKind::Add));
         events.push(Event::new(jump_to_id, EventKind::Add));
 
-        info!(
+        log::info!(
             "{:?} creating jump from {:?} to {:?}",
-            jump_from_id, from_sector_id, to_sector_id
+            jump_from_id,
+            from_sector_id,
+            to_sector_id,
         );
-        info!(
+        log::info!(
             "{:?} creating jump from {:?} to {:?}",
-            jump_to_id, to_sector_id, from_sector_id
+            jump_to_id,
+            to_sector_id,
+            from_sector_id,
         );
 
         (jump_from_id, jump_to_id)
@@ -516,7 +521,7 @@ impl Loader {
 
         let entity = builder.build();
 
-        info!("add_object {:?} from {:?}", entity, new_obj);
+        log::info!("add_object {:?} from {:?}", entity, new_obj);
 
         let events = &mut world.write_resource::<Events>();
         events.push(Event::new(entity, EventKind::Add));

@@ -1,5 +1,6 @@
 use crate::game::actions::ActionProgress;
 use crate::utils::TotalTime;
+use log::{debug, info, log, trace, warn};
 use specs::prelude::*;
 use std::borrow::BorrowMut;
 
@@ -16,14 +17,14 @@ impl<'a> System<'a> for ActionProgressSystem {
     type SystemData = ActionProgressData<'a>;
 
     fn run(&mut self, mut data: ActionProgressData) {
-        trace!("running");
+        log::trace!("running");
 
         let now = data.total_time.clone();
         let mut completed = vec![];
 
         for (entity, action) in (&*data.entities, &data.action_progress).join() {
             if now.is_after(action.complete_time) {
-                debug!("{:?} complete action progress", entity);
+                log::debug!("{:?} complete action progress", entity);
                 completed.push(entity);
             }
         }

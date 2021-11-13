@@ -250,12 +250,12 @@ impl Cargos {
         let cargo_to = cargos.get(to_id).expect("Deliver cargo not found");
         let transfer = CargoTransfer::transfer_impl(cargo_from, cargo_to, wares);
 
-        trace!(
+        log::trace!(
             "move wares {:?} from {:?} to {:?}, transfer is {:?}",
             wares,
             cargo_from,
             cargo_to,
-            transfer
+            transfer,
         );
 
         let cargo_from = cargos.get_mut(from_id).expect("Entity cargo not found");

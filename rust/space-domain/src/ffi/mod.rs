@@ -5,6 +5,7 @@ use crate::game::Game;
 use crate::space_outputs_generated::space_data;
 use crate::utils::{DeltaTime, V2};
 use flatbuffers::FlatBufferBuilder;
+use log::{debug, info, log, trace, warn};
 use specs::prelude::*;
 
 use crate::ffi::ffi_output_system::FfiOutputSystem;
@@ -77,7 +78,7 @@ impl FFIApi {
         F: FnOnce(Vec<u8>),
     {
         if !self.game.world.has_value::<FfiOutpusBuilder>() {
-            warn!("fail to get ffi outputs, no FfiOutpusBuilder");
+            log::warn!("fail to get ffi outputs, no FfiOutpusBuilder");
             return false;
         }
 

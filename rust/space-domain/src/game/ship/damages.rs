@@ -5,6 +5,7 @@ use rand::{Rng, RngCore};
 use crate::game::ship::ship_combat::CombatLog;
 
 use super::ship_internals::*;
+use log::{debug, info, log, trace, warn};
 
 #[derive(Clone, Debug)]
 pub struct DamageToApply {
@@ -67,7 +68,7 @@ fn apply_damage(
         ArmorIndex(index),
         armor_width,
     );
-    //        info!("combat", &format!("{:?} check damage at {:?}", damage.target_id, damage));
+    //        log::info!("combat", &format!("{:?} check damage at {:?}", damage.target_id, damage));
     for damage_index in damage_indexes {
         let hull_damage = ship_apply_damage(logs, ship, damage_index);
         if hull_damage {
@@ -91,7 +92,11 @@ fn apply_damage(
 
 fn wreck_check(total_hull: Hp, total_damage: Damage) -> bool {
     if total_hull.0 / 2 > total_damage.0 {
-        debug!(target: "combat", "wreck check not require, hp: {:?} / 2 > damage: {:?}", total_hull, total_damage);
+        log::debug!(
+            "combat - wreck check not require, hp: {:?} / 2 > damage: {:?}",
+            total_hull,
+            total_damage
+        );
         false
     } else {
         let ration = total_damage.0 as f32 / total_hull.0 as f32;
@@ -99,10 +104,18 @@ fn wreck_check(total_hull: Hp, total_damage: Damage) -> bool {
         let mut rng = rand::thread_rng();
         let dice: f32 = rng.gen();
         if chance >= dice {
-            debug!(target: "combat", "wreck check success, ship destroy chance: {:?} >= dice: {:?}, ", chance, dice);
+            log::debug!(
+                "combat - wreck check success, ship destroy chance: {:?} >= dice: {:?}, ",
+                chance,
+                dice
+            );
             true
         } else {
-            debug!(target: "combat", "wreck check fail, ship still functional chance: {:?} >= dice: {:?}, ", chance, dice);
+            log::debug!(
+                "combat - wreck check fail, ship still functional chance: {:?} >= dice: {:?}, ",
+                chance,
+                dice
+            );
             false
         }
     }
@@ -203,7 +216,7 @@ fn ship_apply_damage(
     let mut i = damage_index;
     for _layer in 0..ship.spec.armor.height {
         if !ship.armor_damage.contains(&i) {
-            //                info!("combat", &format!("{:?} check damage at {:?}/{:?} hit armor", ship.id, damage_index, layer));
+            //                log::info!("combat", &format!("{:?} check damage at {:?}/{:?} hit armor", ship.id, damage_index, layer));
             ship.armor_damage.insert(i);
             return false;
         }
@@ -211,7 +224,7 @@ fn ship_apply_damage(
         i = ArmorIndex(i.0 + ship.spec.armor.width);
     }
 
-    //        info!("combat", &format!("{:?} check damage at {:?}:{:?} hit hull", ship.id, damage_index, ship.spec.armor.height));
+    //        log::info!("combat", &format!("{:?} check damage at {:?}:{:?} hit hull", ship.id, damage_index, ship.spec.armor.height));
     true
 }
 
@@ -224,13 +237,13 @@ fn ship_apply_hulldamage(
     let mut rng = rand::thread_rng();
     let mut hit = rng.gen_range(0..ship.spec.component_table.total as i32);
 
-    //        Log::debug("combat", &format!("{:?} component table, total {:?}, hit {:?}: {:?}", ship.id, ship.spec.component_table.total, hit, ship.spec.component_table));
+    //        log::debug!("combat", &format!("{:?} component table, total {:?}, hit {:?}: {:?}", ship.id, ship.spec.component_table.total, hit, ship.spec.component_table));
 
     for (component_id, width) in ship.spec.component_table.sequence.iter() {
         hit -= *width as i32;
 
         if hit <= 0 {
-            //                Log::debug("combat", &format!("{:?} hull hit at component {:?}", ship.id, component_id));
+            //                log::debug!("combat", &format!("{:?} hull hit at component {:?}", ship.id, component_id));
 
             let total_damage = ship
                 .component_damage
