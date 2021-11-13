@@ -1,9 +1,9 @@
-use log::{debug, info, log, trace, warn};
+
 use shred::World;
 use specs::prelude::*;
 use specs_derive::*;
 use std::borrow::{Borrow, BorrowMut};
-use std::collections::HashMap;
+
 use std::time::Instant;
 
 use crate::game::locations::Location;
@@ -219,7 +219,7 @@ pub fn find_path<'a>(
 }
 
 pub fn find_path_raw<'a>(
-    entities: &Entities<'a>,
+    _entities: &Entities<'a>,
     sectors: &ReadStorage<'a, Sector>,
     jumps: &ReadStorage<'a, Jump>,
     locations: &ReadStorage<'a, Location>,
@@ -391,13 +391,13 @@ mod test {
     use super::test_scenery::setup_sector_scenery;
     use crate::game::events::Events;
     use crate::game::locations::Location;
-    use crate::game::objects::ObjId;
+    
     use crate::game::sectors::{Jump, PathLeg, Sector, SectorId};
     use crate::utils::V2;
-    use env_logger::TimestampPrecision::Seconds;
+    
     use specs::prelude::*;
-    use std::borrow::Borrow;
-    use std::time::{Duration, Instant};
+    
+    use std::time::{Instant};
 
     #[test]
     fn test_find_path_same_sector() {

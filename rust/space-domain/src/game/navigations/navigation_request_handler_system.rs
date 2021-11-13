@@ -4,7 +4,7 @@ use super::super::locations::*;
 use super::*;
 use crate::game::sectors::{Jump, Sector};
 use crate::game::{navigations, SYSTEM_TIMEOUT};
-use log::{debug, info, log, trace, warn};
+
 use std::borrow::Borrow;
 
 ///

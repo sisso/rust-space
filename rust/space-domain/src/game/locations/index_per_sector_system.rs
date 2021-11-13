@@ -4,7 +4,7 @@ use crate::game::extractables::Extractable;
 use shred::{ResourceId, SystemData, World, Write};
 use specs::prelude::*;
 
-use log::{debug, info, log, trace, warn};
+
 use std::borrow::BorrowMut;
 
 /// Index entities to provide fast look up like:

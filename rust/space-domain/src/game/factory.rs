@@ -3,7 +3,7 @@ use crate::game::{GameInitContext, RequireInitializer};
 use crate::utils::{DeltaTime, TotalTime};
 use specs::prelude::*;
 
-use log::{debug, info, log, trace, warn};
+
 #[derive(Debug, Clone)]
 pub struct Receipt {
     pub input: Vec<WareAmount>,

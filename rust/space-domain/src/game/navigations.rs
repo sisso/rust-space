@@ -6,14 +6,14 @@ use crate::game::objects::ObjId;
 use crate::game::sectors::{Jump, Sector, SectorId};
 use crate::game::{GameInitContext, RequireInitializer};
 use crate::utils::Position;
-use log::{debug, info, log, trace, warn};
+
 use specs::prelude::*;
 
 use crate::game::locations::Location;
 use specs::Entity;
 use specs_derive::*;
 use std::collections::VecDeque;
-use std::time::Instant;
+
 
 mod navigation_request_handler_system;
 mod navigation_system;

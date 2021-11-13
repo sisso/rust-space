@@ -1,6 +1,6 @@
 extern crate space_domain;
 
-use log::info;
+
 use space_domain::ffi::FFIApi;
 use std::time::{Duration, Instant};
 

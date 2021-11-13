@@ -5,7 +5,7 @@ use rand::{Rng, RngCore};
 use crate::game::ship::ship_combat::CombatLog;
 
 use super::ship_internals::*;
-use log::{debug, info, log, trace, warn};
+
 
 #[derive(Clone, Debug)]
 pub struct DamageToApply {

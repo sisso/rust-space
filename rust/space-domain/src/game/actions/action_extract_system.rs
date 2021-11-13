@@ -2,7 +2,7 @@ use crate::game::actions::{Action, ActionActive, ActionExtract};
 use crate::game::extractables::Extractable;
 use crate::game::wares::Cargo;
 use crate::utils::DeltaTime;
-use log::{debug, info, log, trace, warn};
+
 use specs::prelude::*;
 use std::borrow::BorrowMut;
 

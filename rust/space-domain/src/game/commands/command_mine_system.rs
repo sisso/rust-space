@@ -25,7 +25,7 @@ use crate::game::order::Orders;
 use crate::game::wares::{Cargo, WareId};
 use std::borrow::BorrowMut;
 
-use log::{debug, info, log, trace, warn};
+
 
 pub struct CommandMineSystem;
 

@@ -7,7 +7,7 @@ use crate::utils::Speed;
 use super::damages;
 use super::ship_internals::*;
 use crate::game::ship::damages::DamageToApply;
-use log::{debug, info, log, trace, warn};
+
 
 #[derive(Clone, Debug)]
 pub enum CombatLog {
