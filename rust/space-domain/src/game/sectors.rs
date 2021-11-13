@@ -1,4 +1,3 @@
-
 use shred::World;
 use specs::prelude::*;
 use specs_derive::*;
@@ -228,7 +227,6 @@ pub fn find_path_raw<'a>(
     algorithm: u8,
 ) -> Option<Vec<PathLeg>> {
     use itertools::Itertools;
-    use pathfinding;
     let start = Instant::now();
 
     if from == to {
@@ -391,13 +389,13 @@ mod test {
     use super::test_scenery::setup_sector_scenery;
     use crate::game::events::Events;
     use crate::game::locations::Location;
-    
+
     use crate::game::sectors::{Jump, PathLeg, Sector, SectorId};
     use crate::utils::V2;
-    
+
     use specs::prelude::*;
-    
-    use std::time::{Instant};
+
+    use std::time::Instant;
 
     #[test]
     fn test_find_path_same_sector() {

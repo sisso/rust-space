@@ -16,9 +16,13 @@ public struct SectorNew : IFlatbufferObject
   public SectorNew __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
   public uint Id { get { return __p.bb.GetUint(__p.bb_pos + 0); } }
+  public space_data.V2 Coords { get { return (new space_data.V2()).__assign(__p.bb_pos + 4, __p.bb); } }
 
-  public static Offset<space_data.SectorNew> CreateSectorNew(FlatBufferBuilder builder, uint Id) {
-    builder.Prep(4, 4);
+  public static Offset<space_data.SectorNew> CreateSectorNew(FlatBufferBuilder builder, uint Id, float coords_X, float coords_Y) {
+    builder.Prep(4, 12);
+    builder.Prep(4, 8);
+    builder.PutFloat(coords_Y);
+    builder.PutFloat(coords_X);
     builder.PutUint(Id);
     return new Offset<space_data.SectorNew>(builder.Offset);
   }

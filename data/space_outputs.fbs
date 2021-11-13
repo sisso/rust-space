@@ -9,7 +9,7 @@ struct V2 {
 
 struct SectorNew {
   id: uint;
-}
+  coords: V2;}
 
 struct JumpNew {
   id: uint;

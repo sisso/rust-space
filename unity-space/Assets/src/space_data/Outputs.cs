@@ -30,7 +30,7 @@ public struct Outputs : IFlatbufferObject
   public int EntitiesDockLength { get { int o = __p.__offset(12); return o != 0 ? __p.__vector_len(o) : 0; } }
   public space_data.EntityUndock? EntitiesUndock(int j) { int o = __p.__offset(14); return o != 0 ? (space_data.EntityUndock?)(new space_data.EntityUndock()).__assign(__p.__vector(o) + j * 16, __p.bb) : null; }
   public int EntitiesUndockLength { get { int o = __p.__offset(14); return o != 0 ? __p.__vector_len(o) : 0; } }
-  public space_data.SectorNew? Sectors(int j) { int o = __p.__offset(16); return o != 0 ? (space_data.SectorNew?)(new space_data.SectorNew()).__assign(__p.__vector(o) + j * 4, __p.bb) : null; }
+  public space_data.SectorNew? Sectors(int j) { int o = __p.__offset(16); return o != 0 ? (space_data.SectorNew?)(new space_data.SectorNew()).__assign(__p.__vector(o) + j * 12, __p.bb) : null; }
   public int SectorsLength { get { int o = __p.__offset(16); return o != 0 ? __p.__vector_len(o) : 0; } }
   public space_data.JumpNew? Jumps(int j) { int o = __p.__offset(18); return o != 0 ? (space_data.JumpNew?)(new space_data.JumpNew()).__assign(__p.__vector(o) + j * 28, __p.bb) : null; }
   public int JumpsLength { get { int o = __p.__offset(18); return o != 0 ? __p.__vector_len(o) : 0; } }
@@ -70,7 +70,7 @@ public struct Outputs : IFlatbufferObject
   public static void AddEntitiesUndock(FlatBufferBuilder builder, VectorOffset entitiesUndockOffset) { builder.AddOffset(5, entitiesUndockOffset.Value, 0); }
   public static void StartEntitiesUndockVector(FlatBufferBuilder builder, int numElems) { builder.StartVector(16, numElems, 4); }
   public static void AddSectors(FlatBufferBuilder builder, VectorOffset sectorsOffset) { builder.AddOffset(6, sectorsOffset.Value, 0); }
-  public static void StartSectorsVector(FlatBufferBuilder builder, int numElems) { builder.StartVector(4, numElems, 4); }
+  public static void StartSectorsVector(FlatBufferBuilder builder, int numElems) { builder.StartVector(12, numElems, 4); }
   public static void AddJumps(FlatBufferBuilder builder, VectorOffset jumpsOffset) { builder.AddOffset(7, jumpsOffset.Value, 0); }
   public static void StartJumpsVector(FlatBufferBuilder builder, int numElems) { builder.StartVector(28, numElems, 4); }
   public static Offset<space_data.Outputs> EndOutputs(FlatBufferBuilder builder) {

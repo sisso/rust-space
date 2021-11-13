@@ -56,8 +56,10 @@ impl<'a> System<'a> for FfiOutputSystem {
                 EventKind::Add => {
                     if data.wares.get(entity).is_some() {
                         // ignore for now
-                    } else if data.sectors.get(entity).is_some() {
-                        output.sectors_new.push(SectorNew::new(entity.as_u32()));
+                    } else if let Some(sector) = data.sectors.get(entity) {
+                        output
+                            .sectors_new
+                            .push(SectorNew::new(entity.as_u32(), &sector.coords.into()));
                     } else if let Some(jump) = data.jumps.get(entity) {
                         let jump_location = data.location.get(entity).unwrap().as_space().unwrap();
 
