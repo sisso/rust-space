@@ -4,6 +4,7 @@ use crate::game::extractables::Extractable;
 use crate::game::locations::Location;
 use crate::game::sectors::{Jump, Sector};
 use crate::game::station::Station;
+use crate::game::wares::Ware;
 use crate::space_outputs_generated::space_data::{EntityKind, JumpNew, SectorNew};
 use crate::utils::IdAsU32Support;
 use log::{debug, info, log, trace, warn};
@@ -22,6 +23,7 @@ pub struct FfiOutputData<'a> {
     station: ReadStorage<'a, Station>,
     sectors: ReadStorage<'a, Sector>,
     jumps: ReadStorage<'a, Jump>,
+    wares: ReadStorage<'a, Ware>,
     extractable: ReadStorage<'a, Extractable>,
 }
 
@@ -52,8 +54,9 @@ impl<'a> System<'a> for FfiOutputSystem {
 
             match &event.kind {
                 EventKind::Add => {
-                    // TODO: add ware
-                    if data.sectors.get(entity).is_some() {
+                    if data.wares.get(entity).is_some() {
+                        // ignore for now
+                    } else if data.sectors.get(entity).is_some() {
                         output.sectors_new.push(SectorNew::new(entity.as_u32()));
                     } else if let Some(jump) = data.jumps.get(entity) {
                         let jump_location = data.location.get(entity).unwrap().as_space().unwrap();
@@ -66,13 +69,14 @@ impl<'a> System<'a> for FfiOutputSystem {
                             &jump.target_pos.into(),
                         ));
                     } else {
+                        let entity_kind = FfiOutputSystem::resolve_entity_kind(
+                            entity,
+                            &data.station,
+                            &data.extractable,
+                        );
+
                         match data.location.get(entity) {
                             Some(Location::Space { pos, sector_id }) => {
-                                let entity_kind = FfiOutputSystem::resolve_entity_kind(
-                                    entity,
-                                    &data.station,
-                                    &data.extractable,
-                                );
                                 output.push_entity_new_in_space(
                                     entity.id(),
                                     entity_kind,
@@ -81,11 +85,6 @@ impl<'a> System<'a> for FfiOutputSystem {
                                 );
                             }
                             Some(Location::Dock { docked_id }) => {
-                                let entity_kind = FfiOutputSystem::resolve_entity_kind(
-                                    entity,
-                                    &data.station,
-                                    &data.extractable,
-                                );
                                 output.push_entity_new_docked(
                                     entity.id(),
                                     entity_kind,
