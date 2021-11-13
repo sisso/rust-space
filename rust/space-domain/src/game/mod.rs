@@ -41,6 +41,9 @@ pub mod shipyard;
 pub mod station;
 pub mod wares;
 
+pub const FRAME_TIME: std::time::Duration = std::time::Duration::from_millis(17);
+pub const SYSTEM_TIMEOUT: std::time::Duration = std::time::Duration::from_millis(1);
+
 // TODO: add tick to game field
 pub struct Game {
     pub total_time: TotalTime,
@@ -104,7 +107,7 @@ impl Game {
         self.total_time = self.total_time.add(delta_time);
         self.world.insert(delta_time);
         self.world.insert(self.total_time);
-        log::info!(
+        log::debug!(
             "tick delta {} total {}",
             delta_time.as_f32(),
             self.total_time.as_f64(),

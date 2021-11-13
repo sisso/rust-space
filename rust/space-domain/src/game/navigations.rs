@@ -85,8 +85,6 @@ pub fn create_plan<'a>(
     to_pos: Position,
     is_docked: bool,
 ) -> NavigationPlan {
-    let start = Instant::now();
-
     let mut path = VecDeque::new();
     if is_docked {
         path.push_back(Action::Undock);
@@ -116,9 +114,6 @@ pub fn create_plan<'a>(
 
     path.push_back(Action::MoveTo { pos: to_pos });
 
-    let plan_complete = Instant::now();
-    log::info!("create plan find_path {:?}", plan_complete - start);
-
     return NavigationPlan { path };
 }
 
@@ -129,7 +124,7 @@ mod test {
     use crate::game::sectors::test_scenery::*;
 
     #[test]
-    fn create_plan() {
+    fn create_plant_test() {
         let mut world = World::new();
 
         let sector_scenery = setup_sector_scenery(&mut world);

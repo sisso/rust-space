@@ -2,8 +2,8 @@ use specs::prelude::*;
 
 use super::super::locations::*;
 use super::*;
-use crate::game::navigations;
 use crate::game::sectors::{Jump, Sector};
+use crate::game::{navigations, SYSTEM_TIMEOUT};
 use log::{debug, info, log, trace, warn};
 use std::borrow::Borrow;
 
@@ -30,6 +30,8 @@ impl<'a> System<'a> for NavRequestHandlerSystem {
 
         let mut processed_requests = vec![];
         let locations = data.locations.borrow();
+
+        let timeout = commons::TimeDeadline::new(SYSTEM_TIMEOUT);
 
         for (entity, request, location) in (&*data.entities, &data.requests, &data.locations).join()
         {
@@ -73,6 +75,11 @@ impl<'a> System<'a> for NavRequestHandlerSystem {
             data.navigation_move_to
                 .insert(entity, NavigationMoveTo { target_id, plan })
                 .unwrap();
+
+            if timeout.is_timeout() {
+                log::warn!("navigation request timeout");
+                break;
+            }
         }
 
         let request_storage = &mut data.requests;

@@ -1,5 +1,7 @@
 use std::collections::HashSet;
 
+use commons;
+use rand::prelude::*;
 use specs::prelude::*;
 
 use crate::game::commands::Command;
@@ -41,9 +43,7 @@ pub struct RandomMapCfg {
 }
 
 impl Loader {
-    pub fn load_random_map(game: &mut Game, cfg: &RandomMapCfg) {
-        use commons::random_grid;
-        use rand::prelude::*;
+    pub fn load_random(game: &mut Game, cfg: &RandomMapCfg) {
         let mut rng: StdRng = SeedableRng::seed_from_u64(cfg.seed);
 
         let sector_kind_empty = 0;
@@ -93,6 +93,9 @@ impl Loader {
         };
 
         // create sectors
+        generate_random_map(world, cfg.size, rng.gen());
+
+        // add stations
         {
             fn sector_pos<R: rand::Rng>(rng: &mut R) -> V2 {
                 V2::new(
@@ -101,88 +104,45 @@ impl Loader {
                 )
             }
 
-            let rgcfg = random_grid::RandomGridCfg {
-                width: cfg.size,
-                height: cfg.size,
-                portal_prob: 0.5,
-                deep_levels: 1,
-            };
-
-            let grids = random_grid::RandomGrid::new(&rgcfg, &mut rng);
-            println!("{:?}", grids);
-            let grid = &grids.levels[0];
-
-            let mut sectors_by_index = vec![];
-
-            for i in 0..grid.len() {
-                // create sector
-                let (x, y) = grid.get_coords(i);
-                let pos = V2::new(x as f32, y as f32);
-                let sector_id = Loader::new_sector(world, pos, format!("sector {}", i));
-                sectors_by_index.push(sector_id);
+            let mut sectors_id = vec![];
+            {
+                let entities = world.entities();
+                let sectors_repo = world.read_storage::<Sector>();
+                for (sector_id, _) in (&entities, &sectors_repo).join() {
+                    sectors_id.push(sector_id);
+                }
             }
 
-            // add portals
-            {
-                let mut cached: HashSet<(usize, usize)> = Default::default();
-
-                for index in 0..grid.len() {
-                    for other in grid.neighbors_connected(index) {
-                        if !cached.insert((index, other)) {
-                            continue;
-                        }
-
-                        Loader::new_jump(
+            for sector_id in sectors_id {
+                match commons::prob::select_weighted(&mut rng, &sector_kind_prob) {
+                    Some(i) if *i == sector_kind_asteroid => {
+                        Loader::new_asteroid(world, sector_id, sector_pos(&mut rng), ware_ore_id);
+                    }
+                    Some(i) if *i == sector_kind_shipyard => {
+                        Loader::new_shipyard(
                             world,
-                            sectors_by_index[index],
+                            sector_id,
                             sector_pos(&mut rng),
-                            sectors_by_index[other],
-                            sector_pos(&mut rng),
+                            ware_components_id,
                         );
                     }
-                }
-
-                sectors::update_sectors_index(world);
-            }
-
-            // add stations
-            {
-                for sector_id in &sectors_by_index {
-                    match commons::prob::select_weighted(&mut rng, &sector_kind_prob) {
-                        Some(i) if *i == sector_kind_asteroid => {
-                            Loader::new_asteroid(
-                                world,
-                                *sector_id,
-                                sector_pos(&mut rng),
-                                ware_ore_id,
-                            );
-                        }
-                        Some(i) if *i == sector_kind_shipyard => {
-                            Loader::new_shipyard(
-                                world,
-                                *sector_id,
-                                sector_pos(&mut rng),
-                                ware_components_id,
-                            );
-                        }
-                        Some(i) if *i == sector_kind_factory => {
-                            Loader::new_factory(
-                                world,
-                                *sector_id,
-                                sector_pos(&mut rng),
-                                receipt_process_ores.clone(),
-                            );
-                        }
-                        Some(i) if *i == sector_kind_power => {
-                            Loader::new_factory(
-                                world,
-                                *sector_id,
-                                sector_pos(&mut rng),
-                                receipt_produce_energy.clone(),
-                            );
-                        }
-                        _ => {}
+                    Some(i) if *i == sector_kind_factory => {
+                        Loader::new_factory(
+                            world,
+                            sector_id,
+                            sector_pos(&mut rng),
+                            receipt_process_ores.clone(),
+                        );
                     }
+                    Some(i) if *i == sector_kind_power => {
+                        Loader::new_factory(
+                            world,
+                            sector_id,
+                            sector_pos(&mut rng),
+                            receipt_produce_energy.clone(),
+                        );
+                    }
+                    _ => {}
                 }
             }
         }
@@ -423,13 +383,13 @@ impl Loader {
         events.push(Event::new(jump_from_id, EventKind::Add));
         events.push(Event::new(jump_to_id, EventKind::Add));
 
-        log::info!(
+        log::debug!(
             "{:?} creating jump from {:?} to {:?}",
             jump_from_id,
             from_sector_id,
             to_sector_id,
         );
-        log::info!(
+        log::debug!(
             "{:?} creating jump from {:?} to {:?}",
             jump_to_id,
             to_sector_id,
@@ -521,7 +481,7 @@ impl Loader {
 
         let entity = builder.build();
 
-        log::info!("add_object {:?} from {:?}", entity, new_obj);
+        log::debug!("add_object {:?} from {:?}", entity, new_obj);
 
         let events = &mut world.write_resource::<Events>();
         events.push(Event::new(entity, EventKind::Add));
@@ -530,10 +490,67 @@ impl Loader {
     }
 }
 
+pub fn generate_random_map(world: &mut World, size: usize, seed: u64) {
+    log::info!("generating random map with seed {}", seed);
+
+    let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
+
+    fn sector_pos<R: rand::Rng>(rng: &mut R) -> V2 {
+        V2::new(
+            (rng.gen_range(0..10) - 5) as f32,
+            (rng.gen_range(0..10) - 5) as f32,
+        )
+    }
+
+    let rgcfg = commons::random_grid::RandomGridCfg {
+        width: size,
+        height: size,
+        portal_prob: 0.5,
+        deep_levels: 1,
+    };
+
+    let grids = commons::random_grid::RandomGrid::new(&rgcfg, &mut rng);
+    log::debug!("{:?}", grids);
+    let grid = &grids.levels[0];
+
+    let mut sectors_by_index = vec![];
+
+    for i in 0..grid.len() {
+        // create sector
+        let (x, y) = grid.get_coords(i);
+        let pos = V2::new(x as f32, y as f32);
+        let sector_id = Loader::new_sector(world, pos, format!("sector {}", i));
+        sectors_by_index.push(sector_id);
+    }
+
+    // add portals
+    {
+        let mut cached: HashSet<(usize, usize)> = Default::default();
+
+        for index in 0..grid.len() {
+            for other in grid.neighbors_connected(index) {
+                if !cached.insert((index, other)) {
+                    continue;
+                }
+
+                Loader::new_jump(
+                    world,
+                    sectors_by_index[index],
+                    sector_pos(&mut rng),
+                    sectors_by_index[other],
+                    sector_pos(&mut rng),
+                );
+            }
+        }
+
+        sectors::update_sectors_index(world);
+    }
+}
+
 #[test]
 pub fn test_random_scenery() {
     let mut game = Game::new();
-    Loader::load_random_map(
+    Loader::load_random(
         &mut game,
         &RandomMapCfg {
             size: 5,

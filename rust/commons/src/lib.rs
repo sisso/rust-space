@@ -1,3 +1,5 @@
+use std::time::{Duration, Instant};
+
 pub mod asciicolors;
 pub mod csv;
 pub mod grid;
@@ -18,4 +20,24 @@ macro_rules! unwrap_or_continue {
             None => continue,
         }
     };
+}
+
+pub struct TimeDeadline(Instant);
+
+impl TimeDeadline {
+    pub fn new(max: Duration) -> Self {
+        TimeDeadline(Instant::now() + max)
+    }
+
+    pub fn is_timeout(&self) -> bool {
+        Instant::now() >= self.0
+    }
+}
+
+#[test]
+fn test_deadline() {
+    let deadline = TimeDeadline::new(Duration::from_micros(90));
+    assert!(!deadline.is_timeout());
+    std::thread::sleep(Duration::from_micros(100));
+    assert!(deadline.is_timeout());
 }

@@ -53,7 +53,7 @@ impl FFIApi {
     pub fn new_game(&mut self) {
         // Loader::load_advanced_scenery(&mut self.game.world);
         // Loader::load_basic_scenery(&mut self.game);
-        Loader::load_random_map(
+        Loader::load_random(
             &mut self.game,
             &RandomMapCfg {
                 size: 50,

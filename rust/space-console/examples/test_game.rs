@@ -17,7 +17,7 @@ fn main() -> Result<(), std::io::Error> {
     let mut game_api = FFIApi::new();
     game_api.new_game();
 
-    let time_rate = Duration::from_millis(1000 / 60);
+    let time_rate = space_domain::game::FRAME_TIME;
 
     loop {
         let start = Instant::now();
@@ -36,25 +36,25 @@ fn main() -> Result<(), std::io::Error> {
             time_rate - delta
         };
 
-        log::info!(
-            "gui - delta {:?}, wait_time: {:?}, ration: {:?}% usage",
-            delta,
-            wait_time,
-            (100.0 / (time_rate.as_millis() as f64 / delta.as_millis() as f64)) as i32
-        );
-        log::debug!(
-            "    - update {:?}, collect_inputs: {:?}",
-            game_update_time - start,
-            input_time - game_update_time
-        );
-
         if delta < time_rate {
+            log::info!(
+                "main - delta {:?}, wait_time: {:?}, ration: {:?}% usage, update {:?}, collect_inputs: {:?}",
+                delta,
+                wait_time,
+                (100.0 / (time_rate.as_millis() as f64 / delta.as_millis() as f64)) as i32,
+                game_update_time - start,
+                input_time - game_update_time
+            );
+
             std::thread::sleep(wait_time);
         } else {
             log::warn!(
-                "gui - delta {:?}, wait_time: 0.0: missing time frame ofr {:?}",
+                "main - MISSING FRAME - delta {:?}, wait_time: {:?}, ration: {:?}% usage, update {:?}, collect_inputs: {:?}",
                 delta,
-                time_rate
+                wait_time,
+                (100.0 / (time_rate.as_millis() as f64 / delta.as_millis() as f64)) as i32,
+                game_update_time - start,
+                input_time - game_update_time
             );
         }
     }

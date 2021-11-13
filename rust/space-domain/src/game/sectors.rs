@@ -2,7 +2,7 @@ use log::{debug, info, log, trace, warn};
 use shred::World;
 use specs::prelude::*;
 use specs_derive::*;
-use std::borrow::BorrowMut;
+use std::borrow::{Borrow, BorrowMut};
 use std::collections::HashMap;
 use std::time::Instant;
 
@@ -215,27 +215,71 @@ pub fn find_path<'a>(
     from: SectorId,
     to: SectorId,
 ) -> Option<Vec<PathLeg>> {
+    find_path_raw(entities, sectors, jumps, locations, from, to, 0)
+}
+
+pub fn find_path_raw<'a>(
+    entities: &Entities<'a>,
+    sectors: &ReadStorage<'a, Sector>,
+    jumps: &ReadStorage<'a, Jump>,
+    locations: &ReadStorage<'a, Location>,
+    from: SectorId,
+    to: SectorId,
+    algorithm: u8,
+) -> Option<Vec<PathLeg>> {
     use itertools::Itertools;
-    use pathfinding::prelude::bfs;
+    use pathfinding;
+    let start = Instant::now();
 
     if from == to {
         return Some(vec![]);
     }
 
-    let path = bfs(
-        &from,
-        |current| {
-            let sector = sectors.get(*current).unwrap();
-            let jump_cache = sector.jumps_cache.as_ref();
-            let successors: Vec<SectorId> = jump_cache
-                .expect("sector jump cache is empty")
-                .iter()
-                .map(|i| i.to_sector)
-                .collect();
-            successors
-        },
-        |current| *current == to,
-    )?;
+    let mut count = 0;
+    let to_coords = sectors.get(to).unwrap().coords;
+
+    let path: Vec<SectorId> = {
+        if algorithm == 0 {
+            pathfinding::prelude::bfs(
+                &from,
+                |current| {
+                    let sector = sectors.get(*current).unwrap();
+                    let jump_cache = sector.jumps_cache.as_ref();
+                    let successors: Vec<SectorId> = jump_cache
+                        .expect("sector jump cache is empty")
+                        .iter()
+                        .map(|i| i.to_sector)
+                        .collect();
+                    count += 1;
+                    successors
+                },
+                |current| *current == to,
+            )?
+        } else {
+            pathfinding::prelude::fringe(
+                &from,
+                |current| {
+                    let sector = sectors.get(*current).unwrap();
+                    let jump_cache = sector.jumps_cache.as_ref();
+                    let successors: Vec<(SectorId, u32)> = jump_cache
+                        .expect("sector jump cache is empty")
+                        .iter()
+                        .map(|i| (i.to_sector, 1))
+                        .collect();
+                    count += 1;
+                    successors
+                },
+                |current| {
+                    let current_coords = sectors.get(*current).unwrap().coords;
+                    (pathfinding::prelude::absdiff(current_coords.x, to_coords.x)
+                        + pathfinding::prelude::absdiff(current_coords.y, to_coords.y))
+                        as u32
+                },
+                |current| *current == to,
+            )
+            .map(|(path, _cost)| path)?
+        }
+    };
 
     let mut result = vec![];
     for (from, to) in path.into_iter().tuple_windows() {
@@ -266,16 +310,50 @@ pub fn find_path<'a>(
         });
     }
 
+    let plan_complete = Instant::now();
+    let duration = plan_complete - start;
+    if duration > std::time::Duration::from_millis(1) {
+        let from_coords = sectors.borrow().get(from).unwrap().coords;
+
+        log::warn!(
+            "create plan find_path {:?}, number of edges {}, number of query nodes {}, from {:?} to {:?}",
+            duration,
+            result.len(),
+            count,
+            from_coords,
+            to_coords
+        );
+    }
+
     Some(result)
+}
+
+pub fn get_sector_by_coords<'a>(
+    entities: &Entities<'a>,
+    sectors: &ReadStorage<'a, Sector>,
+    coords: &V2,
+) -> Option<Entity> {
+    for (e, s) in (entities, sectors).join() {
+        if s.coords.eq(coords) {
+            return Some(e);
+        }
+    }
+
+    None
 }
 
 #[cfg(test)]
 mod test {
     use super::test_scenery::setup_sector_scenery;
+    use crate::game::events::Events;
     use crate::game::locations::Location;
     use crate::game::objects::ObjId;
     use crate::game::sectors::{Jump, PathLeg, Sector, SectorId};
+    use crate::utils::V2;
+    use env_logger::TimestampPrecision::Seconds;
     use specs::prelude::*;
+    use std::borrow::Borrow;
+    use std::time::{Duration, Instant};
 
     #[test]
     fn test_find_path_same_sector() {
@@ -308,6 +386,50 @@ mod test {
         assert_eq!(sector_scenery.jump_0_to_1_pos, path[0].jump_pos);
         assert_eq!(sector_scenery.jump_1_to_2, path[1].jump_id);
         assert_eq!(sector_scenery.jump_1_to_2_pos, path[1].jump_pos);
+    }
+
+    #[test]
+    fn test_find_path_performance() {
+        env_logger::builder()
+            .filter(None, log::LevelFilter::Warn)
+            .init();
+
+        let mut world = World::new();
+        world.register::<Sector>();
+        world.register::<Location>();
+        world.register::<Jump>();
+        world.insert(Events::default());
+
+        // [2021-11-13T12:45:56Z WARN  space_domain::game::sectors] create plan find_path 2.761989ms
+        // number of edges 87, number of query nodes 1864,
+        // from V2 { x: 12.0, y: 7.0 } to V2 { x: 31.0, y: 45.0 }
+        crate::game::loader::generate_random_map(&mut world, 100, 13801247937784236795);
+
+        let entities = &world.entities();
+        let sectors = &world.read_storage::<Sector>();
+        let jumps = &world.read_storage::<Jump>();
+        let locations = &world.read_storage::<Location>();
+
+        let from = super::get_sector_by_coords(entities, sectors, &V2::new(12.0, 7.0)).unwrap();
+        let to = super::get_sector_by_coords(entities, sectors, &V2::new(31.0, 45.0)).unwrap();
+
+        let mut times = vec![];
+        for alg in vec![0, 1] {
+            let start = Instant::now();
+            super::find_path_raw(entities, sectors, jumps, locations, from, to, alg);
+            let end = Instant::now();
+            times.push(end - start);
+        }
+
+        assert!(
+            times
+                .iter()
+                .filter(|i| **i >= Duration::from_millis(1))
+                .count()
+                == 0,
+            "pathfind took {:?}",
+            times
+        );
     }
 
     fn do_find_path(world: &mut World, from: SectorId, to: SectorId) -> Option<Vec<PathLeg>> {
