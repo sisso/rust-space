@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using System;
 using UnityEngine;
 using FlatBuffers;
+using UnityEngine.EventSystems;
 
 /**
  * Provide user friendly access to native rust code
@@ -14,7 +15,7 @@ namespace core
 {
     public interface EventHandler
     {
-        void AddSector(UInt32 id);
+        void AddSector(UInt32 id, space_data.V2 fromPos);
         void AddJump(UInt32 id, UInt32 fromSectorId, space_data.V2 fromPos, UInt32 toSectorId, space_data.V2 toPos);
         void AddObj(UInt32 id, space_data.EntityKind kind);
         void ObjTeleport(UInt32 id, UInt32 sectorId, space_data.V2 pos);
@@ -242,7 +243,7 @@ namespace core
             for (int i = 0; i < outputs.SectorsLength; i++)
             {
                 var entity = outputs.Sectors(i) ?? throw new NullReferenceException();
-                this.eventHandler.AddSector(entity.Id);
+                this.eventHandler.AddSector(entity.Id, entity.Coords);
             }
 
             for (int i = 0; i < outputs.JumpsLength; i++)

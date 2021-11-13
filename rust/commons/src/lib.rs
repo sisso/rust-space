@@ -41,3 +41,32 @@ fn test_deadline() {
     std::thread::sleep(Duration::from_micros(100));
     assert!(deadline.is_timeout());
 }
+
+#[macro_export]
+macro_rules! debugf {
+    () => (debugf!(""));
+    ($fmt:expr) => (match ::std::fs::OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open("/tmp/debug.log") {
+            Ok(mut file) => {
+                use std::io::Write;
+                file.write_all(format!("{} {} {}\n", $fmt, line!(), file!()).as_bytes()).ok();
+            }
+            Err(e) => {
+                panic!("failed to open log file: {:?}", e)
+            },
+        });
+    ($fmt:expr, $($arg:tt)*) => (match ::std::fs::OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open("/tmp/debug.log") {
+            Ok(mut file) => {
+                use std::io::Write;
+                file.write_all(format!(concat!($fmt, "\n"), $($arg)*).as_bytes()).ok();
+            }
+            Err(_) => {
+                panic!("failed to open log file")
+            },
+        });
+}

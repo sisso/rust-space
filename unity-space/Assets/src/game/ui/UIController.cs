@@ -47,9 +47,12 @@ namespace game.ui {
 
         void resolveInitialSectorId() 
         {
-            // TODO fail if no sector
-            currentSectorId = domain.ListSectors()[0].id.value;
-            hasSectorId = true;
+            var sectors = domain.ListSectors();
+            if (sectors.Count > 0)
+            {
+                currentSectorId = sectors[0].id.value;
+                hasSectorId = true;
+            }
         }
 
     }

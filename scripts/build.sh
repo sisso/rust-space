@@ -3,9 +3,9 @@ set -euo pipefail
 WORK_DIR="$(pwd)"
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 
-$(cd "$WORK_DIR/rust" && cargo build)
+$(cd "$WORK_DIR/rust" && cargo build --release)
 
-source="$WORK_DIR/rust/target/debug/libffi_space.so"
+source="$WORK_DIR/rust/target/release/libffi_space.so"
 
 cp -v $source "$WORK_DIR/unity-space/Assets/Plugins"
 

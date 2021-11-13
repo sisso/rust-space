@@ -21,7 +21,6 @@ use crate::game::{sectors, Game};
 use crate::specs_extras::*;
 use crate::utils::{DeltaTime, Position, Speed, V2};
 
-
 pub struct Loader {}
 
 pub struct BasicScenery {
@@ -229,6 +228,7 @@ impl Loader {
             component_factory_id,
         }
     }
+
     /// Advanced scenery
     pub fn load_advanced_scenery(world: &mut World) {
         // init wares
@@ -533,6 +533,10 @@ pub fn generate_random_map(world: &mut World, size: usize, seed: u64) {
                     continue;
                 }
 
+                if !cached.insert((other, index)) {
+                    continue;
+                }
+
                 Loader::new_jump(
                     world,
                     sectors_by_index[index],
@@ -553,9 +557,9 @@ pub fn test_random_scenery() {
     Loader::load_random(
         &mut game,
         &RandomMapCfg {
-            size: 5,
-            seed: 5,
-            ships: 5,
+            size: 3,
+            seed: 0,
+            ships: 3,
         },
     );
 }

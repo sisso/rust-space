@@ -28,7 +28,7 @@ namespace game.domain
             this.value = value;
         }
     }
-    
+
     /// Hold all game logic in Unity3d
     public class Domain : MonoBehaviour, core.EventHandler
     {
@@ -43,18 +43,24 @@ namespace game.domain
 
         public UIController ui;
 
-        void Start() 
+        void Start()
         {
         }
 
-        public List<GenericObject> ListSectors() 
+        public List<GenericObject> ListSectors()
         {
             return sectors;
         }
 
-        public List<uint> ListObjectsAtSector(uint sectorId) 
+        public List<uint> ListObjectsAtSector(uint sectorId)
         {
             return new List<uint>();
+        }
+
+        Vector3 GetSectorPos(V2 pos)
+        {
+            var scale = 15f;
+            return new Vector3(pos.X * scale, pos.Y * scale, 0f);
         }
 
         public void AddJump(uint id, uint fromSectorId, V2 fromPos, uint toSectorId, V2 toPos)
@@ -71,112 +77,131 @@ namespace game.domain
 
             this.idMap.Add(id, obj.gameObject);
 
-            ui.Refresh();
+            // update arrow
+            {
+                var target = this.idMap[toSectorId];
+                if (target == null)
+                {
+                    Debug.LogWarning($"sector {toSectorId} game object not found");
+                }
+                else
+                {
+                    {
+                        var arrow = obj.GetComponent<DrawGizmosArrow>();
+                        arrow.fromPos = obj.transform.position;
+                        arrow.toPos = target.transform.position + ToV3(toPos);
+                    }
+                }
+
+                ui.Refresh();
+            }
         }
 
         public void AddObj(uint id, EntityKind kind)
-        {
-            Debug.Log("AddObj " + id + "/" + kind);
+            {
+                Debug.Log("AddObj " + id + "/" + kind);
 
-            GenericObject prefab;
+                GenericObject prefab;
 
-            switch (kind) {
-                case EntityKind.Asteroid:
-                    prefab = this.prefabAsteroid;
-                    break;
-                case EntityKind.Station:
-                    prefab = this.prefabAsteroid;
-                    break;
-                default:
-                    prefab = this.prefabGeneric;
-                    break;
-            };
+                switch (kind)
+                {
+                    case EntityKind.Asteroid:
+                        prefab = this.prefabAsteroid;
+                        break;
+                    case EntityKind.Station:
+                        prefab = this.prefabAsteroid;
+                        break;
+                    default:
+                        prefab = this.prefabGeneric;
+                        break;
+                }
 
-            var obj = Utils.Inst(prefab);
-            obj.id = new Id(id);
-            obj.kind = (ObjKind)(short)kind;
-            obj.UpdateName();
-            obj.Hide();
+                ;
 
-            Utils.SetParentZero(obj.transform, root);
+                var obj = Utils.Inst(prefab);
+                obj.id = new Id(id);
+                obj.kind = (ObjKind) (short) kind;
+                obj.UpdateName();
+                obj.Hide();
 
-            this.idMap.Add(id, obj.gameObject);
-        }
+                Utils.SetParentZero(obj.transform, root);
 
-        public void AddSector(uint id)
-        {
-            Debug.Log("AddSector " + id);
+                this.idMap.Add(id, obj.gameObject);
+            }
 
-            var obj = Utils.Inst(prefabSector);
-            obj.id = new Id(id);
-            obj.kind = ObjKind.Sector;
-            obj.UpdateName();
-            Utils.SetParentZero(obj.transform, root);
+            public void AddSector(uint id, V2 pos)
+            {
+                var posV3 = GetSectorPos(pos);
 
-            var index = sectors.Count;
-            var pos = new Vector3((float)index * 10f, 0.0f, 0.0f);
-            obj.transform.position = pos;
+                Debug.Log("AddSector " + id + " at " + posV3);
 
-            this.idMap.Add(id, obj.gameObject);
+                var obj = Utils.Inst(prefabSector);
+                obj.id = new Id(id);
+                obj.kind = ObjKind.Sector;
+                obj.UpdateName();
+                Utils.SetParentZero(obj.transform, root);
 
-            this.sectors.Add(obj);
-        }
+                obj.transform.position = posV3;
 
-        public void ObjDock(uint id, uint targetId)
-        {
-            Debug.Log("ObjDock " + id + " at " + targetId);
-            var obj = this.idMap[id];
-            obj.GetComponent<GenericObject>().Hide();
-            obj.transform.localPosition = Vector3.zero;
-            SetAt(obj, targetId);
-        }
+                this.idMap.Add(id, obj.gameObject);
 
-        public void ObjJump(uint id, uint sectorId, V2 pos)
-        {
-            Debug.Log("ObjJump " + id + " to " +sectorId + " " + pos);
-            var obj = this.idMap[id];
-            SetAt(obj, sectorId);
-            obj.transform.localPosition = new Vector3((float)pos.X, (float)pos.Y, 0f);
-        }
+                this.sectors.Add(obj);
+            }
 
-        public void ObjMove(uint id, V2 pos)
-        {
-            // Debug.Log("ObjMove");
-            var obj = this.idMap[id];
-            obj.transform.localPosition = new Vector3((float)pos.X, (float)pos.Y, 0f);
-        }
+            public void ObjDock(uint id, uint targetId)
+            {
+                // Debug.Log("ObjDock " + id + " at " + targetId);
+                var obj = this.idMap[id];
+                obj.GetComponent<GenericObject>().Hide();
+                obj.transform.localPosition = Vector3.zero;
+                SetAt(obj, targetId);
+            }
 
-        public void ObjTeleport(uint id, uint sectorId, V2 pos)
-        {
-            Debug.Log("ObjTeleport " + id + " " + sectorId + "/" + pos.X + ", " + pos.Y);
-            var obj = this.idMap[id];
-            SetAt(obj, sectorId);
-            obj.transform.localPosition = new Vector3((float)pos.X, (float)pos.Y, 0f);
-            obj.GetComponent<GenericObject>().Show();
-        }
+            public void ObjJump(uint id, uint sectorId, V2 pos)
+            {
+                // Debug.Log("ObjJump " + id + " to " + sectorId + " " + pos);
+                var obj = this.idMap[id];
+                SetAt(obj, sectorId);
+                obj.transform.localPosition = new Vector3((float) pos.X, (float) pos.Y, 0f);
+            }
 
-        public void ObjUndock(uint id, uint sectorId, V2 pos)
-        {
-            Debug.Log("ObjUndock " + id + " " + sectorId + "/" + pos.X + ", " + pos.Y);
-            var obj = this.idMap[id];
-            obj.GetComponent<GenericObject>().Show();
-            obj.transform.localPosition = new Vector3((float)pos.X, (float)pos.Y, 0f);
-            SetAt(obj, sectorId);
-        }
+            public void ObjMove(uint id, V2 pos)
+            {
+                // Debug.Log("ObjMove");
+                var obj = this.idMap[id];
+                obj.transform.localPosition = new Vector3((float) pos.X, (float) pos.Y, 0f);
+            }
 
-        ///  Local position is preserve
-        private void SetAt(GameObject obj, uint parentId)
-        {
-            var parent = this.idMap[parentId];
-            var localPos = obj.transform.localPosition;
-            obj.transform.parent = parent.transform;
-            obj.transform.localPosition = localPos;
-        }
+            public void ObjTeleport(uint id, uint sectorId, V2 pos)
+            {
+                // Debug.Log("ObjTeleport " + id + " " + sectorId + "/" + pos.X + ", " + pos.Y);
+                var obj = this.idMap[id];
+                SetAt(obj, sectorId);
+                obj.transform.localPosition = new Vector3((float) pos.X, (float) pos.Y, 0f);
+                obj.GetComponent<GenericObject>().Show();
+            }
 
-        private Vector3 ToV3(V2 pos)
-        {
-            return new Vector3(pos.X, pos.Y, 0f);
+            public void ObjUndock(uint id, uint sectorId, V2 pos)
+            {
+                // Debug.Log("ObjUndock " + id + " " + sectorId + "/" + pos.X + ", " + pos.Y);
+                var obj = this.idMap[id];
+                obj.GetComponent<GenericObject>().Show();
+                obj.transform.localPosition = new Vector3((float) pos.X, (float) pos.Y, 0f);
+                SetAt(obj, sectorId);
+            }
+
+            ///  Local position is preserve
+            private void SetAt(GameObject obj, uint parentId)
+            {
+                var parent = this.idMap[parentId];
+                var localPos = obj.transform.localPosition;
+                obj.transform.parent = parent.transform;
+                obj.transform.localPosition = localPos;
+            }
+
+            private Vector3 ToV3(V2 pos)
+            {
+                return new Vector3(pos.X, pos.Y, 0f);
+            }
         }
     }
-}
-

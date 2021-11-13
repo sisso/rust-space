@@ -1,8 +1,6 @@
 extern crate space_domain;
-extern crate space_macros;
 
-use space_macros::*;
-
+use commons::debugf;
 use space_domain::ffi::FFIApi;
 use std::ffi::CStr;
 use std::os::raw::c_char;
