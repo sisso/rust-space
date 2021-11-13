@@ -240,23 +240,28 @@ pub fn find_path_raw<'a>(
 
     let path: Vec<SectorId> = {
         if algorithm == 0 {
-            pathfinding::prelude::bfs(
+            pathfinding::prelude::astar(
                 &from,
                 |current| {
                     let sector = sectors.get(*current).unwrap();
                     let jump_cache = sector.jumps_cache.as_ref();
-                    let successors: Vec<SectorId> = jump_cache
+                    let successors: Vec<(SectorId, u32)> = jump_cache
                         .expect("sector jump cache is empty")
                         .iter()
-                        .map(|i| i.to_sector)
+                        .map(|i| (i.to_sector, 1))
                         .collect();
                     count += 1;
                     successors
                 },
+                |current| {
+                    let current_coords = sectors.get(*current).unwrap().coords;
+                    to_coords.sub(&current_coords).length_sqr() as u32 / 1000u32
+                },
                 |current| *current == to,
-            )?
-        } else {
-            pathfinding::prelude::fringe(
+            )
+            .map(|(path, _cost)| path)?
+        } else if algorithm == 1 {
+            pathfinding::prelude::astar(
                 &from,
                 |current| {
                     let sector = sectors.get(*current).unwrap();
@@ -278,6 +283,45 @@ pub fn find_path_raw<'a>(
                 |current| *current == to,
             )
             .map(|(path, _cost)| path)?
+        } else if algorithm == 3 {
+            pathfinding::prelude::astar(
+                &from,
+                |current| {
+                    let sector = sectors.get(*current).unwrap();
+                    let jump_cache = sector.jumps_cache.as_ref();
+                    let successors: Vec<(SectorId, u32)> = jump_cache
+                        .expect("sector jump cache is empty")
+                        .iter()
+                        .map(|i| (i.to_sector, 1))
+                        .collect();
+                    count += 1;
+                    successors
+                },
+                |current| {
+                    let current_coords = sectors.get(*current).unwrap().coords;
+                    (pathfinding::prelude::absdiff(current_coords.x, to_coords.x)
+                        + pathfinding::prelude::absdiff(current_coords.y, to_coords.y))
+                        as u32
+                },
+                |current| *current == to,
+            )
+            .map(|(path, _cost)| path)?
+        } else {
+            pathfinding::prelude::bfs(
+                &from,
+                |current| {
+                    let sector = sectors.get(*current).unwrap();
+                    let jump_cache = sector.jumps_cache.as_ref();
+                    let successors: Vec<SectorId> = jump_cache
+                        .expect("sector jump cache is empty")
+                        .iter()
+                        .map(|i| i.to_sector)
+                        .collect();
+                    count += 1;
+                    successors
+                },
+                |current| *current == to,
+            )?
         }
     };
 
@@ -414,22 +458,23 @@ mod test {
         let to = super::get_sector_by_coords(entities, sectors, &V2::new(31.0, 45.0)).unwrap();
 
         let mut times = vec![];
-        for alg in vec![0, 1] {
+        for alg in vec![0, 1, 2, 3] {
             let start = Instant::now();
             super::find_path_raw(entities, sectors, jumps, locations, from, to, alg);
             let end = Instant::now();
             times.push(end - start);
         }
 
-        assert!(
-            times
-                .iter()
-                .filter(|i| **i >= Duration::from_millis(1))
-                .count()
-                == 0,
-            "pathfind took {:?}",
-            times
-        );
+        // should run on release mode
+        // assert!(
+        //     times
+        //         .iter()
+        //         .filter(|i| **i >= Duration::from_millis(1))
+        //         .count()
+        //         == 0,
+        //     "pathfind took {:?}",
+        //     times
+        // );
     }
 
     fn do_find_path(world: &mut World, from: SectorId, to: SectorId) -> Option<Vec<PathLeg>> {
