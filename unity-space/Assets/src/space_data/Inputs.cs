@@ -19,20 +19,30 @@ public struct Inputs : IFlatbufferObject
   public Inputs __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
   public bool NewGame { get { int o = __p.__offset(4); return o != 0 ? 0!=__p.bb.Get(o + __p.bb_pos) : (bool)false; } }
+  public string Arguments(int j) { int o = __p.__offset(6); return o != 0 ? __p.__string(__p.__vector(o) + j * 4) : null; }
+  public int ArgumentsLength { get { int o = __p.__offset(6); return o != 0 ? __p.__vector_len(o) : 0; } }
 
   public static Offset<space_data.Inputs> CreateInputs(FlatBufferBuilder builder,
-      bool new_game = false) {
-    builder.StartTable(1);
+      bool new_game = false,
+      VectorOffset argumentsOffset = default(VectorOffset)) {
+    builder.StartTable(2);
+    Inputs.AddArguments(builder, argumentsOffset);
     Inputs.AddNewGame(builder, new_game);
     return Inputs.EndInputs(builder);
   }
 
-  public static void StartInputs(FlatBufferBuilder builder) { builder.StartTable(1); }
+  public static void StartInputs(FlatBufferBuilder builder) { builder.StartTable(2); }
   public static void AddNewGame(FlatBufferBuilder builder, bool newGame) { builder.AddBool(0, newGame, false); }
+  public static void AddArguments(FlatBufferBuilder builder, VectorOffset argumentsOffset) { builder.AddOffset(1, argumentsOffset.Value, 0); }
+  public static VectorOffset CreateArgumentsVector(FlatBufferBuilder builder, StringOffset[] data) { builder.StartVector(4, data.Length, 4); for (int i = data.Length - 1; i >= 0; i--) builder.AddOffset(data[i].Value); return builder.EndVector(); }
+  public static VectorOffset CreateArgumentsVectorBlock(FlatBufferBuilder builder, StringOffset[] data) { builder.StartVector(4, data.Length, 4); builder.Add(data); return builder.EndVector(); }
+  public static void StartArgumentsVector(FlatBufferBuilder builder, int numElems) { builder.StartVector(4, numElems, 4); }
   public static Offset<space_data.Inputs> EndInputs(FlatBufferBuilder builder) {
     int o = builder.EndTable();
     return new Offset<space_data.Inputs>(o);
   }
+  public static void FinishInputsBuffer(FlatBufferBuilder builder, Offset<space_data.Inputs> offset) { builder.Finish(offset.Value); }
+  public static void FinishSizePrefixedInputsBuffer(FlatBufferBuilder builder, Offset<space_data.Inputs> offset) { builder.FinishSizePrefixed(offset.Value); }
 };
 
 

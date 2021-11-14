@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System;
+using System.Security.Cryptography;
 using UnityEngine;
 using FlatBuffers;
 using UnityEngine.EventSystems;
@@ -64,6 +65,12 @@ namespace core
 
     public class Core : IDisposable
     {
+        public struct Request
+        {
+            public bool newGame;
+            public string[] arguments;
+        }
+    
         #if STATIC_BIND
         private CoreHandler coreHandler;
 
@@ -201,6 +208,40 @@ namespace core
             var result = Native.space_domain_run_tick(coreHandler, delta_u32);
             #else
             var result = this.nativeContextTick(this.contextHandle, delta_u32);
+            #endif
+
+            if (result != 0)
+            {
+                throw new Exception("invalid result " + result);
+            }
+        }
+
+        public void SetData(Request request)
+        {
+            if (this.eventHandler == null) throw new NullReferenceException("Event handler can not be null");
+            
+            var builder = new FlatBufferBuilder(1024);
+
+            VectorOffset arguments = default(VectorOffset);
+            if (request.arguments.Length > 0)
+            {
+                StringOffset[] strings = new StringOffset[request.arguments.Length];
+                for (var i = 0; i < request.arguments.Length; i++)
+                {
+                    strings[i] = builder.CreateString(request.arguments[i]);
+                }
+
+                arguments = space_data.Inputs.CreateArgumentsVectorBlock(builder, strings);
+            }
+            space_data.Inputs.CreateInputs(builder, request.newGame, arguments);
+            var bytes = builder.SizedByteArray();
+
+            Debug.Log($"calling set data with {bytes.Length}");
+            
+            #if STATIC_BIND
+            throw new Exception("not implemented");
+            #else
+            var result = this.nativeContextPush(this.contextHandle, 0, bytes, (uint) bytes.Length);
             #endif
 
             if (result != 0)

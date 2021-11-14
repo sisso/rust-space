@@ -69,8 +69,12 @@ impl FFIApi {
         self.ffi_dispatcher.run_now(&mut self.game.world);
     }
 
-    pub fn set_inputs(&mut self, _bytes: &Vec<u8>) -> bool {
-        false
+    pub fn set_inputs(&mut self, bytes: &[u8]) -> bool {
+        let inputs = crate::space_inputs_generated::space_data::get_root_as_inputs(bytes);
+        if inputs.new_game() {
+            self.new_game();
+        }
+        true
     }
 
     pub fn get_inputs<F>(&mut self, callback: F) -> bool

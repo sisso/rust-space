@@ -62,11 +62,15 @@ pub extern "C" fn space_domain_set_data(
     buffer: *mut u8,
     length: u32,
 ) -> u32 {
-    let _ctx = Context::from_ptr(ctx_ptr);
-    let ref_data = unsafe { std::slice::from_raw_parts(buffer, length as usize) };
-    let bytes = ref_data.to_vec();
-    debugf!("set_data: {:?}", bytes);
-    0
+    let ctx = Context::from_ptr(ctx_ptr);
+    let bytes = unsafe { std::slice::from_raw_parts(buffer, length as usize) };
+    // debugf!("set_data: {:?}", bytes);
+    let ok = ctx.api.set_inputs(bytes);
+    if ok {
+        0
+    } else {
+        1
+    }
 }
 
 #[no_mangle]
@@ -75,11 +79,16 @@ pub extern "C" fn space_domain_get_data(
     callback: extern "stdcall" fn(u16, *mut u8, u32),
 ) -> u32 {
     let ctx = Context::from_ptr(ctx_ptr);
-    ctx.api.get_inputs(|mut bytes| {
-        debugf!("get_data: {:?}", bytes);
+    let success = ctx.api.get_inputs(|mut bytes| {
+        // debugf!("get_data: {:?}", bytes);
         callback(0, bytes.as_mut_ptr(), bytes.len() as u32);
     });
-    0
+
+    if success {
+        0
+    } else {
+        1
+    }
 }
 
 #[no_mangle]

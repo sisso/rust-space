@@ -3,8 +3,10 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
+using core;
 using Unity.Collections;
 using UnityEngine;
+using UnityEngine.Purchasing;
 using utils;
 using Debug = UnityEngine.Debug;
 
@@ -17,15 +19,21 @@ namespace game
         [Range(1, 10)] public int iterations = 1;
         public double realTime = 0.0;
         public double gameTime = 0.0;
+        public string[] init_arguments;
         public int lastRunTimeMls;
         private core.Core core;
         private Stopwatch stopWatch;
-
+        
         void OnEnable()
         {
             if (this.core == null)
             {
                 this.core = new core.Core("", this.domain);
+                this.core.SetData(new Core.Request
+                {
+                    newGame = true,
+                    arguments = this.init_arguments
+                });
                 this.stopWatch = new Stopwatch();
             }
         }

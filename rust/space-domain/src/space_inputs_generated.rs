@@ -44,28 +44,36 @@ impl<'a> Inputs<'a> {
     #[allow(unused_mut)]
     pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
         _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
-        args: &'args InputsArgs) -> flatbuffers::WIPOffset<Inputs<'bldr>> {
+        args: &'args InputsArgs<'args>) -> flatbuffers::WIPOffset<Inputs<'bldr>> {
       let mut builder = InputsBuilder::new(_fbb);
+      if let Some(x) = args.arguments { builder.add_arguments(x); }
       builder.add_new_game(args.new_game);
       builder.finish()
     }
 
     pub const VT_NEW_GAME: flatbuffers::VOffsetT = 4;
+    pub const VT_ARGUMENTS: flatbuffers::VOffsetT = 6;
 
   #[inline]
   pub fn new_game(&self) -> bool {
     self._tab.get::<bool>(Inputs::VT_NEW_GAME, Some(false)).unwrap()
   }
+  #[inline]
+  pub fn arguments(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<&'a str>>> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<flatbuffers::ForwardsUOffset<&'a str>>>>(Inputs::VT_ARGUMENTS, None)
+  }
 }
 
-pub struct InputsArgs {
+pub struct InputsArgs<'a> {
     pub new_game: bool,
+    pub arguments: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a , flatbuffers::ForwardsUOffset<&'a  str>>>>,
 }
-impl<'a> Default for InputsArgs {
+impl<'a> Default for InputsArgs<'a> {
     #[inline]
     fn default() -> Self {
         InputsArgs {
             new_game: false,
+            arguments: None,
         }
     }
 }
@@ -77,6 +85,10 @@ impl<'a: 'b, 'b> InputsBuilder<'a, 'b> {
   #[inline]
   pub fn add_new_game(&mut self, new_game: bool) {
     self.fbb_.push_slot::<bool>(Inputs::VT_NEW_GAME, new_game, false);
+  }
+  #[inline]
+  pub fn add_arguments(&mut self, arguments: flatbuffers::WIPOffset<flatbuffers::Vector<'b , flatbuffers::ForwardsUOffset<&'b  str>>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Inputs::VT_ARGUMENTS, arguments);
   }
   #[inline]
   pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> InputsBuilder<'a, 'b> {
@@ -93,5 +105,26 @@ impl<'a: 'b, 'b> InputsBuilder<'a, 'b> {
   }
 }
 
+#[inline]
+pub fn get_root_as_inputs<'a>(buf: &'a [u8]) -> Inputs<'a> {
+  flatbuffers::get_root::<Inputs<'a>>(buf)
+}
+
+#[inline]
+pub fn get_size_prefixed_root_as_inputs<'a>(buf: &'a [u8]) -> Inputs<'a> {
+  flatbuffers::get_size_prefixed_root::<Inputs<'a>>(buf)
+}
+
+#[inline]
+pub fn finish_inputs_buffer<'a, 'b>(
+    fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>,
+    root: flatbuffers::WIPOffset<Inputs<'a>>) {
+  fbb.finish(root, None);
+}
+
+#[inline]
+pub fn finish_size_prefixed_inputs_buffer<'a, 'b>(fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>, root: flatbuffers::WIPOffset<Inputs<'a>>) {
+  fbb.finish_size_prefixed(root, None);
+}
 }  // pub mod space_data
 
