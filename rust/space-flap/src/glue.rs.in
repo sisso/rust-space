@@ -1,0 +1,17 @@
+foreign_class!(
+    class SectorData {
+        self_type SectorData;
+        constructor SectorData::new() -> SectorData;
+        fn SectorData::index(&self) -> i32;
+        fn SectorData::coords(&self) -> (f32, f32);
+    }
+);
+
+foreign_class!(
+    class SpaceGame {
+        self_type SpaceGame;
+        constructor SpaceGame::new(rgs: Vec<String>) -> SpaceGame;
+        fn SpaceGame::get_sectors_len(&self) -> i32;
+        fn SpaceGame::get_sector(&self, i: i32) -> SectorData;
+    }
+);

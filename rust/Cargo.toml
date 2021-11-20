@@ -6,6 +6,7 @@ members = [
   "space-console",
   "space-2d-gui",
   "space-internal",
+  "space-flap"
 ]
 
 [profile.dev]
