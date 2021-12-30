@@ -14,6 +14,8 @@ specs = { version = "0.16.*", features = ["serde"] }
 specs-derive = "0.4.0"
 shred = { version = "0.10.*", default-features = false }
 shred-derive = "0.6.*"
+env_logger = "0.7"
+log = "0.4"
 
 [build-dependencies]
 flapigen = { git="https://github.com/sisso/flapigen-rs.git", version="0.6.0-pre8", branch="dotnet-pr" }

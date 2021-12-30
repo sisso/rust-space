@@ -39,6 +39,10 @@ namespace ffi_domain_2
     }
 
     
+    public enum ObjKind {
+        Fleet = 0,Asteroid = 1,Station = 2,Jump = 3
+    }
+    
     public class SectorData: IDisposable {
         internal IntPtr nativePtr;
 
@@ -66,37 +70,126 @@ namespace ffi_domain_2
         }
 
         [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern /* SectorData */ IntPtr SectorData_new();
+        internal static extern ulong SectorData_get_id(/* SectorData */ IntPtr __this);
 
         
-        public  SectorData () {
-            
-            this.nativePtr = SectorData_new();
-            
-            
-        }
-
-        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern ulong SectorData_index(/* SectorData */ IntPtr __this);
-
-        
-        public  ulong Index() {
+        public  ulong GetId() {
             var __this_0 = this.nativePtr;
 
-            var __ret_0 = SectorData_index(__this_0);
+            var __ret_0 = SectorData_get_id(__this_0);
             var __ret_1 = __ret_0;
             return __ret_1;
         }
 
         [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern /* Option */ IntPtr SectorData_coords(/* SectorData */ IntPtr __this);
+        internal static extern /* Option */ IntPtr SectorData_get_coords(/* SectorData */ IntPtr __this);
 
         
-        public  Tuple<float, float> Coords() {
+        public  Tuple<float, float> GetCoords() {
             var __this_0 = this.nativePtr;
 
-            var __ret_0 = SectorData_coords(__this_0);
+            var __ret_0 = SectorData_get_coords(__this_0);
             var __ret_1 = RustTuple2Tfloatfloat.rust_to_dotnet(__ret_0);
+            return __ret_1;
+        }
+} // class
+
+    
+    public class FleetData: IDisposable {
+        internal IntPtr nativePtr;
+
+        internal FleetData(IntPtr nativePtr) {
+            this.nativePtr = nativePtr;
+        }
+
+        public void Dispose() {
+            DoDispose();
+            GC.SuppressFinalize(this);
+        }
+
+        private void DoDispose() {
+            if (nativePtr != IntPtr.Zero) {
+                FleetData_delete(nativePtr);
+                nativePtr = IntPtr.Zero;
+            }
+        }
+
+        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern void FleetData_delete(IntPtr __this);
+
+        ~FleetData() {
+            DoDispose();
+        }
+
+        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern ulong FleetData_get_id(/* FleetData */ IntPtr __this);
+
+        
+        public  ulong GetId() {
+            var __this_0 = this.nativePtr;
+
+            var __ret_0 = FleetData_get_id(__this_0);
+            var __ret_1 = __ret_0;
+            return __ret_1;
+        }
+
+        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern ulong FleetData_get_sector_id(/* FleetData */ IntPtr __this);
+
+        
+        public  ulong GetSectorId() {
+            var __this_0 = this.nativePtr;
+
+            var __ret_0 = FleetData_get_sector_id(__this_0);
+            var __ret_1 = __ret_0;
+            return __ret_1;
+        }
+
+        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern /* Option */ IntPtr FleetData_get_coords(/* FleetData */ IntPtr __this);
+
+        
+        public  Tuple<float, float> GetCoords() {
+            var __this_0 = this.nativePtr;
+
+            var __ret_0 = FleetData_get_coords(__this_0);
+            var __ret_1 = RustTuple2Tfloatfloat.rust_to_dotnet(__ret_0);
+            return __ret_1;
+        }
+
+        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern /* Option */ IntPtr FleetData_get_docked_id(/* FleetData */ IntPtr __this);
+
+        
+        public  Option<ulong> GetDockedId() {
+            var __this_0 = this.nativePtr;
+
+            var __ret_0 = FleetData_get_docked_id(__this_0);
+            var __ret_1 = RustOptionulong.rust_to_dotnet(__ret_0);
+            return __ret_1;
+        }
+
+        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern byte FleetData_is_docked(/* FleetData */ IntPtr __this);
+
+        
+        public  bool IsDocked() {
+            var __this_0 = this.nativePtr;
+
+            var __ret_0 = FleetData_is_docked(__this_0);
+            var __ret_1 = (__ret_0 != 0);
+            return __ret_1;
+        }
+
+        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern uint FleetData_get_kind(/* FleetData */ IntPtr __this);
+
+        
+        public  ObjKind GetKind() {
+            var __this_0 = this.nativePtr;
+
+            var __ret_0 = FleetData_get_kind(__this_0);
+            var __ret_1 = (ObjKind)__ret_0;
             return __ret_1;
         }
 } // class
@@ -150,6 +243,30 @@ namespace ffi_domain_2
             var __ret_1 = RustVecSectorData.rust_to_dotnet(__ret_0);
             return __ret_1;
         }
+
+        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern /* Option */ IntPtr SpaceGame_get_fleets(/* SpaceGame */ IntPtr __this);
+
+        
+        public  System.Collections.Generic.List<FleetData> GetFleets() {
+            var __this_0 = this.nativePtr;
+
+            var __ret_0 = SpaceGame_get_fleets(__this_0);
+            var __ret_1 = RustVecFleetData.rust_to_dotnet(__ret_0);
+            return __ret_1;
+        }
+
+        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern void SpaceGame_update(/* SpaceGame */ IntPtr __this, float delta);
+
+        
+        public  void Update(float delta_0) {
+            var __this_0 = this.nativePtr;
+var delta_1 = delta_0;
+            SpaceGame_update(__this_0, delta_1);
+            
+            
+        }
 } // class
 
     internal static class RustTuple2Tfloatfloat {
@@ -187,6 +304,60 @@ namespace ffi_domain_2
         }
     }
     
+
+        public class Option<T> {
+        
+            [System.Serializable]
+            public class OptionNoneException : System.Exception
+            {
+                public OptionNoneException() :
+                    base("Trying to get the value of an `Option` that is `None`") 
+                {
+                }
+            }
+        
+            private T value;
+            private bool isSome;
+        
+            public bool IsSome
+            {
+                get
+                {
+                    return isSome;
+                }
+            }
+        
+            public T Value
+            {
+                get {
+                    if (!isSome) {
+                        throw new OptionNoneException();
+                    }
+                    return value;
+                }
+            }
+        
+            public Option()
+            {
+                value = default(T);
+                isSome = false;
+            }
+        
+            public Option(T value)
+            {
+                if (value == null) 
+                {
+                    this.value = value;
+                    this.isSome = false;
+                }
+                else
+                {
+                    this.value = value;
+                    this.isSome = true;
+                }
+            }
+        }        
+        
     public static class RustVecstring {
         [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
         internal static extern IntPtr RustVecstring_new();
@@ -280,4 +451,92 @@ namespace ffi_domain_2
             return vec;
         }
     }
-        } // namespace
+        
+    public static class RustVecFleetData {
+        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern IntPtr RustVecFleetData_new();
+        
+        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern void RustVecFleetData_push(IntPtr vecPtr, /* FleetData */ IntPtr element);
+
+        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern /* Option<i_type> */ IntPtr RustVecFleetData_iter_next(IntPtr iterPtr);
+        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern void RustVecFleetData_iter_delete(IntPtr iterPtr);
+
+        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern /* FleetData */ IntPtr RustVecFleetData_option_take(IntPtr optPtr);
+
+        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern byte RustVecFleetData_option_is_some(IntPtr optPtr);
+
+
+        internal static System.Collections.Generic.List<FleetData> rust_to_dotnet(IntPtr iterPtr) {
+            var list = new System.Collections.Generic.List<FleetData>();
+            while (true)
+            {
+                var next_rust_opt = RustVecFleetData.RustVecFleetData_iter_next(iterPtr);
+                if (RustVecFleetData_option_is_some(next_rust_opt) == 0)
+                {
+                    break;
+                }
+                var value_rust = RustVecFleetData_option_take(next_rust_opt);
+                var value = new FleetData(value_rust);
+                list.Add(value);
+            }
+            RustVecFleetData_iter_delete(iterPtr);
+            return list;
+        }
+
+        internal static IntPtr dotnet_to_rust(System.Collections.Generic.List<FleetData> list) {
+            var vec = RustVecFleetData_new();
+            foreach (var element in list)
+            {
+                var i_element = element.nativePtr;
+                RustVecFleetData.RustVecFleetData_push(vec, i_element);
+            }
+            return vec;
+        }
+    }
+        
+    internal static class RustOptionulong {
+        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern IntPtr RustOptionulong_new_none();
+
+        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern IntPtr RustOptionulong_new_some(ulong value);
+        
+        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern ulong RustOptionulong_take(IntPtr optPtr);
+
+        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern byte RustOptionulong_is_some(IntPtr optPtr);
+
+        internal static Option<ulong> rust_to_dotnet(IntPtr optPtr)
+        {
+            if (RustOptionulong_is_some(optPtr) != 0)
+            {
+                var value_0 = RustOptionulong_take(optPtr);
+                var value_1 = value_0;
+                return new Option<ulong>(value_1);
+            }
+            else
+            {
+                return new Option<ulong>();
+            }
+        }
+
+        internal static IntPtr dotnet_to_rust(Option<ulong> opt)
+        {
+            if (opt.IsSome)
+            {
+                var value_0 = opt.Value;
+                return RustOptionulong_new_some(value_0);
+            }
+            else
+            {
+                return RustOptionulong_new_none();
+            }
+        }
+    }
+    } // namespace

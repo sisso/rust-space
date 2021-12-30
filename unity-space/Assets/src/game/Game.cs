@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
+using ffi_domain_2;
 using game.domain;
 using space_data;
 using Unity.Collections;
@@ -50,7 +51,43 @@ namespace game
             var sectors = this.game.GetSectors();
             foreach (var sector in sectors)
             {
-                domain.AddSector(sector.Index(), new V2D(sector.Coords().Item1, sector.Coords().Item2));
+                domain.AddSector(sector.GetId(), AsV2D(sector.GetCoords()));
+            }
+        }
+
+        private static V2D AsV2D(Tuple<float, float> coords)
+        {
+            return new V2D(coords.Item1, coords.Item2);
+        }
+
+        void UpdateFleets()
+        {
+            var fleets = this.game.GetFleets();
+            foreach (var fleet in fleets)
+            {
+                var objKind = fleet.GetKind();
+                var kind = EntityKind.Fleet;
+                switch (objKind)
+                {
+                    case ffi_domain_2.ObjKind.Asteroid:
+                        kind = EntityKind.Asteroid;
+                        break;
+                    case ffi_domain_2.ObjKind.Station:
+                        kind = EntityKind.Station;
+                        break;
+                }
+                
+                domain.AddObj(fleet.GetId(), kind);
+                
+                var dockedId = fleet.GetDockedId();
+                if (dockedId.IsSome)
+                {
+                    domain.ObjDock(fleet.GetId(), dockedId.Value);
+                }
+                else
+                {
+                    domain.ObjTeleport(fleet.GetId(), fleet.GetSectorId(),AsV2D(fleet.GetCoords()));
+                }
             }
         }
 
@@ -64,6 +101,8 @@ namespace game
             for (int i = 0; i < iterations; i++)
             {
                 this.gameTime += delta;
+                this.game.Update(delta);
+                UpdateFleets();
 
                 // // get commands from domain to core
                 // var requests = this.domain.TakeRequests();

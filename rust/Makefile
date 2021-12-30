@@ -1,3 +1,6 @@
+clean:
+	@echo "nothing"
+
 build-rust:
 	cargo build
 
@@ -8,5 +11,5 @@ copy-generated:
 #   rsync -vr wasm/css/ wasm/pkg/css
 #   rsync -vr wasm/js/ wasm/pkg/js
 
-build: build-rust copy-generated
+all: build-rust copy-generated
 	@echo "done"

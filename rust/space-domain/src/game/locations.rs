@@ -16,6 +16,8 @@ pub struct LocationSpace {
     pub sector_id: SectorId,
 }
 
+/// Can not be a flat struct or will require a ship when change, to update its internal hangars
+/// of hangars
 #[derive(Debug, Clone, Component)]
 pub enum Location {
     Space { pos: Position, sector_id: SectorId },

@@ -12,7 +12,7 @@ using System.Collections.Generic;
  */
 namespace game.domain
 {
-    /// used to serialize a uint
+    /// used to serialize a ulong
     [System.Serializable]
     public class Id
     {
@@ -75,7 +75,7 @@ namespace game.domain
             return new Vector3(pos.x * scale, pos.y * scale, 0f);
         }
 
-        public void AddJump(uint id, uint fromSectorId, V2D fromPos, uint toSectorId, V2D toPos)
+        public void AddJump(ulong id, ulong fromSectorId, V2D fromPos, ulong toSectorId, V2D toPos)
         {
             Debug.Log("AddJump " + id + ", " + fromSectorId + "(" + fromPos + ") => " + toSectorId + "(" + toPos + ")");
 
@@ -109,111 +109,113 @@ namespace game.domain
             }
         }
 
-        public void AddObj(uint id, EntityKind kind)
+        public void AddObj(ulong id, EntityKind kind)
+        {
+            if (this.idMap.ContainsKey(id))
             {
-                Debug.Log("AddObj " + id + "/" + kind);
+                return;
+            }
+            
+            Debug.Log("AddObj " + id + "/" + kind);
+            GenericObject prefab;
 
-                GenericObject prefab;
-
-                switch (kind)
-                {
-                    case EntityKind.Asteroid:
-                        prefab = this.prefabAsteroid;
-                        break;
-                    case EntityKind.Station:
-                        prefab = this.prefabAsteroid;
-                        break;
-                    default:
-                        prefab = this.prefabGeneric;
-                        break;
-                }
-
-                ;
-
-                var obj = Utils.Inst(prefab);
-                obj.id = new Id(id);
-                obj.kind = (ObjKind) (short) kind;
-                obj.UpdateName();
-                obj.Hide();
-
-                Utils.SetParentZero(obj.transform, root);
-
-                this.idMap.Add(id, obj.gameObject);
+            switch (kind)
+            {
+                case EntityKind.Asteroid:
+                    prefab = this.prefabAsteroid;
+                    break;
+                case EntityKind.Station:
+                    prefab = this.prefabAsteroid;
+                    break;
+                default:
+                    prefab = this.prefabGeneric;
+                    break;
             }
 
-            public void AddSector(ulong id, V2D pos)
-            {
-                var posV3 = GetSectorPos(pos);
+            var obj = Utils.Inst(prefab);
+            obj.id = new Id(id);
+            obj.kind = (ObjKind) (short) kind;
+            obj.UpdateName();
+            obj.Hide();
 
-                Debug.Log("AddSector " + id + " at " + posV3);
+            Utils.SetParentZero(obj.transform, root);
 
-                var obj = Utils.Inst(prefabSector);
-                obj.id = new Id(id);
-                obj.kind = ObjKind.Sector;
-                obj.UpdateName();
-                Utils.SetParentZero(obj.transform, root);
+            this.idMap.Add(id, obj.gameObject);
+        }
 
-                obj.transform.position = posV3;
+        public void AddSector(ulong id, V2D pos)
+        {
+            var posV3 = GetSectorPos(pos);
 
-                this.idMap.Add(id, obj.gameObject);
+            Debug.Log("AddSector " + id + " at " + posV3);
 
-                this.sectors.Add(obj);
-            }
+            var obj = Utils.Inst(prefabSector);
+            obj.id = new Id(id);
+            obj.kind = ObjKind.Sector;
+            obj.UpdateName();
+            Utils.SetParentZero(obj.transform, root);
 
-            public void ObjDock(uint id, uint targetId)
-            {
-                // Debug.Log("ObjDock " + id + " at " + targetId);
-                var obj = this.idMap[id];
-                obj.GetComponent<GenericObject>().Hide();
-                obj.transform.localPosition = Vector3.zero;
-                SetAt(obj, targetId);
-            }
+            obj.transform.position = posV3;
 
-            public void ObjJump(uint id, uint sectorId, V2D pos)
-            {
-                // Debug.Log("ObjJump " + id + " to " + sectorId + " " + pos);
-                var obj = this.idMap[id];
-                SetAt(obj, sectorId);
-                obj.transform.localPosition = new Vector3((float) pos.x, (float) pos.y, 0f);
-            }
+            this.idMap.Add(id, obj.gameObject);
 
-            public void ObjMove(uint id, V2D pos)
-            {
-                // Debug.Log("ObjMove");
-                var obj = this.idMap[id];
-                obj.transform.localPosition = new Vector3((float) pos.x, (float) pos.y, 0f);
-            }
+            this.sectors.Add(obj);
+        }
 
-            public void ObjTeleport(uint id, uint sectorId, V2D pos)
-            {
-                // Debug.Log("ObjTeleport " + id + " " + sectorId + "/" + pos.x + ", " + pos.y);
-                var obj = this.idMap[id];
-                SetAt(obj, sectorId);
-                obj.transform.localPosition = new Vector3((float) pos.x, (float) pos.y, 0f);
-                obj.GetComponent<GenericObject>().Show();
-            }
+        public void ObjDock(ulong id, ulong targetId)
+        {
+            // Debug.Log("ObjDock " + id + " at " + targetId);
+            var obj = this.idMap[id];
+            obj.GetComponent<GenericObject>().Hide();
+            obj.transform.localPosition = Vector3.zero;
+            SetAt(obj, targetId);
+        }
 
-            public void ObjUndock(uint id, uint sectorId, V2D pos)
-            {
-                // Debug.Log("ObjUndock " + id + " " + sectorId + "/" + pos.x + ", " + pos.y);
-                var obj = this.idMap[id];
-                obj.GetComponent<GenericObject>().Show();
-                obj.transform.localPosition = new Vector3((float) pos.x, (float) pos.y, 0f);
-                SetAt(obj, sectorId);
-            }
+        public void ObjJump(ulong id, ulong sectorId, V2D pos)
+        {
+            // Debug.Log("ObjJump " + id + " to " + sectorId + " " + pos);
+            var obj = this.idMap[id];
+            SetAt(obj, sectorId);
+            obj.transform.localPosition = new Vector3((float) pos.x, (float) pos.y, 0f);
+        }
 
-            ///  Local position is preserve
-            private void SetAt(GameObject obj, uint parentId)
-            {
-                var parent = this.idMap[parentId];
-                var localPos = obj.transform.localPosition;
-                obj.transform.parent = parent.transform;
-                obj.transform.localPosition = localPos;
-            }
+        public void ObjMove(ulong id, V2D pos)
+        {
+            // Debug.Log("ObjMove");
+            var obj = this.idMap[id];
+            obj.transform.localPosition = new Vector3((float) pos.x, (float) pos.y, 0f);
+        }
 
-            private Vector3 ToV3(V2D pos)
-            {
-                return new Vector3(pos.x, pos.y, 0f);
-            }
+        public void ObjTeleport(ulong id, ulong sectorId, V2D pos)
+        {
+            // Debug.Log("ObjTeleport " + id + " " + sectorId + "/(" + pos.x + ", " + pos.y + ")");
+            var obj = this.idMap[id];
+            SetAt(obj, sectorId);
+            obj.transform.localPosition = new Vector3((float) pos.x, (float) pos.y, 0f);
+            obj.GetComponent<GenericObject>().Show();
+        }
+
+        public void ObjUndock(ulong id, ulong sectorId, V2D pos)
+        {
+            // Debug.Log("ObjUndock " + id + " " + sectorId + "/" + pos.x + ", " + pos.y);
+            var obj = this.idMap[id];
+            obj.GetComponent<GenericObject>().Show();
+            obj.transform.localPosition = new Vector3((float) pos.x, (float) pos.y, 0f);
+            SetAt(obj, sectorId);
+        }
+
+        ///  Local position is preserve
+        private void SetAt(GameObject obj, ulong parentId)
+        {
+            var parent = this.idMap[parentId];
+            var localPos = obj.transform.localPosition;
+            obj.transform.parent = parent.transform;
+            obj.transform.localPosition = localPos;
+        }
+
+        private Vector3 ToV3(V2D pos)
+        {
+            return new Vector3(pos.x, pos.y, 0f);
         }
     }
+}

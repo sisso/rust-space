@@ -4,7 +4,6 @@ use crate::game::extractables::Extractable;
 use shred::{ResourceId, SystemData, World, Write};
 use specs::prelude::*;
 
-
 use std::borrow::BorrowMut;
 
 /// Index entities to provide fast look up like:
@@ -36,16 +35,16 @@ impl<'a> System<'a> for IndexPerSectorSystem {
                 Location::Space { sector_id, .. } => {
                     let sector_id = *sector_id;
 
-                    log::trace!("indexing {:?} at {:?}", entity, sector_id);
+                    // log::trace!("indexing {:?} at {:?}", entity, sector_id);
                     index.add(sector_id, entity);
 
                     if data.extractables.contains(entity) {
-                        log::trace!("indexing extractable {:?} at {:?}", entity, sector_id);
+                        // log::trace!("indexing extractable {:?} at {:?}", entity, sector_id);
                         index.add_extractable(sector_id, entity);
                     }
 
                     if data.stations.contains(entity) {
-                        log::trace!("indexing stations {:?} at {:?}", entity, sector_id);
+                        // log::trace!("indexing stations {:?} at {:?}", entity, sector_id);
                         index.add_stations(sector_id, entity);
                     }
                 }

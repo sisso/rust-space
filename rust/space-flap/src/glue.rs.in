@@ -1,9 +1,32 @@
+
+foreign_enum!(
+    enum ObjKind{
+        Fleet = ObjKind::Fleet,
+        Asteroid = ObjKind::Asteroid,
+        Station = ObjKind::Station,
+        Jump = ObjKind::Jump,
+    }
+);
+
 foreign_class!(
     class SectorData {
         self_type SectorData;
-        constructor SectorData::new() -> SectorData;
-        fn SectorData::index(&self) -> u64;
-        fn SectorData::coords(&self) -> (f32, f32);
+        private constructor = empty;
+        fn SectorData::get_id(&self) -> u64;
+        fn SectorData::get_coords(&self) -> (f32, f32);
+    }
+);
+
+foreign_class!(
+    class FleetData {
+        self_type FleetData;
+        private constructor = empty;
+        fn FleetData::get_id(&self) -> u64;
+        fn FleetData::get_sector_id(&self) -> u64;
+        fn FleetData::get_coords(&self) -> (f32, f32);
+        fn FleetData::get_docked_id(&self) -> Option<u64>;
+        fn FleetData::is_docked(&self) -> bool;
+        fn FleetData::get_kind(&self) -> ObjKind;
     }
 );
 
@@ -12,5 +35,7 @@ foreign_class!(
         self_type SpaceGame;
         constructor SpaceGame::new(rgs: Vec<String>) -> SpaceGame;
         fn SpaceGame::get_sectors(&self) -> Vec<SectorData>;
+        fn SpaceGame::get_fleets(&self) -> Vec<FleetData>;
+        fn SpaceGame::update(&mut self, delta: f32);
     }
 );
