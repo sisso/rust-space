@@ -8,6 +8,6 @@ name = "space_flap"
 crate-type = ["cdylib"]
 
 [build-dependencies]
-flapigen = { version = "0.6.0-pre8", path = "/home/sisso/work/_others/flapigen-rs/macroslib" }
+flapigen = { git="https://github.com/sisso/flapigen-rs.git", version="0.6.0-pre8", branch="dotnet-pr" }
 env_logger = "0.7"
 log = "0.4"
