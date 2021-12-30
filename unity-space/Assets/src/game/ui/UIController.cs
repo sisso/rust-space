@@ -15,7 +15,7 @@ namespace game.ui {
         public UIPrefabs prefabs;
 
         private bool hasSectorId;
-        private uint currentSectorId;
+        private ulong currentSectorId;
 
         public GameObject buttonsPanel;
         public GameObject sectorMapPanel;

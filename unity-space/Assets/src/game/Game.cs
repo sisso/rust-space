@@ -3,7 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
-using core;
+using game.domain;
+using space_data;
 using Unity.Collections;
 using UnityEngine;
 using UnityEngine.Purchasing;
@@ -19,29 +20,38 @@ namespace game
         [Range(1, 10)] public int iterations = 1;
         public double realTime = 0.0;
         public double gameTime = 0.0;
-        public string[] init_arguments;
+        public List<string> initialArguments;
         public int lastRunTimeMls;
-        private core.Core core;
         private Stopwatch stopWatch;
-        
+        private ffi_domain_2.SpaceGame game;
+
         void OnEnable()
         {
-            if (this.core == null)
+            if (this.game == null)
             {
-                this.core = new core.Core("", this.domain);
-                this.core.SetData(new Core.Request
-                {
-                    newGame = true,
-                    arguments = this.init_arguments
-                });
+                this.game = new ffi_domain_2.SpaceGame(this.initialArguments);
                 this.stopWatch = new Stopwatch();
+                
+                this.CreateSectors();
             }
         }
 
         void Destroy()
         {
-            this.core.Dispose();
-            this.core = null;
+            if (this.game != null)
+            {
+                this.game.Dispose();
+                this.game = null;
+            }
+        }
+
+        void CreateSectors()
+        {
+            var sectors = this.game.GetSectors();
+            foreach (var sector in sectors)
+            {
+                domain.AddSector(sector.Index(), new V2D(sector.Coords().Item1, sector.Coords().Item2));
+            }
         }
 
         void FixedUpdate()
@@ -59,9 +69,9 @@ namespace game
                 // var requests = this.domain.TakeRequests();
                 // this.core.Push(requests);
                 // update time
-                this.core.Update(delta);
-                // get all data and send to domain
-                this.core.GetData();
+                // this.core.Update(delta);
+                // // get all data and send to domain
+                // this.core.GetData();
             }
 
             this.stopWatch.Stop();

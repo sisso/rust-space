@@ -16,21 +16,33 @@ namespace game.domain
     [System.Serializable]
     public class Id
     {
-        public uint value;
+        public ulong value;
 
         public Id()
         {
             value = 0;
         }
 
-        public Id(uint value)
+        public Id(ulong value)
         {
             this.value = value;
         }
     }
 
+    public struct V2D
+    {
+        public float x;
+        public float y;
+
+        public V2D(float x, float y)
+        {
+            this.x = x;
+            this.y = y;
+        }
+    }
+
     /// Hold all game logic in Unity3d
-    public class Domain : MonoBehaviour, core.EventHandler
+    public class Domain : MonoBehaviour
     {
         public Transform root;
         public GenericObject prefabGeneric;
@@ -38,7 +50,7 @@ namespace game.domain
         public GenericObject prefabJump;
         public GenericObject prefabAsteroid;
         public GenericObject prefabStation;
-        private Dictionary<uint, GameObject> idMap = new Dictionary<uint, GameObject>();
+        private Dictionary<ulong, GameObject> idMap = new();
         private List<GenericObject> sectors = new List<GenericObject>();
 
         public UIController ui;
@@ -52,18 +64,18 @@ namespace game.domain
             return sectors;
         }
 
-        public List<uint> ListObjectsAtSector(uint sectorId)
+        public List<ulong> ListObjectsAtSector(ulong sectorId)
         {
-            return new List<uint>();
+            return new List<ulong>();
         }
 
-        Vector3 GetSectorPos(V2 pos)
+        Vector3 GetSectorPos(V2D pos)
         {
             var scale = 15f;
-            return new Vector3(pos.X * scale, pos.Y * scale, 0f);
+            return new Vector3(pos.x * scale, pos.y * scale, 0f);
         }
 
-        public void AddJump(uint id, uint fromSectorId, V2 fromPos, uint toSectorId, V2 toPos)
+        public void AddJump(uint id, uint fromSectorId, V2D fromPos, uint toSectorId, V2D toPos)
         {
             Debug.Log("AddJump " + id + ", " + fromSectorId + "(" + fromPos + ") => " + toSectorId + "(" + toPos + ")");
 
@@ -129,7 +141,7 @@ namespace game.domain
                 this.idMap.Add(id, obj.gameObject);
             }
 
-            public void AddSector(uint id, V2 pos)
+            public void AddSector(ulong id, V2D pos)
             {
                 var posV3 = GetSectorPos(pos);
 
@@ -157,36 +169,36 @@ namespace game.domain
                 SetAt(obj, targetId);
             }
 
-            public void ObjJump(uint id, uint sectorId, V2 pos)
+            public void ObjJump(uint id, uint sectorId, V2D pos)
             {
                 // Debug.Log("ObjJump " + id + " to " + sectorId + " " + pos);
                 var obj = this.idMap[id];
                 SetAt(obj, sectorId);
-                obj.transform.localPosition = new Vector3((float) pos.X, (float) pos.Y, 0f);
+                obj.transform.localPosition = new Vector3((float) pos.x, (float) pos.y, 0f);
             }
 
-            public void ObjMove(uint id, V2 pos)
+            public void ObjMove(uint id, V2D pos)
             {
                 // Debug.Log("ObjMove");
                 var obj = this.idMap[id];
-                obj.transform.localPosition = new Vector3((float) pos.X, (float) pos.Y, 0f);
+                obj.transform.localPosition = new Vector3((float) pos.x, (float) pos.y, 0f);
             }
 
-            public void ObjTeleport(uint id, uint sectorId, V2 pos)
+            public void ObjTeleport(uint id, uint sectorId, V2D pos)
             {
-                // Debug.Log("ObjTeleport " + id + " " + sectorId + "/" + pos.X + ", " + pos.Y);
+                // Debug.Log("ObjTeleport " + id + " " + sectorId + "/" + pos.x + ", " + pos.y);
                 var obj = this.idMap[id];
                 SetAt(obj, sectorId);
-                obj.transform.localPosition = new Vector3((float) pos.X, (float) pos.Y, 0f);
+                obj.transform.localPosition = new Vector3((float) pos.x, (float) pos.y, 0f);
                 obj.GetComponent<GenericObject>().Show();
             }
 
-            public void ObjUndock(uint id, uint sectorId, V2 pos)
+            public void ObjUndock(uint id, uint sectorId, V2D pos)
             {
-                // Debug.Log("ObjUndock " + id + " " + sectorId + "/" + pos.X + ", " + pos.Y);
+                // Debug.Log("ObjUndock " + id + " " + sectorId + "/" + pos.x + ", " + pos.y);
                 var obj = this.idMap[id];
                 obj.GetComponent<GenericObject>().Show();
-                obj.transform.localPosition = new Vector3((float) pos.X, (float) pos.Y, 0f);
+                obj.transform.localPosition = new Vector3((float) pos.x, (float) pos.y, 0f);
                 SetAt(obj, sectorId);
             }
 
@@ -199,9 +211,9 @@ namespace game.domain
                 obj.transform.localPosition = localPos;
             }
 
-            private Vector3 ToV3(V2 pos)
+            private Vector3 ToV3(V2D pos)
             {
-                return new Vector3(pos.X, pos.Y, 0f);
+                return new Vector3(pos.x, pos.y, 0f);
             }
         }
     }
