@@ -11,8 +11,9 @@ use space_domain::game::station::Station;
 use space_domain::game::Game;
 use space_domain::utils::{Position, V2_ZERO};
 use specs::prelude::*;
-use std::borrow::Borrow;
+use std::cell::RefCell;
 use std::os::linux::raw::stat;
+use std::rc::Rc;
 
 type Id = u64;
 
@@ -21,11 +22,10 @@ pub enum ObjKind {
     Fleet,
     Asteroid,
     Station,
-    Jump,
 }
 
 #[derive(Clone, Debug)]
-pub struct FleetData {
+pub struct ObjData {
     id: Entity,
     coords: Position,
     sector_id: Entity,
@@ -33,15 +33,7 @@ pub struct FleetData {
     kind: ObjKind,
 }
 
-impl FleetData {
-    // pub fn new() -> Self {
-    //     FleetData {
-    //         id: ,
-    //         coords: V2_ZERO,
-    //         docked: None,
-    //     }
-    // }
-
+impl ObjData {
     pub fn get_id(&self) -> Id {
         encode_entity(self.id)
     }
@@ -67,20 +59,53 @@ impl FleetData {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct SectorData {
     id: Id,
     coords: (f32, f32),
 }
 
-impl SectorData {
-    // pub fn new() -> Self {
-    // SectorData {
-    //     index: 0,
-    //     coords: (0.0, 0.0),
-    // }
-    // }
+#[derive(Clone)]
+pub struct JumpData {
+    entity: Entity,
+    game: Rc<RefCell<Game>>,
+}
 
+impl JumpData {
+    pub fn get_id(&self) -> Id {
+        encode_entity(self.entity)
+    }
+
+    pub fn get_sector_id(&self) -> Id {
+        let g = self.game.borrow();
+        let locations = g.world.read_storage::<Location>();
+        let loc = Locations::resolve_space_position(&locations, self.entity);
+        encode_entity(loc.unwrap().sector_id)
+    }
+
+    pub fn get_coords(&self) -> (f32, f32) {
+        let g = self.game.borrow();
+        let locations = g.world.read_storage::<Location>();
+        let loc = Locations::resolve_space_position(&locations, self.entity);
+        let pos = loc.unwrap().pos;
+        (pos.x, pos.y)
+    }
+
+    pub fn get_to_sector_id(&self) -> Id {
+        let g = self.game.borrow();
+        let jumps = g.world.read_storage::<Jump>();
+        encode_entity((&jumps).get(self.entity).unwrap().target_sector_id)
+    }
+
+    pub fn get_to_coords(&self) -> (f32, f32) {
+        let g = self.game.borrow();
+        let jumps = g.world.read_storage::<Jump>();
+        let pos = (&jumps).get(self.entity).unwrap().target_pos;
+        (pos.x, pos.y)
+    }
+}
+
+impl SectorData {
     pub fn get_id(&self) -> Id {
         self.id
     }
@@ -90,7 +115,7 @@ impl SectorData {
 }
 
 pub struct SpaceGame {
-    game: Game,
+    game: Rc<RefCell<Game>>,
 }
 
 impl SpaceGame {
@@ -105,12 +130,16 @@ impl SpaceGame {
             },
         );
 
-        SpaceGame { game }
+        SpaceGame {
+            game: Rc::new(RefCell::new(game)),
+        }
     }
 
     pub fn get_sectors(&self) -> Vec<SectorData> {
-        let entities = self.game.world.entities();
-        let sectors = self.game.world.read_storage::<Sector>();
+        let g = self.game.borrow();
+
+        let entities = g.world.entities();
+        let sectors = g.world.read_storage::<Sector>();
 
         let mut r = vec![];
         for (e, s) in (&entities, &sectors).join() {
@@ -122,19 +151,37 @@ impl SpaceGame {
         r
     }
 
-    pub fn get_fleets(&self) -> Vec<FleetData> {
-        let entities = self.game.world.entities();
-        let locations = self.game.world.read_storage::<Location>();
-        let stations = self.game.world.read_storage::<Station>();
-        let jumps = self.game.world.read_storage::<Jump>();
-        let extractables = self.game.world.read_storage::<Extractable>();
+    pub fn get_jumps(&self) -> Vec<JumpData> {
+        let g = self.game.borrow();
+
+        let entities = g.world.entities();
+        let jumps = g.world.read_storage::<Jump>();
 
         let mut r = vec![];
-        for (e, st, ext, j, l) in (
+        for (e, _) in (&entities, &jumps).join() {
+            r.push(JumpData {
+                entity: e,
+                game: self.game.clone(),
+            });
+        }
+        r
+    }
+
+    pub fn get_fleets(&self) -> Vec<ObjData> {
+        let g = self.game.borrow();
+
+        let entities = g.world.entities();
+        let locations = g.world.read_storage::<Location>();
+        let stations = g.world.read_storage::<Station>();
+        let jumps = g.world.read_storage::<Jump>();
+        let extractables = g.world.read_storage::<Extractable>();
+
+        let mut r = vec![];
+        for (e, st, ext, _, l) in (
             &entities,
             (&stations).maybe(),
             (&extractables).maybe(),
-            (&jumps).maybe(),
+            !(&jumps),
             &locations,
         )
             .join()
@@ -146,13 +193,11 @@ impl SpaceGame {
                 ObjKind::Asteroid
             } else if st.is_some() {
                 ObjKind::Station
-            } else if j.is_some() {
-                ObjKind::Jump
             } else {
                 ObjKind::Fleet
             };
 
-            r.push(FleetData {
+            r.push(ObjData {
                 id: e,
                 coords: ls.pos,
                 sector_id: ls.sector_id,
@@ -175,7 +220,7 @@ impl SpaceGame {
     }
 
     pub fn update(&mut self, delta: f32) {
-        self.game.tick(delta.into());
+        self.game.borrow_mut().tick(delta.into());
     }
 }
 

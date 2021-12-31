@@ -32,8 +32,9 @@ namespace game
             {
                 this.game = new ffi_domain_2.SpaceGame(this.initialArguments);
                 this.stopWatch = new Stopwatch();
-                
+
                 this.CreateSectors();
+                this.CreateJumps();
             }
         }
 
@@ -52,6 +53,16 @@ namespace game
             foreach (var sector in sectors)
             {
                 domain.AddSector(sector.GetId(), AsV2D(sector.GetCoords()));
+            }
+        }
+
+        void CreateJumps()
+        {
+            var jumps = this.game.GetJumps();
+            foreach (var jump in jumps)
+            {
+                domain.AddJump(jump.GetId(), jump.GetSectorId(), AsV2D(jump.GetCoords()), jump.GetToSectorId(),
+                    AsV2D(jump.GetToCoords()));
             }
         }
 
@@ -76,9 +87,9 @@ namespace game
                         kind = EntityKind.Station;
                         break;
                 }
-                
+
                 domain.AddObj(fleet.GetId(), kind);
-                
+
                 var dockedId = fleet.GetDockedId();
                 if (dockedId.IsSome)
                 {
@@ -86,7 +97,7 @@ namespace game
                 }
                 else
                 {
-                    domain.ObjTeleport(fleet.GetId(), fleet.GetSectorId(),AsV2D(fleet.GetCoords()));
+                    domain.ObjTeleport(fleet.GetId(), fleet.GetSectorId(), AsV2D(fleet.GetCoords()));
                 }
             }
         }

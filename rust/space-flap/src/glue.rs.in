@@ -4,7 +4,6 @@ foreign_enum!(
         Fleet = ObjKind::Fleet,
         Asteroid = ObjKind::Asteroid,
         Station = ObjKind::Station,
-        Jump = ObjKind::Jump,
     }
 );
 
@@ -18,15 +17,27 @@ foreign_class!(
 );
 
 foreign_class!(
-    class FleetData {
-        self_type FleetData;
+    class JumpData {
+        self_type JumpData;
         private constructor = empty;
-        fn FleetData::get_id(&self) -> u64;
-        fn FleetData::get_sector_id(&self) -> u64;
-        fn FleetData::get_coords(&self) -> (f32, f32);
-        fn FleetData::get_docked_id(&self) -> Option<u64>;
-        fn FleetData::is_docked(&self) -> bool;
-        fn FleetData::get_kind(&self) -> ObjKind;
+        fn JumpData::get_id(&self) -> u64;
+        fn JumpData::get_coords(&self) -> (f32, f32);
+        fn JumpData::get_sector_id(&self) -> u64;
+        fn JumpData::get_to_sector_id(&self) -> u64;
+        fn JumpData::get_to_coords(&self) -> (f32, f32);
+    }
+);
+
+foreign_class!(
+    class ObjData {
+        self_type ObjData;
+        private constructor = empty;
+        fn ObjData::get_id(&self) -> u64;
+        fn ObjData::get_sector_id(&self) -> u64;
+        fn ObjData::get_coords(&self) -> (f32, f32);
+        fn ObjData::get_docked_id(&self) -> Option<u64>;
+        fn ObjData::is_docked(&self) -> bool;
+        fn ObjData::get_kind(&self) -> ObjKind;
     }
 );
 
@@ -35,7 +46,8 @@ foreign_class!(
         self_type SpaceGame;
         constructor SpaceGame::new(rgs: Vec<String>) -> SpaceGame;
         fn SpaceGame::get_sectors(&self) -> Vec<SectorData>;
-        fn SpaceGame::get_fleets(&self) -> Vec<FleetData>;
+        fn SpaceGame::get_jumps(&self) -> Vec<JumpData>;
+        fn SpaceGame::get_fleets(&self) -> Vec<ObjData>;
         fn SpaceGame::update(&mut self, delta: f32);
     }
 );
