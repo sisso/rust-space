@@ -12,6 +12,7 @@ use self::sectors::*;
 
 use crate::game::actions::Actions;
 use crate::game::commands::Commands;
+use crate::game::events::{Event, EventKind, Events};
 
 use crate::game::factory::Factory;
 use crate::game::loader::Loader;

@@ -35,6 +35,7 @@ namespace game
 
                 this.CreateSectors();
                 this.CreateJumps();
+                this.UpdateFleets();
             }
         }
 
@@ -113,7 +114,56 @@ namespace game
             {
                 this.gameTime += delta;
                 this.game.Update(delta);
-                UpdateFleets();
+                // UpdateFleets();
+
+                var events = this.game.TakeEvents();
+                foreach (var e in events)
+                {
+                    var id = e.GetId();
+                    var maybeObj = game.GetObj(id);
+
+                    if (!maybeObj.IsSome)
+                    {
+                        Debug.Log($"fail to finid obj {id}");
+                        continue;
+                    }
+
+                    var obj = maybeObj.Value;
+
+                    switch (e.GetKind())
+                    {
+                        case EventKind.Add:
+                            var objKind = obj.GetKind();
+                            var kind = EntityKind.Fleet;
+                            switch (objKind)
+                            {
+                                case ffi_domain_2.ObjKind.Asteroid:
+                                    kind = EntityKind.Asteroid;
+                                    break;
+                                case ffi_domain_2.ObjKind.Station:
+                                    kind = EntityKind.Station;
+                                    break;
+                            }
+
+                            domain.AddObj(id, kind);
+                            break;
+                        case EventKind.Move:
+                            domain.ObjMove(id, AsV2D(obj.GetCoords()));
+                            break;
+                        case EventKind.Jump:
+                            domain.ObjJump(id, obj.GetSectorId(), AsV2D(obj.GetCoords()));
+                            break;
+                        case EventKind.Dock:
+                            domain.ObjDock(id, obj.GetDockedId().Value);
+                            break;
+                        case EventKind.Undock:
+                            domain.ObjUndock(id, obj.GetSectorId(), AsV2D(obj.GetCoords()));
+                            break;
+                        default:
+                            Debug.Log($"{e.GetKind()} {id}");
+                            break;
+                    }
+                }
 
                 // // get commands from domain to core
                 // var requests = this.domain.TakeRequests();

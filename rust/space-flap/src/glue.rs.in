@@ -41,6 +41,26 @@ foreign_class!(
     }
 );
 
+foreign_enum!(
+    enum EventKind{
+        Add = EventKind::Add,
+        Move = EventKind::Move,
+        Jump = EventKind::Jump,
+        Dock = EventKind::Dock,
+        Undock = EventKind::Undock,
+    }
+);
+
+
+foreign_class!(
+    class EventData {
+        self_type EventData;
+        private constructor = empty;
+        fn EventData::get_kind(&self) -> EventKind;
+        fn EventData::get_id(&self) -> u64;
+    }
+);
+
 foreign_class!(
     class SpaceGame {
         self_type SpaceGame;
@@ -48,6 +68,8 @@ foreign_class!(
         fn SpaceGame::get_sectors(&self) -> Vec<SectorData>;
         fn SpaceGame::get_jumps(&self) -> Vec<JumpData>;
         fn SpaceGame::get_fleets(&self) -> Vec<ObjData>;
+        fn SpaceGame::get_obj(&self, id: u64) -> Option<ObjData>;
         fn SpaceGame::update(&mut self, delta: f32);
+        fn SpaceGame::take_events(&mut self) -> Vec<EventData>;
     }
 );

@@ -1,9 +1,11 @@
 #![allow(unused)]
 
+use space_domain::game::events;
 use space_domain::game::extractables::Extractable;
 use space_domain::game::factory::Factory;
 use space_domain::game::loader::{Loader, RandomMapCfg};
 use space_domain::game::locations::{Location, Locations};
+use space_domain::game::objects::ObjId;
 use space_domain::game::order::{Order, Orders};
 use space_domain::game::sectors::{Jump, Sector};
 use space_domain::game::shipyard::Shipyard;
@@ -22,6 +24,15 @@ pub enum ObjKind {
     Fleet,
     Asteroid,
     Station,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum EventKind {
+    Add,
+    Move,
+    Jump,
+    Dock,
+    Undock,
 }
 
 #[derive(Clone, Debug)]
@@ -221,6 +232,81 @@ impl SpaceGame {
 
     pub fn update(&mut self, delta: f32) {
         self.game.borrow_mut().tick(delta.into());
+    }
+
+    pub fn take_events(&mut self) -> Vec<EventData> {
+        let events = self
+            .game
+            .borrow_mut()
+            .world
+            .fetch_mut::<events::Events>()
+            .take();
+        events.into_iter().map(|i| EventData { event: i }).collect()
+    }
+
+    pub fn get_obj(&self, id: Id) -> Option<ObjData> {
+        let g = self.game.borrow();
+
+        let entities = g.world.entities();
+
+        let (eid, egen) = decode_entity(id);
+        let e = entities.entity(eid);
+        if egen != e.gen().id() {
+            log::warn!(
+                "get_obj for {}/{} fail, entity has gen {}",
+                eid,
+                egen,
+                e.gen().id()
+            );
+            return None;
+        }
+
+        let locations = g.world.read_storage::<Location>();
+        let stations = g.world.read_storage::<Station>();
+        let extractables = g.world.read_storage::<Extractable>();
+
+        let loc = (&locations).get(e)?;
+        let ext = (&extractables).get(e);
+        let st = (&stations).get(e);
+        let ls = Locations::resolve_space_position_from(&locations, loc)?;
+
+        let kind = if ext.is_some() {
+            ObjKind::Asteroid
+        } else if st.is_some() {
+            ObjKind::Station
+        } else {
+            ObjKind::Fleet
+        };
+
+        let obj = ObjData {
+            id: e,
+            coords: ls.pos,
+            sector_id: ls.sector_id,
+            docked: loc.as_docked(),
+            kind: kind,
+        };
+
+        Some(obj)
+    }
+}
+
+pub struct EventData {
+    event: events::Event,
+}
+
+impl EventData {
+    pub fn get_id(&self) -> Id {
+        encode_entity(self.event.id)
+    }
+
+    pub fn get_kind(&self) -> EventKind {
+        match self.event.kind {
+            events::EventKind::Add => EventKind::Add,
+            events::EventKind::Move => EventKind::Move,
+            events::EventKind::Jump => EventKind::Jump,
+            events::EventKind::Dock => EventKind::Dock,
+            events::EventKind::Undock => EventKind::Undock,
+        }
     }
 }
 
