@@ -1,14 +1,13 @@
-use std::borrow::{Borrow, BorrowMut};
-
 use ggez::conf::WindowMode;
 use ggez::event::{self, EventHandler};
-use ggez::graphics::{Color, Rect, StrokeOptions};
+use ggez::graphics::Color;
 use ggez::{graphics, timer, Context, ContextBuilder, GameError, GameResult};
 use nalgebra::{Point2, Rotation2, Vector2};
 use rand::{thread_rng, Rng};
 use specs::prelude::*;
 use specs::{World, WorldExt};
 use specs_derive::Component;
+use std::borrow::BorrowMut;
 
 type P3 = nalgebra::Point3<f32>;
 type P2 = nalgebra::Point2<f32>;
@@ -31,6 +30,12 @@ enum ObjKind {
     Base,
     Land,
     Air,
+}
+
+#[derive(Debug, Clone, Component)]
+enum Action {
+    None,
+    MoveTo(P2),
 }
 
 #[derive(Debug, Clone, Component)]
@@ -57,9 +62,15 @@ impl App {
         let mut world = World::new();
         world.register::<MapCfg>();
         world.register::<MObj>();
+        world.register::<Action>();
 
         create_entity(&mut world, ObjKind::Base, [150.0, 400.0, 0.0]);
         create_entity(&mut world, ObjKind::Base, [650.0, 300.0, 0.0]);
+        let e_air = create_entity(&mut world, ObjKind::Air, [650.0, 300.0, 0.0]);
+        world
+            .write_storage::<Action>()
+            .borrow_mut()
+            .insert(e_air, Action::MoveTo([150.0, 400.0].into()));
 
         ggez::filesystem::print_all(ctx);
 
@@ -73,6 +84,23 @@ impl App {
 
 impl EventHandler<GameError> for App {
     fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
+        let time = ggez::timer::delta(ctx).as_secs_f32();
+
+        let mut actions = self.world.write_storage::<Action>();
+        let mut objs = self.world.write_storage::<MObj>();
+
+        for (action, obj) in (&mut actions, &mut objs).join() {
+            match action {
+                Action::None => {}
+                Action::MoveTo(to) => {
+                    let speed = 10.0;
+                    let delta: V3 = P3::new(to.x, to.y, 0.0) - &obj.pos;
+                    let normalized = delta.normalize();
+                    obj.pos += normalized * time * speed;
+                }
+            }
+        }
+
         Ok(())
     }
 
@@ -92,31 +120,34 @@ impl EventHandler<GameError> for App {
         {
             let objects = self.world.read_storage::<MObj>();
 
+            let air_mesh = graphics::MeshBuilder::new()
+                .circle::<[f32; 2]>(
+                    graphics::DrawMode::stroke(1.0),
+                    [0.0, 0.0],
+                    5.0,
+                    1.0,
+                    Color::BLUE,
+                )?
+                .build(ctx)?;
+
+            let base_mesh = graphics::MeshBuilder::new()
+                .polygon::<[f32; 2]>(
+                    graphics::DrawMode::stroke(1.0),
+                    &[[-10.0, -5.0], [10.0, -5.0], [10.0, 5.0], [-10.0, 5.0]],
+                    graphics::Color::BLUE,
+                )?
+                .line(&[[-10.0, -5.0], [10.0, 5.0]], 1.0, Color::BLUE)?
+                .line(&[[-10.0, 5.0], [10.0, -5.0]], 1.0, Color::BLUE)?
+                .build(ctx)?;
+
             for o in (&objects).join() {
-                match o.kind {
-                    ObjKind::Base => {}
-                    ObjKind::Land => {}
-                    ObjKind::Air => {}
-                }
+                let mesh = match o.kind {
+                    ObjKind::Base => &base_mesh,
+                    ObjKind::Land => &air_mesh,
+                    ObjKind::Air => &air_mesh,
+                };
 
-                let mesh = graphics::MeshBuilder::new()
-                    .polygon::<[f32; 2]>(
-                        graphics::DrawMode::Stroke(StrokeOptions::default()),
-                        &[[-10.0, -5.0], [10.0, -5.0], [10.0, 5.0], [-10.0, 5.0]],
-                        graphics::Color::BLUE,
-                    )?
-                    .line(&[[-10.0, -5.0], [10.0, 5.0]], 1.0, Color::BLUE)?
-                    .line(&[[-10.0, 5.0], [10.0, -5.0]], 1.0, Color::BLUE)?
-                    .build(ctx)?;
-
-                // let rect = Rect::new(-5.0, -5.0, 10.0, 10.0);
-                // let mesh = ggez::graphics::Mesh::new_rectangle(
-                //     ctx,
-                //     graphics::DrawMode::Stroke(StrokeOptions::default()),
-                //     rect,
-                //     Color::BLUE,
-                // )?;
-                graphics::draw(ctx, &mesh, ([o.pos.x, o.pos.y], 0.0, Color::WHITE))?;
+                graphics::draw(ctx, mesh, ([o.pos.x, o.pos.y], 0.0, Color::WHITE))?;
             }
         }
 
