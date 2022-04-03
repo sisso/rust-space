@@ -1,5 +1,4 @@
-use rand::prelude::StdRng;
-use rand::Rng;
+use rand::prelude::*;
 use std::collections::HashSet;
 use std::fmt::{Debug, Formatter};
 

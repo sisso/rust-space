@@ -20,7 +20,7 @@ pub type Index = i32;
     6 7 8
 */
 #[derive(Debug, Clone)]
-pub struct Grid<T: Default> {
+pub struct Grid<T> {
     pub width: i32,
     pub height: i32,
     pub list: Vec<T>,
@@ -43,7 +43,9 @@ impl<T: Default> Grid<T> {
             list,
         }
     }
+}
 
+impl<T> Grid<T> {
     pub fn set(&mut self, index: Index, value: T) {
         assert!(self.is_valid_index(index));
         self.list[index as usize] = value;

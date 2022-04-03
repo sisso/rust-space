@@ -1,12 +1,13 @@
 [workspace]
 members = [
   "commons",
-  "space-domain",
-  "space-lib",
-  "space-console",
-  "space-2d-gui",
-  "space-internal",
-  "space-flap"
+#  "space-domain",
+#  "space-lib",
+#  "space-console",
+#  "space-2d-gui",
+#  "space-internal",
+#  "space-flap",
+  "space-galaxy",
 ]
 
 [profile.dev]
