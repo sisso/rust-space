@@ -13,3 +13,7 @@ rand = "0.8.4"
 commons = { version = "*", path = "../commons" }
 hocon="0.3.4"
 log = "0.4.16"
+
+# terrain generator
+opensimplex_noise_rs = "0.3.0"
+image ="0.23"
