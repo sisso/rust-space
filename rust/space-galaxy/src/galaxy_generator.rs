@@ -108,6 +108,7 @@ fn generate_random_map(size: i32, seed: u64) -> (Grid<Sector>, Vec<Jump>) {
 
     (grid, jumps)
 }
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -118,5 +119,6 @@ mod test {
 
         assert_eq!(4, g.sectors.list.len());
         assert!(g.jumps.len() >= 3, "num jubs is {}", g.jumps.len());
+        assert_eq!("", format!("{:?}", g));
     }
 }

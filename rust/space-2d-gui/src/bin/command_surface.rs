@@ -158,6 +158,8 @@ impl EventHandler<GameError> for App {
 }
 
 fn main() {
+    todo!("include space-galaxy/system_generator instead this");
+
     let resource_dir = if let Ok(manifest_dir) = std::env::var("CARGO_MANIFEST_DIR") {
         let mut path = std::path::PathBuf::from(manifest_dir);
         path.push("resources");

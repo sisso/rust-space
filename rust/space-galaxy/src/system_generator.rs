@@ -5,9 +5,16 @@ use rand::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
+pub const DEFAULT_CFG: &str = std::include_str!("../data/system_generator.conf");
+
 pub fn new_config(path: &Path) -> UniverseCfg {
     let wrapper: UniverseCfgWrapper =
         commons::hocon::load_hocon_files(path).expect("fail to read file");
+    wrapper.system_generator
+}
+
+pub fn new_config_from_str(data: &str) -> UniverseCfg {
+    let wrapper: UniverseCfgWrapper = commons::hocon::load_str(data).expect("invalid config file");
     wrapper.system_generator
 }
 
@@ -132,7 +139,10 @@ impl IdGen {
     }
 }
 
-pub fn new_system(cfg: &UniverseCfg, rng: &mut StdRng) -> System {
+pub fn new_system(cfg: &UniverseCfg, seed: u64) -> System {
+    let mut rng: StdRng = rand::SeedableRng::seed_from_u64(seed);
+    let rng = &mut rng;
+
     let mut igen = IdGen { v: 0 };
 
     let star_kind = prob::select_weighted(rng, &cfg.star_kinds).unwrap();
@@ -380,4 +390,16 @@ fn generate_resources(
     }
 
     resources
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test1() {
+        let cfg = new_config(std::path::PathBuf::from("./data").as_path());
+        let system = new_system(&cfg, 0);
+        assert!(0 < system.bodies.len());
+    }
 }
