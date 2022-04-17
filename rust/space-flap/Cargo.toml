@@ -5,7 +5,7 @@ edition = "2021"
 
 [lib]
 name = "space_flap"
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 space-domain = { version = "*", path = "../space-domain" }
@@ -16,6 +16,7 @@ shred = { version = "0.10.*", default-features = false }
 shred-derive = "0.6.*"
 env_logger = "0.7"
 log = "0.4"
+itertools = "0.10.3"
 
 [build-dependencies]
 flapigen = { git="https://github.com/sisso/flapigen-rs.git", version="0.6.0-pre8", branch="dotnet-pr" }

@@ -1,5 +1,8 @@
 #![allow(unused)]
 
+extern crate core;
+
+use itertools::Itertools;
 use space_domain::game::events;
 use space_domain::game::extractables::Extractable;
 use space_domain::game::factory::Factory;
@@ -17,13 +20,14 @@ use std::cell::RefCell;
 use std::os::linux::raw::stat;
 use std::rc::Rc;
 
-type Id = u64;
+pub type Id = u64;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ObjKind {
     Fleet,
     Asteroid,
     Station,
+    Jump,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -131,19 +135,66 @@ pub struct SpaceGame {
 
 impl SpaceGame {
     pub fn new(args: Vec<String>) -> Self {
+        let mut size = 50;
+        let mut fleets = 100;
+
+        for mut pair in &args.iter().chunks(2) {
+            let k = pair.next().unwrap();
+            let v = pair.next().unwrap();
+            log::info!("checking {}/{}", k, v);
+            match k.as_str() {
+                "--size" => match v.parse::<usize>() {
+                    Ok(v) => {
+                        log::info!("set size to {}", v);
+                        size = v
+                    }
+                    Err(e) => {
+                        log::warn!("invalid argument {}={}", k, v);
+                    }
+                },
+                "--fleets" => match v.parse::<usize>() {
+                    Ok(v) => {
+                        log::info!("set fleet to {}", v);
+                        fleets = v
+                    }
+                    Err(e) => {
+                        log::warn!("invalid argument {}={}", k, v);
+                    }
+                },
+                _ => log::warn!("unknown argument {}={}", k, v),
+            }
+        }
+
         let mut game = Game::new();
         Loader::load_random(
             &mut game,
             &RandomMapCfg {
-                size: 50,
-                seed: 50,
-                ships: 100,
+                size: size,
+                seed: 0,
+                ships: fleets,
             },
         );
 
         SpaceGame {
             game: Rc::new(RefCell::new(game)),
         }
+    }
+
+    pub fn list_at_sector(&self, sector_id: Id) -> Vec<Id> {
+        let g = self.game.borrow();
+
+        let entities = g.world.entities();
+
+        let e_sector = decode_entity_and_get(&g, sector_id);
+
+        let locations = g.world.read_storage::<Location>();
+        let mut result = vec![];
+        for (e, l) in (&entities, &locations).join() {
+            if l.get_sector_id() == e_sector {
+                result.push(encode_entity(e));
+            }
+        }
+        result
     }
 
     pub fn get_sectors(&self) -> Vec<SectorData> {
@@ -249,31 +300,25 @@ impl SpaceGame {
 
         let entities = g.world.entities();
 
-        let (eid, egen) = decode_entity(id);
-        let e = entities.entity(eid);
-        if egen != e.gen().id() {
-            log::warn!(
-                "get_obj for {}/{} fail, entity has gen {}",
-                eid,
-                egen,
-                e.gen().id()
-            );
-            return None;
-        }
+        let e = decode_entity_and_get(&g, id)?;
 
         let locations = g.world.read_storage::<Location>();
         let stations = g.world.read_storage::<Station>();
         let extractables = g.world.read_storage::<Extractable>();
+        let jumps = g.world.read_storage::<Jump>();
 
         let loc = (&locations).get(e)?;
         let ext = (&extractables).get(e);
         let st = (&stations).get(e);
         let ls = Locations::resolve_space_position_from(&locations, loc)?;
+        let jp = (&jumps).get(e);
 
         let kind = if ext.is_some() {
             ObjKind::Asteroid
         } else if st.is_some() {
             ObjKind::Station
+        } else if jp.is_some() {
+            ObjKind::Jump
         } else {
             ObjKind::Fleet
         };
@@ -322,6 +367,23 @@ fn decode_entity(value: u64) -> (u32, i32) {
     let high = (value >> 32) as u32;
     let low = (value & 0xffffffff) as i32;
     (high, low)
+}
+
+fn decode_entity_and_get(g: &Game, id: Id) -> Option<Entity> {
+    let (eid, egen) = decode_entity(id);
+    let entities = g.world.entities();
+    let e = entities.entity(eid);
+    if egen == e.gen().id() {
+        Some(e)
+    } else {
+        log::warn!(
+            "get_obj for {}/{} fail, entity has gen {}",
+            eid,
+            egen,
+            e.gen().id()
+        );
+        return None;
+    }
 }
 
 include!(concat!(env!("OUT_DIR"), "/glue.rs"));

@@ -112,36 +112,62 @@ impl Loader {
                 }
             }
 
-            for sector_id in sectors_id {
-                match commons::prob::select_weighted(&mut rng, &sector_kind_prob) {
-                    Some(i) if *i == sector_kind_asteroid => {
-                        Loader::new_asteroid(world, sector_id, sector_pos(&mut rng), ware_ore_id);
+            let mut required_kinds = [false, false, false, false];
+            loop {
+                for sector_id in &sectors_id {
+                    let sector_id = *sector_id;
+
+                    match commons::prob::select_weighted(&mut rng, &sector_kind_prob) {
+                        Some(i) if *i == sector_kind_asteroid => {
+                            required_kinds[0] = true;
+                            Loader::new_asteroid(
+                                world,
+                                sector_id,
+                                sector_pos(&mut rng),
+                                ware_ore_id,
+                            );
+                        }
+                        Some(i) if *i == sector_kind_shipyard => {
+                            required_kinds[1] = true;
+
+                            Loader::new_shipyard(
+                                world,
+                                sector_id,
+                                sector_pos(&mut rng),
+                                ware_components_id,
+                            );
+                        }
+                        Some(i) if *i == sector_kind_factory => {
+                            required_kinds[2] = true;
+
+                            Loader::new_factory(
+                                world,
+                                sector_id,
+                                sector_pos(&mut rng),
+                                receipt_process_ores.clone(),
+                            );
+                        }
+                        Some(i) if *i == sector_kind_power => {
+                            required_kinds[3] = true;
+
+                            Loader::new_factory(
+                                world,
+                                sector_id,
+                                sector_pos(&mut rng),
+                                receipt_produce_energy.clone(),
+                            );
+                        }
+                        _ => {}
                     }
-                    Some(i) if *i == sector_kind_shipyard => {
-                        Loader::new_shipyard(
-                            world,
-                            sector_id,
-                            sector_pos(&mut rng),
-                            ware_components_id,
-                        );
-                    }
-                    Some(i) if *i == sector_kind_factory => {
-                        Loader::new_factory(
-                            world,
-                            sector_id,
-                            sector_pos(&mut rng),
-                            receipt_process_ores.clone(),
-                        );
-                    }
-                    Some(i) if *i == sector_kind_power => {
-                        Loader::new_factory(
-                            world,
-                            sector_id,
-                            sector_pos(&mut rng),
-                            receipt_produce_energy.clone(),
-                        );
-                    }
-                    _ => {}
+                }
+
+                // check if all required stations existrs
+                if required_kinds.iter().find(|i| !**i).is_none() {
+                    log::warn!(
+                        "world generator fail to provide require stations {:?}, retrying",
+                        required_kinds
+                    );
+                    break;
                 }
             }
         }

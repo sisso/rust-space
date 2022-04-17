@@ -4,9 +4,9 @@ members = [
 #  "space-domain",
 #  "space-lib",
 #  "space-console",
-#  "space-2d-gui",
+  "space-2d-gui",
 #  "space-internal",
-#  "space-flap",
+  "space-flap",
   "space-galaxy",
 ]
 

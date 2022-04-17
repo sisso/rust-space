@@ -22,6 +22,22 @@ macro_rules! unwrap_or_continue {
     };
 }
 
+#[macro_export]
+macro_rules! unwrap_or_return {
+    ($res:expr) => {
+        match $res {
+            Some(value) => value,
+            None => return,
+        }
+    };
+    ($res:expr, $ret:expr) => {
+        match $res {
+            Some(value) => value,
+            None => return $ret,
+        }
+    };
+}
+
 pub struct TimeDeadline(Instant);
 
 impl TimeDeadline {
