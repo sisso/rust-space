@@ -6,6 +6,7 @@ use itertools::Itertools;
 use space_domain::game::events;
 use space_domain::game::extractables::Extractable;
 use space_domain::game::factory::Factory;
+use space_domain::game::fleets::Fleet;
 use space_domain::game::loader::{Loader, RandomMapCfg};
 use space_domain::game::locations::{Location, Locations};
 use space_domain::game::objects::ObjId;
@@ -23,20 +24,20 @@ use std::rc::Rc;
 pub type Id = u64;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub enum ObjKind {
-    Fleet,
-    Asteroid,
-    Station,
-    Jump,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum EventKind {
     Add,
     Move,
     Jump,
     Dock,
     Undock,
+}
+
+#[derive(Clone, Debug)]
+pub struct ObjKind {
+    fleet: bool,
+    jump: bool,
+    station: bool,
+    asteroid: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -69,8 +70,20 @@ impl ObjData {
         (self.coords.x, self.coords.y)
     }
 
-    pub fn get_kind(&self) -> ObjKind {
-        self.kind
+    pub fn is_fleet(&self) -> bool {
+        self.kind.fleet
+    }
+
+    pub fn is_station(&self) -> bool {
+        self.kind.station
+    }
+
+    pub fn is_asteroid(&self) -> bool {
+        self.kind.asteroid
+    }
+
+    pub fn is_jump(&self) -> bool {
+        self.kind.jump
     }
 }
 
@@ -237,13 +250,15 @@ impl SpaceGame {
         let stations = g.world.read_storage::<Station>();
         let jumps = g.world.read_storage::<Jump>();
         let extractables = g.world.read_storage::<Extractable>();
+        let fleets = g.world.read_storage::<Fleet>();
 
         let mut r = vec![];
-        for (e, st, ext, _, l) in (
+        for (e, flt, st, ext, j, l) in (
             &entities,
+            &fleets,
             (&stations).maybe(),
             (&extractables).maybe(),
-            !(&jumps),
+            (&jumps).maybe(),
             &locations,
         )
             .join()
@@ -251,12 +266,11 @@ impl SpaceGame {
             let ls = Locations::resolve_space_position_from(&locations, l)
                 .expect("fail to find location");
 
-            let kind = if ext.is_some() {
-                ObjKind::Asteroid
-            } else if st.is_some() {
-                ObjKind::Station
-            } else {
-                ObjKind::Fleet
+            let kind = ObjKind {
+                fleet: true,
+                jump: j.is_some(),
+                station: st.is_some(),
+                asteroid: ext.is_some(),
             };
 
             r.push(ObjData {
@@ -306,21 +320,20 @@ impl SpaceGame {
         let stations = g.world.read_storage::<Station>();
         let extractables = g.world.read_storage::<Extractable>();
         let jumps = g.world.read_storage::<Jump>();
+        let fleets = g.world.read_storage::<Fleet>();
 
+        let flt = (&fleets).get(e);
         let loc = (&locations).get(e)?;
         let ext = (&extractables).get(e);
         let st = (&stations).get(e);
         let ls = Locations::resolve_space_position_from(&locations, loc)?;
         let jp = (&jumps).get(e);
 
-        let kind = if ext.is_some() {
-            ObjKind::Asteroid
-        } else if st.is_some() {
-            ObjKind::Station
-        } else if jp.is_some() {
-            ObjKind::Jump
-        } else {
-            ObjKind::Fleet
+        let kind = ObjKind {
+            fleet: flt.is_some(),
+            jump: jp.is_some(),
+            station: st.is_some(),
+            asteroid: ext.is_some(),
         };
 
         let obj = ObjData {

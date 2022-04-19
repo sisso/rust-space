@@ -14,6 +14,7 @@ use crate::game::actions::Actions;
 use crate::game::commands::Commands;
 
 use crate::game::factory::Factory;
+use crate::game::fleets::Fleet;
 use crate::game::loader::Loader;
 use crate::game::navigations::Navigations;
 use crate::game::order::Orders;
@@ -26,6 +27,7 @@ pub mod dock;
 pub mod events;
 pub mod extractables;
 pub mod factory;
+pub mod fleets;
 pub mod jsons;
 pub mod label;
 pub mod loader;
@@ -88,6 +90,7 @@ impl Game {
         Factory::init(&mut ictx);
         Orders::init(&mut ictx);
         Stations::init(&mut ictx);
+        Fleet::init(&mut ictx);
 
         let mut dispatcher = ictx.dispatcher.build();
 
@@ -145,7 +148,7 @@ impl Game {
             self.world.entities().delete(e).unwrap();
         }
 
-        for obj in list {
+        for obj in &list {
             Loader::add_object(&mut self.world, obj);
         }
     }

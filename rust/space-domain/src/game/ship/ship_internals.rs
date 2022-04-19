@@ -2,7 +2,6 @@ use std::collections::{HashMap, HashSet};
 
 use crate::utils::Speed;
 
-
 #[derive(Clone, Debug)]
 pub struct Armor {
     pub width: u32,
@@ -113,9 +112,9 @@ impl Component {
 
 #[derive(Clone, Debug)]
 struct ComponentItem {
-    pub damage: u32,
-    pub max_damage: u32,
-    pub working: u32,
+    // pub damage: u32,
+// pub max_damage: u32,
+// pub working: u32,
 }
 
 #[derive(Clone, Debug)]

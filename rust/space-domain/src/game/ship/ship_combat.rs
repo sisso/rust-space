@@ -8,7 +8,6 @@ use super::damages;
 use super::ship_internals::*;
 use crate::game::ship::damages::DamageToApply;
 
-
 #[derive(Clone, Debug)]
 pub enum CombatLog {
     NoTarget {
@@ -264,9 +263,9 @@ impl Combat {
         candidates.into_iter().map(|(id, _)| id).next()
     }
 
-    fn roll_order(ships: &HashMap<ShipInstanceId, &mut ShipInstance>) -> Vec<ShipInstanceId> {
-        ships.keys().map(|i| *i).collect()
-    }
+    // fn roll_order(ships: &HashMap<ShipInstanceId, &mut ShipInstance>) -> Vec<ShipInstanceId> {
+    //     ships.keys().map(|i| *i).collect()
+    // }
 }
 
 #[cfg(test)]

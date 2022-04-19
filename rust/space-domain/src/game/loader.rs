@@ -9,6 +9,7 @@ use crate::game::dock::HasDock;
 use crate::game::events::{Event, EventKind, Events};
 use crate::game::extractables::Extractable;
 use crate::game::factory::{Factory, Receipt};
+use crate::game::fleets::Fleet;
 use crate::game::locations::{Location, Moveable};
 use crate::game::new_obj::NewObj;
 use crate::game::objects::ObjId;
@@ -307,7 +308,7 @@ impl Loader {
     pub fn new_asteroid(world: &mut World, sector_id: SectorId, pos: V2, ware_id: WareId) -> ObjId {
         Loader::add_object(
             world,
-            NewObj::new()
+            &NewObj::new()
                 .extractable(Extractable { ware_id })
                 .at_position(sector_id, pos),
         )
@@ -316,7 +317,7 @@ impl Loader {
     pub fn new_shipyard(world: &mut World, sector_id: SectorId, pos: V2, ware_id: WareId) -> ObjId {
         Loader::add_object(
             world,
-            NewObj::new()
+            &NewObj::new()
                 .with_cargo(100.0)
                 .at_position(sector_id, pos)
                 .as_station()
@@ -328,7 +329,7 @@ impl Loader {
     pub fn new_factory(world: &mut World, sector_id: SectorId, pos: V2, receipt: Receipt) -> ObjId {
         Loader::add_object(
             world,
-            NewObj::new()
+            &NewObj::new()
                 .with_cargo(100.0)
                 .at_position(sector_id, pos)
                 .as_station()
@@ -340,7 +341,7 @@ impl Loader {
     pub fn new_ship_miner(world: &mut World, docked_at: ObjId, speed: f32, label: String) -> ObjId {
         Loader::add_object(
             world,
-            Loader::new_ship(docked_at, speed, label).with_command(Command::mine()),
+            &Loader::new_ship(docked_at, speed, label).with_command(Command::mine()),
         )
     }
 
@@ -352,7 +353,7 @@ impl Loader {
     ) -> ObjId {
         Loader::add_object(
             world,
-            Loader::new_ship(docked_at, speed, label).with_command(Command::trade()),
+            &Loader::new_ship(docked_at, speed, label).with_command(Command::trade()),
         )
     }
 
@@ -363,15 +364,16 @@ impl Loader {
             .at_dock(docked_at)
             .can_dock()
             .with_label(label)
+            .as_fleet()
             .with_command(Command::mine())
     }
 
     pub fn new_sector(world: &mut World, pos: V2, name: String) -> ObjId {
-        Loader::add_object(world, NewObj::new().with_sector(pos).with_label(name))
+        Loader::add_object(world, &NewObj::new().with_sector(pos).with_label(name))
     }
 
     pub fn new_ware(world: &mut World, name: String) -> WareId {
-        Loader::add_object(world, NewObj::new().with_ware().with_label(name))
+        Loader::add_object(world, &NewObj::new().with_ware().with_label(name))
     }
 
     pub fn new_jump(
@@ -425,8 +427,7 @@ impl Loader {
         (jump_from_id, jump_to_id)
     }
 
-    // TODO: receive new obj or reference?
-    pub fn add_object(world: &mut World, new_obj: NewObj) -> ObjId {
+    pub fn add_object(world: &mut World, new_obj: &NewObj) -> ObjId {
         let mut builder = world.create_entity();
 
         let mut orders = vec![];
@@ -458,6 +459,10 @@ impl Loader {
 
         if new_obj.station {
             builder.set(Station {});
+        }
+
+        if new_obj.fleet {
+            builder.set(Fleet {});
         }
 
         if let Some(sector_pos) = &new_obj.sector {

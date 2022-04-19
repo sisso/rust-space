@@ -1,8 +1,6 @@
 use crate::game::{GameInitContext, RequireInitializer};
 use specs::prelude::*;
 
-// TODO: not in used
-/// Static object that usually contains docks, storage, factories and shipyards
 #[derive(Clone, Debug, Component)]
 pub struct Station {}
 

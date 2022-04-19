@@ -1,13 +1,4 @@
 
-foreign_enum!(
-    enum ObjKind{
-        Fleet = ObjKind::Fleet,
-        Asteroid = ObjKind::Asteroid,
-        Station = ObjKind::Station,
-        Jump = ObjKind::Jump,
-    }
-);
-
 foreign_class!(
     class SectorData {
         self_type SectorData;
@@ -38,7 +29,10 @@ foreign_class!(
         fn ObjData::get_coords(&self) -> (f32, f32);
         fn ObjData::get_docked_id(&self) -> Option<u64>;
         fn ObjData::is_docked(&self) -> bool;
-        fn ObjData::get_kind(&self) -> ObjKind;
+        fn ObjData::is_fleet(&self) -> bool;
+        fn ObjData::is_station(&self) -> bool;
+        fn ObjData::is_asteroid(&self) -> bool;
+        fn ObjData::is_jump(&self) -> bool;
     }
 );
 

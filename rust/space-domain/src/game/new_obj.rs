@@ -16,6 +16,7 @@ pub struct NewObj {
     pub extractable: Option<Extractable>,
     pub location: Option<Location>,
     pub can_dock: bool,
+    pub fleet: bool,
     pub has_dock: bool,
     pub ai: bool,
     pub station: bool,
@@ -76,6 +77,11 @@ impl NewObj {
 
     pub fn as_station(mut self) -> Self {
         self.station = true;
+        self
+    }
+
+    pub fn as_fleet(mut self) -> Self {
+        self.fleet = true;
         self
     }
 

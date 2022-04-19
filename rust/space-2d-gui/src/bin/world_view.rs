@@ -15,7 +15,7 @@ fn main() {
         .filter(Some("space_domain"), log::LevelFilter::Warn)
         .init();
 
-    let args = vec!["--size", "4", "--fleets", "10"]
+    let args = vec!["--size", "4", "--fleets", "2"]
         .into_iter()
         .map(String::from)
         .collect();
@@ -65,11 +65,17 @@ impl State {
         for obj_id in self.sg.list_at_sector(id) {
             let obj = unwrap_or_continue!(self.sg.get_obj(obj_id));
 
-            let color = match obj.get_kind() {
-                ObjKind::Fleet => Color::RED,
-                ObjKind::Asteroid => Color::MAGENTA,
-                ObjKind::Station => Color::GREEN,
-                ObjKind::Jump => Color::BLUE,
+            let color = match (
+                obj.is_fleet(),
+                obj.is_asteroid(),
+                obj.is_station(),
+                obj.is_jump(),
+            ) {
+                (true, _, _, _) => Color::RED,
+                (_, true, _, _) => Color::MAGENTA,
+                (_, _, true, _) => Color::GREEN,
+                (_, _, _, true) => Color::BLUE,
+                _ => Color::WHITE,
             };
 
             let (x, y) = obj.get_coords();
