@@ -5,7 +5,7 @@ use ggez::graphics::{self, Color, DrawParam};
 use ggez::{Context, ContextBuilder, GameResult};
 use ggez_egui::{egui, EguiBackend};
 use space_flap;
-use space_flap::{EventKind, ObjKind};
+use space_flap::{EventKind, ObjData, ObjKind, SectorData};
 
 fn main() {
     env_logger::builder()
@@ -15,7 +15,7 @@ fn main() {
         .filter(Some("space_domain"), log::LevelFilter::Warn)
         .init();
 
-    let args = vec!["--size", "50", "--fleets", "1000"]
+    let args = vec!["--size", "4", "--fleets", "10"]
         .into_iter()
         .map(String::from)
         .collect();
@@ -31,6 +31,8 @@ fn main() {
         sg: sg,
         selected_sector: 0,
         selected_sector_id: None,
+        selected_fleet: 0,
+        selected_fleet_id: None,
     };
 
     event::run(ctx, event_loop, my_game);
@@ -40,6 +42,8 @@ struct State {
     sg: space_flap::SpaceGame,
     selected_sector: usize,
     selected_sector_id: Option<space_flap::Id>,
+    selected_fleet: usize,
+    selected_fleet_id: Option<space_flap::Id>,
     egui_backend: EguiBackend,
 }
 
@@ -79,7 +83,23 @@ impl State {
 }
 
 fn sector_text(sd: &space_flap::SectorData) -> String {
-    format!("({},{})", sd.get_coords().0, sd.get_coords().1,)
+    format!("({},{})", sd.get_coords().0, sd.get_coords().1)
+}
+
+fn fleet_text(sectors: &Vec<SectorData>, d: &space_flap::ObjData) -> String {
+    let sector_index = sectors
+        .iter()
+        .position(|s| s.get_id() == d.get_sector_id())
+        .map(|id| format!("{}", id))
+        .unwrap_or("None".to_string());
+
+    format!(
+        "{} {}/{:.1},{:.1}",
+        d.get_id(),
+        sector_index,
+        d.get_coords().0,
+        d.get_coords().1
+    )
 }
 
 impl EventHandler for State {
@@ -107,10 +127,10 @@ impl EventHandler for State {
         }
 
         let sectors = self.sg.get_sectors();
+        let fleets = self.sg.get_fleets();
 
         let egui_ctx = self.egui_backend.ctx();
         egui::Window::new("egui-window").show(&egui_ctx, |ui| {
-            ui.label("Sectors");
             egui::ComboBox::from_label("Sector").show_index(
                 ui,
                 &mut self.selected_sector,
@@ -119,6 +139,15 @@ impl EventHandler for State {
             );
 
             self.selected_sector_id = Some(sectors[self.selected_sector].get_id());
+
+            egui::ComboBox::from_label("Fleets").show_index(
+                ui,
+                &mut self.selected_fleet,
+                fleets.len(),
+                |i| format!("{}{}", i, fleet_text(&sectors, &fleets[i])),
+            );
+
+            self.selected_fleet_id = Some(fleets[self.selected_fleet].get_id());
         });
         Ok(())
     }

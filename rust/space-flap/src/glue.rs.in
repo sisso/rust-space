@@ -4,6 +4,7 @@ foreign_enum!(
         Fleet = ObjKind::Fleet,
         Asteroid = ObjKind::Asteroid,
         Station = ObjKind::Station,
+        Jump = ObjKind::Jump,
     }
 );
 
