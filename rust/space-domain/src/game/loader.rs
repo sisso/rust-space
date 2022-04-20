@@ -22,6 +22,8 @@ use crate::game::{sectors, Game};
 use crate::specs_extras::*;
 use crate::utils::{DeltaTime, Position, Speed, V2};
 
+const SECTOR_MAX_SX: i32 = 10;
+
 pub struct Loader {}
 
 pub struct BasicScenery {
@@ -521,17 +523,50 @@ impl Loader {
     }
 }
 
+fn get_sector_pos_by_coords(sector_pos1: V2, sector_pos2: V2) -> (V2, V2) {
+    if sector_pos1.y as i32 == sector_pos2.y as i32 {
+        if sector_pos1.x > sector_pos2.x {
+            (
+                V2::new(SECTOR_MAX_SX as f32 * -0.5, 0.0),
+                V2::new(SECTOR_MAX_SX as f32 * 0.5, 0.0),
+            )
+        } else {
+            (
+                V2::new(SECTOR_MAX_SX as f32 * 0.5, 0.0),
+                V2::new(SECTOR_MAX_SX as f32 * -0.5, 0.0),
+            )
+        }
+    } else {
+        if sector_pos1.x > sector_pos2.x {
+            (
+                V2::new(0.0, SECTOR_MAX_SX as f32 * -0.5),
+                V2::new(0.0, SECTOR_MAX_SX as f32 * 0.5),
+            )
+        } else {
+            (
+                V2::new(0.0, SECTOR_MAX_SX as f32 * 0.5),
+                V2::new(0.0, SECTOR_MAX_SX as f32 * -0.5),
+            )
+        }
+    }
+}
+
+// #[test]
+// fn test_get_sector_pos_by_coords() {
+//     assert_eq!()
+// }
+
 pub fn generate_random_map(world: &mut World, size: usize, seed: u64) {
     log::info!("generating random map with seed {}", seed);
 
     let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
 
-    fn sector_pos<R: rand::Rng>(rng: &mut R) -> V2 {
-        V2::new(
-            (rng.gen_range(0..10) - 5) as f32,
-            (rng.gen_range(0..10) - 5) as f32,
-        )
-    }
+    // fn sector_pos<R: rand::Rng>(rng: &mut R) -> V2 {
+    //     V2::new(
+    //         rng.gen_range(0..SECTOR_MAX_SX) as f32 - SECTOR_MAX_SX as f32 * 0.5,
+    //         rng.gen_range(0..SECTOR_MAX_SX) as f32 - SECTOR_MAX_SX as f32 * 0.5,
+    //     )
+    // }
 
     let rgcfg = commons::random_grid::RandomGridCfg {
         width: size,
@@ -551,7 +586,7 @@ pub fn generate_random_map(world: &mut World, size: usize, seed: u64) {
         let (x, y) = grid.get_coords(i);
         let pos = V2::new(x as f32, y as f32);
         let sector_id = Loader::new_sector(world, pos, format!("sector {}", i));
-        sectors_by_index.push(sector_id);
+        sectors_by_index.push((sector_id, pos));
     }
 
     // add portals
@@ -568,12 +603,15 @@ pub fn generate_random_map(world: &mut World, size: usize, seed: u64) {
                     continue;
                 }
 
+                let (pos1, pos2) =
+                    get_sector_pos_by_coords(sectors_by_index[index].1, sectors_by_index[other].1);
+
                 Loader::new_jump(
                     world,
-                    sectors_by_index[index],
-                    sector_pos(&mut rng),
-                    sectors_by_index[other],
-                    sector_pos(&mut rng),
+                    sectors_by_index[index].0,
+                    pos1,
+                    sectors_by_index[other].0,
+                    pos2,
                 );
             }
         }

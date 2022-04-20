@@ -1,8 +1,8 @@
 use commons::math::V2I;
 use commons::{unwrap_or_continue, unwrap_or_return};
 use ggez::event::{self, EventHandler};
-use ggez::graphics::{self, Color, DrawParam};
-use ggez::{Context, ContextBuilder, GameResult};
+use ggez::graphics::{self, Color, DrawMode, DrawParam};
+use ggez::{Context, ContextBuilder, GameError, GameResult};
 use ggez_egui::{egui, EguiBackend};
 use space_flap;
 use space_flap::{EventKind, ObjData, ObjKind, SectorData};
@@ -29,26 +29,34 @@ fn main() {
     let my_game = State {
         egui_backend: EguiBackend::default(),
         sg: sg,
+        screen: StateScreen::Galaxy,
         selected_sector: 0,
-        selected_sector_id: None,
         selected_fleet: 0,
-        selected_fleet_id: None,
     };
 
     event::run(ctx, event_loop, my_game);
 }
 
+enum StateScreen {
+    Sector(space_flap::Id),
+    Galaxy,
+}
+
 struct State {
     sg: space_flap::SpaceGame,
+    screen: StateScreen,
     selected_sector: usize,
-    selected_sector_id: Option<space_flap::Id>,
     selected_fleet: usize,
-    selected_fleet_id: Option<space_flap::Id>,
     egui_backend: EguiBackend,
 }
 
 impl State {
-    fn draw_sector(&self, ctx: &mut Context) -> GameResult<()> {
+    fn draw_sector(
+        &self,
+        ctx: &mut Context,
+        screen_size: (f32, f32),
+        sector_id: space_flap::Id,
+    ) -> GameResult<()> {
         let circle = graphics::Mesh::new_circle(
             ctx,
             graphics::DrawMode::fill(),
@@ -58,11 +66,7 @@ impl State {
             Color::WHITE,
         )?;
 
-        let screen_size = ggez::graphics::window(ctx).inner_size();
-        let (sw, sh) = (screen_size.width as f32, screen_size.height as f32);
-
-        let id = unwrap_or_return!(self.selected_sector_id, Ok(()));
-        for obj_id in self.sg.list_at_sector(id) {
+        for obj_id in self.sg.list_at_sector(sector_id) {
             let obj = unwrap_or_continue!(self.sg.get_obj(obj_id));
 
             let color = match (
@@ -79,9 +83,48 @@ impl State {
             };
 
             let (x, y) = obj.get_coords();
-            let wx = commons::math::map_value(x, -10.0, 10.0, 0.0, sw);
-            let wy = commons::math::map_value(y, -10.0, 10.0, 0.0, sh);
+            let wx = commons::math::map_value(x, -10.0, 10.0, 0.0, screen_size.0);
+            let wy = commons::math::map_value(y, -10.0, 10.0, 0.0, screen_size.1);
             ggez::graphics::draw(ctx, &circle, ([wx, wy], color))?;
+        }
+
+        Ok(())
+    }
+
+    fn draw_galaxy(
+        &mut self,
+        ctx: &mut Context,
+        screen_size: (f32, f32),
+        sectors: Vec<SectorData>,
+    ) -> GameResult<()> {
+        let dimension = f64::sqrt(sectors.len() as f64) as usize;
+
+        let border = 50.0;
+        let space = 100.0;
+        let boxsize =
+            (screen_size.0 - border * 2.0 - space * (dimension as f32 - 1.0)) / dimension as f32;
+
+        // let (cx, cy) = (border, border);
+
+        let mesh = graphics::Mesh::new_rounded_rectangle(
+            ctx,
+            DrawMode::fill(),
+            graphics::Rect {
+                x: 0.0,
+                y: 0.0,
+                w: boxsize,
+                h: boxsize,
+            },
+            2.0,
+            Color::WHITE,
+        )?;
+
+        for i in 0..dimension {
+            for j in 0..dimension {
+                let cx = border + (i as f32) * (space + boxsize);
+                let cy = border + (j as f32) * (space + boxsize);
+                graphics::draw(ctx, &mesh, ([cx, cy],))?;
+            }
         }
 
         Ok(())
@@ -109,7 +152,18 @@ fn fleet_text(sectors: &Vec<SectorData>, d: &space_flap::ObjData) -> String {
 }
 
 impl EventHandler for State {
-    fn update(&mut self, ctx: &mut Context) -> GameResult {
+    fn update(&mut self, _ctx: &mut Context) -> Result<(), GameError> {
+        Ok(())
+    }
+
+    fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
+        graphics::clear(ctx, Color::BLACK);
+
+        let screen_size = ggez::graphics::window(ctx).inner_size();
+        let screen_size = (screen_size.width as f32, screen_size.height as f32);
+
+        let tick = ggez::timer::ticks(ctx);
+
         let delta_time = ggez::timer::delta(ctx).as_secs_f32();
         self.sg.update(delta_time);
         for event in self.sg.take_events() {
@@ -137,14 +191,16 @@ impl EventHandler for State {
 
         let egui_ctx = self.egui_backend.ctx();
         egui::Window::new("egui-window").show(&egui_ctx, |ui| {
-            egui::ComboBox::from_label("Sector").show_index(
+            let sector_resp = egui::ComboBox::from_label("Sector").show_index(
                 ui,
                 &mut self.selected_sector,
                 sectors.len(),
                 |i| format!("{}{}", i, sector_text(&sectors[i])),
             );
 
-            self.selected_sector_id = Some(sectors[self.selected_sector].get_id());
+            if sector_resp.changed() {
+                self.screen = StateScreen::Sector(sectors[self.selected_sector].get_id());
+            }
 
             egui::ComboBox::from_label("Fleets").show_index(
                 ui,
@@ -152,22 +208,19 @@ impl EventHandler for State {
                 fleets.len(),
                 |i| format!("{}{}", i, fleet_text(&sectors, &fleets[i])),
             );
-
-            self.selected_fleet_id = Some(fleets[self.selected_fleet].get_id());
         });
-        Ok(())
-    }
-
-    fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
-        graphics::clear(ctx, Color::BLACK);
-
-        let delta_time = ggez::timer::delta(ctx).as_secs_f32();
-        let tick = ggez::timer::ticks(ctx);
 
         let text = graphics::Text::new(format!("{} {}", tick, delta_time));
         graphics::draw(ctx, &text, DrawParam::default().color(Color::WHITE))?;
 
-        self.draw_sector(ctx)?;
+        match self.screen {
+            StateScreen::Sector(sector_id) => {
+                self.draw_sector(ctx, screen_size, sector_id)?;
+            }
+            StateScreen::Galaxy => {
+                self.draw_galaxy(ctx, screen_size, sectors);
+            }
+        }
 
         graphics::draw(ctx, &self.egui_backend, ([0.0, 0.0],))?;
 
