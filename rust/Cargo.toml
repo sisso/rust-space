@@ -5,7 +5,6 @@ members = [
 #  "space-lib",
 #  "space-console",
   "space-2d-gui",
-#  "space-internal",
   "space-flap",
   "space-galaxy",
 ]
