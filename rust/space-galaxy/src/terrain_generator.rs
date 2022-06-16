@@ -7,9 +7,18 @@ use image::{ImageBuffer, Rgb};
 
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Terrain {
+    pub width: i32,
+    pub height: i32,
+    pub biomes_map: Vec<f32>,
+    pub height_map: Vec<f32>,
+    pub resources_map: Vec<Vec<f32>>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub enum Shape {
     Plain,
     Island,
@@ -23,6 +32,7 @@ pub struct Cfg {
     pub heighmap_scale: f64,
     pub biomemap_scale: f64,
     pub shape: Shape,
+    pub resources: Vec<f32>,
 }
 
 impl Cfg {
@@ -40,7 +50,32 @@ impl Default for Cfg {
             heighmap_scale: 0.004,
             biomemap_scale: 0.007,
             shape: Shape::Plain,
+            resources: vec![],
         }
+    }
+}
+
+pub fn generate_terrain(cfg: &Cfg) -> Terrain {
+    let mut rng = StdRng::seed_from_u64(cfg.seed);
+
+    let (heights, biomes) = generate_maps(cfg);
+    let resources_maps = cfg
+        .resources
+        .iter()
+        .map(|r| {
+            let scale = 0.1 + rng.gen_range(-100..100) as f32 * 0.001;
+            let dist = 0.5 + rng.gen_range(-100..100) as f32 * 0.0025;
+            log::debug!("generate resource {}, scale: {}, dist: {}", r, scale, dist);
+            generate_resource(cfg.width, cfg.height, cfg.seed, scale, dist, *r * 1000.0)
+        })
+        .collect();
+
+    Terrain {
+        width: cfg.width,
+        height: cfg.height,
+        biomes_map: biomes,
+        height_map: heights,
+        resources_map: resources_maps,
     }
 }
 
@@ -262,10 +297,10 @@ pub fn generate_resource(
     dist: f32,
     quantity: f32,
 ) -> Vec<f32> {
-    println!(
-        "generate_resource size ({},{}) seed {} scale {} dist {} qt {}",
-        w, h, seed, scale, dist, quantity
-    );
+    // println!(
+    //     "generate_resource size ({},{}) seed {} scale {} dist {} qt {}",
+    //     w, h, seed, scale, dist, quantity
+    // );
 
     fn normalize(img: &mut Vec<f32>) {
         let mut min: f32 = 1.0;

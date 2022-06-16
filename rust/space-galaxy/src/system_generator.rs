@@ -73,20 +73,19 @@ impl System {
 }
 
 #[derive(Clone, Debug)]
+pub struct Planet {
+    pub atmosphere: String,
+    pub gravity: f32,
+    pub biome: String,
+    pub ocean: String,
+    pub resources: Vec<BodyResource>,
+}
+
+#[derive(Clone, Debug)]
 pub enum BodyDesc {
-    Star {
-        kind: String,
-    },
-    AsteroidField {
-        resources: Vec<BodyResource>,
-    },
-    Planet {
-        atmosphere: String,
-        gravity: f32,
-        biome: String,
-        ocean: String,
-        resources: Vec<BodyResource>,
-    },
+    Star { kind: String },
+    AsteroidField { resources: Vec<BodyResource> },
+    Planet(Planet),
 }
 
 #[derive(Clone, Debug)]
@@ -108,13 +107,13 @@ pub enum GenerateError {
 }
 
 pub struct PlanetSubCfg {
-    max_distance: f32,
+    pub max_distance: f32,
 }
 
 #[derive(Debug, Clone)]
 pub struct BodyResource {
-    resource: String,
-    amount: f32,
+    pub resource: String,
+    pub amount: f32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -239,13 +238,13 @@ fn new_planet(
         angle,
         speed,
         size: cfg.planet_size.next(rng),
-        desc: BodyDesc::Planet {
+        desc: BodyDesc::Planet(Planet {
             atmosphere: atm,
             gravity: cfg.gravity_force.next(rng),
             biome: biome,
             ocean: ocean,
             resources: resources,
-        },
+        }),
     };
 
     let mut bodies = vec![planet];
@@ -302,13 +301,13 @@ fn new_moon(
         angle,
         speed,
         size: cfg.planet_size.next(rng),
-        desc: BodyDesc::Planet {
+        desc: BodyDesc::Planet(Planet {
             atmosphere: atm,
             gravity: cfg.gravity_force.next(rng),
             biome: biome,
             ocean: ocean,
             resources,
-        },
+        }),
     };
 
     vec![moon]
