@@ -9,7 +9,7 @@ edition = "2018"
 [dependencies]
 ggez = "0.7"
 mint = "0.5"
-nalgebra = { version = "0.21.0", features = ["mint"] }
+nalgebra = { version = "0.27.1", features = ["mint"] }
 approx = "0.3.2"
 egui  = "0.16"
 ggez-egui = "0.1.7"
