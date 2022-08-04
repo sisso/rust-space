@@ -24,6 +24,14 @@ pub enum Shape {
     Island,
 }
 
+#[derive(Debug, Deserialize, Clone, Copy)]
+pub struct ResCfg {
+    // 0-1
+    pub amount: f32,
+    // 0-1
+    pub disp: f32,
+}
+
 #[derive(Debug, Deserialize)]
 pub struct Cfg {
     pub width: i32,
@@ -32,7 +40,7 @@ pub struct Cfg {
     pub heighmap_scale: f64,
     pub biomemap_scale: f64,
     pub shape: Shape,
-    pub resources: Vec<f32>,
+    pub resources: Vec<ResCfg>,
 }
 
 impl Cfg {
@@ -63,10 +71,8 @@ pub fn generate_terrain(cfg: &Cfg) -> Terrain {
         .resources
         .iter()
         .map(|r| {
-            let scale = 0.1 + rng.gen_range(-100..100) as f32 * 0.001;
-            let dist = 0.5 + rng.gen_range(-100..100) as f32 * 0.0025;
-            log::debug!("generate resource {}, scale: {}, dist: {}", r, scale, dist);
-            generate_resource(cfg.width, cfg.height, cfg.seed, scale, dist, *r * 1000.0)
+            log::debug!("generate resource {:?}", r);
+            generate_resource(cfg.width, cfg.height, cfg.seed, r.disp, r.amount)
         })
         .collect();
 
@@ -289,19 +295,7 @@ pub fn save_image(w: i32, h: i32, img: Vec<u8>, file_name: &str) {
 /// dist: 0.0 means all quantity is concentrated in a single point, 1.0 means it is spread in every
 ///       pixel
 /// quantity: for the pixels tha contain resource,
-pub fn generate_resource(
-    w: i32,
-    h: i32,
-    seed: u64,
-    scale: f32,
-    dist: f32,
-    quantity: f32,
-) -> Vec<f32> {
-    // println!(
-    //     "generate_resource size ({},{}) seed {} scale {} dist {} qt {}",
-    //     w, h, seed, scale, dist, quantity
-    // );
-
+pub fn generate_resource(w: i32, h: i32, seed: u64, dist: f32, quantity: f32) -> Vec<f32> {
     fn normalize(img: &mut Vec<f32>) {
         let mut min: f32 = 1.0;
         let mut max: f32 = 0.0;
@@ -317,6 +311,7 @@ pub fn generate_resource(
         }
     }
 
+    let scale = commons::math::lerp(0.01, 0.02, dist);
     let mut res_map = generate_noise_map(w, h, seed as i64, scale as f64);
 
     // normalize noise between 0-1
@@ -324,22 +319,12 @@ pub fn generate_resource(
 
     // filter values by availability
     let selector = 1.0 - dist;
-    let mut resource_cells = 0;
     for i in res_map.iter_mut() {
         if *i >= selector {
             // normalize between 0 1
-            *i = (*i - selector) / dist;
-            resource_cells += 1;
+            *i = quantity;
         } else {
             *i = 0.0;
-        }
-    }
-
-    let qty_per_cell = quantity / resource_cells as f32;
-
-    for i in res_map.iter_mut() {
-        if *i > 0.0 {
-            *i = (*i) * qty_per_cell;
         }
     }
 
