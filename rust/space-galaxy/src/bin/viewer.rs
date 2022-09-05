@@ -1,6 +1,7 @@
 use log::debug;
 use rand::prelude::*;
 use space_galaxy::system_generator::BodyDesc;
+use space_galaxy::terrain_generator::ResCfg;
 use space_galaxy::{galaxy_generator, system_generator, terrain_generator};
 use std::cmp::max;
 use std::path::{Path, PathBuf};
@@ -42,7 +43,14 @@ fn main() {
             let width = size as i32;
             let height = (size * 0.75) as i32;
 
-            let resources = body_desc.resources.iter().map(|i| i.amount).collect();
+            let resources = body_desc
+                .resources
+                .iter()
+                .map(|i| ResCfg {
+                    amount: i.amount,
+                    disp: 0.0,
+                })
+                .collect();
 
             let terrain = terrain_generator::generate_terrain(&terrain_generator::Cfg {
                 width: width,

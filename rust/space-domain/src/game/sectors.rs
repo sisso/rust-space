@@ -181,6 +181,8 @@ pub mod test_scenery {
             })
             .build();
 
+        update_sectors_index(world);
+
         SectorScenery {
             sector_0,
             sector_1,
@@ -445,7 +447,7 @@ mod test {
         // [2021-11-13T12:45:56Z WARN  space_domain::game::sectors] create plan find_path 2.761989ms
         // number of edges 87, number of query nodes 1864,
         // from V2 { x: 12.0, y: 7.0 } to V2 { x: 31.0, y: 45.0 }
-        crate::game::loader::generate_random_map(&mut world, 100, 13801247937784236795);
+        crate::game::loader::generate_sectors(&mut world, 100, 13801247937784236795);
 
         let entities = &world.entities();
         let sectors = &world.read_storage::<Sector>();

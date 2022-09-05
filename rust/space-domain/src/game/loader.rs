@@ -95,7 +95,8 @@ impl Loader {
         };
 
         // create sectors
-        generate_random_map(world, cfg.size, rng.gen());
+        generate_sectors(world, cfg.size, rng.gen());
+        populate_sectors(world, rng.gen());
 
         // add stations
         {
@@ -556,7 +557,7 @@ fn get_sector_pos_by_coords(sector_pos1: V2, sector_pos2: V2) -> (V2, V2) {
 //     assert_eq!()
 // }
 
-pub fn generate_random_map(world: &mut World, size: usize, seed: u64) {
+pub fn generate_sectors(world: &mut World, size: usize, seed: u64) {
     log::info!("generating random map with seed {}", seed);
 
     let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
@@ -618,6 +619,13 @@ pub fn generate_random_map(world: &mut World, size: usize, seed: u64) {
 
         sectors::update_sectors_index(world);
     }
+}
+
+pub fn populate_sectors(world: &mut World, seed: u64) {
+    let sectors = &world.read_storage::<Sector>();
+    let entities = &world.entities();
+
+    for (e, s) in (entities, sectors).join() {}
 }
 
 #[test]
