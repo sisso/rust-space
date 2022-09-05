@@ -378,6 +378,12 @@ pub fn get_sector_by_coords<'a>(
     coords: &V2,
 ) -> Option<Entity> {
     for (e, s) in (entities, sectors).join() {
+        log::warn!(
+            "s {:?} is equal to {:?} = {:?}",
+            s,
+            coords,
+            s.coords.eq(coords)
+        );
         if s.coords.eq(coords) {
             return Some(e);
         }
@@ -447,15 +453,19 @@ mod test {
         // [2021-11-13T12:45:56Z WARN  space_domain::game::sectors] create plan find_path 2.761989ms
         // number of edges 87, number of query nodes 1864,
         // from V2 { x: 12.0, y: 7.0 } to V2 { x: 31.0, y: 45.0 }
-        crate::game::loader::generate_sectors(&mut world, 100, 13801247937784236795);
+        let size = 100;
+        let p1 = V2::new(12.0, 7.0);
+        let p2 = V2::new(31.0, 45.0);
+
+        crate::game::loader::generate_sectors(&mut world, size, 13801247937784236795);
 
         let entities = &world.entities();
         let sectors = &world.read_storage::<Sector>();
         let jumps = &world.read_storage::<Jump>();
         let locations = &world.read_storage::<Location>();
 
-        let from = super::get_sector_by_coords(entities, sectors, &V2::new(12.0, 7.0)).unwrap();
-        let to = super::get_sector_by_coords(entities, sectors, &V2::new(31.0, 45.0)).unwrap();
+        let from = super::get_sector_by_coords(entities, sectors, &p1).unwrap();
+        let to = super::get_sector_by_coords(entities, sectors, &p2).unwrap();
 
         let mut times = vec![];
         for alg in vec![0, 1, 2, 3] {

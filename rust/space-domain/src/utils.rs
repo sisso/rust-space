@@ -76,6 +76,12 @@ impl V2 {
     }
 }
 
+impl From<nalgebra::Point2<f32>> for V2 {
+    fn from(p: nalgebra::Point2<f32>) -> Self {
+        V2::new(p[0], p[1])
+    }
+}
+
 pub type Position = V2;
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]

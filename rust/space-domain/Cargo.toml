@@ -12,6 +12,7 @@ serde = { version = "1.0", features = ["derive"] }
 rand = "0.8.4"
 flatbuffers = "0.7"
 commons = { version = "*", path = "../commons" }
+space-galaxy = {version = "*", path = "../space-galaxy" }
 specs = { version = "0.16.*", features = ["serde"] }
 specs-derive = "0.4.0"
 shred = { version = "0.10.*", default-features = false }
@@ -21,3 +22,4 @@ pathfinding = "2.2.2"
 itertools = "0.10"
 log="0.4.*"
 env_logger="0.9.*"
+nalgebra = { version = "0.27.1", features = ["mint"] }

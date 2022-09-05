@@ -524,101 +524,42 @@ impl Loader {
     }
 }
 
-fn get_sector_pos_by_coords(sector_pos1: V2, sector_pos2: V2) -> (V2, V2) {
-    if sector_pos1.y as i32 == sector_pos2.y as i32 {
-        if sector_pos1.x > sector_pos2.x {
-            (
-                V2::new(SECTOR_MAX_SX as f32 * -0.5, 0.0),
-                V2::new(SECTOR_MAX_SX as f32 * 0.5, 0.0),
-            )
-        } else {
-            (
-                V2::new(SECTOR_MAX_SX as f32 * 0.5, 0.0),
-                V2::new(SECTOR_MAX_SX as f32 * -0.5, 0.0),
-            )
-        }
-    } else {
-        if sector_pos1.x > sector_pos2.x {
-            (
-                V2::new(0.0, SECTOR_MAX_SX as f32 * -0.5),
-                V2::new(0.0, SECTOR_MAX_SX as f32 * 0.5),
-            )
-        } else {
-            (
-                V2::new(0.0, SECTOR_MAX_SX as f32 * 0.5),
-                V2::new(0.0, SECTOR_MAX_SX as f32 * -0.5),
-            )
-        }
-    }
-}
-
-// #[test]
-// fn test_get_sector_pos_by_coords() {
-//     assert_eq!()
-// }
-
 pub fn generate_sectors(world: &mut World, size: usize, seed: u64) {
-    log::info!("generating random map with seed {}", seed);
-
-    let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
-
-    // fn sector_pos<R: rand::Rng>(rng: &mut R) -> V2 {
-    //     V2::new(
-    //         rng.gen_range(0..SECTOR_MAX_SX) as f32 - SECTOR_MAX_SX as f32 * 0.5,
-    //         rng.gen_range(0..SECTOR_MAX_SX) as f32 - SECTOR_MAX_SX as f32 * 0.5,
-    //     )
-    // }
-
-    let rgcfg = commons::random_grid::RandomGridCfg {
-        width: size,
-        height: size,
-        portal_prob: 0.5,
-        deep_levels: 1,
-    };
-
-    let grids = commons::random_grid::RandomGrid::new(&rgcfg, &mut rng);
-    log::debug!("{:?}", grids);
-    let grid = &grids.levels[0];
-
     let mut sectors_by_index = vec![];
 
-    for i in 0..grid.len() {
-        // create sector
-        let (x, y) = grid.get_coords(i);
-        let pos = V2::new(x as f32, y as f32);
-        let sector_id = Loader::new_sector(world, pos, format!("sector {}", i));
+    let galaxy = space_galaxy::galaxy_generator::Galaxy::new(space_galaxy::galaxy_generator::Cfg {
+        seed,
+        size: size as i32,
+    });
+
+    // add sectors
+    for s in &galaxy.sectors.list {
+        let pos = V2::new(s.coords.x as f32, s.coords.y as f32);
+        let sector_id = Loader::new_sector(world, pos, format!("sector {}", s.id));
         sectors_by_index.push((sector_id, pos));
     }
-
     // add portals
-    {
-        let mut cached: HashSet<(usize, usize)> = Default::default();
+    let mut cached: HashSet<(usize, usize)> = Default::default();
 
-        for index in 0..grid.len() {
-            for other in grid.neighbors_connected(index) {
-                if !cached.insert((index, other)) {
-                    continue;
-                }
-
-                if !cached.insert((other, index)) {
-                    continue;
-                }
-
-                let (pos1, pos2) =
-                    get_sector_pos_by_coords(sectors_by_index[index].1, sectors_by_index[other].1);
-
-                Loader::new_jump(
-                    world,
-                    sectors_by_index[index].0,
-                    pos1,
-                    sectors_by_index[other].0,
-                    pos2,
-                );
-            }
+    for j in &galaxy.jumps {
+        if !cached.insert((j.sector_a, j.sector_b)) {
+            continue;
         }
 
-        sectors::update_sectors_index(world);
+        if !cached.insert((j.sector_b, j.sector_a)) {
+            continue;
+        }
+
+        Loader::new_jump(
+            world,
+            sectors_by_index[j.sector_a].0,
+            j.pos_a.into(),
+            sectors_by_index[j.sector_b].0,
+            j.pos_b.into(),
+        );
     }
+
+    sectors::update_sectors_index(world);
 }
 
 pub fn populate_sectors(world: &mut World, seed: u64) {
@@ -628,15 +569,20 @@ pub fn populate_sectors(world: &mut World, seed: u64) {
     for (e, s) in (entities, sectors).join() {}
 }
 
-#[test]
-pub fn test_random_scenery() {
-    let mut game = Game::new();
-    Loader::load_random(
-        &mut game,
-        &RandomMapCfg {
-            size: 3,
-            seed: 0,
-            ships: 3,
-        },
-    );
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    pub fn test_random_scenery() {
+        let mut game = Game::new();
+        Loader::load_random(
+            &mut game,
+            &RandomMapCfg {
+                size: 3,
+                seed: 0,
+                ships: 3,
+            },
+        );
+    }
 }

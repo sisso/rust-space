@@ -1,5 +1,5 @@
 use commons::grid::Grid;
-use commons::math::{V2, V2I};
+use commons::math::{P2, P2I};
 use rand::prelude::*;
 use std::collections::HashSet;
 
@@ -21,15 +21,15 @@ type SectorId = usize;
 #[derive(Debug, Clone)]
 pub struct Sector {
     pub id: SectorId,
-    pub coords: V2I,
+    pub coords: P2I,
 }
 
 #[derive(Debug, Clone)]
 pub struct Jump {
     pub sector_a: SectorId,
-    pub pos_a: V2,
+    pub pos_a: P2,
     pub sector_b: SectorId,
-    pub pos_b: V2,
+    pub pos_b: P2,
 }
 
 impl Galaxy {
@@ -48,8 +48,8 @@ fn generate_random_map(size: i32, seed: u64) -> (Grid<Sector>, Vec<Jump>) {
 
     let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
 
-    fn sector_pos<R: rand::Rng>(rng: &mut R) -> V2 {
-        V2::new(
+    fn sector_pos<R: rand::Rng>(rng: &mut R) -> P2 {
+        P2::new(
             (rng.gen_range(0..10) - 5) as f32,
             (rng.gen_range(0..10) - 5) as f32,
         )
@@ -73,7 +73,7 @@ fn generate_random_map(size: i32, seed: u64) -> (Grid<Sector>, Vec<Jump>) {
         let coords = rgrid.get_coords(i);
         let sector = Sector {
             id: i,
-            coords: V2I::new(coords.0 as i32, coords.1 as i32),
+            coords: P2I::new(coords.0 as i32, coords.1 as i32),
         };
         sectors.push(sector);
     }
