@@ -19,6 +19,7 @@ use space_domain::utils::{Position, V2_ZERO};
 use specs::prelude::*;
 use std::cell::RefCell;
 use std::os::linux::raw::stat;
+use std::path::PathBuf;
 use std::rc::Rc;
 
 pub type Id = u64;
@@ -178,6 +179,10 @@ impl SpaceGame {
             }
         }
 
+        let universe_cfg = space_domain::space_galaxy::system_generator::new_config_from_file(
+            &PathBuf::from("data/system_generator.conf"),
+        );
+
         let mut game = Game::new();
         Loader::load_random(
             &mut game,
@@ -185,6 +190,7 @@ impl SpaceGame {
                 size: size,
                 seed: 0,
                 ships: fleets,
+                universe_cfg,
             },
         );
 

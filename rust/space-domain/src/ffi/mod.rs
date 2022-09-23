@@ -1,4 +1,5 @@
 use crate::game::loader::{Loader, RandomMapCfg};
+use std::path::PathBuf;
 
 #[allow(dead_code)]
 use crate::game::Game;
@@ -53,12 +54,16 @@ impl FFIApi {
     pub fn new_game(&mut self) {
         // Loader::load_advanced_scenery(&mut self.game.world);
         // Loader::load_basic_scenery(&mut self.game);
+        let universe_cfg = space_galaxy::system_generator::new_config_from_file(
+            PathBuf::from("../data/system_generator.conf").as_path(),
+        );
         Loader::load_random(
             &mut self.game,
             &RandomMapCfg {
                 size: 50,
                 seed: 50,
                 ships: 100,
+                universe_cfg: universe_cfg,
             },
         );
     }

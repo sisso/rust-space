@@ -11,6 +11,7 @@ use self::save::{Load, Save};
 use self::sectors::*;
 
 use crate::game::actions::Actions;
+use crate::game::astrobody::AstroBodies;
 use crate::game::commands::Commands;
 
 use crate::game::factory::Factory;
@@ -22,6 +23,7 @@ use crate::game::shipyard::Shipyard;
 use crate::game::station::Stations;
 
 pub mod actions;
+pub mod astrobody;
 pub mod commands;
 pub mod dock;
 pub mod events;
@@ -91,6 +93,7 @@ impl Game {
         Orders::init(&mut ictx);
         Stations::init(&mut ictx);
         Fleet::init(&mut ictx);
+        AstroBodies::init(&mut ictx);
 
         let mut dispatcher = ictx.dispatcher.build();
 

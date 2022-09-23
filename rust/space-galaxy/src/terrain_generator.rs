@@ -64,7 +64,7 @@ impl Default for Cfg {
 }
 
 pub fn generate_terrain(cfg: &Cfg) -> Terrain {
-    let mut rng = StdRng::seed_from_u64(cfg.seed);
+    // let mut rng = StdRng::seed_from_u64(cfg.seed);
 
     let (heights, biomes) = generate_maps(cfg);
     let resources_maps = cfg

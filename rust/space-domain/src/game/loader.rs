@@ -2,8 +2,11 @@ use std::collections::HashSet;
 
 use commons;
 use rand::prelude::*;
+use space_galaxy::system_generator;
+use space_galaxy::system_generator::{BodyDesc, UniverseCfg};
 use specs::prelude::*;
 
+use crate::game::astrobody::AstroBody;
 use crate::game::commands::Command;
 use crate::game::dock::HasDock;
 use crate::game::events::{Event, EventKind, Events};
@@ -42,6 +45,7 @@ pub struct RandomMapCfg {
     pub size: usize,
     pub seed: u64,
     pub ships: usize,
+    pub universe_cfg: space_galaxy::system_generator::UniverseCfg,
 }
 
 impl Loader {
@@ -78,10 +82,13 @@ impl Loader {
 
         let world = &mut game.world;
 
+        // add configurations
+        world.insert(cfg.universe_cfg.clone());
+
         // wares and receipts
-        let ware_ore_id = Loader::new_ware(world, "ore".to_string());
-        let ware_components_id = Loader::new_ware(world, "components".to_string());
-        let ware_energy = Loader::new_ware(world, "energy".to_string());
+        let ware_ore_id = Loader::add_ware(world, "ore".to_string());
+        let ware_components_id = Loader::add_ware(world, "components".to_string());
+        let ware_energy = Loader::add_ware(world, "energy".to_string());
 
         let receipt_process_ores = Receipt {
             input: vec![WareAmount(ware_ore_id, 2.0), WareAmount(ware_energy, 1.0)],
@@ -124,7 +131,7 @@ impl Loader {
                     match commons::prob::select_weighted(&mut rng, &sector_kind_prob) {
                         Some(i) if *i == sector_kind_asteroid => {
                             required_kinds[0] = true;
-                            Loader::new_asteroid(
+                            Loader::add_asteroid(
                                 world,
                                 sector_id,
                                 sector_pos(&mut rng),
@@ -134,7 +141,7 @@ impl Loader {
                         Some(i) if *i == sector_kind_shipyard => {
                             required_kinds[1] = true;
 
-                            Loader::new_shipyard(
+                            Loader::add_shipyard(
                                 world,
                                 sector_id,
                                 sector_pos(&mut rng),
@@ -144,7 +151,7 @@ impl Loader {
                         Some(i) if *i == sector_kind_factory => {
                             required_kinds[2] = true;
 
-                            Loader::new_factory(
+                            Loader::add_factory(
                                 world,
                                 sector_id,
                                 sector_pos(&mut rng),
@@ -154,7 +161,7 @@ impl Loader {
                         Some(i) if *i == sector_kind_power => {
                             required_kinds[3] = true;
 
-                            Loader::new_factory(
+                            Loader::add_factory(
                                 world,
                                 sector_id,
                                 sector_pos(&mut rng),
@@ -191,9 +198,9 @@ impl Loader {
             for i in 0..cfg.ships {
                 let shipyard = commons::prob::select(&mut rng, &shipyards).unwrap();
                 if rng.gen_range(0..=1) == 0 {
-                    Loader::new_ship_miner(world, shipyard.to_owned(), 1.0, format!("miner-{}", i));
+                    Loader::add_ship_miner(world, shipyard.to_owned(), 1.0, format!("miner-{}", i));
                 } else {
-                    Loader::new_ship_trader(
+                    Loader::add_ship_trader(
                         world,
                         shipyard.to_owned(),
                         1.0,
@@ -211,14 +218,14 @@ impl Loader {
         let world = &mut game.world;
 
         // init wares
-        let ware_ore_id = Loader::new_ware(world, "ore".to_string());
-        let ware_components_id = Loader::new_ware(world, "components".to_string());
+        let ware_ore_id = Loader::add_ware(world, "ore".to_string());
+        let ware_components_id = Loader::add_ware(world, "components".to_string());
 
         // init sectors
-        let sector_0 = Loader::new_sector(world, V2::new(0.0, 0.0), "Sector 0".to_string());
-        let sector_1 = Loader::new_sector(world, V2::new(1.0, 0.0), "Sector 1".to_string());
+        let sector_0 = Loader::add_sector(world, V2::new(0.0, 0.0), "Sector 0".to_string());
+        let sector_1 = Loader::add_sector(world, V2::new(1.0, 0.0), "Sector 1".to_string());
 
-        Loader::new_jump(
+        Loader::add_jump(
             world,
             sector_0,
             V2::new(0.5, 0.3),
@@ -228,8 +235,8 @@ impl Loader {
         sectors::update_sectors_index(world);
 
         // init objects
-        let asteroid_id = Loader::new_asteroid(world, sector_1, V2::new(-2.0, 3.0), ware_ore_id);
-        let component_factory_id = Loader::new_factory(
+        let asteroid_id = Loader::add_asteroid(world, sector_1, V2::new(-2.0, 3.0), ware_ore_id);
+        let component_factory_id = Loader::add_factory(
             world,
             sector_0,
             V2::new(3.0, -1.0),
@@ -240,10 +247,10 @@ impl Loader {
             },
         );
         let shipyard_id =
-            Loader::new_shipyard(world, sector_0, V2::new(1.0, -3.0), ware_components_id);
-        let miner_id = Loader::new_ship_miner(world, shipyard_id, 2.0, "miner".to_string());
+            Loader::add_shipyard(world, sector_0, V2::new(1.0, -3.0), ware_components_id);
+        let miner_id = Loader::add_ship_miner(world, shipyard_id, 2.0, "miner".to_string());
         let trader_id =
-            Loader::new_ship_trader(world, component_factory_id, 2.0, "trader".to_string());
+            Loader::add_ship_trader(world, component_factory_id, 2.0, "trader".to_string());
 
         // return scenery
         BasicScenery {
@@ -262,9 +269,9 @@ impl Loader {
     /// Advanced scenery
     pub fn load_advanced_scenery(world: &mut World) {
         // init wares
-        let ware_ore_id = Loader::new_ware(world, "ore".to_string());
-        let ware_components_id = Loader::new_ware(world, "components".to_string());
-        let ware_energy = Loader::new_ware(world, "energy".to_string());
+        let ware_ore_id = Loader::add_ware(world, "ore".to_string());
+        let ware_components_id = Loader::add_ware(world, "components".to_string());
+        let ware_energy = Loader::add_ware(world, "energy".to_string());
 
         // receipts
         let receipt_process_ores = Receipt {
@@ -279,10 +286,10 @@ impl Loader {
         };
 
         // init sectors
-        let sector_0 = Loader::new_sector(world, V2::new(0.0, 0.0), "sector 0".to_string());
-        let sector_1 = Loader::new_sector(world, V2::new(1.0, 0.0), "sector 1".to_string());
+        let sector_0 = Loader::add_sector(world, V2::new(0.0, 0.0), "sector 0".to_string());
+        let sector_1 = Loader::add_sector(world, V2::new(1.0, 0.0), "sector 1".to_string());
 
-        Loader::new_jump(
+        Loader::add_jump(
             world,
             sector_0,
             V2::new(0.5, 0.3),
@@ -292,23 +299,23 @@ impl Loader {
         sectors::update_sectors_index(world);
 
         // init objects
-        Loader::new_asteroid(world, sector_1, V2::new(-2.0, 3.0), ware_ore_id);
-        Loader::new_asteroid(world, sector_1, V2::new(-2.2, 2.8), ware_ore_id);
-        Loader::new_asteroid(world, sector_1, V2::new(-2.8, 3.1), ware_ore_id);
+        Loader::add_asteroid(world, sector_1, V2::new(-2.0, 3.0), ware_ore_id);
+        Loader::add_asteroid(world, sector_1, V2::new(-2.2, 2.8), ware_ore_id);
+        Loader::add_asteroid(world, sector_1, V2::new(-2.8, 3.1), ware_ore_id);
 
         let component_factory_id =
-            Loader::new_factory(world, sector_0, V2::new(3.0, -1.0), receipt_process_ores);
+            Loader::add_factory(world, sector_0, V2::new(3.0, -1.0), receipt_process_ores);
 
         let _energy_factory_id =
-            Loader::new_factory(world, sector_0, V2::new(-0.5, 1.5), receipt_produce_energy);
+            Loader::add_factory(world, sector_0, V2::new(-0.5, 1.5), receipt_produce_energy);
 
         let shipyard_id =
-            Loader::new_shipyard(world, sector_0, V2::new(1.0, -3.0), ware_components_id);
-        Loader::new_ship_miner(world, shipyard_id, 2.0, "miner".to_string());
-        Loader::new_ship_trader(world, component_factory_id, 2.0, "trader".to_string());
+            Loader::add_shipyard(world, sector_0, V2::new(1.0, -3.0), ware_components_id);
+        Loader::add_ship_miner(world, shipyard_id, 2.0, "miner".to_string());
+        Loader::add_ship_trader(world, component_factory_id, 2.0, "trader".to_string());
     }
 
-    pub fn new_asteroid(world: &mut World, sector_id: SectorId, pos: V2, ware_id: WareId) -> ObjId {
+    pub fn add_asteroid(world: &mut World, sector_id: SectorId, pos: V2, ware_id: WareId) -> ObjId {
         Loader::add_object(
             world,
             &NewObj::new()
@@ -317,7 +324,7 @@ impl Loader {
         )
     }
 
-    pub fn new_shipyard(world: &mut World, sector_id: SectorId, pos: V2, ware_id: WareId) -> ObjId {
+    pub fn add_shipyard(world: &mut World, sector_id: SectorId, pos: V2, ware_id: WareId) -> ObjId {
         Loader::add_object(
             world,
             &NewObj::new()
@@ -329,7 +336,7 @@ impl Loader {
         )
     }
 
-    pub fn new_factory(world: &mut World, sector_id: SectorId, pos: V2, receipt: Receipt) -> ObjId {
+    pub fn add_factory(world: &mut World, sector_id: SectorId, pos: V2, receipt: Receipt) -> ObjId {
         Loader::add_object(
             world,
             &NewObj::new()
@@ -341,14 +348,14 @@ impl Loader {
         )
     }
 
-    pub fn new_ship_miner(world: &mut World, docked_at: ObjId, speed: f32, label: String) -> ObjId {
+    pub fn add_ship_miner(world: &mut World, docked_at: ObjId, speed: f32, label: String) -> ObjId {
         Loader::add_object(
             world,
-            &Loader::new_ship(docked_at, speed, label).with_command(Command::mine()),
+            &Loader::add_ship(docked_at, speed, label).with_command(Command::mine()),
         )
     }
 
-    pub fn new_ship_trader(
+    pub fn add_ship_trader(
         world: &mut World,
         docked_at: ObjId,
         speed: f32,
@@ -356,11 +363,11 @@ impl Loader {
     ) -> ObjId {
         Loader::add_object(
             world,
-            &Loader::new_ship(docked_at, speed, label).with_command(Command::trade()),
+            &Loader::add_ship(docked_at, speed, label).with_command(Command::trade()),
         )
     }
 
-    pub fn new_ship(docked_at: ObjId, speed: f32, label: String) -> NewObj {
+    pub fn add_ship(docked_at: ObjId, speed: f32, label: String) -> NewObj {
         NewObj::new()
             .with_cargo(2.0)
             .with_speed(Speed(speed))
@@ -371,15 +378,15 @@ impl Loader {
             .with_command(Command::mine())
     }
 
-    pub fn new_sector(world: &mut World, pos: V2, name: String) -> ObjId {
+    pub fn add_sector(world: &mut World, pos: V2, name: String) -> ObjId {
         Loader::add_object(world, &NewObj::new().with_sector(pos).with_label(name))
     }
 
-    pub fn new_ware(world: &mut World, name: String) -> WareId {
+    pub fn add_ware(world: &mut World, name: String) -> WareId {
         Loader::add_object(world, &NewObj::new().with_ware().with_label(name))
     }
 
-    pub fn new_jump(
+    pub fn add_jump(
         world: &mut World,
         from_sector_id: SectorId,
         from_pos: Position,
@@ -428,6 +435,14 @@ impl Loader {
         );
 
         (jump_from_id, jump_to_id)
+    }
+
+    pub fn new_star(sector_id: Entity, pos: Position) -> NewObj {
+        NewObj::new().at_position(sector_id, pos).as_star()
+    }
+
+    pub fn new_planet(sector_id: Entity, pos: Position) -> NewObj {
+        NewObj::new().at_position(sector_id, pos).as_planet()
     }
 
     pub fn add_object(world: &mut World, new_obj: &NewObj) -> ObjId {
@@ -513,6 +528,14 @@ impl Loader {
             builder.set(Orders(orders));
         }
 
+        if let Some(star) = new_obj.star {
+            builder.set(AstroBody::Star)
+        }
+
+        if let Some(planet) = new_obj.planet {
+            builder.set(AstroBody::Planet)
+        }
+
         let entity = builder.build();
 
         log::debug!("add_object {:?} from {:?}", entity, new_obj);
@@ -535,7 +558,7 @@ pub fn generate_sectors(world: &mut World, size: usize, seed: u64) {
     // add sectors
     for s in &galaxy.sectors.list {
         let pos = V2::new(s.coords.x as f32, s.coords.y as f32);
-        let sector_id = Loader::new_sector(world, pos, format!("sector {}", s.id));
+        let sector_id = Loader::add_sector(world, pos, format!("sector {}", s.id));
         sectors_by_index.push((sector_id, pos));
     }
     // add portals
@@ -550,7 +573,7 @@ pub fn generate_sectors(world: &mut World, size: usize, seed: u64) {
             continue;
         }
 
-        Loader::new_jump(
+        Loader::add_jump(
             world,
             sectors_by_index[j.sector_a].0,
             j.pos_a.into(),
@@ -563,25 +586,58 @@ pub fn generate_sectors(world: &mut World, size: usize, seed: u64) {
 }
 
 pub fn populate_sectors(world: &mut World, seed: u64) {
-    let sectors = &world.read_storage::<Sector>();
-    let entities = &world.entities();
+    let mut new_objects = vec![];
 
-    for (e, s) in (entities, sectors).join() {}
+    {
+        let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
+        let universe_cfg = &world.read_resource::<UniverseCfg>();
+        let sectors = &world.read_storage::<Sector>();
+        let entities = &world.entities();
+        for (e, s) in (entities, sectors).join() {
+            let system = system_generator::new_system(universe_cfg, rng.gen());
+
+            for body in system.bodies {
+                match body.desc {
+                    BodyDesc::Star { kind } => {
+                        new_objects.push(Loader::new_star(e, *Position::zero()));
+                    }
+                    BodyDesc::AsteroidField { resources } => {}
+                    BodyDesc::Planet(planet) => {
+                        let pos = V2::new(body.distance, 0.0);
+                        new_objects.push(Loader::new_planet(e, pos));
+                    }
+                }
+            }
+        }
+    }
+
+    for obj in new_objects {
+        Loader::add_object(world, &obj);
+    }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
+    use std::path::PathBuf;
 
     #[test]
     pub fn test_random_scenery() {
+        env_logger::builder()
+            .filter(None, log::LevelFilter::Debug)
+            .try_init();
+
         let mut game = Game::new();
+        let universe_cfg = space_galaxy::system_generator::new_config_from_file(&PathBuf::from(
+            "../data/system_generator.conf",
+        ));
         Loader::load_random(
             &mut game,
             &RandomMapCfg {
                 size: 3,
                 seed: 0,
                 ships: 3,
+                universe_cfg,
             },
         );
     }

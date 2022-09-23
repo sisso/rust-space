@@ -18,7 +18,9 @@ fn main() {
         seed: rng.gen(),
         size: 2,
     };
-    let system_cfg = system_generator::new_config(PathBuf::from("space-galaxy/data").as_path());
+    let system_cfg = system_generator::new_config_from_file(&PathBuf::from(
+        "space-galaxy/data/system_generator.conf",
+    ));
 
     let galaxy = galaxy_generator::Galaxy::new(galaxy_cfg);
     for sector in galaxy.sectors.list.iter() {

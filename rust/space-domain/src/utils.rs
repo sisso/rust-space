@@ -15,6 +15,10 @@ pub struct V2 {
 pub const V2_ZERO: V2 = V2 { x: 0.0, y: 0.0 };
 
 impl V2 {
+    pub fn zero() -> &'static V2 {
+        &V2_ZERO
+    }
+
     pub fn new(x: f32, y: f32) -> Self {
         V2 { x, y }
     }

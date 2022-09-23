@@ -28,6 +28,8 @@ pub struct NewObj {
     pub factory: Option<Factory>,
     pub label: Option<String>,
     pub pos: Option<V2>,
+    pub star: Option<()>,
+    pub planet: Option<()>,
 }
 
 impl NewObj {
@@ -82,6 +84,16 @@ impl NewObj {
 
     pub fn as_fleet(mut self) -> Self {
         self.fleet = true;
+        self
+    }
+
+    pub fn as_star(mut self) -> Self {
+        self.star = Some(());
+        self
+    }
+
+    pub fn as_planet(mut self) -> Self {
+        self.planet = Some(());
         self
     }
 

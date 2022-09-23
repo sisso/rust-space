@@ -14,3 +14,5 @@ pub mod utils;
 //pub mod test_combat;
 pub mod space_inputs_generated;
 pub mod space_outputs_generated;
+
+pub use space_galaxy;

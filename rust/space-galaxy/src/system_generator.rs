@@ -5,16 +5,15 @@ use rand::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
-pub const DEFAULT_CFG: &str = std::include_str!("../data/system_generator.conf");
-
-pub fn new_config(path: &Path) -> UniverseCfg {
+pub fn new_config_from_file(path: &Path) -> UniverseCfg {
     let wrapper: UniverseCfgWrapper =
-        commons::hocon::load_hocon_files(path).expect("fail to read file");
+        commons::hocon::load_file(path).expect("fail to read universe config file file");
     wrapper.system_generator
 }
 
 pub fn new_config_from_str(data: &str) -> UniverseCfg {
-    let wrapper: UniverseCfgWrapper = commons::hocon::load_str(data).expect("invalid config file");
+    let wrapper: UniverseCfgWrapper =
+        commons::hocon::load_str(data).expect("invalid universe config file");
     wrapper.system_generator
 }
 
@@ -397,7 +396,7 @@ mod test {
 
     #[test]
     fn test1() {
-        let cfg = new_config(std::path::PathBuf::from("./data").as_path());
+        let cfg = new_config_from_file(std::path::PathBuf::from("./data").as_path());
         let system = new_system(&cfg, 0);
         assert!(0 < system.bodies.len());
     }
