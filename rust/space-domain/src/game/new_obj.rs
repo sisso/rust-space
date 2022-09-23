@@ -1,3 +1,5 @@
+use commons::math;
+use commons::math::Rad;
 use specs::prelude::*;
 
 use crate::game::commands::Command;
@@ -8,6 +10,14 @@ use crate::game::objects::ObjId;
 use crate::game::sectors::*;
 use crate::game::shipyard::Shipyard;
 use crate::utils::*;
+
+#[derive(Debug, Clone, Component, Default)]
+pub struct NewObjOrbit {
+    pub index: usize,
+    pub parent_index: usize,
+    pub distance: f32,
+    pub angle: Rad,
+}
 
 #[derive(Debug, Clone, Component, Default)]
 pub struct NewObj {
@@ -30,6 +40,7 @@ pub struct NewObj {
     pub pos: Option<V2>,
     pub star: Option<()>,
     pub planet: Option<()>,
+    pub orbit: Option<NewObjOrbit>,
 }
 
 impl NewObj {
@@ -134,6 +145,22 @@ impl NewObj {
 
     pub fn with_pos(mut self, pos: V2) -> Self {
         self.pos = Some(pos);
+        self
+    }
+
+    pub fn with_orbit(
+        mut self,
+        index: usize,
+        parent_index: usize,
+        distance: f32,
+        angle: Rad,
+    ) -> Self {
+        self.orbit = Some(NewObjOrbit {
+            index,
+            parent_index,
+            distance,
+            angle,
+        });
         self
     }
 }

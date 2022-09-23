@@ -1,4 +1,3 @@
-
 use crate::utils::{MIN_DISTANCE, V2};
 use specs::prelude::*;
 
@@ -33,4 +32,10 @@ pub fn assert_v2(value: V2, expected: V2) {
             value, expected, distance
         );
     }
+}
+
+pub fn init_log() {
+    env_logger::builder()
+        .filter(None, log::LevelFilter::Trace)
+        .init();
 }

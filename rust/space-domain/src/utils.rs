@@ -6,7 +6,7 @@ use std::hash::Hash;
 pub const MIN_DISTANCE: f32 = 0.01;
 pub const MIN_DISTANCE_SQR: f32 = MIN_DISTANCE * MIN_DISTANCE;
 
-#[derive(Clone, Copy, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct V2 {
     pub x: f32,
     pub y: f32,
@@ -14,9 +14,15 @@ pub struct V2 {
 
 pub const V2_ZERO: V2 = V2 { x: 0.0, y: 0.0 };
 
+impl PartialEq for V2 {
+    fn eq(&self, other: &Self) -> bool {
+        (self.x - other.x).abs() < std::f32::EPSILON && (self.y - other.y).abs() < std::f32::EPSILON
+    }
+}
+
 impl V2 {
-    pub fn zero() -> &'static V2 {
-        &V2_ZERO
+    pub fn zero() -> V2 {
+        V2_ZERO
     }
 
     pub fn new(x: f32, y: f32) -> Self {
@@ -249,4 +255,12 @@ where
 #[test]
 fn test_find_next() {
     assert_eq!(Some(0u32), next_lower(vec![(2, 0), (3, 1)].into_iter()));
+}
+
+#[test]
+fn test_v2_eq() {
+    let p1 = V2::new(1.123, 0.0001 - 0.0000001);
+    let p2 = V2::new(1.1230000001, 0.0001);
+
+    assert_eq!(p1, p2);
 }

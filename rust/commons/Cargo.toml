@@ -13,3 +13,4 @@ rand = "0.8.4"
 rand_distr = "0.4.0"
 nalgebra = { version = "0.27.1", features = ["mint"] }
 hocon="0.3.4"
+approx = "0.5.1"

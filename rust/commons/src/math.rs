@@ -8,6 +8,8 @@ pub type Sim2 = Similarity2<f32>;
 pub type M4 = Matrix4<f32>;
 pub const PI: f32 = std::f32::consts::PI;
 pub const TWO_PI: f32 = 2.0 * std::f32::consts::PI;
+pub type Deg = f32;
+pub type Rad = f32;
 
 pub fn p2v(p2: P2) -> V2 {
     p2.coords
@@ -169,20 +171,35 @@ mod test {
         assert_eq!(lerp_2(0.0, 2.0, 0.0, 1.0, 0.5), 1.0);
         assert_eq!(lerp_2(0.0, 1.0, 0.0, 2.0, 1.0), 0.5);
     }
+
+    #[test]
+    fn test1() {
+        let deg = 90.0;
+        let rad = deg_to_rads(deg);
+        let v = rotate_vector_by_angle(P2::new(1.0, 0.0), rad);
+        relative_eq!(0.0, v.x);
+        assert_eq!(1.0, v.y);
+    }
 }
 
 pub fn angle_vector(v: V2) -> f32 {
     v.y.atan2(v.x)
 }
 
-// TODO: remove?
 pub fn rotate_vector(dir: V2, point: P2) -> P2 {
     let angle = angle_vector(dir);
     rotate_vector_by_angle(point, angle)
 }
 
-// TODO: remove?
-pub fn rotate_vector_by_angle(point: P2, angle: f32) -> P2 {
+pub fn rotate_vector_by_angle(point: P2, angle: Rad) -> P2 {
     let rotation = Rotation2::new(angle);
     rotation * point
+}
+
+pub fn deg_to_rads(angle: Deg) -> Rad {
+    angle * (std::f32::consts::PI / 180.0)
+}
+
+pub fn rad_to_deg(rad: Rad) -> Deg {
+    rad * (std::f32::consts::PI * 180.0)
 }

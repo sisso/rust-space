@@ -1,12 +1,16 @@
-use std::collections::HashSet;
+use flatbuffers::buffer_has_identifier;
+use std::borrow::Borrow;
+use std::collections::{HashMap, HashSet};
+use std::ops::Deref;
 
 use commons;
 use rand::prelude::*;
 use space_galaxy::system_generator;
 use space_galaxy::system_generator::{BodyDesc, UniverseCfg};
+use space_galaxy::terrain_generator::Shape::Island;
 use specs::prelude::*;
 
-use crate::game::astrobody::AstroBody;
+use crate::game::astrobody::{AstroBodies, AstroBody, AstroBodyKind, OrbitalPos};
 use crate::game::commands::Command;
 use crate::game::dock::HasDock;
 use crate::game::events::{Event, EventKind, Events};
@@ -437,12 +441,30 @@ impl Loader {
         (jump_from_id, jump_to_id)
     }
 
-    pub fn new_star(sector_id: Entity, pos: Position) -> NewObj {
-        NewObj::new().at_position(sector_id, pos).as_star()
+    pub fn new_star(
+        sector_id: Entity,
+        index: usize,
+        parent: usize,
+        distance: f32,
+        angle: f32,
+    ) -> NewObj {
+        NewObj::new()
+            .at_position(sector_id, Position::zero())
+            .as_star()
+            .with_orbit(index, parent, distance, angle)
     }
 
-    pub fn new_planet(sector_id: Entity, pos: Position) -> NewObj {
-        NewObj::new().at_position(sector_id, pos).as_planet()
+    pub fn new_planet(
+        sector_id: Entity,
+        index: usize,
+        parent: usize,
+        distance: f32,
+        angle: f32,
+    ) -> NewObj {
+        NewObj::new()
+            .at_position(sector_id, Position::zero())
+            .as_planet()
+            .with_orbit(index, parent, distance, angle)
     }
 
     pub fn add_object(world: &mut World, new_obj: &NewObj) -> ObjId {
@@ -528,12 +550,25 @@ impl Loader {
             builder.set(Orders(orders));
         }
 
-        if let Some(star) = new_obj.star {
-            builder.set(AstroBody::Star)
+        if let Some(_) = new_obj.star {
+            builder.set(AstroBody {
+                kind: AstroBodyKind::Star,
+            });
         }
 
-        if let Some(planet) = new_obj.planet {
-            builder.set(AstroBody::Planet)
+        if let Some(_) = new_obj.planet {
+            builder.set(AstroBody {
+                kind: AstroBodyKind::Planet,
+            });
+        }
+
+        if let Some(orbit) = new_obj.orbit.as_ref() {
+            builder.set(OrbitalPos {
+                system_index: orbit.index,
+                parent_index: orbit.parent_index,
+                distance: orbit.distance,
+                initial_angle: orbit.angle,
+            });
         }
 
         let entity = builder.build();
@@ -586,34 +621,54 @@ pub fn generate_sectors(world: &mut World, size: usize, seed: u64) {
 }
 
 pub fn populate_sectors(world: &mut World, seed: u64) {
-    let mut new_objects = vec![];
+    let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
 
+    let mut sectors_id = vec![];
     {
-        let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
-        let universe_cfg = &world.read_resource::<UniverseCfg>();
         let sectors = &world.read_storage::<Sector>();
         let entities = &world.entities();
-        for (e, s) in (entities, sectors).join() {
-            let system = system_generator::new_system(universe_cfg, rng.gen());
-
-            for body in system.bodies {
-                match body.desc {
-                    BodyDesc::Star { kind } => {
-                        new_objects.push(Loader::new_star(e, *Position::zero()));
-                    }
-                    BodyDesc::AsteroidField { resources } => {}
-                    BodyDesc::Planet(planet) => {
-                        let pos = V2::new(body.distance, 0.0);
-                        new_objects.push(Loader::new_planet(e, pos));
-                    }
-                }
-            }
+        for (e, _) in (entities, sectors).join() {
+            sectors_id.push(e);
         }
     }
 
-    for obj in new_objects {
-        Loader::add_object(world, &obj);
+    let universe_cfg = {
+        let universe_cfg = world.read_resource::<UniverseCfg>();
+        universe_cfg.deref().clone()
+    };
+
+    for sector_id in sectors_id {
+        let system = system_generator::new_system(&universe_cfg, rng.gen());
+
+        // create bodies
+        for body in system.bodies {
+            match body.desc {
+                BodyDesc::Star { kind } => {
+                    let new_obj = Loader::new_star(
+                        sector_id,
+                        body.index,
+                        body.parent,
+                        body.distance,
+                        body.angle,
+                    );
+                    Loader::add_object(world, &new_obj);
+                }
+                BodyDesc::AsteroidField { resources } => {}
+                BodyDesc::Planet(planet) => {
+                    let new_obj = Loader::new_planet(
+                        sector_id,
+                        body.index,
+                        body.parent,
+                        body.distance,
+                        body.angle,
+                    );
+                    Loader::add_object(world, &new_obj);
+                }
+            };
+        }
     }
+
+    AstroBodies::update_orbits(world);
 }
 
 #[cfg(test)]

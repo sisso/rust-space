@@ -116,11 +116,11 @@ impl<K: Hash + Eq + Copy + Clone> Tree<K> {
         &self.parents
     }
 
-    pub fn iter_hier<'a>(&'a self) -> impl Iterator<Item = TreeHier<K>> + 'a {
+    pub fn iter_deepfirst<'a>(&'a self) -> impl Iterator<Item = TreeHier<K>> + 'a {
         TreeIterator::new(self)
     }
 
-    fn find_parents(&self, buffer: &mut Vec<K>, from: K) {
+    pub fn find_parents(&self, buffer: &mut Vec<K>, from: K) {
         let mut current = from;
         loop {
             let parent = self.get(current);
@@ -134,7 +134,7 @@ impl<K: Hash + Eq + Copy + Clone> Tree<K> {
         }
     }
 
-    fn find_roots(&self) -> Vec<K> {
+    pub fn find_roots(&self) -> Vec<K> {
         let mut roots: HashSet<K> = HashSet::new();
 
         self.parents
@@ -258,7 +258,7 @@ mod test {
     #[test]
     fn test_tree_iter_empty() {
         let tree = Tree::<u32>::new();
-        assert_eq!(0, tree.iter_hier().count());
+        assert_eq!(0, tree.iter_deepfirst().count());
     }
 
     #[test]
@@ -348,7 +348,7 @@ mod test {
     }
 
     fn assert_tree_iter(tree: &Tree<i32>, expected: Vec<(Option<i32>, i32, usize)>) {
-        let list: Vec<TreeHier<i32>> = tree.iter_hier().collect();
+        let list: Vec<TreeHier<i32>> = tree.iter_deepfirst().collect();
 
         for i in &list {
             println!("{:?}", i);
@@ -365,7 +365,7 @@ mod test {
     }
 
     fn assert_tree_iter_set(tree: &Tree<i32>, expected: HashSet<(Option<i32>, i32, usize)>) {
-        let list: Vec<TreeHier<i32>> = tree.iter_hier().collect();
+        let list: Vec<TreeHier<i32>> = tree.iter_deepfirst().collect();
 
         for (_, e) in list.iter().enumerate() {
             let value = (e.parent, e.index, e.deep);

@@ -1,4 +1,4 @@
-use commons::prob::{Weighted};
+use commons::prob::Weighted;
 use rand::prelude::*;
 use space_2d_gui::system_generator::*;
 use std::path::PathBuf;
@@ -23,7 +23,7 @@ fn main() {
         tree.insert(b.index, b.parent);
     }
 
-    for i in tree.iter_hier() {
+    for i in tree.iter_deepfirst() {
         let prefix = (0..i.deep).fold(String::new(), |acc, _v| format!("{}--", acc));
         println!("{}{:?}", prefix, system.bodies[i.index]);
     }
