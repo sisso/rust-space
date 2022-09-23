@@ -33,6 +33,7 @@ foreign_class!(
         fn ObjData::is_station(&self) -> bool;
         fn ObjData::is_asteroid(&self) -> bool;
         fn ObjData::is_jump(&self) -> bool;
+        fn ObjData::is_astro(&self) -> bool;
     }
 );
 

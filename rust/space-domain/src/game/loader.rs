@@ -1,13 +1,11 @@
 use flatbuffers::buffer_has_identifier;
-use std::borrow::Borrow;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::ops::Deref;
 
 use commons;
 use rand::prelude::*;
 use space_galaxy::system_generator;
 use space_galaxy::system_generator::{BodyDesc, UniverseCfg};
-use space_galaxy::terrain_generator::Shape::Island;
 use specs::prelude::*;
 
 use crate::game::astrobody::{AstroBodies, AstroBody, AstroBodyKind, OrbitalPos};
@@ -28,8 +26,6 @@ use crate::game::wares::{Cargo, WareAmount, WareId};
 use crate::game::{sectors, Game};
 use crate::specs_extras::*;
 use crate::utils::{DeltaTime, Position, Speed, V2};
-
-const SECTOR_MAX_SX: i32 = 10;
 
 pub struct Loader {}
 
@@ -643,7 +639,7 @@ pub fn populate_sectors(world: &mut World, seed: u64) {
         // create bodies
         for body in system.bodies {
             match body.desc {
-                BodyDesc::Star { kind } => {
+                BodyDesc::Star { .. } => {
                     let new_obj = Loader::new_star(
                         sector_id,
                         body.index,
@@ -653,8 +649,8 @@ pub fn populate_sectors(world: &mut World, seed: u64) {
                     );
                     Loader::add_object(world, &new_obj);
                 }
-                BodyDesc::AsteroidField { resources } => {}
-                BodyDesc::Planet(planet) => {
+                BodyDesc::AsteroidField { .. } => {}
+                BodyDesc::Planet(_) => {
                     let new_obj = Loader::new_planet(
                         sector_id,
                         body.index,

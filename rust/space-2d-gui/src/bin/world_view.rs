@@ -74,11 +74,13 @@ impl State {
                 obj.is_asteroid(),
                 obj.is_station(),
                 obj.is_jump(),
+                obj.is_astro(),
             ) {
-                (true, _, _, _) => Color::RED,
-                (_, true, _, _) => Color::MAGENTA,
-                (_, _, true, _) => Color::GREEN,
-                (_, _, _, true) => Color::BLUE,
+                (true, _, _, _, _) => Color::RED,
+                (_, true, _, _, _) => Color::MAGENTA,
+                (_, _, true, _, _) => Color::GREEN,
+                (_, _, _, true, _) => Color::BLUE,
+                (_, _, _, _, true) => Color::YELLOW,
                 _ => Color::WHITE,
             };
 

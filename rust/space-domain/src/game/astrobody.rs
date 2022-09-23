@@ -3,7 +3,6 @@ use crate::game::{GameInitContext, RequireInitializer};
 use crate::utils::{Position, TotalTime};
 use commons::math;
 use commons::math::Rad;
-use pathfinding::prelude::separate_components;
 use specs::prelude::*;
 use std::collections::HashMap;
 
@@ -39,18 +38,18 @@ impl RequireInitializer for AstroBodies {
 impl AstroBodies {
     // id_map is mapping a giving astro index to a world entity
     pub fn update_orbits(world: &mut World) {
-        let mut system = OrbitalPosDirtySystem;
+        let mut system = OrbitalPosSystem;
         system.run_now(world);
     }
 }
 
-pub struct OrbitalPosDirtySystem;
+pub struct OrbitalPosSystem;
 
-pub fn compute_local_pos(orbit: &OrbitalPos) -> Position {
+fn compute_local_pos(orbit: &OrbitalPos) -> Position {
     math::rotate_vector_by_angle(math::P2::new(orbit.distance, 0.0), orbit.initial_angle).into()
 }
 
-pub fn find_orbital_pos(bodies: &Vec<&OrbitalPos>, system_index: usize) -> Position {
+fn find_orbital_pos(bodies: &Vec<&OrbitalPos>, system_index: usize) -> Position {
     for b in bodies {
         if b.system_index == system_index {
             let local = compute_local_pos(b);
@@ -71,7 +70,7 @@ pub fn find_orbital_pos(bodies: &Vec<&OrbitalPos>, system_index: usize) -> Posit
     panic!("fail to find system index");
 }
 
-impl<'a> System<'a> for OrbitalPosDirtySystem {
+impl<'a> System<'a> for OrbitalPosSystem {
     type SystemData = (
         Read<'a, TotalTime>,
         WriteStorage<'a, Location>,
@@ -122,7 +121,7 @@ impl<'a> System<'a> for OrbitalPosDirtySystem {
 
 #[cfg(test)]
 mod test {
-    use crate::game::astrobody::{OrbitalPos, OrbitalPosDirtySystem};
+    use crate::game::astrobody::{OrbitalPos, OrbitalPosSystem};
     use crate::game::locations::Location;
     use crate::utils::Position;
     use approx::{assert_relative_eq, relative_eq};
@@ -134,7 +133,7 @@ mod test {
     fn test_orbits_system_should_resolve_positions() {
         crate::test::init_log();
 
-        let (world, result) = crate::test::test_system(OrbitalPosDirtySystem, move |world| {
+        let (world, result) = crate::test::test_system(OrbitalPosSystem, move |world| {
             let sector_id = world.create_entity().build();
 
             let star_id = world

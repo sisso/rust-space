@@ -3,6 +3,7 @@
 extern crate core;
 
 use itertools::Itertools;
+use space_domain::game::astrobody::{AstroBodies, AstroBody, OrbitalPos};
 use space_domain::game::events;
 use space_domain::game::extractables::Extractable;
 use space_domain::game::factory::Factory;
@@ -39,6 +40,7 @@ pub struct ObjKind {
     jump: bool,
     station: bool,
     asteroid: bool,
+    astro: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -85,6 +87,10 @@ impl ObjData {
 
     pub fn is_jump(&self) -> bool {
         self.kind.jump
+    }
+
+    pub fn is_astro(&self) -> bool {
+        self.kind.astro
     }
 }
 
@@ -255,15 +261,13 @@ impl SpaceGame {
         let locations = g.world.read_storage::<Location>();
         let stations = g.world.read_storage::<Station>();
         let jumps = g.world.read_storage::<Jump>();
-        let extractables = g.world.read_storage::<Extractable>();
         let fleets = g.world.read_storage::<Fleet>();
 
         let mut r = vec![];
-        for (e, flt, st, ext, j, l) in (
+        for (e, flt, st, j, l) in (
             &entities,
             &fleets,
             (&stations).maybe(),
-            (&extractables).maybe(),
             (&jumps).maybe(),
             &locations,
         )
@@ -276,7 +280,8 @@ impl SpaceGame {
                 fleet: true,
                 jump: j.is_some(),
                 station: st.is_some(),
-                asteroid: ext.is_some(),
+                asteroid: false,
+                astro: false,
             };
 
             r.push(ObjData {
@@ -327,6 +332,8 @@ impl SpaceGame {
         let extractables = g.world.read_storage::<Extractable>();
         let jumps = g.world.read_storage::<Jump>();
         let fleets = g.world.read_storage::<Fleet>();
+        let astros = g.world.read_storage::<AstroBody>();
+        let orbits = g.world.read_storage::<OrbitalPos>();
 
         let flt = (&fleets).get(e);
         let loc = (&locations).get(e)?;
@@ -334,12 +341,15 @@ impl SpaceGame {
         let st = (&stations).get(e);
         let ls = Locations::resolve_space_position_from(&locations, loc)?;
         let jp = (&jumps).get(e);
+        let ab = astros.get(e);
+        let o = orbits.get(e);
 
         let kind = ObjKind {
             fleet: flt.is_some(),
             jump: jp.is_some(),
             station: st.is_some(),
             asteroid: ext.is_some(),
+            astro: ab.is_some(),
         };
 
         let obj = ObjData {
