@@ -1,4 +1,3 @@
-use flatbuffers::buffer_has_identifier;
 use std::collections::HashSet;
 use std::ops::Deref;
 

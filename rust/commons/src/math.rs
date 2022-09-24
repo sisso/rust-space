@@ -132,19 +132,6 @@ pub fn inverse_lerp(v0: f32, v1: f32, t: f32) -> f32 {
     }
 }
 
-///
-/// Lerp between v0 and v1 giving the value of t between t0 and t1
-///
-/// t <= t0, returns v0
-/// t >= t1, returns v1
-///
-/// TODO: use map_value where t (change arguments order)
-#[deprecated()]
-pub fn lerp_2(v0: f32, v1: f32, t0: f32, t1: f32, t: f32) -> f32 {
-    let tt = inverse_lerp(t0, t1, t);
-    lerp(v0, v1, tt)
-}
-
 /// Lerp the value t between t0 and t1 into v0 and v1
 pub fn map_value(t: f32, t0: f32, t1: f32, v0: f32, v1: f32) -> f32 {
     let tt = inverse_lerp(t0, t1, t);
@@ -164,21 +151,66 @@ pub fn clamp01(v: f32) -> f32 {
 #[cfg(test)]
 mod test {
     use super::*;
+    use approx::{assert_relative_eq, relative_eq};
 
     #[test]
-    fn test_lerp_2() {
-        assert_eq!(lerp_2(0.0, 1.0, 0.0, 1.0, 0.5), 0.5);
-        assert_eq!(lerp_2(0.0, 2.0, 0.0, 1.0, 0.5), 1.0);
-        assert_eq!(lerp_2(0.0, 1.0, 0.0, 2.0, 1.0), 0.5);
-    }
-
-    #[test]
-    fn test1() {
+    fn test_angle_rotation() {
         let deg = 90.0;
         let rad = deg_to_rads(deg);
         let v = rotate_vector_by_angle(P2::new(1.0, 0.0), rad);
         relative_eq!(0.0, v.x);
         assert_eq!(1.0, v.y);
+    }
+
+    #[test]
+    fn test_transform_2_identity() {
+        let t = Transform2::identity();
+        let v = V2::new(1.0, 0.0);
+        let v2 = t.get_similarity() * v;
+        assert_eq!(V2::new(1.0, 0.0), v2);
+
+        let p = P2::new(1.0, 0.0);
+        let p2 = t.get_similarity() * p;
+        assert_eq!(P2::new(1.0, 0.0), p2);
+    }
+
+    #[test]
+    fn test_transform_translation() {
+        let t = Transform2::new(P2::new(2.0, 1.0), 1.0, 0.0);
+
+        let v = V2::new(1.0, 0.0);
+        let v2 = t.get_similarity() * v;
+        assert_eq!(V2::new(1.0, 0.0), v2);
+
+        let p = P2::new(1.0, 0.0);
+        let p2 = t.get_similarity() * p;
+        assert_eq!(P2::new(3.0, 1.0), p2);
+    }
+
+    #[test]
+    fn test_transform_rotation() {
+        let t = Transform2::new(P2::origin(), 1.0, deg_to_rads(90.0));
+
+        let v = V2::new(1.0, 0.0);
+        let v2 = t.get_similarity() * v;
+        assert_relative_eq!(V2::new(0.0, 1.0), v2);
+
+        let p = P2::new(1.0, 0.0);
+        let p2 = t.get_similarity() * p;
+        assert_relative_eq!(P2::new(0.0, 1.0), p2);
+    }
+
+    #[test]
+    fn test_transform() {
+        let t = Transform2::new(P2::new(2.0, 1.0), 2.0, deg_to_rads(90.0));
+
+        let v = V2::new(1.0, 0.0);
+        let v2 = t.get_similarity() * v;
+        assert_relative_eq!(V2::new(0.0, 2.0), v2);
+
+        let p = P2::new(1.0, 0.0);
+        let p2 = t.get_similarity() * p;
+        assert_relative_eq!(P2::new(2.0, 3.0), p2);
     }
 }
 

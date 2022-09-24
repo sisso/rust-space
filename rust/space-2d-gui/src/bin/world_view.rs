@@ -1,12 +1,12 @@
 use approx::RelativeEq;
-use commons::math::V2I;
-use commons::{unwrap_or_continue, unwrap_or_return};
+use commons::math::{Transform2, V2, V2I};
+use commons::{math, unwrap_or_continue, unwrap_or_return};
 use ggez::event::{self, EventHandler};
-use ggez::graphics::{self, Color, DrawMode, DrawParam, StrokeOptions, Transform};
+use ggez::graphics::{self, Color};
 use ggez::{Context, ContextBuilder, GameError, GameResult};
 use ggez_egui::{egui, EguiBackend};
 use space_flap;
-use space_flap::{EventKind, ObjData, ObjKind, SectorData};
+use space_flap::{EventKind, SectorData};
 
 fn main() {
     env_logger::builder()
@@ -27,15 +27,25 @@ fn main() {
         .build()
         .expect("aieee, could not create ggez context!");
 
+    let sector_view_transform = get_sector_transform(&ctx);
+
     let my_game = State {
         egui_backend: EguiBackend::default(),
         sg: sg,
         screen: StateScreen::Galaxy,
         selected_sector: 0,
         selected_fleet: 0,
+        sector_view_transform: sector_view_transform,
     };
 
     event::run(ctx, event_loop, my_game);
+}
+
+fn get_sector_transform(ctx: &Context) -> Transform2 {
+    let (w, h) = graphics::drawable_size(ctx);
+    let trans = math::P2::new(w * 0.5, h * 0.5);
+    let scale = w / 20.0; // lets fit -10.0 to 10.0 grid
+    Transform2::new(trans, scale, 0.0)
 }
 
 enum StateScreen {
@@ -49,17 +59,17 @@ struct State {
     selected_sector: usize,
     selected_fleet: usize,
     egui_backend: EguiBackend,
+    sector_view_transform: Transform2,
 }
 
-fn length_to_screen(screen_size: (f32, f32), length: f32) -> f32 {
-    commons::math::map_value(length, 0.0, 20.0, 0.0, screen_size.0)
+fn length_to_screen(transform: &Transform2, length: f32) -> f32 {
+    let v2 = transform.get_similarity() * V2::new(length, 0.0);
+    v2.magnitude()
 }
 
-fn point_to_screen(screen_size: (f32, f32), pos: (f32, f32)) -> (f32, f32) {
-    (
-        commons::math::map_value(pos.0, -10.0, 10.0, 0.0, screen_size.0),
-        commons::math::map_value(pos.1, -10.0, 10.0, 0.0, screen_size.1),
-    )
+fn point_to_screen(transform: &Transform2, pos: (f32, f32)) -> (f32, f32) {
+    let p = transform.get_similarity() * math::P2::new(pos.0, pos.1);
+    (p.x, p.y)
 }
 
 impl State {
@@ -72,7 +82,6 @@ impl State {
         let at_sector = self.sg.list_at_sector(sector_id);
 
         // draw orbits
-        log::info!("start drawing orbits");
         for obj_id in &at_sector {
             let obj = unwrap_or_continue!(self.sg.get_obj(*obj_id));
             if !obj.is_astro() {
@@ -86,13 +95,13 @@ impl State {
             }
 
             let parent_coords = orbit.get_parent_pos();
-            let (parent_x, parent_y) = point_to_screen(screen_size, parent_coords);
+            let (parent_x, parent_y) = point_to_screen(&self.sector_view_transform, parent_coords);
 
-            let sw_radius = length_to_screen(screen_size, radius);
+            let sw_radius = length_to_screen(&self.sector_view_transform, radius);
 
             let orbit_circle = graphics::Mesh::new_circle(
                 ctx,
-                graphics::DrawMode::Stroke(StrokeOptions::default()),
+                graphics::DrawMode::Stroke(graphics::StrokeOptions::default()),
                 [0.0, 0.0],
                 sw_radius,
                 1.0,
@@ -131,7 +140,7 @@ impl State {
             };
 
             let coords = obj.get_coords();
-            let (wx, wy) = point_to_screen(screen_size, coords);
+            let (wx, wy) = point_to_screen(&self.sector_view_transform, coords);
             graphics::draw(ctx, &planet_circle, ([wx, wy], color))?;
         }
 
@@ -155,7 +164,7 @@ impl State {
 
         let mesh = graphics::Mesh::new_rounded_rectangle(
             ctx,
-            DrawMode::fill(),
+            graphics::DrawMode::fill(),
             graphics::Rect {
                 x: 0.0,
                 y: 0.0,
@@ -258,14 +267,18 @@ impl EventHandler for State {
         });
 
         let text = graphics::Text::new(format!("{} {}", tick, delta_time));
-        graphics::draw(ctx, &text, DrawParam::default().color(Color::WHITE))?;
+        graphics::draw(
+            ctx,
+            &text,
+            graphics::DrawParam::default().color(Color::WHITE),
+        )?;
 
         match self.screen {
             StateScreen::Sector(sector_id) => {
                 self.draw_sector(ctx, screen_size, sector_id)?;
             }
             StateScreen::Galaxy => {
-                self.draw_galaxy(ctx, screen_size, sectors);
+                self.draw_galaxy(ctx, screen_size, sectors)?;
             }
         }
 
