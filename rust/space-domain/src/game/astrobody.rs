@@ -26,6 +26,12 @@ pub struct OrbitalPos {
     pub initial_angle: Rad,
 }
 
+impl OrbitalPos {
+    pub fn compute_local_pos(&self) -> Position {
+        math::rotate_vector_by_angle(math::P2::new(self.distance, 0.0), self.initial_angle).into()
+    }
+}
+
 pub struct AstroBodies;
 
 impl RequireInitializer for AstroBodies {
@@ -45,14 +51,10 @@ impl AstroBodies {
 
 pub struct OrbitalPosSystem;
 
-fn compute_local_pos(orbit: &OrbitalPos) -> Position {
-    math::rotate_vector_by_angle(math::P2::new(orbit.distance, 0.0), orbit.initial_angle).into()
-}
-
 fn find_orbital_pos(bodies: &Vec<&OrbitalPos>, system_index: usize) -> Position {
     for b in bodies {
         if b.system_index == system_index {
-            let local = compute_local_pos(b);
+            let local = b.compute_local_pos();
 
             log::trace!("local pos of {} is {:?}", system_index, local);
 

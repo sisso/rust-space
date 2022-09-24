@@ -44,12 +44,29 @@ pub struct ObjKind {
 }
 
 #[derive(Clone, Debug)]
+pub struct ObjOrbitData {
+    radius: f32,
+    parent_pos: Position,
+}
+
+impl ObjOrbitData {
+    pub fn get_radius(&self) -> f32 {
+        self.radius
+    }
+
+    pub fn get_parent_pos(&self) -> (f32, f32) {
+        (self.parent_pos.x, self.parent_pos.y)
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct ObjData {
     id: Entity,
     coords: Position,
     sector_id: Entity,
     docked: Option<Entity>,
     kind: ObjKind,
+    orbit: Option<ObjOrbitData>,
 }
 
 impl ObjData {
@@ -71,6 +88,10 @@ impl ObjData {
 
     pub fn get_coords(&self) -> (f32, f32) {
         (self.coords.x, self.coords.y)
+    }
+
+    pub fn get_orbit(&self) -> Option<ObjOrbitData> {
+        self.orbit.clone()
     }
 
     pub fn is_fleet(&self) -> bool {
@@ -290,6 +311,7 @@ impl SpaceGame {
                 sector_id: ls.sector_id,
                 docked: l.as_docked(),
                 kind: kind,
+                orbit: None,
             });
         }
         r
@@ -342,7 +364,7 @@ impl SpaceGame {
         let ls = Locations::resolve_space_position_from(&locations, loc)?;
         let jp = (&jumps).get(e);
         let ab = astros.get(e);
-        let o = orbits.get(e);
+        let orb = orbits.get(e);
 
         let kind = ObjKind {
             fleet: flt.is_some(),
@@ -352,12 +374,24 @@ impl SpaceGame {
             astro: ab.is_some(),
         };
 
+        let orbit_data = orb.map(|o| {
+            let pos = loc.get_pos().unwrap();
+            let local_pos = o.compute_local_pos();
+            let parent_pos = pos.sub(&local_pos);
+
+            ObjOrbitData {
+                radius: o.distance,
+                parent_pos: parent_pos,
+            }
+        });
+
         let obj = ObjData {
             id: e,
             coords: ls.pos,
             sector_id: ls.sector_id,
             docked: loc.as_docked(),
             kind: kind,
+            orbit: orbit_data,
         };
 
         Some(obj)

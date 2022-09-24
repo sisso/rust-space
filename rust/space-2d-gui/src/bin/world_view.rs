@@ -1,7 +1,8 @@
+use approx::RelativeEq;
 use commons::math::V2I;
 use commons::{unwrap_or_continue, unwrap_or_return};
 use ggez::event::{self, EventHandler};
-use ggez::graphics::{self, Color, DrawMode, DrawParam};
+use ggez::graphics::{self, Color, DrawMode, DrawParam, StrokeOptions, Transform};
 use ggez::{Context, ContextBuilder, GameError, GameResult};
 use ggez_egui::{egui, EguiBackend};
 use space_flap;
@@ -50,6 +51,17 @@ struct State {
     egui_backend: EguiBackend,
 }
 
+fn length_to_screen(screen_size: (f32, f32), length: f32) -> f32 {
+    commons::math::map_value(length, 0.0, 20.0, 0.0, screen_size.0)
+}
+
+fn point_to_screen(screen_size: (f32, f32), pos: (f32, f32)) -> (f32, f32) {
+    (
+        commons::math::map_value(pos.0, -10.0, 10.0, 0.0, screen_size.0),
+        commons::math::map_value(pos.1, -10.0, 10.0, 0.0, screen_size.1),
+    )
+}
+
 impl State {
     fn draw_sector(
         &self,
@@ -57,7 +69,41 @@ impl State {
         screen_size: (f32, f32),
         sector_id: space_flap::Id,
     ) -> GameResult<()> {
-        let circle = graphics::Mesh::new_circle(
+        let at_sector = self.sg.list_at_sector(sector_id);
+
+        // draw orbits
+        log::info!("start drawing orbits");
+        for obj_id in &at_sector {
+            let obj = unwrap_or_continue!(self.sg.get_obj(*obj_id));
+            if !obj.is_astro() {
+                continue;
+            }
+
+            let orbit = obj.get_orbit().unwrap();
+            let radius = orbit.get_radius();
+            if radius < 0.00001 {
+                continue;
+            }
+
+            let parent_coords = orbit.get_parent_pos();
+            let (parent_x, parent_y) = point_to_screen(screen_size, parent_coords);
+
+            let sw_radius = length_to_screen(screen_size, radius);
+
+            let orbit_circle = graphics::Mesh::new_circle(
+                ctx,
+                graphics::DrawMode::Stroke(StrokeOptions::default()),
+                [0.0, 0.0],
+                sw_radius,
+                1.0,
+                Color::WHITE,
+            )?;
+
+            graphics::draw(ctx, &orbit_circle, ([parent_x, parent_y], Color::WHITE))?;
+        }
+
+        // draw objects
+        let planet_circle = graphics::Mesh::new_circle(
             ctx,
             graphics::DrawMode::fill(),
             [0.0, 0.0],
@@ -66,7 +112,7 @@ impl State {
             Color::WHITE,
         )?;
 
-        for obj_id in self.sg.list_at_sector(sector_id) {
+        for obj_id in at_sector {
             let obj = unwrap_or_continue!(self.sg.get_obj(obj_id));
 
             let color = match (
@@ -84,10 +130,9 @@ impl State {
                 _ => Color::WHITE,
             };
 
-            let (x, y) = obj.get_coords();
-            let wx = commons::math::map_value(x, -10.0, 10.0, 0.0, screen_size.0);
-            let wy = commons::math::map_value(y, -10.0, 10.0, 0.0, screen_size.1);
-            ggez::graphics::draw(ctx, &circle, ([wx, wy], color))?;
+            let coords = obj.get_coords();
+            let (wx, wy) = point_to_screen(screen_size, coords);
+            graphics::draw(ctx, &planet_circle, ([wx, wy], color))?;
         }
 
         Ok(())

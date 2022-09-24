@@ -21,6 +21,16 @@ foreign_class!(
 );
 
 foreign_class!(
+    class ObjOrbitData {
+        self_type ObjOrbitData;
+        private constructor = empty;
+        fn ObjOrbitData::get_parent_pos(&self) -> (f32, f32);
+        fn ObjOrbitData::get_radius(&self) -> f32;
+    }
+);
+
+
+foreign_class!(
     class ObjData {
         self_type ObjData;
         private constructor = empty;
@@ -28,6 +38,7 @@ foreign_class!(
         fn ObjData::get_sector_id(&self) -> u64;
         fn ObjData::get_coords(&self) -> (f32, f32);
         fn ObjData::get_docked_id(&self) -> Option<u64>;
+        fn ObjData::get_orbit(&self) -> Option<ObjOrbitData>;
         fn ObjData::is_docked(&self) -> bool;
         fn ObjData::is_fleet(&self) -> bool;
         fn ObjData::is_station(&self) -> bool;
