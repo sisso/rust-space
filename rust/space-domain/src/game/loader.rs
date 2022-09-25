@@ -47,140 +47,52 @@ pub struct RandomMapCfg {
     pub universe_cfg: space_galaxy::system_generator::UniverseCfg,
 }
 
+pub struct SceneryCfg {
+    ware_ore_id: ObjId,
+    ware_components_id: ObjId,
+    ware_energy: ObjId,
+    receipt_process_ores: Receipt,
+    receipt_produce_energy: Receipt,
+}
+
 impl Loader {
     pub fn load_random(game: &mut Game, cfg: &RandomMapCfg) {
         let mut rng: StdRng = SeedableRng::seed_from_u64(cfg.seed);
-
-        let sector_kind_empty = 0;
-        let sector_kind_asteroid = 1;
-        let sector_kind_power = 2;
-        let sector_kind_factory = 3;
-        let sector_kind_shipyard = 4;
-        let sector_kind_prob = vec![
-            commons::prob::Weighted {
-                prob: 1.0,
-                value: sector_kind_empty,
-            },
-            commons::prob::Weighted {
-                prob: 1.0,
-                value: sector_kind_asteroid,
-            },
-            commons::prob::Weighted {
-                prob: 1.0,
-                value: sector_kind_factory,
-            },
-            commons::prob::Weighted {
-                prob: 1.0,
-                value: sector_kind_power,
-            },
-            commons::prob::Weighted {
-                prob: 0.1,
-                value: sector_kind_shipyard,
-            },
-        ];
 
         let world = &mut game.world;
 
         // add configurations
         world.insert(cfg.universe_cfg.clone());
+        let scenery_cfg = {
+            // wares and receipts
+            let ware_ore_id = Loader::add_ware(world, "ore".to_string());
+            let ware_components_id = Loader::add_ware(world, "components".to_string());
+            let ware_energy = Loader::add_ware(world, "energy".to_string());
 
-        // wares and receipts
-        let ware_ore_id = Loader::add_ware(world, "ore".to_string());
-        let ware_components_id = Loader::add_ware(world, "components".to_string());
-        let ware_energy = Loader::add_ware(world, "energy".to_string());
+            let receipt_process_ores = Receipt {
+                input: vec![WareAmount(ware_ore_id, 2.0), WareAmount(ware_energy, 1.0)],
+                output: vec![WareAmount(ware_components_id, 1.0)],
+                time: DeltaTime(1.0),
+            };
+            let receipt_produce_energy = Receipt {
+                input: vec![],
+                output: vec![WareAmount(ware_energy, 1.0)],
+                time: DeltaTime(5.0),
+            };
 
-        let receipt_process_ores = Receipt {
-            input: vec![WareAmount(ware_ore_id, 2.0), WareAmount(ware_energy, 1.0)],
-            output: vec![WareAmount(ware_components_id, 1.0)],
-            time: DeltaTime(1.0),
-        };
-        let receipt_produce_energy = Receipt {
-            input: vec![],
-            output: vec![WareAmount(ware_energy, 1.0)],
-            time: DeltaTime(5.0),
+            SceneryCfg {
+                ware_ore_id,
+                ware_components_id,
+                ware_energy,
+                receipt_process_ores,
+                receipt_produce_energy,
+            }
         };
 
         // create sectors
         generate_sectors(world, cfg.size, rng.gen());
-        populate_sectors(world, rng.gen());
-
-        // add stations
-        {
-            fn sector_pos<R: rand::Rng>(rng: &mut R) -> V2 {
-                V2::new(
-                    (rng.gen_range(0..10) - 5) as f32,
-                    (rng.gen_range(0..10) - 5) as f32,
-                )
-            }
-
-            let mut sectors_id = vec![];
-            {
-                let entities = world.entities();
-                let sectors_repo = world.read_storage::<Sector>();
-                for (sector_id, _) in (&entities, &sectors_repo).join() {
-                    sectors_id.push(sector_id);
-                }
-            }
-
-            let mut required_kinds = [false, false, false, false];
-            loop {
-                for sector_id in &sectors_id {
-                    let sector_id = *sector_id;
-
-                    match commons::prob::select_weighted(&mut rng, &sector_kind_prob) {
-                        Some(i) if *i == sector_kind_asteroid => {
-                            required_kinds[0] = true;
-                            Loader::add_asteroid(
-                                world,
-                                sector_id,
-                                sector_pos(&mut rng),
-                                ware_ore_id,
-                            );
-                        }
-                        Some(i) if *i == sector_kind_shipyard => {
-                            required_kinds[1] = true;
-
-                            Loader::add_shipyard(
-                                world,
-                                sector_id,
-                                sector_pos(&mut rng),
-                                ware_components_id,
-                            );
-                        }
-                        Some(i) if *i == sector_kind_factory => {
-                            required_kinds[2] = true;
-
-                            Loader::add_factory(
-                                world,
-                                sector_id,
-                                sector_pos(&mut rng),
-                                receipt_process_ores.clone(),
-                            );
-                        }
-                        Some(i) if *i == sector_kind_power => {
-                            required_kinds[3] = true;
-
-                            Loader::add_factory(
-                                world,
-                                sector_id,
-                                sector_pos(&mut rng),
-                                receipt_produce_energy.clone(),
-                            );
-                        }
-                        _ => {}
-                    }
-                }
-
-                // check if all required stations existrs
-                if required_kinds.iter().find(|i| !**i).is_none() {
-                    log::warn!(
-                        "world generator fail to provide require stations {:?}, retrying",
-                        required_kinds
-                    );
-                    break;
-                }
-            }
-        }
+        add_bodies_to_sectors(world, rng.gen());
+        add_stations(world, rng.gen(), scenery_cfg);
 
         // add ships
         {
@@ -615,7 +527,7 @@ pub fn generate_sectors(world: &mut World, size: usize, seed: u64) {
     sectors::update_sectors_index(world);
 }
 
-pub fn populate_sectors(world: &mut World, seed: u64) {
+pub fn add_bodies_to_sectors(world: &mut World, seed: u64) {
     let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
 
     let mut sectors_id = vec![];
@@ -664,6 +576,113 @@ pub fn populate_sectors(world: &mut World, seed: u64) {
     }
 
     AstroBodies::update_orbits(world);
+}
+
+pub fn add_stations(world: &mut World, seed: u64, scenery: SceneryCfg) {
+    let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
+
+    let sector_kind_empty = 0;
+    let sector_kind_asteroid = 1;
+    let sector_kind_power = 2;
+    let sector_kind_factory = 3;
+    let sector_kind_shipyard = 4;
+    let sector_kind_prob = vec![
+        commons::prob::Weighted {
+            prob: 1.0,
+            value: sector_kind_empty,
+        },
+        commons::prob::Weighted {
+            prob: 1.0,
+            value: sector_kind_asteroid,
+        },
+        commons::prob::Weighted {
+            prob: 1.0,
+            value: sector_kind_factory,
+        },
+        commons::prob::Weighted {
+            prob: 1.0,
+            value: sector_kind_power,
+        },
+        commons::prob::Weighted {
+            prob: 0.1,
+            value: sector_kind_shipyard,
+        },
+    ];
+
+    fn sector_pos<R: rand::Rng>(rng: &mut R) -> V2 {
+        V2::new(
+            (rng.gen_range(0..10) - 5) as f32,
+            (rng.gen_range(0..10) - 5) as f32,
+        )
+    }
+
+    let mut sectors_id = vec![];
+    {
+        let entities = world.entities();
+        let sectors_repo = world.read_storage::<Sector>();
+        for (sector_id, _) in (&entities, &sectors_repo).join() {
+            sectors_id.push(sector_id);
+        }
+    }
+
+    let mut required_kinds = [false, false, false, false];
+    loop {
+        for sector_id in &sectors_id {
+            let sector_id = *sector_id;
+
+            match commons::prob::select_weighted(&mut rng, &sector_kind_prob) {
+                Some(i) if *i == sector_kind_asteroid => {
+                    required_kinds[0] = true;
+                    Loader::add_asteroid(
+                        world,
+                        sector_id,
+                        sector_pos(&mut rng),
+                        scenery.ware_ore_id,
+                    );
+                }
+                Some(i) if *i == sector_kind_shipyard => {
+                    required_kinds[1] = true;
+
+                    Loader::add_shipyard(
+                        world,
+                        sector_id,
+                        sector_pos(&mut rng),
+                        scenery.ware_components_id,
+                    );
+                }
+                Some(i) if *i == sector_kind_factory => {
+                    required_kinds[2] = true;
+
+                    Loader::add_factory(
+                        world,
+                        sector_id,
+                        sector_pos(&mut rng),
+                        scenery.receipt_process_ores.clone(),
+                    );
+                }
+                Some(i) if *i == sector_kind_power => {
+                    required_kinds[3] = true;
+
+                    Loader::add_factory(
+                        world,
+                        sector_id,
+                        sector_pos(&mut rng),
+                        scenery.receipt_produce_energy.clone(),
+                    );
+                }
+                _ => {}
+            }
+        }
+
+        // check if all required stations existrs
+        if required_kinds.iter().find(|i| !**i).is_none() {
+            log::warn!(
+                "world generator fail to provide require stations {:?}, retrying",
+                required_kinds
+            );
+            break;
+        }
+    }
 }
 
 #[cfg(test)]
