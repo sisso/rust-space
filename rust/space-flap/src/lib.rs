@@ -16,7 +16,7 @@ use space_domain::game::sectors::{Jump, Sector};
 use space_domain::game::shipyard::Shipyard;
 use space_domain::game::station::Station;
 use space_domain::game::Game;
-use space_domain::utils::{Position, V2_ZERO};
+use space_domain::utils::{Position, TotalTime, V2_ZERO};
 use specs::prelude::*;
 use std::cell::RefCell;
 use std::os::linux::raw::stat;
@@ -345,6 +345,8 @@ impl SpaceGame {
     pub fn get_obj(&self, id: Id) -> Option<ObjData> {
         let g = self.game.borrow();
 
+        let time = g.world.read_resource::<TotalTime>();
+
         let entities = g.world.entities();
 
         let e = decode_entity_and_get(&g, id)?;
@@ -375,13 +377,10 @@ impl SpaceGame {
         };
 
         let orbit_data = orb.map(|o| {
-            let pos = loc.get_pos().unwrap();
-            let local_pos = o.compute_local_pos();
-            let parent_pos = pos.sub(&local_pos);
-
+            let parent_pos = locations.get(o.parent).and_then(|i| i.as_space()).unwrap();
             ObjOrbitData {
                 radius: o.distance,
-                parent_pos: parent_pos,
+                parent_pos: parent_pos.pos,
             }
         });
 

@@ -26,8 +26,10 @@ pub struct OrbitalPos {
 }
 
 impl OrbitalPos {
-    pub fn compute_local_pos(&self) -> Position {
-        math::rotate_vector_by_angle(math::P2::new(self.distance, 0.0), self.initial_angle).into()
+    pub fn compute_local_pos(&self, time: TotalTime) -> Position {
+        let speed = 500.0f64;
+        let angle = self.initial_angle as f64 + time.0 * (math::TWO_PI as f64 / speed);
+        math::rotate_vector_by_angle(math::P2::new(self.distance, 0.0), angle as f32).into()
     }
 }
 
@@ -37,6 +39,8 @@ impl RequireInitializer for AstroBodies {
     fn init(context: &mut GameInitContext) {
         context.world.register::<AstroBody>();
         context.world.register::<OrbitalPos>();
+
+        context.dispatcher.add(OrbitalPosSystem, "orbital_pos", &[]);
     }
 }
 
@@ -74,16 +78,20 @@ impl AstroBodies {
 
 pub struct OrbitalPosSystem;
 
-fn find_orbital_pos(bodies: &Vec<(ObjId, &OrbitalPos)>, id: ObjId) -> Option<Position> {
+fn find_orbital_pos(
+    bodies: &Vec<(ObjId, &OrbitalPos)>,
+    time: TotalTime,
+    id: ObjId,
+) -> Option<Position> {
     for (i, b) in bodies {
         if *i != id {
             continue;
         }
 
-        let local = b.compute_local_pos();
+        let local = b.compute_local_pos(time);
         log::trace!("find_orbital_pos local pos of {:?} is {:?}", id, local);
 
-        let pos = match find_orbital_pos(bodies, b.parent) {
+        let pos = match find_orbital_pos(bodies, time, b.parent) {
             Some(parent_pos) => parent_pos.add(&local),
             None => local,
         };
@@ -98,7 +106,7 @@ fn find_orbital_pos(bodies: &Vec<(ObjId, &OrbitalPos)>, id: ObjId) -> Option<Pos
 impl<'a> System<'a> for OrbitalPosSystem {
     type SystemData = (
         Entities<'a>,
-        Read<'a, TotalTime>,
+        ReadExpect<'a, TotalTime>,
         WriteStorage<'a, Location>,
         ReadStorage<'a, OrbitalPos>,
     );
@@ -132,7 +140,7 @@ impl<'a> System<'a> for OrbitalPosSystem {
                 .collect::<Vec<_>>();
 
             for (id, _, loc) in bodies {
-                match find_orbital_pos(&bodies_only, id) {
+                match find_orbital_pos(&bodies_only, *time, id) {
                     Some(pos) => {
                         log::trace!("updating {:?} on {:?} to {:?}", id, loc, pos);
                         (*loc).set_pos(pos).unwrap();
@@ -151,10 +159,11 @@ impl<'a> System<'a> for OrbitalPosSystem {
 mod test {
     use crate::game::astrobody::{OrbitalPos, OrbitalPosSystem};
     use crate::game::locations::Location;
-    use crate::utils::Position;
+    use crate::utils::{Position, TotalTime};
     use approx::{assert_relative_eq, relative_eq};
     use commons::math;
     use commons::math::deg_to_rads;
+    use shred::World;
     use specs::{Builder, Entity, WorldExt};
 
     #[test]
@@ -162,87 +171,11 @@ mod test {
         crate::test::init_log();
 
         let (world, result) = crate::test::test_system(OrbitalPosSystem, move |world| {
-            let sector_id = world.create_entity().build();
-
-            let star_id = world
-                .create_entity()
-                .with(Location::Space {
-                    pos: Position::zero(),
-                    sector_id,
-                })
-                .build();
-
-            let planet1_id = world
-                .create_entity()
-                .with(Location::Space {
-                    pos: Position::zero(),
-                    sector_id,
-                })
-                .with(OrbitalPos {
-                    parent: star_id,
-                    distance: 1.0,
-                    initial_angle: 0.0,
-                })
-                .build();
-
-            let planet2_id = world
-                .create_entity()
-                .with(Location::Space {
-                    pos: Position::zero(),
-                    sector_id,
-                })
-                .with(OrbitalPos {
-                    parent: star_id,
-                    distance: 1.0,
-                    initial_angle: deg_to_rads(90.0),
-                })
-                .build();
-
-            let planet2_moon1_id = world
-                .create_entity()
-                .with(Location::Space {
-                    pos: Position::zero(),
-                    sector_id,
-                })
-                .with(OrbitalPos {
-                    parent: planet2_id,
-                    distance: 0.5,
-                    initial_angle: deg_to_rads(90.0),
-                })
-                .build();
-
-            let station_id = world
-                .create_entity()
-                .with(Location::Space {
-                    pos: Position::zero(),
-                    sector_id,
-                })
-                .with(OrbitalPos {
-                    parent: planet2_moon1_id,
-                    distance: 0.25,
-                    initial_angle: deg_to_rads(0.0),
-                })
-                .build();
-
-            (
-                star_id,
-                planet1_id,
-                planet2_id,
-                planet2_moon1_id,
-                station_id,
-            )
+            world.insert(TotalTime(0.0));
+            create_system_1(world)
         });
 
         let (star_id, planet1_id, planet2_id, planet2moon1_id, station_id) = result;
-        log::trace!(
-            "star {:?}, planet 1 {:?}, planet 2 {:?}, moon {:?} station {:?}",
-            star_id,
-            planet1_id,
-            planet2_id,
-            planet2moon1_id,
-            station_id
-        );
-
         let locations = world.read_storage::<Location>();
 
         let get_pos =
@@ -253,5 +186,99 @@ mod test {
         assert_eq!(Position::new(0.0, 1.0), get_pos(planet2_id));
         assert_eq!(Position::new(0.0, 1.5), get_pos(planet2moon1_id));
         assert_eq!(Position::new(0.25, 1.5), get_pos(station_id));
+    }
+
+    #[test]
+    fn test_orbits_system_should_move_over_time() {
+        crate::test::init_log();
+
+        let (world1, result1) = crate::test::test_system(OrbitalPosSystem, move |world| {
+            world.insert(TotalTime(0.0));
+            create_system_1(world)
+        });
+
+        let (world2, result2) = crate::test::test_system(OrbitalPosSystem, move |world| {
+            world.insert(TotalTime(30.0));
+            create_system_1(world)
+        });
+
+        let get_pos = |world: &World, id: Entity| -> Position {
+            let locations = world.read_storage::<Location>();
+            locations.get(id).unwrap().as_space().unwrap().pos
+        };
+
+        assert_ne!(get_pos(&world1, result1.4), get_pos(&world2, result2.4));
+    }
+
+    fn create_system_1(world: &mut World) -> (Entity, Entity, Entity, Entity, Entity) {
+        let sector_id = world.create_entity().build();
+
+        let star_id = world
+            .create_entity()
+            .with(Location::Space {
+                pos: Position::zero(),
+                sector_id,
+            })
+            .build();
+
+        let planet1_id = world
+            .create_entity()
+            .with(Location::Space {
+                pos: Position::zero(),
+                sector_id,
+            })
+            .with(OrbitalPos {
+                parent: star_id,
+                distance: 1.0,
+                initial_angle: 0.0,
+            })
+            .build();
+
+        let planet2_id = world
+            .create_entity()
+            .with(Location::Space {
+                pos: Position::zero(),
+                sector_id,
+            })
+            .with(OrbitalPos {
+                parent: star_id,
+                distance: 1.0,
+                initial_angle: deg_to_rads(90.0),
+            })
+            .build();
+
+        let planet2_moon1_id = world
+            .create_entity()
+            .with(Location::Space {
+                pos: Position::zero(),
+                sector_id,
+            })
+            .with(OrbitalPos {
+                parent: planet2_id,
+                distance: 0.5,
+                initial_angle: deg_to_rads(90.0),
+            })
+            .build();
+
+        let station_id = world
+            .create_entity()
+            .with(Location::Space {
+                pos: Position::zero(),
+                sector_id,
+            })
+            .with(OrbitalPos {
+                parent: planet2_moon1_id,
+                distance: 0.25,
+                initial_angle: deg_to_rads(0.0),
+            })
+            .build();
+
+        (
+            star_id,
+            planet1_id,
+            planet2_id,
+            planet2_moon1_id,
+            station_id,
+        )
     }
 }
