@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use std::ops::Deref;
 
 use commons;
+use commons::math;
 use rand::prelude::*;
 use space_galaxy::system_generator;
 use space_galaxy::system_generator::{BodyDesc, UniverseCfg};
@@ -22,7 +23,7 @@ use crate::game::sectors::{Jump, JumpId, Sector, SectorId};
 use crate::game::shipyard::Shipyard;
 use crate::game::station::Station;
 use crate::game::wares::{Cargo, WareAmount, WareId};
-use crate::game::{sectors, Game};
+use crate::game::{astrobody, sectors, Game};
 use crate::specs_extras::*;
 use crate::utils::{DeltaTime, Position, Speed, V2};
 
@@ -471,7 +472,7 @@ impl Loader {
 
         if let Some(orbit) = new_obj.orbit.as_ref() {
             builder.set(OrbitalPos {
-                system_index: orbit.index,
+                system_index: Some(orbit.index),
                 parent_index: orbit.parent_index,
                 distance: orbit.distance,
                 initial_angle: orbit.angle,
@@ -627,48 +628,50 @@ pub fn add_stations(world: &mut World, seed: u64, scenery: SceneryCfg) {
 
     let mut required_kinds = [false, false, false, false];
     loop {
-        for sector_id in &sectors_id {
-            let sector_id = *sector_id;
-
+        for &sector_id in &sectors_id {
             match commons::prob::select_weighted(&mut rng, &sector_kind_prob) {
                 Some(i) if *i == sector_kind_asteroid => {
                     required_kinds[0] = true;
-                    Loader::add_asteroid(
+                    let obj_id = Loader::add_asteroid(
                         world,
                         sector_id,
                         sector_pos(&mut rng),
                         scenery.ware_ore_id,
                     );
+                    set_orbit_random_body(world, obj_id, rng.next_u64());
                 }
                 Some(i) if *i == sector_kind_shipyard => {
                     required_kinds[1] = true;
 
-                    Loader::add_shipyard(
+                    let obj_id = Loader::add_shipyard(
                         world,
                         sector_id,
                         sector_pos(&mut rng),
                         scenery.ware_components_id,
                     );
+                    set_orbit_random_body(world, obj_id, rng.next_u64());
                 }
                 Some(i) if *i == sector_kind_factory => {
                     required_kinds[2] = true;
 
-                    Loader::add_factory(
+                    let obj_id = Loader::add_factory(
                         world,
                         sector_id,
                         sector_pos(&mut rng),
                         scenery.receipt_process_ores.clone(),
                     );
+                    set_orbit_random_body(world, obj_id, rng.next_u64());
                 }
                 Some(i) if *i == sector_kind_power => {
                     required_kinds[3] = true;
 
-                    Loader::add_factory(
+                    let obj_id = Loader::add_factory(
                         world,
                         sector_id,
                         sector_pos(&mut rng),
                         scenery.receipt_produce_energy.clone(),
                     );
+                    set_orbit_random_body(world, obj_id, rng.next_u64());
                 }
                 _ => {}
             }
@@ -676,13 +679,64 @@ pub fn add_stations(world: &mut World, seed: u64, scenery: SceneryCfg) {
 
         // check if all required stations existrs
         if required_kinds.iter().find(|i| !**i).is_none() {
+            break;
+        } else {
             log::warn!(
                 "world generator fail to provide require stations {:?}, retrying",
                 required_kinds
             );
-            break;
         }
     }
+
+    AstroBodies::update_orbits(world);
+}
+
+pub fn set_orbit_random_body(world: &mut World, obj_id: ObjId, seed: u64) {
+    let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
+
+    let mut candidates = vec![];
+
+    {
+        let locations = world.read_storage::<Location>();
+        let astros = world.read_storage::<AstroBody>();
+        let orbits = world.read_storage::<OrbitalPos>();
+
+        let sector_id = match locations.get(obj_id).and_then(|i| i.as_space()) {
+            None => {
+                log::warn!("obj {:?} it is not in a sector to set a orbit", obj_id);
+                return;
+            }
+            Some(v) => v.sector_id,
+        };
+
+        for (l, o, a) in (&locations, &orbits, &astros).join() {
+            if l.get_sector_id() != Some(sector_id) {
+                continue;
+            }
+
+            if let Some(system_index) = o.system_index {
+                candidates.push((system_index, o.distance));
+            }
+        }
+
+        if candidates.len() == 0 {
+            log::warn!(
+                "not astro bodies candidates found for sector_id {:?}",
+                sector_id
+            );
+            return;
+        }
+    }
+
+    let selected = rng.gen_range(0..candidates.len());
+    let mut base_radius = candidates[selected].1;
+    // fix stars with radius 0
+    if base_radius < 0.01 {
+        base_radius = 10.0;
+    }
+    let radius = rng.gen_range((base_radius * 0.1)..(base_radius * 0.5));
+    let angle = rng.gen_range(0.0..math::TWO_PI);
+    astrobody::set_orbit(world, obj_id, candidates[selected].0, radius, angle);
 }
 
 #[cfg(test)]

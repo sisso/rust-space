@@ -1,4 +1,5 @@
 use crate::game::locations::Location;
+use crate::game::objects::ObjId;
 use crate::game::{GameInitContext, RequireInitializer};
 use crate::utils::{Position, TotalTime};
 use commons::math;
@@ -19,8 +20,8 @@ pub struct AstroBody {
 
 #[derive(Clone, Debug, Component)]
 pub struct OrbitalPos {
-    // pub parent_entity: Option<Entity>,
-    pub system_index: usize,
+    // None is used when object can not support be orbit, like a space ship
+    pub system_index: Option<usize>,
     pub parent_index: usize,
     pub distance: f32,
     pub initial_angle: Rad,
@@ -51,25 +52,29 @@ impl AstroBodies {
 
 pub struct OrbitalPosSystem;
 
-fn find_orbital_pos(bodies: &Vec<&OrbitalPos>, system_index: usize) -> Position {
+fn find_orbital_pos(bodies: &Vec<&OrbitalPos>, system_index: usize) -> Option<Position> {
     for b in bodies {
-        if b.system_index == system_index {
-            let local = b.compute_local_pos();
+        if let Some(b_system_index) = b.system_index {
+            if b_system_index == system_index {
+                let local = b.compute_local_pos();
 
-            log::trace!("local pos of {} is {:?}", system_index, local);
+                log::trace!("local pos of {} is {:?}", system_index, local);
 
-            let pos = if b.system_index == b.parent_index {
-                local
-            } else {
-                let parent_pos = find_orbital_pos(bodies, b.parent_index);
-                parent_pos.add(&local)
-            };
-            log::trace!("pos of {} is {:?}", system_index, pos);
-            return pos;
+                let pos = if b_system_index == b.parent_index {
+                    local
+                } else {
+                    match find_orbital_pos(bodies, b.parent_index) {
+                        Some(parent_pos) => parent_pos.add(&local),
+                        None => local,
+                    }
+                };
+                log::trace!("pos of {} is {:?}", system_index, pos);
+                return Some(pos);
+            }
         }
     }
 
-    panic!("fail to find system index");
+    None
 }
 
 impl<'a> System<'a> for OrbitalPosSystem {
@@ -110,12 +115,15 @@ impl<'a> System<'a> for OrbitalPosSystem {
 
             for ((orbit, location), pos) in bodies.into_iter().zip(positions.into_iter()) {
                 log::trace!(
-                    "updating {} on {:?} to {:?}",
+                    "updating {:?} on {:?} to {:?}",
                     orbit.system_index,
                     location,
                     pos
                 );
-                (*location).set_pos(pos).unwrap();
+
+                if let Some(v) = pos {
+                    (*location).set_pos(v).unwrap();
+                }
             }
         }
     }
@@ -145,7 +153,7 @@ mod test {
                     sector_id,
                 })
                 .with(OrbitalPos {
-                    system_index: 0,
+                    system_index: Some(0),
                     parent_index: 0,
                     distance: 0.0,
                     initial_angle: 0.0,
@@ -159,7 +167,7 @@ mod test {
                     sector_id,
                 })
                 .with(OrbitalPos {
-                    system_index: 1,
+                    system_index: Some(1),
                     parent_index: 0,
                     distance: 1.0,
                     initial_angle: 0.0,
@@ -173,7 +181,7 @@ mod test {
                     sector_id,
                 })
                 .with(OrbitalPos {
-                    system_index: 2,
+                    system_index: Some(2),
                     parent_index: 0,
                     distance: 1.0,
                     initial_angle: deg_to_rads(90.0),
@@ -187,17 +195,37 @@ mod test {
                     sector_id,
                 })
                 .with(OrbitalPos {
-                    system_index: 3,
+                    system_index: Some(3),
                     parent_index: 2,
                     distance: 0.5,
                     initial_angle: deg_to_rads(90.0),
                 })
                 .build();
 
-            (star_id, planet1_id, planet2_id, planet2_moon1_id)
+            let station_id = world
+                .create_entity()
+                .with(Location::Space {
+                    pos: Position::zero(),
+                    sector_id,
+                })
+                .with(OrbitalPos {
+                    system_index: None,
+                    parent_index: 3,
+                    distance: 0.25,
+                    initial_angle: deg_to_rads(0.0),
+                })
+                .build();
+
+            (
+                star_id,
+                planet1_id,
+                planet2_id,
+                planet2_moon1_id,
+                station_id,
+            )
         });
 
-        let (star_id, planet1_id, planet2_id, planet2moon1_id) = result;
+        let (star_id, planet1_id, planet2_id, planet2moon1_id, station_id) = result;
 
         let locations = world.read_storage::<Location>();
 
@@ -208,5 +236,26 @@ mod test {
         assert_eq!(Position::new(1.0, 0.0), get_pos(planet1_id));
         assert_eq!(Position::new(0.0, 1.0), get_pos(planet2_id));
         assert_eq!(Position::new(0.0, 1.5), get_pos(planet2moon1_id));
+        assert_eq!(Position::new(0.25, 1.5), get_pos(station_id));
     }
+}
+
+pub(crate) fn set_orbit(
+    world: &mut World,
+    obj_id: ObjId,
+    parent_system_index: usize,
+    radius: f32,
+    angle: f32,
+) {
+    let mut orbits = world.write_storage::<OrbitalPos>();
+
+    (&mut orbits).insert(
+        obj_id,
+        OrbitalPos {
+            system_index: None,
+            parent_index: parent_system_index,
+            distance: radius,
+            initial_angle: angle,
+        },
+    );
 }

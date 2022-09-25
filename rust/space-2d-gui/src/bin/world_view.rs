@@ -14,6 +14,7 @@ fn main() {
         .filter(Some("world_view"), log::LevelFilter::Info)
         .filter(Some("space_flap"), log::LevelFilter::Info)
         .filter(Some("space_domain"), log::LevelFilter::Warn)
+        .filter(Some("space_domain::game::loader"), log::LevelFilter::Trace)
         .init();
 
     let args = vec!["--size", "4", "--fleets", "2"]
