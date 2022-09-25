@@ -10,10 +10,9 @@ use crate::game::sectors::*;
 use crate::game::shipyard::Shipyard;
 use crate::utils::*;
 
-#[derive(Debug, Clone, Component, Default)]
+#[derive(Debug, Clone, Component)]
 pub struct NewObjOrbit {
-    pub index: usize,
-    pub parent_index: usize,
+    pub parent: ObjId,
     pub distance: f32,
     pub angle: Rad,
 }
@@ -147,16 +146,9 @@ impl NewObj {
         self
     }
 
-    pub fn with_orbit(
-        mut self,
-        index: usize,
-        parent_index: usize,
-        distance: f32,
-        angle: Rad,
-    ) -> Self {
+    pub fn with_orbit(mut self, parent: ObjId, distance: f32, angle: Rad) -> Self {
         self.orbit = Some(NewObjOrbit {
-            index,
-            parent_index,
+            parent,
             distance,
             angle,
         });

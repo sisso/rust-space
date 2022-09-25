@@ -1,5 +1,4 @@
-use approx::RelativeEq;
-use commons::math::{Transform2, V2, V2I};
+use commons::math::{Transform2, V2};
 use commons::{math, unwrap_or_continue, unwrap_or_return};
 use ggez::event::{self, EventHandler};
 use ggez::graphics::{self, Color};
@@ -89,7 +88,7 @@ impl State {
                 continue;
             }
 
-            let orbit = obj.get_orbit().unwrap();
+            let orbit = unwrap_or_continue!(obj.get_orbit());
             let radius = orbit.get_radius();
             if radius < 0.00001 {
                 continue;

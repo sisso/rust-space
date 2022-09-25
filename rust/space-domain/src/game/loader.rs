@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::ops::Deref;
 
 use commons;
-use commons::math;
+use commons::{math, unwrap_or_continue};
 use rand::prelude::*;
 use space_galaxy::system_generator;
 use space_galaxy::system_generator::{BodyDesc, UniverseCfg};
@@ -23,7 +23,7 @@ use crate::game::sectors::{Jump, JumpId, Sector, SectorId};
 use crate::game::shipyard::Shipyard;
 use crate::game::station::Station;
 use crate::game::wares::{Cargo, WareAmount, WareId};
-use crate::game::{astrobody, sectors, Game};
+use crate::game::{sectors, Game};
 use crate::specs_extras::*;
 use crate::utils::{DeltaTime, Position, Speed, V2};
 
@@ -349,30 +349,16 @@ impl Loader {
         (jump_from_id, jump_to_id)
     }
 
-    pub fn new_star(
-        sector_id: Entity,
-        index: usize,
-        parent: usize,
-        distance: f32,
-        angle: f32,
-    ) -> NewObj {
+    pub fn new_star(sector_id: Entity) -> NewObj {
         NewObj::new()
             .at_position(sector_id, Position::zero())
             .as_star()
-            .with_orbit(index, parent, distance, angle)
     }
 
-    pub fn new_planet(
-        sector_id: Entity,
-        index: usize,
-        parent: usize,
-        distance: f32,
-        angle: f32,
-    ) -> NewObj {
+    pub fn new_planet(sector_id: Entity) -> NewObj {
         NewObj::new()
             .at_position(sector_id, Position::zero())
             .as_planet()
-            .with_orbit(index, parent, distance, angle)
     }
 
     pub fn add_object(world: &mut World, new_obj: &NewObj) -> ObjId {
@@ -472,8 +458,7 @@ impl Loader {
 
         if let Some(orbit) = new_obj.orbit.as_ref() {
             builder.set(OrbitalPos {
-                system_index: Some(orbit.index),
-                parent_index: orbit.parent_index,
+                parent: orbit.parent,
                 distance: orbit.distance,
                 initial_angle: orbit.angle,
             });
@@ -549,30 +534,54 @@ pub fn add_bodies_to_sectors(world: &mut World, seed: u64) {
         let system = system_generator::new_system(&universe_cfg, rng.gen());
 
         // create bodies
-        for body in system.bodies {
-            match body.desc {
+        let mut new_bodies = vec![];
+        for body in &system.bodies {
+            let maybe_obj_id = match body.desc {
                 BodyDesc::Star { .. } => {
-                    let new_obj = Loader::new_star(
-                        sector_id,
-                        body.index,
-                        body.parent,
-                        body.distance,
-                        body.angle,
-                    );
-                    Loader::add_object(world, &new_obj);
+                    let new_obj = Loader::new_star(sector_id);
+                    Some(Loader::add_object(world, &new_obj))
                 }
-                BodyDesc::AsteroidField { .. } => {}
+                BodyDesc::AsteroidField { .. } => None,
                 BodyDesc::Planet(_) => {
-                    let new_obj = Loader::new_planet(
-                        sector_id,
-                        body.index,
-                        body.parent,
-                        body.distance,
-                        body.angle,
-                    );
-                    Loader::add_object(world, &new_obj);
+                    let new_obj = Loader::new_planet(sector_id);
+                    Some(Loader::add_object(world, &new_obj))
                 }
             };
+            new_bodies.push((maybe_obj_id, body));
+        }
+
+        // update orbits
+        let mut orbits = world.write_storage::<OrbitalPos>();
+
+        for (obj_id, body) in &new_bodies {
+            let obj_id = unwrap_or_continue!(obj_id);
+
+            if body.index == body.parent {
+                continue;
+            }
+
+            // search body with parent
+            let found = new_bodies.iter().find(|(i, j)| j.index == body.parent);
+
+            let parent_obj_id = match found {
+                Some((Some(id), _)) => id,
+                _ => {
+                    log::warn!(
+                        "at sector {:?}, fail to find parent body for {:?}",
+                        sector_id,
+                        body.parent
+                    );
+                    continue;
+                }
+            };
+
+            AstroBodies::set_orbit_2(
+                &mut orbits,
+                *obj_id,
+                *parent_obj_id,
+                body.distance,
+                body.angle,
+            );
         }
     }
 
@@ -697,6 +706,7 @@ pub fn set_orbit_random_body(world: &mut World, obj_id: ObjId, seed: u64) {
     let mut candidates = vec![];
 
     {
+        let entities = world.entities();
         let locations = world.read_storage::<Location>();
         let astros = world.read_storage::<AstroBody>();
         let orbits = world.read_storage::<OrbitalPos>();
@@ -709,14 +719,12 @@ pub fn set_orbit_random_body(world: &mut World, obj_id: ObjId, seed: u64) {
             Some(v) => v.sector_id,
         };
 
-        for (l, o, a) in (&locations, &orbits, &astros).join() {
+        for (id, l, o, a) in (&entities, &locations, &orbits, &astros).join() {
             if l.get_sector_id() != Some(sector_id) {
                 continue;
             }
 
-            if let Some(system_index) = o.system_index {
-                candidates.push((system_index, o.distance));
-            }
+            candidates.push((id, o.distance));
         }
 
         if candidates.len() == 0 {
@@ -736,7 +744,7 @@ pub fn set_orbit_random_body(world: &mut World, obj_id: ObjId, seed: u64) {
     }
     let radius = rng.gen_range((base_radius * 0.1)..(base_radius * 0.5));
     let angle = rng.gen_range(0.0..math::TWO_PI);
-    astrobody::set_orbit(world, obj_id, candidates[selected].0, radius, angle);
+    AstroBodies::set_orbit(world, obj_id, candidates[selected].0, radius, angle);
 }
 
 #[cfg(test)]

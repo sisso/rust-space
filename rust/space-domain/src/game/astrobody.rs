@@ -20,9 +20,7 @@ pub struct AstroBody {
 
 #[derive(Clone, Debug, Component)]
 pub struct OrbitalPos {
-    // None is used when object can not support be orbit, like a space ship
-    pub system_index: Option<usize>,
-    pub parent_index: usize,
+    pub parent: ObjId,
     pub distance: f32,
     pub initial_angle: Rad,
 }
@@ -48,81 +46,101 @@ impl AstroBodies {
         let mut system = OrbitalPosSystem;
         system.run_now(world);
     }
+
+    pub fn set_orbit_2(
+        orbits: &mut WriteStorage<OrbitalPos>,
+        obj_id: ObjId,
+        parent_id: ObjId,
+        radius: f32,
+        angle: f32,
+    ) {
+        orbits
+            .insert(
+                obj_id,
+                OrbitalPos {
+                    parent: parent_id,
+                    distance: radius,
+                    initial_angle: angle,
+                },
+            )
+            .unwrap();
+    }
+
+    pub fn set_orbit(world: &mut World, obj_id: ObjId, parent_id: ObjId, radius: f32, angle: f32) {
+        let mut orbits = world.write_storage::<OrbitalPos>();
+        AstroBodies::set_orbit_2(&mut orbits, obj_id, parent_id, radius, angle);
+    }
 }
 
 pub struct OrbitalPosSystem;
 
-fn find_orbital_pos(bodies: &Vec<&OrbitalPos>, system_index: usize) -> Option<Position> {
-    for b in bodies {
-        if let Some(b_system_index) = b.system_index {
-            if b_system_index == system_index {
-                let local = b.compute_local_pos();
-
-                log::trace!("local pos of {} is {:?}", system_index, local);
-
-                let pos = if b_system_index == b.parent_index {
-                    local
-                } else {
-                    match find_orbital_pos(bodies, b.parent_index) {
-                        Some(parent_pos) => parent_pos.add(&local),
-                        None => local,
-                    }
-                };
-                log::trace!("pos of {} is {:?}", system_index, pos);
-                return Some(pos);
-            }
+fn find_orbital_pos(bodies: &Vec<(ObjId, &OrbitalPos)>, id: ObjId) -> Option<Position> {
+    for (i, b) in bodies {
+        if *i != id {
+            continue;
         }
+
+        let local = b.compute_local_pos();
+        log::trace!("find_orbital_pos local pos of {:?} is {:?}", id, local);
+
+        let pos = match find_orbital_pos(bodies, b.parent) {
+            Some(parent_pos) => parent_pos.add(&local),
+            None => local,
+        };
+        log::trace!("find_orbital_pos pos of {:?} is {:?}", id, pos);
+        return Some(pos);
     }
 
+    log::trace!("find_orbital_pos found no orbital pos for {:?}", id);
     None
 }
 
 impl<'a> System<'a> for OrbitalPosSystem {
     type SystemData = (
+        Entities<'a>,
         Read<'a, TotalTime>,
         WriteStorage<'a, Location>,
         ReadStorage<'a, OrbitalPos>,
     );
 
-    fn run(&mut self, (time, mut locations, orbits): Self::SystemData) {
+    fn run(&mut self, (entities, time, mut locations, orbits): Self::SystemData) {
         log::trace!("running");
 
         let mut bodies_by_systems = HashMap::new();
 
         // organize orbital bodies by system
-        for (orbit, location) in (&orbits, &mut locations).join() {
+        for (id, orbit, location) in (&entities, &orbits, &mut locations).join() {
             if let Some(sector_id) = location.as_space().map(|i| i.sector_id) {
                 bodies_by_systems
                     .entry(sector_id)
                     .or_insert_with(|| vec![])
-                    .push((orbit, location));
+                    .push((id, orbit, location));
             }
         }
 
         // resolve positions
-        for (system_id, bodies) in bodies_by_systems {
+        for (sector_id, bodies) in bodies_by_systems {
             log::trace!(
                 "checking sector {}, bodies {}",
-                system_id.id(),
+                sector_id.id(),
                 bodies.len()
             );
-            let bodies_only = bodies.iter().map(|(o, _)| *o).collect::<Vec<_>>();
-            let mut positions = vec![];
-            for i in 0..bodies_only.len() {
-                let pos = find_orbital_pos(&bodies_only, i);
-                positions.push(pos);
-            }
 
-            for ((orbit, location), pos) in bodies.into_iter().zip(positions.into_iter()) {
-                log::trace!(
-                    "updating {:?} on {:?} to {:?}",
-                    orbit.system_index,
-                    location,
-                    pos
-                );
+            let bodies_only = bodies
+                .iter()
+                .map(|(id, o, _)| (*id, *o))
+                .collect::<Vec<_>>();
 
-                if let Some(v) = pos {
-                    (*location).set_pos(v).unwrap();
+            for (id, _, loc) in bodies {
+                match find_orbital_pos(&bodies_only, id) {
+                    Some(pos) => {
+                        log::trace!("updating {:?} on {:?} to {:?}", id, loc, pos);
+                        (*loc).set_pos(pos).unwrap();
+                    }
+
+                    None => {
+                        log::trace!("fail to updating {:?} on {:?} to None", id, loc,);
+                    }
                 }
             }
         }
@@ -152,12 +170,6 @@ mod test {
                     pos: Position::zero(),
                     sector_id,
                 })
-                .with(OrbitalPos {
-                    system_index: Some(0),
-                    parent_index: 0,
-                    distance: 0.0,
-                    initial_angle: 0.0,
-                })
                 .build();
 
             let planet1_id = world
@@ -167,8 +179,7 @@ mod test {
                     sector_id,
                 })
                 .with(OrbitalPos {
-                    system_index: Some(1),
-                    parent_index: 0,
+                    parent: star_id,
                     distance: 1.0,
                     initial_angle: 0.0,
                 })
@@ -181,8 +192,7 @@ mod test {
                     sector_id,
                 })
                 .with(OrbitalPos {
-                    system_index: Some(2),
-                    parent_index: 0,
+                    parent: star_id,
                     distance: 1.0,
                     initial_angle: deg_to_rads(90.0),
                 })
@@ -195,8 +205,7 @@ mod test {
                     sector_id,
                 })
                 .with(OrbitalPos {
-                    system_index: Some(3),
-                    parent_index: 2,
+                    parent: planet2_id,
                     distance: 0.5,
                     initial_angle: deg_to_rads(90.0),
                 })
@@ -209,8 +218,7 @@ mod test {
                     sector_id,
                 })
                 .with(OrbitalPos {
-                    system_index: None,
-                    parent_index: 3,
+                    parent: planet2_moon1_id,
                     distance: 0.25,
                     initial_angle: deg_to_rads(0.0),
                 })
@@ -226,6 +234,14 @@ mod test {
         });
 
         let (star_id, planet1_id, planet2_id, planet2moon1_id, station_id) = result;
+        log::trace!(
+            "star {:?}, planet 1 {:?}, planet 2 {:?}, moon {:?} station {:?}",
+            star_id,
+            planet1_id,
+            planet2_id,
+            planet2moon1_id,
+            station_id
+        );
 
         let locations = world.read_storage::<Location>();
 
@@ -238,24 +254,4 @@ mod test {
         assert_eq!(Position::new(0.0, 1.5), get_pos(planet2moon1_id));
         assert_eq!(Position::new(0.25, 1.5), get_pos(station_id));
     }
-}
-
-pub(crate) fn set_orbit(
-    world: &mut World,
-    obj_id: ObjId,
-    parent_system_index: usize,
-    radius: f32,
-    angle: f32,
-) {
-    let mut orbits = world.write_storage::<OrbitalPos>();
-
-    (&mut orbits).insert(
-        obj_id,
-        OrbitalPos {
-            system_index: None,
-            parent_index: parent_system_index,
-            distance: radius,
-            initial_angle: angle,
-        },
-    );
 }
