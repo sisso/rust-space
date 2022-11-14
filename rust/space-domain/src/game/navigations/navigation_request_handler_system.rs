@@ -56,7 +56,7 @@ impl<'a> System<'a> for NavRequestHandlerSystem {
                 location.sector_id,
                 location.pos,
                 target_location.sector_id,
-                target_location.pos,
+                Target::ObjPos(target_id),
                 is_docked,
             );
 

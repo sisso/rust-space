@@ -14,7 +14,6 @@ use specs::Entity;
 use specs_derive::*;
 use std::collections::VecDeque;
 
-
 mod navigation_request_handler_system;
 mod navigation_system;
 
@@ -33,6 +32,12 @@ pub enum Navigation {
 pub enum NavRequest {
     MoveToTarget { target_id: ObjId },
     MoveAndDockAt { target_id: ObjId },
+}
+
+#[derive(Debug, Clone)]
+pub enum Target {
+    Pos(Position),
+    ObjPos(ObjId),
 }
 
 #[derive(Debug, Clone)]
@@ -82,7 +87,7 @@ pub fn create_plan<'a>(
     from_sector_id: SectorId,
     _from_pos: Position,
     to_sector_id: SectorId,
-    to_pos: Position,
+    target: Target,
     is_docked: bool,
 ) -> NavigationPlan {
     let mut path = VecDeque::new();
@@ -106,13 +111,22 @@ pub fn create_plan<'a>(
     };
 
     for leg in &sector_path {
-        path.push_back(Action::MoveTo { pos: leg.jump_pos });
+        path.push_back(Action::MoveToTargetPos {
+            target_id: leg.jump_id,
+            last_position: Some(leg.jump_pos),
+        });
         path.push_back(Action::Jump {
             jump_id: leg.jump_id,
         });
     }
 
-    path.push_back(Action::MoveTo { pos: to_pos });
+    match target {
+        Target::Pos(pos) => path.push_back(Action::MoveTo { pos: pos }),
+        Target::ObjPos(id) => path.push_back(Action::MoveToTargetPos {
+            target_id: id,
+            last_position: None,
+        }),
+    }
 
     return NavigationPlan { path };
 }
@@ -142,7 +156,7 @@ mod test {
             sector_scenery.sector_0,
             Position::new(10.0, 0.0),
             sector_scenery.sector_1,
-            Position::new(0.0, 10.0),
+            Target::Pos(Position::new(0.0, 10.0)),
             true,
         );
 

@@ -1,7 +1,9 @@
 mod index_per_sector_system;
 
 use specs::prelude::*;
+use specs::storage::MaskedStorage;
 use std::collections::HashMap;
+use std::ops::Deref;
 
 use super::objects::*;
 use super::sectors::*;
@@ -213,10 +215,13 @@ impl Locations {
     }
 
     /// recursive search through docked entities until find what space position entity is
-    pub fn resolve_space_position(
-        locations: &ReadStorage<Location>,
+    pub fn resolve_space_position<'a, D>(
+        locations: &Storage<'a, Location, D>,
         obj: ObjId,
-    ) -> Option<LocationSpace> {
+    ) -> Option<LocationSpace>
+    where
+        D: Deref<Target = MaskedStorage<Location>>,
+    {
         match locations.get(obj) {
             Some(location @ Location::Space { .. }) => location.as_space(),
             Some(Location::Dock { docked_id }) => {
@@ -226,11 +231,14 @@ impl Locations {
         }
     }
 
-    /// recursive search for position, but receive an already fettched one
-    pub fn resolve_space_position_from(
-        locations: &ReadStorage<Location>,
+    /// recursive search for position, but receive an already fetched one
+    pub fn resolve_space_position_from<'a, D>(
+        locations: &Storage<'a, Location, D>,
         location: &Location,
-    ) -> Option<LocationSpace> {
+    ) -> Option<LocationSpace>
+    where
+        D: Deref<Target = MaskedStorage<Location>>,
+    {
         match location {
             location @ Location::Space { .. } => location.as_space(),
             Location::Dock { docked_id } => {

@@ -4,7 +4,6 @@ use super::*;
 
 use std::borrow::BorrowMut;
 
-
 pub struct ActionRequestHandlerSystem;
 
 #[derive(SystemData)]
@@ -60,6 +59,12 @@ impl<'a> System<'a> for ActionRequestHandlerSystem {
                         .unwrap();
                 }
                 Action::MoveTo { .. } => {
+                    data.actions_move_to
+                        .borrow_mut()
+                        .insert(entity, ActionMoveTo)
+                        .unwrap();
+                }
+                Action::MoveToTargetPos { .. } => {
                     data.actions_move_to
                         .borrow_mut()
                         .insert(entity, ActionMoveTo)

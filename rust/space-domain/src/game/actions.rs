@@ -34,10 +34,23 @@ pub const ACTION_JUMP_TOTAL_TIME: DeltaTime = DeltaTime(2.0);
 #[derive(Debug, Clone, PartialEq)]
 pub enum Action {
     Undock,
-    Jump { jump_id: JumpId },
-    Dock { target_id: ObjId },
-    MoveTo { pos: Position },
-    Extract { target_id: ObjId, ware_id: WareId },
+    Jump {
+        jump_id: JumpId,
+    },
+    Dock {
+        target_id: ObjId,
+    },
+    MoveTo {
+        pos: Position,
+    },
+    MoveToTargetPos {
+        target_id: ObjId,
+        last_position: Option<Position>,
+    },
+    Extract {
+        target_id: ObjId,
+        ware_id: WareId,
+    },
 }
 
 impl Action {
@@ -76,6 +89,10 @@ pub struct ActionActive(pub Action);
 impl ActionActive {
     pub fn get_action(&self) -> &Action {
         &self.0
+    }
+
+    pub fn get_action_mut(&mut self) -> &mut Action {
+        &mut self.0
     }
 }
 
