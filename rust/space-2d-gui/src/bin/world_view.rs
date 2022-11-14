@@ -5,7 +5,14 @@ use ggez::graphics::{self, Color};
 use ggez::{Context, ContextBuilder, GameError, GameResult};
 use ggez_egui::{egui, EguiBackend};
 use space_flap;
-use space_flap::{EventKind, SectorData};
+use space_flap::{EventKind, ObjData, SectorData};
+
+const COLOR_FLEET: Color = Color::RED;
+const COLOR_ASTEROID: Color = Color::MAGENTA;
+const COLOR_STATION: Color = Color::GREEN;
+const COLOR_JUMP: Color = Color::BLUE;
+const COLOR_ASTRO: Color = Color::YELLOW;
+const COLOR_UNKNOWN: Color = Color::WHITE;
 
 fn main() {
     env_logger::builder()
@@ -124,27 +131,56 @@ impl State {
         for obj_id in at_sector {
             let obj = unwrap_or_continue!(self.sg.get_obj(obj_id));
 
-            let color = match (
-                obj.is_fleet(),
-                obj.is_asteroid(),
-                obj.is_station(),
-                obj.is_jump(),
-                obj.is_astro(),
-            ) {
-                (true, _, _, _, _) => Color::RED,
-                (_, true, _, _, _) => Color::MAGENTA,
-                (_, _, true, _, _) => Color::GREEN,
-                (_, _, _, true, _) => Color::BLUE,
-                (_, _, _, _, true) => Color::YELLOW,
-                _ => Color::WHITE,
-            };
+            let color = Self::resolve_color(&obj);
 
             let coords = obj.get_coords();
             let (wx, wy) = point_to_screen(&self.sector_view_transform, coords);
             graphics::draw(ctx, &planet_circle, ([wx, wy], color))?;
         }
 
+        // draw legends
+        {
+            let border = 10.0;
+            let padding = 2.0;
+            let x = border;
+            let mut y = screen_size.1 - border;
+
+            let mut list = vec![
+                (COLOR_FLEET, "Fleet"),
+                (COLOR_ASTRO, "Astronomic Body"),
+                (COLOR_ASTEROID, "Asteroid"),
+                (COLOR_STATION, "Station"),
+                (COLOR_JUMP, "Jump Point"),
+                (COLOR_UNKNOWN, "Unknown"),
+            ];
+            list.reverse();
+
+            for (color, label) in list {
+                let text = graphics::Text::new(label);
+                y -= text.height(ctx);
+                graphics::draw(ctx, &text, ([x, y], color))?;
+                y -= padding;
+            }
+        }
+
         Ok(())
+    }
+
+    fn resolve_color(obj: &ObjData) -> Color {
+        match (
+            obj.is_fleet(),
+            obj.is_asteroid(),
+            obj.is_station(),
+            obj.is_jump(),
+            obj.is_astro(),
+        ) {
+            (true, _, _, _, _) => COLOR_FLEET,
+            (_, true, _, _, _) => COLOR_ASTEROID,
+            (_, _, true, _, _) => COLOR_STATION,
+            (_, _, _, true, _) => COLOR_JUMP,
+            (_, _, _, _, true) => COLOR_ASTRO,
+            _ => COLOR_UNKNOWN,
+        }
     }
 
     fn draw_galaxy(
