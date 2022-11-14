@@ -477,9 +477,9 @@ mod test {
             for f2 in &f2 {
                 if f.id == f2.id {
                     let changed = V2::distance(&f.coords, &f2.coords) > MIN_DISTANCE;
-                    if f.kind == ObjKind::Fleet && changed {
+                    if f.kind.fleet && changed {
                         changed_pos += 1;
-                    } else if f.kind == ObjKind::Station && changed {
+                    } else if f.kind.station && changed {
                         panic!("station should not move on {:?}", f);
                     }
                 }

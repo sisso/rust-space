@@ -442,7 +442,7 @@ mod test {
     fn test_find_path_performance() {
         env_logger::builder()
             .filter(None, log::LevelFilter::Warn)
-            .init();
+            .try_init();
 
         let mut world = World::new();
         world.register::<Sector>();
