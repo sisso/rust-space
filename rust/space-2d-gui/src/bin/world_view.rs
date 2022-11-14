@@ -294,6 +294,10 @@ impl EventHandler for State {
                 self.screen = StateScreen::Sector(sectors[self.selected_sector].get_id());
             }
 
+            if ui.button("back").clicked() {
+                self.screen = StateScreen::Galaxy;
+            }
+
             egui::ComboBox::from_label("Fleets").show_index(
                 ui,
                 &mut self.selected_fleet,
