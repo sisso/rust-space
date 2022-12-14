@@ -43,6 +43,7 @@ fn main() {
         selected_sector: 0,
         selected_fleet: 0,
         sector_view_transform: sector_view_transform,
+        time_speed: TimeSpeed::Normal,
     };
 
     event::run(ctx, event_loop, my_game);
@@ -61,6 +62,12 @@ enum StateScreen {
     Fleet(space_flap::Id),
 }
 
+#[derive(PartialEq, Debug, Copy, Clone)]
+enum TimeSpeed {
+    Pause,
+    Normal,
+}
+
 struct State {
     sg: space_flap::SpaceGame,
     screen: StateScreen,
@@ -68,6 +75,7 @@ struct State {
     selected_fleet: usize,
     egui_backend: EguiBackend,
     sector_view_transform: Transform2,
+    time_speed: TimeSpeed,
 }
 
 fn length_to_screen(transform: &Transform2, length: f32) -> f32 {
@@ -273,7 +281,11 @@ impl EventHandler for State {
         let tick = ggez::timer::ticks(ctx);
 
         let delta_time = ggez::timer::delta(ctx).as_secs_f32();
-        self.sg.update(delta_time);
+
+        if self.time_speed == TimeSpeed::Normal {
+            self.sg.update(delta_time);
+        }
+
         for event in self.sg.take_events() {
             match event.get_kind() {
                 EventKind::Add => {}
@@ -299,6 +311,19 @@ impl EventHandler for State {
 
         let egui_ctx = self.egui_backend.ctx();
         egui::Window::new("egui-window").show(&egui_ctx, |ui| {
+            match self.time_speed {
+                TimeSpeed::Pause => {
+                    if ui.button("time on").clicked() {
+                        self.time_speed = TimeSpeed::Normal;
+                    }
+                }
+                TimeSpeed::Normal => {
+                    if ui.button("pause").clicked() {
+                        self.time_speed = TimeSpeed::Pause;
+                    }
+                }
+            }
+
             let sector_resp = egui::ComboBox::from_label("Sector").show_index(
                 ui,
                 &mut self.selected_sector,
