@@ -23,7 +23,7 @@ fn main() {
         .filter(Some("space_domain::game::loader"), log::LevelFilter::Trace)
         .init();
 
-    let args = vec!["--size", "4", "--fleets", "2"]
+    let args = vec!["--size", "2", "--fleets", "2"]
         .into_iter()
         .map(String::from)
         .collect();
@@ -58,6 +58,7 @@ fn get_sector_transform(ctx: &Context) -> Transform2 {
 enum StateScreen {
     Sector(space_flap::Id),
     Galaxy,
+    Fleet(space_flap::Id),
 }
 
 struct State {
@@ -80,6 +81,21 @@ fn point_to_screen(transform: &Transform2, pos: (f32, f32)) -> (f32, f32) {
 }
 
 impl State {
+    fn draw_fleet_sector(
+        &mut self,
+        ctx: &mut Context,
+        screen_size: (f32, f32),
+        fleet_id: space_flap::Id,
+    ) -> GameResult<()> {
+        let Some(fleet) = self.sg.get_obj(fleet_id)
+        else {
+            self.screen = StateScreen::Galaxy;
+            return Ok(())
+        };
+
+        self.draw_sector(ctx, screen_size, fleet.get_sector_id())
+    }
+
     fn draw_sector(
         &self,
         ctx: &mut Context,
@@ -304,6 +320,10 @@ impl EventHandler for State {
                 fleets.len(),
                 |i| format!("{}{}", i, fleet_text(&sectors, &fleets[i])),
             );
+
+            if ui.button("select").clicked() {
+                self.screen = StateScreen::Fleet(fleets[self.selected_fleet].get_id());
+            }
         });
 
         let text = graphics::Text::new(format!("{} {}", tick, delta_time));
@@ -319,6 +339,9 @@ impl EventHandler for State {
             }
             StateScreen::Galaxy => {
                 self.draw_galaxy(ctx, screen_size, sectors)?;
+            }
+            StateScreen::Fleet(fleet_id) => {
+                self.draw_fleet_sector(ctx, screen_size, fleet_id)?;
             }
         }
 
