@@ -378,42 +378,8 @@ impl EventHandler for State {
             }
         }
 
-        canvas.draw(&self.egui_backend, DrawParam::new().dest([0.0, 0.0]));
+        // canvas.draw(&self.egui_backend, DrawParam::new().dest([0.0, 0.0]));
 
         canvas.finish(ctx)
-    }
-
-    fn mouse_button_down_event(
-        &mut self,
-        _ctx: &mut Context,
-        button: event::MouseButton,
-        _x: f32,
-        _y: f32,
-    ) -> Result<(), GameError> {
-        self.egui_backend.input.mouse_button_down_event(button);
-        Ok(())
-    }
-
-    fn mouse_button_up_event(
-        &mut self,
-        _ctx: &mut Context,
-        button: ggez::event::MouseButton,
-        _x: f32,
-        _y: f32,
-    ) -> Result<(), GameError> {
-        self.egui_backend.input.mouse_button_up_event(button);
-        // if self.egui_backend.ctx().is_using_pointer() {}
-        Ok(())
-    }
-
-    fn mouse_motion_event(
-        &mut self,
-        _ctx: &mut Context,
-        x: f32,
-        y: f32,
-        _dx: f32,
-        _dy: f32,
-    ) -> Result<(), GameError> {
-        self.egui_backend.input.mouse_motion_event(x, y);
     }
 }
