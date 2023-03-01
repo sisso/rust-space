@@ -49,13 +49,6 @@ fn main() {
     event::run(ctx, event_loop, my_game);
 }
 
-fn get_sector_transform(ctx: &Context) -> Transform2 {
-    let (w, h) = ctx.gfx.drawable_size();
-    let trans = math::P2::new(w * 0.5, h * 0.5);
-    let scale = w / 20.0; // lets fit -10.0 to 10.0 grid
-    Transform2::new(trans, scale, 0.0)
-}
-
 enum StateScreen {
     Sector(space_flap::Id),
     Galaxy,
@@ -76,16 +69,6 @@ struct State {
     egui_backend: EguiBackend,
     sector_view_transform: Transform2,
     time_speed: TimeSpeed,
-}
-
-fn length_to_screen(transform: &Transform2, length: f32) -> f32 {
-    let v2 = transform.get_similarity() * V2::new(length, 0.0);
-    v2.magnitude()
-}
-
-fn point_to_screen(transform: &Transform2, pos: (f32, f32)) -> (f32, f32) {
-    let p = transform.get_similarity() * math::P2::new(pos.0, pos.1);
-    (p.x, p.y)
 }
 
 impl State {
@@ -259,6 +242,147 @@ impl State {
     }
 }
 
+impl EventHandler for State {
+    fn update(&mut self, ctx: &mut Context) -> Result<(), GameError> {
+        // let delta_time = ctx.time.delta().as_secs_f32();
+        //
+        // if self.time_speed == TimeSpeed::Normal {
+        //     self.sg.update(delta_time);
+        // }
+        //
+        // for event in self.sg.take_events() {
+        //     match event.get_kind() {
+        //         EventKind::Add => {}
+        //         EventKind::Move => {}
+        //         EventKind::Jump => {
+        //             // let d = unwrap_or_continue!(self.sg.get_obj(event.get_id()));
+        //             // let sid = d.get_sector_id();
+        //             // let sectors = self.sg.get_sectors();
+        //             // let index = sectors.iter().position(|i| i.get_id() == sid);
+        //             // println!(
+        //             //     "{} move at sector {}",
+        //             //     d.get_id(),
+        //             //     index.unwrap_or_default()
+        //             // );
+        //         }
+        //         EventKind::Dock => {}
+        //         EventKind::Undock => {}
+        //     }
+        // }
+        //
+        // let sectors = self.sg.get_sectors();
+        // let fleets = self.sg.get_fleets();
+        //
+        // let egui_ctx = self.egui_backend.ctx();
+        // egui::Window::new("egui-window").show(&egui_ctx, |ui| {
+        //     match self.time_speed {
+        //         TimeSpeed::Pause => {
+        //             if ui.button("time on").clicked() {
+        //                 self.time_speed = TimeSpeed::Normal;
+        //             }
+        //         }
+        //         TimeSpeed::Normal => {
+        //             if ui.button("pause").clicked() {
+        //                 self.time_speed = TimeSpeed::Pause;
+        //             }
+        //         }
+        //     }
+        //
+        //     let sector_resp = egui::ComboBox::from_label("Sector").show_index(
+        //         ui,
+        //         &mut self.selected_sector,
+        //         sectors.len(),
+        //         |i| format!("{}{}", i, sector_text(&sectors[i])),
+        //     );
+        //
+        //     if sector_resp.changed() {
+        //         self.screen = StateScreen::Sector(sectors[self.selected_sector].get_id());
+        //     }
+        //
+        //     if ui.button("back").clicked() {
+        //         self.screen = StateScreen::Galaxy;
+        //     }
+        //
+        //     egui::ComboBox::from_label("Fleets").show_index(
+        //         ui,
+        //         &mut self.selected_fleet,
+        //         fleets.len(),
+        //         |i| format!("{}{}", i, fleet_text(&sectors, &fleets[i])),
+        //     );
+        //
+        //     if ui.button("select").clicked() {
+        //         self.screen = StateScreen::Fleet(fleets[self.selected_fleet].get_id());
+        //     }
+        // });
+        //
+        // self.egui_backend.update(ctx);
+
+        // from examples
+        let egui_ctx = self.egui_backend.ctx();
+
+        egui::Window::new("egui-window").show(&egui_ctx, |ui| {
+            ui.label("a very nice gui :3");
+            if ui.button("print \"hello world\"").clicked() {
+                println!("hello world");
+            }
+            if ui.button("quit").clicked() {
+                ctx.request_quit();
+            }
+        });
+
+        self.egui_backend.update(ctx);
+
+        Ok(())
+    }
+
+    fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
+        // let tick = ctx.time.ticks();
+        // let delta_time = ctx.time.average_delta().as_secs_f32();
+
+        let mut canvas = Canvas::from_frame(ctx, graphics::Color::BLACK);
+        //
+        // let screen_size = ctx.gfx.window().inner_size();
+        // let screen_size = (screen_size.width as f32, screen_size.height as f32);
+
+        // let text = graphics::Text::new(format!("{} {}", tick, delta_time));
+        // canvas.draw(&text, DrawParam::default().color(Color::WHITE));
+
+        // match self.screen {
+        //     StateScreen::Sector(sector_id) => {
+        //         self.draw_sector(ctx, &mut canvas, screen_size, sector_id)?;
+        //     }
+        //     StateScreen::Galaxy => {
+        //         self.draw_galaxy(ctx, &mut canvas, screen_size, sectors)?;
+        //     }
+        //     StateScreen::Fleet(fleet_id) => {
+        //         self.draw_fleet_sector(ctx, &mut canvas, screen_size, fleet_id)?;
+        //     }
+        // }
+
+        canvas.draw(&self.egui_backend, DrawParam::new());
+
+        canvas.finish(ctx)
+    }
+}
+
+fn get_sector_transform(ctx: &Context) -> Transform2 {
+    let size = ctx.gfx.window().inner_size();
+    let (w, h) = (size.width as f32, size.height as f32);
+    let trans = math::P2::new(w * 0.5, h * 0.5);
+    let scale = w / 20.0; // lets fit -10.0 to 10.0 grid
+    Transform2::new(trans, scale, 0.0)
+}
+
+fn length_to_screen(transform: &Transform2, length: f32) -> f32 {
+    let v2 = transform.get_similarity() * V2::new(length, 0.0);
+    v2.magnitude()
+}
+
+fn point_to_screen(transform: &Transform2, pos: (f32, f32)) -> (f32, f32) {
+    let p = transform.get_similarity() * math::P2::new(pos.0, pos.1);
+    (p.x, p.y)
+}
+
 fn sector_text(sd: &space_flap::SectorData) -> String {
     format!("({},{})", sd.get_coords().0, sd.get_coords().1)
 }
@@ -277,109 +401,4 @@ fn fleet_text(sectors: &Vec<SectorData>, d: &space_flap::ObjData) -> String {
         d.get_coords().0,
         d.get_coords().1
     )
-}
-
-impl EventHandler for State {
-    fn update(&mut self, _ctx: &mut Context) -> Result<(), GameError> {
-        Ok(())
-    }
-
-    fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
-        let mut canvas = graphics::Canvas::from_frame(ctx, graphics::Color::BLACK);
-
-        let screen_size = ggez::graphics::window(ctx).inner_size();
-        let screen_size = (screen_size.width as f32, screen_size.height as f32);
-
-        let tick = ctx.time.ticks();
-
-        let delta_time = ctx.time.delta().as_secs_f32();
-
-        if self.time_speed == TimeSpeed::Normal {
-            self.sg.update(delta_time);
-        }
-
-        for event in self.sg.take_events() {
-            match event.get_kind() {
-                EventKind::Add => {}
-                EventKind::Move => {}
-                EventKind::Jump => {
-                    // let d = unwrap_or_continue!(self.sg.get_obj(event.get_id()));
-                    // let sid = d.get_sector_id();
-                    // let sectors = self.sg.get_sectors();
-                    // let index = sectors.iter().position(|i| i.get_id() == sid);
-                    // println!(
-                    //     "{} move at sector {}",
-                    //     d.get_id(),
-                    //     index.unwrap_or_default()
-                    // );
-                }
-                EventKind::Dock => {}
-                EventKind::Undock => {}
-            }
-        }
-
-        let sectors = self.sg.get_sectors();
-        let fleets = self.sg.get_fleets();
-
-        let egui_ctx = self.egui_backend.ctx();
-        egui::Window::new("egui-window").show(&egui_ctx, |ui| {
-            match self.time_speed {
-                TimeSpeed::Pause => {
-                    if ui.button("time on").clicked() {
-                        self.time_speed = TimeSpeed::Normal;
-                    }
-                }
-                TimeSpeed::Normal => {
-                    if ui.button("pause").clicked() {
-                        self.time_speed = TimeSpeed::Pause;
-                    }
-                }
-            }
-
-            let sector_resp = egui::ComboBox::from_label("Sector").show_index(
-                ui,
-                &mut self.selected_sector,
-                sectors.len(),
-                |i| format!("{}{}", i, sector_text(&sectors[i])),
-            );
-
-            if sector_resp.changed() {
-                self.screen = StateScreen::Sector(sectors[self.selected_sector].get_id());
-            }
-
-            if ui.button("back").clicked() {
-                self.screen = StateScreen::Galaxy;
-            }
-
-            egui::ComboBox::from_label("Fleets").show_index(
-                ui,
-                &mut self.selected_fleet,
-                fleets.len(),
-                |i| format!("{}{}", i, fleet_text(&sectors, &fleets[i])),
-            );
-
-            if ui.button("select").clicked() {
-                self.screen = StateScreen::Fleet(fleets[self.selected_fleet].get_id());
-            }
-        });
-
-        let text = graphics::Text::new(format!("{} {}", tick, delta_time));
-        canvas.draw(&text, graphics::DrawParam::default().color(Color::WHITE));
-
-        match self.screen {
-            StateScreen::Sector(sector_id) => {
-                self.draw_sector(ctx, &mut canvas, screen_size, sector_id)?;
-            }
-            StateScreen::Galaxy => {
-                self.draw_galaxy(ctx, &mut canvas, screen_size, sectors)?;
-            }
-            StateScreen::Fleet(fleet_id) => {
-                self.draw_fleet_sector(ctx, &mut canvas, screen_size, fleet_id)?;
-            }
-        }
-
-        // canvas.draw(&self.egui_backend, DrawParam::new().dest([0.0, 0.0]));
-
-        canvas.finish(ctx)
-    }
 }
