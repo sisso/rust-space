@@ -5,12 +5,14 @@ members = [
 #  "space-lib",
 #  "space-console",
   "space-2d-gui",
-#  "space-flap",
+  "space-flap",
 #  "space-galaxy",
 ]
 
-[profile.dev]
-opt-level = 3
+resolver="2"
 
-[profile.test]
-opt-level = 3
+#[profile.dev]
+#opt-level = 3
+#
+#[profile.test]
+#opt-level = 3

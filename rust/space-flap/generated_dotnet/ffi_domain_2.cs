@@ -557,88 +557,53 @@ var delta_1 = delta_0;
         }
 } // class
 
-    internal static class RustOptionObjOrbitData {
+    public static class RustVecSectorData {
         [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern IntPtr RustOptionObjOrbitData_new_none();
-
-        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern IntPtr RustOptionObjOrbitData_new_some(/* ObjOrbitData */ IntPtr value);
+        internal static extern IntPtr RustVecSectorData_new();
         
         [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern /* ObjOrbitData */ IntPtr RustOptionObjOrbitData_take(IntPtr optPtr);
+        internal static extern void RustVecSectorData_push(IntPtr vecPtr, /* SectorData */ IntPtr element);
 
         [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern byte RustOptionObjOrbitData_is_some(IntPtr optPtr);
+        internal static extern /* Option<i_type> */ IntPtr RustVecSectorData_iter_next(IntPtr iterPtr);
+        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern void RustVecSectorData_iter_delete(IntPtr iterPtr);
 
-        internal static Option<ObjOrbitData> rust_to_dotnet(IntPtr optPtr)
-        {
-            if (RustOptionObjOrbitData_is_some(optPtr) != 0)
+        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern /* SectorData */ IntPtr RustVecSectorData_option_take(IntPtr optPtr);
+
+        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern byte RustVecSectorData_option_is_some(IntPtr optPtr);
+
+
+        internal static System.Collections.Generic.List<SectorData> rust_to_dotnet(IntPtr iterPtr) {
+            var list = new System.Collections.Generic.List<SectorData>();
+            while (true)
             {
-                var value_0 = RustOptionObjOrbitData_take(optPtr);
-                var value_1 = new ObjOrbitData(value_0);
-                return new Option<ObjOrbitData>(value_1);
+                var next_rust_opt = RustVecSectorData.RustVecSectorData_iter_next(iterPtr);
+                if (RustVecSectorData_option_is_some(next_rust_opt) == 0)
+                {
+                    break;
+                }
+                var value_rust = RustVecSectorData_option_take(next_rust_opt);
+                var value = new SectorData(value_rust);
+                list.Add(value);
             }
-            else
-            {
-                return new Option<ObjOrbitData>();
-            }
+            RustVecSectorData_iter_delete(iterPtr);
+            return list;
         }
 
-        internal static IntPtr dotnet_to_rust(Option<ObjOrbitData> opt)
-        {
-            if (opt.IsSome)
+        internal static IntPtr dotnet_to_rust(System.Collections.Generic.List<SectorData> list) {
+            var vec = RustVecSectorData_new();
+            foreach (var element in list)
             {
-                var value_0 = opt.Value.nativePtr;
-                return RustOptionObjOrbitData_new_some(value_0);
+                var i_element = element.nativePtr;
+                RustVecSectorData.RustVecSectorData_push(vec, i_element);
             }
-            else
-            {
-                return RustOptionObjOrbitData_new_none();
-            }
+            return vec;
         }
     }
-    
-    internal static class RustOptionulong {
-        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern IntPtr RustOptionulong_new_none();
-
-        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern IntPtr RustOptionulong_new_some(ulong value);
         
-        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern ulong RustOptionulong_take(IntPtr optPtr);
-
-        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern byte RustOptionulong_is_some(IntPtr optPtr);
-
-        internal static Option<ulong> rust_to_dotnet(IntPtr optPtr)
-        {
-            if (RustOptionulong_is_some(optPtr) != 0)
-            {
-                var value_0 = RustOptionulong_take(optPtr);
-                var value_1 = value_0;
-                return new Option<ulong>(value_1);
-            }
-            else
-            {
-                return new Option<ulong>();
-            }
-        }
-
-        internal static IntPtr dotnet_to_rust(Option<ulong> opt)
-        {
-            if (opt.IsSome)
-            {
-                var value_0 = opt.Value;
-                return RustOptionulong_new_some(value_0);
-            }
-            else
-            {
-                return RustOptionulong_new_none();
-            }
-        }
-    }
-    
     public static class RustVecEventData {
         [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
         internal static extern IntPtr RustVecEventData_new();
@@ -686,6 +651,47 @@ var delta_1 = delta_0;
         }
     }
         
+    internal static class RustOptionObjOrbitData {
+        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern IntPtr RustOptionObjOrbitData_new_none();
+
+        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern IntPtr RustOptionObjOrbitData_new_some(/* ObjOrbitData */ IntPtr value);
+        
+        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern /* ObjOrbitData */ IntPtr RustOptionObjOrbitData_take(IntPtr optPtr);
+
+        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern byte RustOptionObjOrbitData_is_some(IntPtr optPtr);
+
+        internal static Option<ObjOrbitData> rust_to_dotnet(IntPtr optPtr)
+        {
+            if (RustOptionObjOrbitData_is_some(optPtr) != 0)
+            {
+                var value_0 = RustOptionObjOrbitData_take(optPtr);
+                var value_1 = new ObjOrbitData(value_0);
+                return new Option<ObjOrbitData>(value_1);
+            }
+            else
+            {
+                return new Option<ObjOrbitData>();
+            }
+        }
+
+        internal static IntPtr dotnet_to_rust(Option<ObjOrbitData> opt)
+        {
+            if (opt.IsSome)
+            {
+                var value_0 = opt.Value.nativePtr;
+                return RustOptionObjOrbitData_new_some(value_0);
+            }
+            else
+            {
+                return RustOptionObjOrbitData_new_none();
+            }
+        }
+    }
+    
     public static class RustVecstring {
         [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
         internal static extern IntPtr RustVecstring_new();
@@ -815,90 +821,43 @@ var delta_1 = delta_0;
         }
     }
     
-    public static class RustVecSectorData {
+    internal static class RustOptionulong {
         [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern IntPtr RustVecSectorData_new();
+        internal static extern IntPtr RustOptionulong_new_none();
+
+        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern IntPtr RustOptionulong_new_some(ulong value);
         
         [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern void RustVecSectorData_push(IntPtr vecPtr, /* SectorData */ IntPtr element);
+        internal static extern ulong RustOptionulong_take(IntPtr optPtr);
 
         [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern /* Option<i_type> */ IntPtr RustVecSectorData_iter_next(IntPtr iterPtr);
-        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern void RustVecSectorData_iter_delete(IntPtr iterPtr);
+        internal static extern byte RustOptionulong_is_some(IntPtr optPtr);
 
-        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern /* SectorData */ IntPtr RustVecSectorData_option_take(IntPtr optPtr);
-
-        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern byte RustVecSectorData_option_is_some(IntPtr optPtr);
-
-
-        internal static System.Collections.Generic.List<SectorData> rust_to_dotnet(IntPtr iterPtr) {
-            var list = new System.Collections.Generic.List<SectorData>();
-            while (true)
-            {
-                var next_rust_opt = RustVecSectorData.RustVecSectorData_iter_next(iterPtr);
-                if (RustVecSectorData_option_is_some(next_rust_opt) == 0)
-                {
-                    break;
-                }
-                var value_rust = RustVecSectorData_option_take(next_rust_opt);
-                var value = new SectorData(value_rust);
-                list.Add(value);
-            }
-            RustVecSectorData_iter_delete(iterPtr);
-            return list;
-        }
-
-        internal static IntPtr dotnet_to_rust(System.Collections.Generic.List<SectorData> list) {
-            var vec = RustVecSectorData_new();
-            foreach (var element in list)
-            {
-                var i_element = element.nativePtr;
-                RustVecSectorData.RustVecSectorData_push(vec, i_element);
-            }
-            return vec;
-        }
-    }
-        
-    internal static class RustOptionObjData {
-        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern IntPtr RustOptionObjData_new_none();
-
-        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern IntPtr RustOptionObjData_new_some(/* ObjData */ IntPtr value);
-        
-        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern /* ObjData */ IntPtr RustOptionObjData_take(IntPtr optPtr);
-
-        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern byte RustOptionObjData_is_some(IntPtr optPtr);
-
-        internal static Option<ObjData> rust_to_dotnet(IntPtr optPtr)
+        internal static Option<ulong> rust_to_dotnet(IntPtr optPtr)
         {
-            if (RustOptionObjData_is_some(optPtr) != 0)
+            if (RustOptionulong_is_some(optPtr) != 0)
             {
-                var value_0 = RustOptionObjData_take(optPtr);
-                var value_1 = new ObjData(value_0);
-                return new Option<ObjData>(value_1);
+                var value_0 = RustOptionulong_take(optPtr);
+                var value_1 = value_0;
+                return new Option<ulong>(value_1);
             }
             else
             {
-                return new Option<ObjData>();
+                return new Option<ulong>();
             }
         }
 
-        internal static IntPtr dotnet_to_rust(Option<ObjData> opt)
+        internal static IntPtr dotnet_to_rust(Option<ulong> opt)
         {
             if (opt.IsSome)
             {
-                var value_0 = opt.Value.nativePtr;
-                return RustOptionObjData_new_some(value_0);
+                var value_0 = opt.Value;
+                return RustOptionulong_new_some(value_0);
             }
             else
             {
-                return RustOptionObjData_new_none();
+                return RustOptionulong_new_none();
             }
         }
     }
@@ -957,6 +916,47 @@ var delta_1 = delta_0;
             }
         }        
         
+    internal static class RustOptionObjData {
+        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern IntPtr RustOptionObjData_new_none();
+
+        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern IntPtr RustOptionObjData_new_some(/* ObjData */ IntPtr value);
+        
+        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern /* ObjData */ IntPtr RustOptionObjData_take(IntPtr optPtr);
+
+        [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern byte RustOptionObjData_is_some(IntPtr optPtr);
+
+        internal static Option<ObjData> rust_to_dotnet(IntPtr optPtr)
+        {
+            if (RustOptionObjData_is_some(optPtr) != 0)
+            {
+                var value_0 = RustOptionObjData_take(optPtr);
+                var value_1 = new ObjData(value_0);
+                return new Option<ObjData>(value_1);
+            }
+            else
+            {
+                return new Option<ObjData>();
+            }
+        }
+
+        internal static IntPtr dotnet_to_rust(Option<ObjData> opt)
+        {
+            if (opt.IsSome)
+            {
+                var value_0 = opt.Value.nativePtr;
+                return RustOptionObjData_new_some(value_0);
+            }
+            else
+            {
+                return RustOptionObjData_new_none();
+            }
+        }
+    }
+    
     public static class RustVecObjData {
         [DllImport("ffi_domain_2_native", CallingConvention = CallingConvention.Cdecl)]
         internal static extern IntPtr RustVecObjData_new();

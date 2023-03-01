@@ -1,7 +1,7 @@
 use commons::math::{Transform2, V2};
 use commons::{math, unwrap_or_continue, unwrap_or_return};
 use ggez::event::{self, EventHandler};
-use ggez::graphics::{self, Color};
+use ggez::graphics::{self, Canvas, Color, DrawParam, Drawable};
 use ggez::{Context, ContextBuilder, GameError, GameResult};
 use ggez_egui::{egui, EguiBackend};
 use space_flap;
@@ -50,7 +50,7 @@ fn main() {
 }
 
 fn get_sector_transform(ctx: &Context) -> Transform2 {
-    let (w, h) = graphics::drawable_size(ctx);
+    let (w, h) = ctx.gfx.drawable_size();
     let trans = math::P2::new(w * 0.5, h * 0.5);
     let scale = w / 20.0; // lets fit -10.0 to 10.0 grid
     Transform2::new(trans, scale, 0.0)
@@ -92,6 +92,7 @@ impl State {
     fn draw_fleet_sector(
         &mut self,
         ctx: &mut Context,
+        canvas: &mut Canvas,
         screen_size: (f32, f32),
         fleet_id: space_flap::Id,
     ) -> GameResult<()> {
@@ -101,12 +102,13 @@ impl State {
             return Ok(())
         };
 
-        self.draw_sector(ctx, screen_size, fleet.get_sector_id())
+        self.draw_sector(ctx, canvas, screen_size, fleet.get_sector_id())
     }
 
     fn draw_sector(
         &self,
         ctx: &mut Context,
+        canvas: &mut Canvas,
         screen_size: (f32, f32),
         sector_id: space_flap::Id,
     ) -> GameResult<()> {
@@ -139,7 +141,12 @@ impl State {
                 Color::WHITE,
             )?;
 
-            graphics::draw(ctx, &orbit_circle, ([parent_x, parent_y], Color::WHITE))?;
+            canvas.draw(
+                &orbit_circle,
+                DrawParam::new()
+                    .dest([parent_x, parent_y])
+                    .color(Color::WHITE),
+            );
         }
 
         // draw objects
@@ -159,7 +166,7 @@ impl State {
 
             let coords = obj.get_coords();
             let (wx, wy) = point_to_screen(&self.sector_view_transform, coords);
-            graphics::draw(ctx, &planet_circle, ([wx, wy], color))?;
+            canvas.draw(&planet_circle, DrawParam::new().dest([wx, wy]).color(color));
         }
 
         // draw legends
@@ -181,8 +188,8 @@ impl State {
 
             for (color, label) in list {
                 let text = graphics::Text::new(label);
-                y -= text.height(ctx);
-                graphics::draw(ctx, &text, ([x, y], color))?;
+                y -= text.measure(&ctx.gfx)?.y;
+                canvas.draw(&text, DrawParam::new().dest([x, y]).color(color));
                 y -= padding;
             }
         }
@@ -210,6 +217,7 @@ impl State {
     fn draw_galaxy(
         &mut self,
         ctx: &mut Context,
+        canvas: &mut Canvas,
         screen_size: (f32, f32),
         sectors: Vec<SectorData>,
     ) -> GameResult<()> {
@@ -239,11 +247,15 @@ impl State {
             for j in 0..dimension {
                 let cx = border + (i as f32) * (space + boxsize);
                 let cy = border + (j as f32) * (space + boxsize);
-                graphics::draw(ctx, &mesh, ([cx, cy],))?;
+                canvas.draw(&mesh, DrawParam::new().dest([cx, cy]));
             }
         }
 
         Ok(())
+    }
+
+    pub fn on_click(&self, x: f32, y: f32) {
+        log::info!("clicked");
     }
 }
 
@@ -273,14 +285,14 @@ impl EventHandler for State {
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
-        graphics::clear(ctx, Color::BLACK);
+        let mut canvas = graphics::Canvas::from_frame(ctx, graphics::Color::BLACK);
 
         let screen_size = ggez::graphics::window(ctx).inner_size();
         let screen_size = (screen_size.width as f32, screen_size.height as f32);
 
-        let tick = ggez::timer::ticks(ctx);
+        let tick = ctx.time.ticks();
 
-        let delta_time = ggez::timer::delta(ctx).as_secs_f32();
+        let delta_time = ctx.time.delta().as_secs_f32();
 
         if self.time_speed == TimeSpeed::Normal {
             self.sg.update(delta_time);
@@ -352,37 +364,34 @@ impl EventHandler for State {
         });
 
         let text = graphics::Text::new(format!("{} {}", tick, delta_time));
-        graphics::draw(
-            ctx,
-            &text,
-            graphics::DrawParam::default().color(Color::WHITE),
-        )?;
+        canvas.draw(&text, graphics::DrawParam::default().color(Color::WHITE));
 
         match self.screen {
             StateScreen::Sector(sector_id) => {
-                self.draw_sector(ctx, screen_size, sector_id)?;
+                self.draw_sector(ctx, &mut canvas, screen_size, sector_id)?;
             }
             StateScreen::Galaxy => {
-                self.draw_galaxy(ctx, screen_size, sectors)?;
+                self.draw_galaxy(ctx, &mut canvas, screen_size, sectors)?;
             }
             StateScreen::Fleet(fleet_id) => {
-                self.draw_fleet_sector(ctx, screen_size, fleet_id)?;
+                self.draw_fleet_sector(ctx, &mut canvas, screen_size, fleet_id)?;
             }
         }
 
-        graphics::draw(ctx, &self.egui_backend, ([0.0, 0.0],))?;
+        canvas.draw(&self.egui_backend, DrawParam::new().dest([0.0, 0.0]));
 
-        graphics::present(ctx)
+        canvas.finish(ctx)
     }
 
     fn mouse_button_down_event(
         &mut self,
         _ctx: &mut Context,
-        button: ggez::event::MouseButton,
+        button: event::MouseButton,
         _x: f32,
         _y: f32,
-    ) {
+    ) -> Result<(), GameError> {
         self.egui_backend.input.mouse_button_down_event(button);
+        Ok(())
     }
 
     fn mouse_button_up_event(
@@ -391,11 +400,20 @@ impl EventHandler for State {
         button: ggez::event::MouseButton,
         _x: f32,
         _y: f32,
-    ) {
+    ) -> Result<(), GameError> {
         self.egui_backend.input.mouse_button_up_event(button);
+        // if self.egui_backend.ctx().is_using_pointer() {}
+        Ok(())
     }
 
-    fn mouse_motion_event(&mut self, _ctx: &mut Context, x: f32, y: f32, _dx: f32, _dy: f32) {
+    fn mouse_motion_event(
+        &mut self,
+        _ctx: &mut Context,
+        x: f32,
+        y: f32,
+        _dx: f32,
+        _dy: f32,
+    ) -> Result<(), GameError> {
         self.egui_backend.input.mouse_motion_event(x, y);
     }
 }
