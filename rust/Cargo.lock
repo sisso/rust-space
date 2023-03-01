@@ -1134,12 +1134,12 @@ dependencies = [
 
 [[package]]
 name = "flatbuffers"
-version = "0.7.0"
+version = "22.9.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dbf606a9d6674ad82094652789cf69b0e6e598c2d3c9137c28970eec13f11644"
+checksum = "8ce016b9901aef3579617931fbb2df8fc9a9f7cb95a16eb8acc8148209bb9e70"
 dependencies = [
  "bitflags",
- "smallvec",
+ "thiserror",
 ]
 
 [[package]]
