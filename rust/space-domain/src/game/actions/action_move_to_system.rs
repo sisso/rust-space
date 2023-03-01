@@ -119,7 +119,6 @@ impl<'a> System<'a> for ActionMoveToSystem {
 mod test {
     use super::super::*;
     use super::*;
-    use crate::game::navigations::Target::Pos;
     use crate::test::{assert_v2, init_log, test_system};
     use crate::utils::Speed;
     use std::borrow::BorrowMut;

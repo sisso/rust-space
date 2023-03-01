@@ -25,8 +25,6 @@ use crate::game::order::Orders;
 use crate::game::wares::{Cargo, WareId};
 use std::borrow::BorrowMut;
 
-
-
 pub struct CommandMineSystem;
 
 #[derive(SystemData)]
@@ -91,7 +89,7 @@ impl<'a> System<'a> for CommandMineSystem {
             if cargo.is_full() {
                 // deliver cargo
 
-                // get or search for a target
+                // get or search for a target if not yet defined
                 let target_id = match command.deliver_target_id {
                     Some(id) => id,
                     None => {
@@ -124,12 +122,26 @@ impl<'a> System<'a> for CommandMineSystem {
                 };
 
                 if location.as_docked() == Some(target_id) {
-                    log::debug!(
-                        "{:?} cargo full, transferring cargo to station {:?}",
-                        entity,
-                        target_id,
-                    );
-                    cargo_transfers.push((entity, target_id));
+                    let target_has_space = !data
+                        .cargos
+                        .get(target_id)
+                        .expect("target has no cargo")
+                        .is_full();
+
+                    if target_has_space {
+                        log::debug!(
+                            "{:?} cargo full, transferring cargo to station {:?}",
+                            entity,
+                            target_id,
+                        );
+                        cargo_transfers.push((entity, target_id));
+                    } else {
+                        log::debug!(
+                            "{:?} cargo full, stations {:?} is full, waiting",
+                            entity,
+                            target_id,
+                        );
+                    }
                 } else {
                     log::debug!(
                         "{:?} cargo full, command to navigate to station {:?}",
@@ -235,7 +247,7 @@ mod test {
 
     use crate::game::sectors::test_scenery::SectorScenery;
     use crate::game::wares::WareId;
-    use crate::test::test_system;
+    use crate::test::{init_log, test_system};
 
     struct SceneryRequest {}
 
@@ -469,6 +481,34 @@ mod test {
 
         let station_cargo = cargo_storage.get(scenery.station).unwrap();
         assert_eq!(10.0, station_cargo.get_current());
+    }
+
+    #[test]
+    fn test_command_mine_should_wait_if_target_station_is_full() {
+        init_log();
+
+        let (world, scenery) = test_system(CommandMineSystem, |world| {
+            let scenery = setup_scenery(world);
+
+            // fill miner cargo
+            let cargo_storage = &mut world.write_storage::<Cargo>();
+            let cargo = cargo_storage.get_mut(scenery.miner).unwrap();
+            cargo.add_to_max(scenery.ware_id, 10.0);
+
+            // fill station to max
+            let cargo = cargo_storage.get_mut(scenery.station).unwrap();
+            cargo.add_to_max(scenery.ware_id, 100.0);
+
+            scenery
+        });
+
+        let cargo_storage = &world.write_storage::<Cargo>();
+
+        let miner_cargo = cargo_storage.get(scenery.miner).unwrap();
+        assert_eq!(10.0, miner_cargo.get_current());
+
+        let station_cargo = cargo_storage.get(scenery.station).unwrap();
+        assert_eq!(100.0, station_cargo.get_current());
     }
 
     #[test]
