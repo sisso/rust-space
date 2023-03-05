@@ -636,7 +636,7 @@ pub fn add_stations(world: &mut World, seed: u64, scenery: SceneryCfg) {
     }
 
     let mut required_kinds = [false, false, false, false];
-    loop {
+    while required_kinds.iter().any(|i| !*i) {
         for &sector_id in &sectors_id {
             match commons::prob::select_weighted(&mut rng, &sector_kind_prob) {
                 Some(i) if *i == sector_kind_asteroid => {
@@ -684,16 +684,6 @@ pub fn add_stations(world: &mut World, seed: u64, scenery: SceneryCfg) {
                 }
                 _ => {}
             }
-        }
-
-        // check if all required stations existrs
-        if required_kinds.iter().find(|i| !**i).is_none() {
-            break;
-        } else {
-            log::warn!(
-                "world generator fail to provide require stations {:?}, retrying",
-                required_kinds
-            );
         }
     }
 

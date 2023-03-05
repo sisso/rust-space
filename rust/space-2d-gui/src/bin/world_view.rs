@@ -1,8 +1,9 @@
 use commons::math::{Transform2, V2};
 use commons::{math, unwrap_or_continue, unwrap_or_return};
 use ggegui::{egui, Gui};
-use ggez::event::{self, EventHandler};
-use ggez::graphics::{self, Canvas, Color, DrawMode, DrawParam, Drawable};
+use ggez::conf::{WindowMode, WindowSetup};
+use ggez::event::{self, EventHandler, MouseButton};
+use ggez::graphics::{self, Canvas, Color, DrawMode, DrawParam, Drawable, StrokeOptions};
 use ggez::{Context, ContextBuilder, GameError, GameResult};
 use space_flap;
 use space_flap::{EventKind, ObjData, SectorData};
@@ -31,6 +32,7 @@ fn main() {
 
     // Make a Context.
     let (ctx, event_loop) = ContextBuilder::new("my_game", "Cool Game Author")
+        .window_mode(WindowMode::default().dimensions(1940.0, 1080.0))
         .build()
         .expect("aieee, could not create ggez context!");
 
@@ -44,6 +46,7 @@ fn main() {
         selected_fleet: 0,
         sector_view_transform: sector_view_transform,
         time_speed: TimeSpeed::Normal,
+        ui: Default::default(),
     };
 
     event::run(ctx, event_loop, my_game);
@@ -61,6 +64,12 @@ enum TimeSpeed {
     Normal,
 }
 
+#[derive(Default)]
+struct Ui {
+    dragging_start: Option<mint::Point2<f32>>,
+    mouse_wheel: Option<f32>,
+}
+
 struct State {
     game: space_flap::SpaceGame,
     screen: StateScreen,
@@ -69,6 +78,7 @@ struct State {
     egui_backend: Gui,
     sector_view_transform: Transform2,
     time_speed: TimeSpeed,
+    ui: Ui,
 }
 
 impl State {
@@ -137,7 +147,7 @@ impl State {
             ctx,
             graphics::DrawMode::fill(),
             [0.0, 0.0],
-            4.0,
+            3.0,
             1.0,
             Color::WHITE,
         )?;
@@ -238,44 +248,13 @@ impl State {
         Ok(())
     }
 
-    pub fn on_click(&self, x: f32, y: f32) {
-        log::info!("clicked");
-    }
-}
-
-impl EventHandler for State {
-    fn update(&mut self, ctx: &mut Context) -> Result<(), GameError> {
-        let delta_time = ctx.time.delta().as_secs_f32();
-
-        if self.time_speed == TimeSpeed::Normal {
-            self.game.update(delta_time);
-        }
-
-        for event in self.game.take_events() {
-            match event.get_kind() {
-                EventKind::Add => {}
-                EventKind::Move => {}
-                EventKind::Jump => {
-                    // let d = unwrap_or_continue!(self.sg.get_obj(event.get_id()));
-                    // let sid = d.get_sector_id();
-                    // let sectors = self.sg.get_sectors();
-                    // let index = sectors.iter().position(|i| i.get_id() == sid);
-                    // println!(
-                    //     "{} move at sector {}",
-                    //     d.get_id(),
-                    //     index.unwrap_or_default()
-                    // );
-                }
-                EventKind::Dock => {}
-                EventKind::Undock => {}
-            }
-        }
-
+    /// return true if mouse is currently hovering a gui element
+    fn draw_gui(&mut self, ctx: &mut Context) -> bool {
         let sectors = self.game.get_sectors();
         let fleets = self.game.get_fleets();
 
         let egui_ctx = self.egui_backend.ctx();
-        egui::Window::new("egui-window").show(&egui_ctx, |ui| {
+        let result = egui::Window::new("egui-window").show(&egui_ctx, |ui| {
             match self.time_speed {
                 TimeSpeed::Pause => {
                     if ui.button("time on").clicked() {
@@ -318,6 +297,79 @@ impl EventHandler for State {
 
         self.egui_backend.update(ctx);
 
+        egui_ctx.is_using_pointer() || egui_ctx.is_pointer_over_area()
+    }
+
+    fn handle_inputs(&mut self, ctx: &mut Context, hovering_gui: bool) -> GameResult<()> {
+        if hovering_gui {
+            return Ok(());
+        }
+
+        let mouse_pos = ctx.mouse.position();
+
+        if ctx.mouse.button_pressed(MouseButton::Right) {
+            match self.ui.dragging_start {
+                Some(start) => {
+                    let delta = ctx.mouse.delta();
+                    log::info!("dragging {delta:?}");
+                    self.sector_view_transform
+                        .translate(math::V2::new(delta.x, delta.y));
+                }
+                None => {
+                    self.ui.dragging_start = Some(mouse_pos);
+                }
+            }
+        } else {
+            self.ui.dragging_start = None;
+        }
+
+        if let Some(wheel) = self.ui.mouse_wheel.take() {
+            let sensitivity = 0.5;
+            self.sector_view_transform.scale(1.0 + wheel * sensitivity);
+        }
+
+        let button_released = ctx.mouse.button_just_released(MouseButton::Left);
+        if button_released {
+            log::info!("{:?}", mouse_pos);
+        }
+
+        Ok(())
+    }
+}
+
+impl EventHandler for State {
+    fn update(&mut self, ctx: &mut Context) -> Result<(), GameError> {
+        let delta_time = ctx.time.delta().as_secs_f32();
+
+        // update game tick
+        if self.time_speed == TimeSpeed::Normal {
+            self.game.update(delta_time);
+        }
+
+        // collect events
+        for event in self.game.take_events() {
+            match event.get_kind() {
+                EventKind::Add => {}
+                EventKind::Move => {}
+                EventKind::Jump => {
+                    // let d = unwrap_or_continue!(self.sg.get_obj(event.get_id()));
+                    // let sid = d.get_sector_id();
+                    // let sectors = self.sg.get_sectors();
+                    // let index = sectors.iter().position(|i| i.get_id() == sid);
+                    // println!(
+                    //     "{} move at sector {}",
+                    //     d.get_id(),
+                    //     index.unwrap_or_default()
+                    // );
+                }
+                EventKind::Dock => {}
+                EventKind::Undock => {}
+            }
+        }
+
+        let hovering = self.draw_gui(ctx);
+        self.handle_inputs(ctx, hovering);
+
         Ok(())
     }
 
@@ -347,6 +399,11 @@ impl EventHandler for State {
         canvas.draw(&self.egui_backend, DrawParam::new());
 
         canvas.finish(ctx)
+    }
+
+    fn mouse_wheel_event(&mut self, _ctx: &mut Context, x: f32, y: f32) -> Result<(), GameError> {
+        self.ui.mouse_wheel = Some(y);
+        Ok(())
     }
 }
 

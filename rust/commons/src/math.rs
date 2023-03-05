@@ -68,27 +68,27 @@ impl Transform2 {
 
     pub fn set_pos(&mut self, p: P2) {
         self.pos = p;
-        self.recriate_similarity();
+        self.recreate_similarity();
     }
 
     pub fn set_scale(&mut self, s: f32) {
         self.scale = s;
-        self.recriate_similarity();
+        self.recreate_similarity();
     }
 
     pub fn set_angle(&mut self, r: f32) {
         self.angle = r;
-        self.recriate_similarity();
+        self.recreate_similarity();
     }
 
     pub fn translate(&mut self, v: V2) {
         self.pos = self.pos + v;
-        self.recriate_similarity();
+        self.recreate_similarity();
     }
 
     pub fn scale(&mut self, v: f32) {
         self.scale *= v;
-        self.recriate_similarity();
+        self.recreate_similarity();
     }
 
     pub fn get_similarity(&self) -> &Similarity2<f32> {
@@ -113,7 +113,7 @@ impl Transform2 {
         sim.into()
     }
 
-    fn recriate_similarity(&mut self) {
+    fn recreate_similarity(&mut self) {
         self.similarity = Similarity2::new(self.pos.coords.clone(), self.angle, self.scale);
     }
 }
