@@ -10,7 +10,6 @@ edition = "2021"
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 rand = "0.8.4"
-flatbuffers = "22.9"
 commons = { version = "*", path = "../commons" }
 space-galaxy = {version = "*", path = "../space-galaxy" }
 specs = { version = "0.16.*", features = ["serde"] }

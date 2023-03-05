@@ -561,7 +561,7 @@ pub fn add_bodies_to_sectors(world: &mut World, seed: u64) {
             }
 
             // search body with parent
-            let found = new_bodies.iter().find(|(i, j)| j.index == body.parent);
+            let found = new_bodies.iter().find(|(_, j)| j.index == body.parent);
 
             let parent_obj_id = match found {
                 Some((Some(id), _)) => id,
@@ -719,7 +719,7 @@ pub fn set_orbit_random_body(world: &mut World, obj_id: ObjId, seed: u64) {
             Some(v) => v.sector_id,
         };
 
-        for (id, l, o, a) in (&entities, &locations, &orbits, &astros).join() {
+        for (id, l, o, _) in (&entities, &locations, &orbits, &astros).join() {
             if l.get_sector_id() != Some(sector_id) {
                 continue;
             }

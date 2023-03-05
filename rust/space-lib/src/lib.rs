@@ -1,5 +1,9 @@
 extern crate space_domain;
 
+mod ffi;
+mod space_inputs_generated;
+mod space_outputs_generated;
+
 use commons::debugf;
 use space_domain::ffi::FFIApi;
 use std::ffi::CStr;

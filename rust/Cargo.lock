@@ -1133,16 +1133,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "flatbuffers"
-version = "22.9.29"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8ce016b9901aef3579617931fbb2df8fc9a9f7cb95a16eb8acc8148209bb9e70"
-dependencies = [
- "bitflags",
- "thiserror",
-]
-
-[[package]]
 name = "flate2"
 version = "1.0.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3562,7 +3552,6 @@ dependencies = [
  "approx 0.5.1",
  "commons",
  "env_logger 0.9.3",
- "flatbuffers",
  "itertools 0.10.5",
  "log",
  "nalgebra",

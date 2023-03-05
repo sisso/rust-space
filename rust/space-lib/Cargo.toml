@@ -12,3 +12,4 @@ crate-type = ["cdylib"]
 libc = "*"
 space-domain = { version = "*", path = "../space-domain" }
 commons = { version = "*", path = "../commons" }
+flatbuffers = "22.9"
