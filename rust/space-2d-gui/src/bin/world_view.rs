@@ -1,9 +1,9 @@
 use commons::math::{Transform2, V2};
 use commons::{math, unwrap_or_continue, unwrap_or_return};
+use ggegui::{egui, Gui};
 use ggez::event::{self, EventHandler};
-use ggez::graphics::{self, Canvas, Color, DrawParam, Drawable};
+use ggez::graphics::{self, Canvas, Color, DrawMode, DrawParam, Drawable};
 use ggez::{Context, ContextBuilder, GameError, GameResult};
-use ggez_egui::{egui, EguiBackend};
 use space_flap;
 use space_flap::{EventKind, ObjData, SectorData};
 
@@ -37,8 +37,8 @@ fn main() {
     let sector_view_transform = get_sector_transform(&ctx);
 
     let my_game = State {
-        egui_backend: EguiBackend::default(),
-        sg: sg,
+        egui_backend: Gui::default(),
+        game: sg,
         screen: StateScreen::Galaxy,
         selected_sector: 0,
         selected_fleet: 0,
@@ -62,11 +62,11 @@ enum TimeSpeed {
 }
 
 struct State {
-    sg: space_flap::SpaceGame,
+    game: space_flap::SpaceGame,
     screen: StateScreen,
     selected_sector: usize,
     selected_fleet: usize,
-    egui_backend: EguiBackend,
+    egui_backend: Gui,
     sector_view_transform: Transform2,
     time_speed: TimeSpeed,
 }
@@ -79,7 +79,7 @@ impl State {
         screen_size: (f32, f32),
         fleet_id: space_flap::Id,
     ) -> GameResult<()> {
-        let Some(fleet) = self.sg.get_obj(fleet_id)
+        let Some(fleet) = self.game.get_obj(fleet_id)
         else {
             self.screen = StateScreen::Galaxy;
             return Ok(())
@@ -95,11 +95,11 @@ impl State {
         screen_size: (f32, f32),
         sector_id: space_flap::Id,
     ) -> GameResult<()> {
-        let at_sector = self.sg.list_at_sector(sector_id);
+        let at_sector = self.game.list_at_sector(sector_id);
 
         // draw orbits
         for obj_id in &at_sector {
-            let obj = unwrap_or_continue!(self.sg.get_obj(*obj_id));
+            let obj = unwrap_or_continue!(self.game.get_obj(*obj_id));
             if !obj.is_astro() {
                 continue;
             }
@@ -143,7 +143,7 @@ impl State {
         )?;
 
         for obj_id in at_sector {
-            let obj = unwrap_or_continue!(self.sg.get_obj(obj_id));
+            let obj = unwrap_or_continue!(self.game.get_obj(obj_id));
 
             let color = Self::resolve_color(&obj);
 
@@ -202,8 +202,9 @@ impl State {
         ctx: &mut Context,
         canvas: &mut Canvas,
         screen_size: (f32, f32),
-        sectors: Vec<SectorData>,
     ) -> GameResult<()> {
+        let sectors = self.game.get_sectors();
+
         let dimension = f64::sqrt(sectors.len() as f64) as usize;
 
         let border = 50.0;
@@ -244,89 +245,74 @@ impl State {
 
 impl EventHandler for State {
     fn update(&mut self, ctx: &mut Context) -> Result<(), GameError> {
-        // let delta_time = ctx.time.delta().as_secs_f32();
-        //
-        // if self.time_speed == TimeSpeed::Normal {
-        //     self.sg.update(delta_time);
-        // }
-        //
-        // for event in self.sg.take_events() {
-        //     match event.get_kind() {
-        //         EventKind::Add => {}
-        //         EventKind::Move => {}
-        //         EventKind::Jump => {
-        //             // let d = unwrap_or_continue!(self.sg.get_obj(event.get_id()));
-        //             // let sid = d.get_sector_id();
-        //             // let sectors = self.sg.get_sectors();
-        //             // let index = sectors.iter().position(|i| i.get_id() == sid);
-        //             // println!(
-        //             //     "{} move at sector {}",
-        //             //     d.get_id(),
-        //             //     index.unwrap_or_default()
-        //             // );
-        //         }
-        //         EventKind::Dock => {}
-        //         EventKind::Undock => {}
-        //     }
-        // }
-        //
-        // let sectors = self.sg.get_sectors();
-        // let fleets = self.sg.get_fleets();
-        //
-        // let egui_ctx = self.egui_backend.ctx();
-        // egui::Window::new("egui-window").show(&egui_ctx, |ui| {
-        //     match self.time_speed {
-        //         TimeSpeed::Pause => {
-        //             if ui.button("time on").clicked() {
-        //                 self.time_speed = TimeSpeed::Normal;
-        //             }
-        //         }
-        //         TimeSpeed::Normal => {
-        //             if ui.button("pause").clicked() {
-        //                 self.time_speed = TimeSpeed::Pause;
-        //             }
-        //         }
-        //     }
-        //
-        //     let sector_resp = egui::ComboBox::from_label("Sector").show_index(
-        //         ui,
-        //         &mut self.selected_sector,
-        //         sectors.len(),
-        //         |i| format!("{}{}", i, sector_text(&sectors[i])),
-        //     );
-        //
-        //     if sector_resp.changed() {
-        //         self.screen = StateScreen::Sector(sectors[self.selected_sector].get_id());
-        //     }
-        //
-        //     if ui.button("back").clicked() {
-        //         self.screen = StateScreen::Galaxy;
-        //     }
-        //
-        //     egui::ComboBox::from_label("Fleets").show_index(
-        //         ui,
-        //         &mut self.selected_fleet,
-        //         fleets.len(),
-        //         |i| format!("{}{}", i, fleet_text(&sectors, &fleets[i])),
-        //     );
-        //
-        //     if ui.button("select").clicked() {
-        //         self.screen = StateScreen::Fleet(fleets[self.selected_fleet].get_id());
-        //     }
-        // });
-        //
-        // self.egui_backend.update(ctx);
+        let delta_time = ctx.time.delta().as_secs_f32();
 
-        // from examples
-        let egui_ctx = self.egui_backend.ctx();
+        if self.time_speed == TimeSpeed::Normal {
+            self.game.update(delta_time);
+        }
 
-        egui::Window::new("egui-window").show(&egui_ctx, |ui| {
-            ui.label("a very nice gui :3");
-            if ui.button("print \"hello world\"").clicked() {
-                println!("hello world");
+        for event in self.game.take_events() {
+            match event.get_kind() {
+                EventKind::Add => {}
+                EventKind::Move => {}
+                EventKind::Jump => {
+                    // let d = unwrap_or_continue!(self.sg.get_obj(event.get_id()));
+                    // let sid = d.get_sector_id();
+                    // let sectors = self.sg.get_sectors();
+                    // let index = sectors.iter().position(|i| i.get_id() == sid);
+                    // println!(
+                    //     "{} move at sector {}",
+                    //     d.get_id(),
+                    //     index.unwrap_or_default()
+                    // );
+                }
+                EventKind::Dock => {}
+                EventKind::Undock => {}
             }
-            if ui.button("quit").clicked() {
-                ctx.request_quit();
+        }
+
+        let sectors = self.game.get_sectors();
+        let fleets = self.game.get_fleets();
+
+        let egui_ctx = self.egui_backend.ctx();
+        egui::Window::new("egui-window").show(&egui_ctx, |ui| {
+            match self.time_speed {
+                TimeSpeed::Pause => {
+                    if ui.button("time on").clicked() {
+                        self.time_speed = TimeSpeed::Normal;
+                    }
+                }
+                TimeSpeed::Normal => {
+                    if ui.button("pause").clicked() {
+                        self.time_speed = TimeSpeed::Pause;
+                    }
+                }
+            }
+
+            let sector_resp = egui::ComboBox::from_label("Sector").show_index(
+                ui,
+                &mut self.selected_sector,
+                sectors.len(),
+                |i| format!("{}{}", i, sector_text(&sectors[i])),
+            );
+
+            if sector_resp.changed() {
+                self.screen = StateScreen::Sector(sectors[self.selected_sector].get_id());
+            }
+
+            if ui.button("back").clicked() {
+                self.screen = StateScreen::Galaxy;
+            }
+
+            egui::ComboBox::from_label("Fleets").show_index(
+                ui,
+                &mut self.selected_fleet,
+                fleets.len(),
+                |i| format!("{}{}", i, fleet_text(&sectors, &fleets[i])),
+            );
+
+            if ui.button("select").clicked() {
+                self.screen = StateScreen::Fleet(fleets[self.selected_fleet].get_id());
             }
         });
 
@@ -336,28 +322,27 @@ impl EventHandler for State {
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
-        // let tick = ctx.time.ticks();
-        // let delta_time = ctx.time.average_delta().as_secs_f32();
+        let tick = ctx.time.ticks();
+        let delta_time = ctx.time.average_delta().as_secs_f32();
 
         let mut canvas = Canvas::from_frame(ctx, graphics::Color::BLACK);
-        //
-        // let screen_size = ctx.gfx.window().inner_size();
-        // let screen_size = (screen_size.width as f32, screen_size.height as f32);
+        let screen_size = ctx.gfx.window().inner_size();
+        let screen_size = (screen_size.width as f32, screen_size.height as f32);
 
-        // let text = graphics::Text::new(format!("{} {}", tick, delta_time));
-        // canvas.draw(&text, DrawParam::default().color(Color::WHITE));
+        let text = graphics::Text::new(format!("{} {}", tick, delta_time));
+        canvas.draw(&text, DrawParam::default().color(Color::WHITE));
 
-        // match self.screen {
-        //     StateScreen::Sector(sector_id) => {
-        //         self.draw_sector(ctx, &mut canvas, screen_size, sector_id)?;
-        //     }
-        //     StateScreen::Galaxy => {
-        //         self.draw_galaxy(ctx, &mut canvas, screen_size, sectors)?;
-        //     }
-        //     StateScreen::Fleet(fleet_id) => {
-        //         self.draw_fleet_sector(ctx, &mut canvas, screen_size, fleet_id)?;
-        //     }
-        // }
+        match self.screen {
+            StateScreen::Sector(sector_id) => {
+                self.draw_sector(ctx, &mut canvas, screen_size, sector_id)?;
+            }
+            StateScreen::Galaxy => {
+                self.draw_galaxy(ctx, &mut canvas, screen_size)?;
+            }
+            StateScreen::Fleet(fleet_id) => {
+                self.draw_fleet_sector(ctx, &mut canvas, screen_size, fleet_id)?;
+            }
+        }
 
         canvas.draw(&self.egui_backend, DrawParam::new());
 

@@ -7,13 +7,14 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ggez = "0.8.1"
+# workaround fail to draw o new rust version
+ggez = { git = 'https://github.com/ggez/ggez.git', branch = "devel"  }
 mint = "0.5"
 nalgebra = { version = "0.27.1", features = ["mint"] }
 approx = "0.3.2"
 egui  = "0.16"
-ggez-egui = "0.3.1"
-
+# workaround fail to draw o new rust version
+ggegui = { git= 'https://github.com/sisso/ggegui.git' }
 
 env_logger = "0.7"
 log = "0.4"
