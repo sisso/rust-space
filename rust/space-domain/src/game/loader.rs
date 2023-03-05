@@ -595,7 +595,6 @@ pub fn add_stations(world: &mut World, seed: u64, scenery: SceneryCfg) {
     let sector_kind_asteroid = 1;
     let sector_kind_power = 2;
     let sector_kind_factory = 3;
-    let sector_kind_shipyard = 4;
     let sector_kind_prob = vec![
         commons::prob::Weighted {
             prob: 1.0,
@@ -612,10 +611,6 @@ pub fn add_stations(world: &mut World, seed: u64, scenery: SceneryCfg) {
         commons::prob::Weighted {
             prob: 1.0,
             value: sector_kind_power,
-        },
-        commons::prob::Weighted {
-            prob: 0.1,
-            value: sector_kind_shipyard,
         },
     ];
 
@@ -635,10 +630,26 @@ pub fn add_stations(world: &mut World, seed: u64, scenery: SceneryCfg) {
         }
     }
 
-    let mut required_kinds = [false, false, false, false];
+    // adding shipyard
+    {
+        let sector_id = commons::prob::select(&mut rng, &sectors_id).expect("empty sectors_id");
+        let obj_id = Loader::add_shipyard(
+            world,
+            *sector_id,
+            sector_pos(&mut rng),
+            scenery.ware_components_id,
+        );
+        set_orbit_random_body(world, obj_id, rng.next_u64());
+    }
+
+    let mut required_kinds = [false, false, false];
     while required_kinds.iter().any(|i| !*i) {
         for &sector_id in &sectors_id {
-            match commons::prob::select_weighted(&mut rng, &sector_kind_prob) {
+            let kind = commons::prob::select_weighted(&mut rng, &sector_kind_prob);
+
+            log::info!("creating {:?} on sector {:?}", kind, sector_id);
+
+            match kind {
                 Some(i) if *i == sector_kind_asteroid => {
                     required_kinds[0] = true;
                     let obj_id = Loader::add_asteroid(
@@ -649,19 +660,8 @@ pub fn add_stations(world: &mut World, seed: u64, scenery: SceneryCfg) {
                     );
                     set_orbit_random_body(world, obj_id, rng.next_u64());
                 }
-                Some(i) if *i == sector_kind_shipyard => {
-                    required_kinds[1] = true;
-
-                    let obj_id = Loader::add_shipyard(
-                        world,
-                        sector_id,
-                        sector_pos(&mut rng),
-                        scenery.ware_components_id,
-                    );
-                    set_orbit_random_body(world, obj_id, rng.next_u64());
-                }
                 Some(i) if *i == sector_kind_factory => {
-                    required_kinds[2] = true;
+                    required_kinds[1] = true;
 
                     let obj_id = Loader::add_factory(
                         world,
@@ -672,7 +672,7 @@ pub fn add_stations(world: &mut World, seed: u64, scenery: SceneryCfg) {
                     set_orbit_random_body(world, obj_id, rng.next_u64());
                 }
                 Some(i) if *i == sector_kind_power => {
-                    required_kinds[3] = true;
+                    required_kinds[2] = true;
 
                     let obj_id = Loader::add_factory(
                         world,
@@ -682,7 +682,9 @@ pub fn add_stations(world: &mut World, seed: u64, scenery: SceneryCfg) {
                     );
                     set_orbit_random_body(world, obj_id, rng.next_u64());
                 }
-                _ => {}
+                _ => {
+                    log::warn!("unknown weight {:?}", kind);
+                }
             }
         }
     }

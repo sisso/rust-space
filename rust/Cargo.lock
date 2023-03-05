@@ -3539,7 +3539,6 @@ dependencies = [
  "serde_json",
  "shred",
  "shred-derive",
- "space-domain",
  "space-flap",
  "specs",
  "specs-derive",

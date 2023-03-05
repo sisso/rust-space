@@ -1,12 +1,14 @@
-use commons::math::{Transform2, V2};
+use commons::math::{Transform2, P2, V2};
 use commons::{math, unwrap_or_continue, unwrap_or_return};
 use ggegui::{egui, Gui};
 use ggez::conf::{WindowMode, WindowSetup};
 use ggez::event::{self, EventHandler, MouseButton};
 use ggez::graphics::{self, Canvas, Color, DrawMode, DrawParam, Drawable, StrokeOptions};
 use ggez::{Context, ContextBuilder, GameError, GameResult};
+use log::info;
+use mint::Point2;
 use space_flap;
-use space_flap::{EventKind, ObjData, SectorData};
+use space_flap::{EventKind, Id, ObjData, SectorData};
 
 const COLOR_FLEET: Color = Color::RED;
 const COLOR_ASTEROID: Color = Color::MAGENTA;
@@ -47,6 +49,7 @@ fn main() {
         sector_view_transform: sector_view_transform,
         time_speed: TimeSpeed::Normal,
         ui: Default::default(),
+        selected_object: None,
     };
 
     event::run(ctx, event_loop, my_game);
@@ -75,6 +78,7 @@ struct State {
     screen: StateScreen,
     selected_sector: usize,
     selected_fleet: usize,
+    selected_object: Option<ObjData>,
     egui_backend: Gui,
     sector_view_transform: Transform2,
     time_speed: TimeSpeed,
@@ -293,6 +297,25 @@ impl State {
             if ui.button("select").clicked() {
                 self.screen = StateScreen::Fleet(fleets[self.selected_fleet].get_id());
             }
+
+            if let Some(selected) = self.selected_object.as_ref() {
+                let mut kind = "unknown";
+                if selected.is_asteroid() {
+                    kind = "asteroid";
+                }
+                if selected.is_astro() {
+                    kind = "astro";
+                }
+                if selected.is_fleet() {
+                    kind = "fleet";
+                }
+                if selected.is_jump() {
+                    kind = "jump";
+                }
+                ui.label(format!("selected: {} {}", kind, selected.get_id()));
+            } else {
+                ui.label("selected: none");
+            }
         });
 
         self.egui_backend.update(ctx);
@@ -311,7 +334,6 @@ impl State {
             match self.ui.dragging_start {
                 Some(start) => {
                     let delta = ctx.mouse.delta();
-                    log::info!("dragging {delta:?}");
                     self.sector_view_transform
                         .translate(math::V2::new(delta.x, delta.y));
                 }
@@ -331,10 +353,53 @@ impl State {
         let button_released = ctx.mouse.button_just_released(MouseButton::Left);
         if button_released {
             log::info!("{:?}", mouse_pos);
+
+            match &self.screen {
+                StateScreen::Sector(sector_id) => self.select_nearest(&mouse_pos, *sector_id),
+                _ => {}
+            };
         }
 
         Ok(())
     }
+
+    fn select_nearest(&mut self, mouse_pos: &Point2<f32>, sector_id: Id) {
+        let local_pos = screen_to_point(&self.sector_view_transform, (mouse_pos.x, mouse_pos.y));
+        self.selected_object =
+            search_nearest_object(&self.game, sector_id, P2::new(local_pos.0, local_pos.1))
+                .and_then(|id| self.game.get_obj(id));
+    }
+}
+
+fn search_nearest_object(
+    game: &space_flap::SpaceGame,
+    sector_id: space_flap::Id,
+    pos: P2,
+) -> Option<space_flap::Id> {
+    let items = game.list_at_sector(sector_id);
+    let mut nearest_distance = None;
+    let mut nearest_id = None;
+
+    for id in items {
+        let coords = unwrap_or_continue!(game.get_obj_coords(id));
+        if coords.is_docked() {
+            continue;
+        }
+
+        let ipos = coords.get_coords();
+        let delta = P2::new(ipos.0, ipos.1) - pos;
+        let distance_sqr = delta.magnitude_squared();
+
+        if nearest_distance
+            .map(|dist| distance_sqr < dist)
+            .unwrap_or(true)
+        {
+            nearest_distance = Some(distance_sqr);
+            nearest_id = Some(id);
+        }
+    }
+
+    nearest_id
 }
 
 impl EventHandler for State {
@@ -351,17 +416,7 @@ impl EventHandler for State {
             match event.get_kind() {
                 EventKind::Add => {}
                 EventKind::Move => {}
-                EventKind::Jump => {
-                    // let d = unwrap_or_continue!(self.sg.get_obj(event.get_id()));
-                    // let sid = d.get_sector_id();
-                    // let sectors = self.sg.get_sectors();
-                    // let index = sectors.iter().position(|i| i.get_id() == sid);
-                    // println!(
-                    //     "{} move at sector {}",
-                    //     d.get_id(),
-                    //     index.unwrap_or_default()
-                    // );
-                }
+                EventKind::Jump => {}
                 EventKind::Dock => {}
                 EventKind::Undock => {}
             }
@@ -381,9 +436,6 @@ impl EventHandler for State {
         let screen_size = ctx.gfx.window().inner_size();
         let screen_size = (screen_size.width as f32, screen_size.height as f32);
 
-        let text = graphics::Text::new(format!("{} {}", tick, delta_time));
-        canvas.draw(&text, DrawParam::default().color(Color::WHITE));
-
         match self.screen {
             StateScreen::Sector(sector_id) => {
                 self.draw_sector(ctx, &mut canvas, screen_size, sector_id)?;
@@ -397,6 +449,9 @@ impl EventHandler for State {
         }
 
         canvas.draw(&self.egui_backend, DrawParam::new());
+
+        let text = graphics::Text::new(format!("{} {}", tick, delta_time));
+        canvas.draw(&text, DrawParam::default().color(Color::WHITE));
 
         canvas.finish(ctx)
     }
@@ -420,8 +475,13 @@ fn length_to_screen(transform: &Transform2, length: f32) -> f32 {
     v2.magnitude()
 }
 
+fn screen_to_point(transform: &Transform2, pos: (f32, f32)) -> (f32, f32) {
+    let p = transform.local_to_point(&P2::new(pos.0, pos.1));
+    (p.x, p.y)
+}
+
 fn point_to_screen(transform: &Transform2, pos: (f32, f32)) -> (f32, f32) {
-    let p = transform.get_similarity() * math::P2::new(pos.0, pos.1);
+    let p = transform.point_to_local(&P2::new(pos.0, pos.1));
     (p.x, p.y)
 }
 

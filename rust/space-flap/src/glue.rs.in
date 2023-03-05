@@ -29,6 +29,15 @@ foreign_class!(
     }
 );
 
+foreign_class!(
+    class ObjCoords{
+        self_type ObjCoords;
+        private constructor = empty;
+        fn ObjCoords::get_coords(&self) -> (f32, f32);
+        fn ObjCoords::get_sector_id(&self) -> u64;
+        fn ObjCoords::is_docked(&self) -> bool;
+    }
+);
 
 foreign_class!(
     class ObjData {
@@ -76,6 +85,7 @@ foreign_class!(
         fn SpaceGame::get_jumps(&self) -> Vec<JumpData>;
         fn SpaceGame::get_fleets(&self) -> Vec<ObjData>;
         fn SpaceGame::get_obj(&self, id: u64) -> Option<ObjData>;
+        fn SpaceGame::get_obj_coords(&self, id: u64) -> Option<ObjCoords>;
         fn SpaceGame::update(&mut self, delta: f32);
         fn SpaceGame::take_events(&mut self) -> Vec<EventData>;
     }

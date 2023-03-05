@@ -8,8 +8,8 @@ use space_domain::game::events;
 use space_domain::game::extractables::Extractable;
 use space_domain::game::factory::Factory;
 use space_domain::game::fleets::Fleet;
-use space_domain::game::loader::{Loader, RandomMapCfg};
-use space_domain::game::locations::{Location, Locations};
+use space_domain::game::loader::{generate_sectors, Loader, RandomMapCfg};
+use space_domain::game::locations::{Location, LocationSpace, Locations};
 use space_domain::game::objects::ObjId;
 use space_domain::game::order::{Order, Orders};
 use space_domain::game::sectors::{Jump, Sector};
@@ -55,6 +55,26 @@ impl ObjOrbitData {
 
     pub fn get_parent_pos(&self) -> (f32, f32) {
         (self.parent_pos.x, self.parent_pos.y)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ObjCoords {
+    location: LocationSpace,
+    is_docked: bool,
+}
+
+impl ObjCoords {
+    pub fn get_sector_id(&self) -> Id {
+        encode_entity(self.location.sector_id)
+    }
+
+    pub fn get_coords(&self) -> (f32, f32) {
+        (self.location.pos.x, self.location.pos.y)
+    }
+
+    pub fn is_docked(&self) -> bool {
+        self.is_docked
     }
 }
 
@@ -393,6 +413,19 @@ impl SpaceGame {
         };
 
         Some(obj)
+    }
+
+    pub fn get_obj_coords(&self, id: Id) -> Option<ObjCoords> {
+        let game = self.game.borrow();
+        let e = decode_entity_and_get(&game, id)?;
+        let locations = game.world.read_storage::<Location>();
+        let loc = locations.get(e)?;
+        let ls = Locations::resolve_space_position_from(&locations, loc)?;
+        let is_docked = loc.get_pos().is_none();
+        Some(ObjCoords {
+            location: ls,
+            is_docked,
+        })
     }
 }
 

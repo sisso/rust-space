@@ -29,6 +29,6 @@ shred-derive = "0.6.*"
 hocon="0.3.4"
 
 commons = { version = "*", path = "../commons" }
-space-domain = { version = "*", path = "../space-domain" }
+#space-domain = { version = "*", path = "../space-domain" }
 space-flap = { version = "*", path = "../space-flap" }
 
