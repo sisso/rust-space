@@ -2,6 +2,7 @@
 
 extern crate core;
 
+use commons::math::P2;
 use itertools::Itertools;
 use space_domain::game::astrobody::{AstroBodies, AstroBody, OrbitalPos};
 use space_domain::game::events;
@@ -16,7 +17,7 @@ use space_domain::game::sectors::{Jump, Sector};
 use space_domain::game::shipyard::Shipyard;
 use space_domain::game::station::Station;
 use space_domain::game::Game;
-use space_domain::utils::{Position, TotalTime, V2_ZERO};
+use space_domain::utils::TotalTime;
 use specs::prelude::*;
 use std::cell::RefCell;
 use std::path::PathBuf;
@@ -45,7 +46,7 @@ pub struct ObjKind {
 #[derive(Clone, Debug)]
 pub struct ObjOrbitData {
     radius: f32,
-    parent_pos: Position,
+    parent_pos: P2,
 }
 
 impl ObjOrbitData {
@@ -81,7 +82,7 @@ impl ObjCoords {
 #[derive(Clone, Debug)]
 pub struct ObjData {
     id: Entity,
-    coords: Position,
+    coords: P2,
     sector_id: Entity,
     docked: Option<Entity>,
     kind: ObjKind,

@@ -1,30 +1,30 @@
-use nalgebra::{Matrix4, Point2, Rotation2, Similarity2, Similarity3, Vector2, Vector3};
+use glam;
 
-pub type P2 = Point2<f32>;
-pub type V2 = Vector2<f32>;
-pub type V2I = Vector2<i32>;
-pub type P2I = Point2<i32>;
-pub type Sim2 = Similarity2<f32>;
-pub type M4 = Matrix4<f32>;
+pub type P2 = glam::Vec2;
+pub type V2 = glam::Vec2;
+pub type V2I = glam::IVec2;
+pub type P2I = glam::IVec2;
+pub type Affine2 = glam::Affine2;
+pub type M4 = glam::Mat4;
 pub const PI: f32 = std::f32::consts::PI;
 pub const TWO_PI: f32 = 2.0 * std::f32::consts::PI;
 pub type Deg = f32;
 pub type Rad = f32;
 
 pub fn p2v(p2: P2) -> V2 {
-    p2.coords
+    p2
 }
 
 pub fn v2p(v2: V2) -> P2 {
-    P2::origin() + v2
+    v2
 }
 
 pub fn v2(x: f32, y: f32) -> V2 {
-    Vector2::new(x, y)
+    V2::new(x, y)
 }
 
 pub fn p2(x: f32, y: f32) -> P2 {
-    Point2::new(x, y)
+    V2::new(x, y)
 }
 
 #[derive(Debug, Clone)]
@@ -32,25 +32,25 @@ pub struct Transform2 {
     pos: P2,
     scale: f32,
     angle: f32,
-    similarity: Similarity2<f32>,
+    affine: Affine2,
 }
 
 impl Transform2 {
-    pub fn new(pos: P2, scale: f32, rotation: f32) -> Self {
+    pub fn new(pos: P2, scale: f32, angle: f32) -> Self {
         Transform2 {
             pos,
             scale,
-            angle: rotation,
-            similarity: Similarity2::new(pos.coords.clone(), rotation, scale),
+            angle,
+            affine: Affine2::from_scale_angle_translation(V2::ONE * scale, angle, pos),
         }
     }
 
     pub fn identity() -> Self {
         Transform2 {
-            pos: Point2::origin(),
+            pos: V2::ZERO,
             scale: 1.0,
             angle: 0.0,
-            similarity: Similarity2::identity(),
+            affine: Affine2::IDENTITY,
         }
     }
 
@@ -91,30 +91,25 @@ impl Transform2 {
         self.recreate_similarity();
     }
 
-    pub fn get_similarity(&self) -> &Similarity2<f32> {
-        &self.similarity
+    pub fn get_affine(&self) -> &Affine2 {
+        &self.affine
     }
 
-    pub fn point_to_local(&self, p: &P2) -> P2 {
-        self.similarity.transform_point(&p)
+    pub fn point_to_local(&self, p: P2) -> P2 {
+        self.affine.transform_point2(p)
     }
 
-    pub fn local_to_point(&self, p: &P2) -> P2 {
-        self.similarity.inverse_transform_point(&p)
+    pub fn local_to_point(&self, p: P2) -> P2 {
+        self.affine.inverse().transform_point2(p)
     }
 
-    pub fn get_matrix(&self) -> M4 {
-        let sim = Similarity3::new(
-            Vector3::new(self.pos.coords.x, self.pos.coords.y, 0.0),
-            Vector3::new(0.0, 0.0, self.angle),
-            self.scale,
-        );
-
-        sim.into()
-    }
+    // pub fn get_matrix(&self) -> M4 {
+    //     self.affine.into()
+    // }
 
     fn recreate_similarity(&mut self) {
-        self.similarity = Similarity2::new(self.pos.coords.clone(), self.angle, self.scale);
+        self.affine =
+            Affine2::from_scale_angle_translation(V2::ONE * self.scale, self.angle, self.pos);
     }
 }
 
@@ -151,14 +146,14 @@ pub fn clamp01(v: f32) -> f32 {
 #[cfg(test)]
 mod test {
     use super::*;
-    use approx::{assert_relative_eq, relative_eq};
+    use approx::assert_relative_eq;
 
     #[test]
     fn test_angle_rotation() {
         let deg = 90.0;
         let rad = deg_to_rads(deg);
         let v = rotate_vector_by_angle(P2::new(1.0, 0.0), rad);
-        relative_eq!(0.0, v.x);
+        assert_relative_eq!(0.0, v.x);
         assert_eq!(1.0, v.y);
     }
 
@@ -166,11 +161,11 @@ mod test {
     fn test_transform_2_identity() {
         let t = Transform2::identity();
         let v = V2::new(1.0, 0.0);
-        let v2 = t.get_similarity() * v;
+        let v2 = t.get_affine().transform_vector2(v);
         assert_eq!(V2::new(1.0, 0.0), v2);
 
         let p = P2::new(1.0, 0.0);
-        let p2 = t.get_similarity() * p;
+        let p2 = t.get_affine().transform_point2(p);
         assert_eq!(P2::new(1.0, 0.0), p2);
     }
 
@@ -179,24 +174,24 @@ mod test {
         let t = Transform2::new(P2::new(2.0, 1.0), 1.0, 0.0);
 
         let v = V2::new(1.0, 0.0);
-        let v2 = t.get_similarity() * v;
+        let v2 = t.get_affine().transform_vector2(v);
         assert_eq!(V2::new(1.0, 0.0), v2);
 
         let p = P2::new(1.0, 0.0);
-        let p2 = t.get_similarity() * p;
+        let p2 = t.get_affine().transform_point2(p);
         assert_eq!(P2::new(3.0, 1.0), p2);
     }
 
     #[test]
     fn test_transform_rotation() {
-        let t = Transform2::new(P2::origin(), 1.0, deg_to_rads(90.0));
+        let t = Transform2::new(P2::ZERO, 1.0, deg_to_rads(90.0));
 
         let v = V2::new(1.0, 0.0);
-        let v2 = t.get_similarity() * v;
+        let v2 = t.get_affine().transform_vector2(v);
         assert_relative_eq!(V2::new(0.0, 1.0), v2);
 
         let p = P2::new(1.0, 0.0);
-        let p2 = t.get_similarity() * p;
+        let p2 = t.get_affine().transform_point2(p);
         assert_relative_eq!(P2::new(0.0, 1.0), p2);
     }
 
@@ -205,11 +200,11 @@ mod test {
         let t = Transform2::new(P2::new(2.0, 1.0), 2.0, deg_to_rads(90.0));
 
         let v = V2::new(1.0, 0.0);
-        let v2 = t.get_similarity() * v;
+        let v2 = t.get_affine().transform_vector2(v);
         assert_relative_eq!(V2::new(0.0, 2.0), v2);
 
         let p = P2::new(1.0, 0.0);
-        let p2 = t.get_similarity() * p;
+        let p2 = t.get_affine().transform_point2(p);
         assert_relative_eq!(P2::new(2.0, 3.0), p2);
     }
 }
@@ -224,14 +219,15 @@ pub fn rotate_vector(dir: V2, point: P2) -> P2 {
 }
 
 pub fn rotate_vector_by_angle(point: P2, angle: Rad) -> P2 {
-    let rotation = Rotation2::new(angle);
-    rotation * point
+    glam::Mat2::from_angle(angle) * point
 }
 
 pub fn deg_to_rads(angle: Deg) -> Rad {
-    angle * (std::f32::consts::PI / 180.0)
+    angle.to_radians()
+    // angle * (std::f32::consts::PI / 180.0)
 }
 
 pub fn rad_to_deg(rad: Rad) -> Deg {
-    rad * (std::f32::consts::PI * 180.0)
+    // rad * (std::f32::consts::PI * 180.0)
+    rad.to_degrees()
 }

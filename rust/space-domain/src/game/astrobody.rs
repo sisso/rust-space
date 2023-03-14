@@ -1,9 +1,9 @@
 use crate::game::locations::Location;
 use crate::game::objects::ObjId;
 use crate::game::{GameInitContext, RequireInitializer};
-use crate::utils::{Position, TotalTime};
+use crate::utils::TotalTime;
 use commons::math;
-use commons::math::Rad;
+use commons::math::{Rad, P2};
 use specs::prelude::*;
 use std::collections::HashMap;
 
@@ -26,7 +26,7 @@ pub struct OrbitalPos {
 }
 
 impl OrbitalPos {
-    pub fn compute_local_pos(&self, time: TotalTime) -> Position {
+    pub fn compute_local_pos(&self, time: TotalTime) -> P2 {
         let speed = 500.0f64;
         let angle = self.initial_angle as f64 + time.0 * (math::TWO_PI as f64 / speed);
         math::rotate_vector_by_angle(math::P2::new(self.distance, 0.0), angle as f32).into()
@@ -78,11 +78,7 @@ impl AstroBodies {
 
 pub struct OrbitalPosSystem;
 
-fn find_orbital_pos(
-    bodies: &Vec<(ObjId, &OrbitalPos)>,
-    time: TotalTime,
-    id: ObjId,
-) -> Option<Position> {
+fn find_orbital_pos(bodies: &Vec<(ObjId, &OrbitalPos)>, time: TotalTime, id: ObjId) -> Option<P2> {
     for (i, b) in bodies {
         if *i != id {
             continue;
@@ -92,7 +88,7 @@ fn find_orbital_pos(
         log::trace!("find_orbital_pos local pos of {:?} is {:?}", id, local);
 
         let pos = match find_orbital_pos(bodies, time, b.parent) {
-            Some(parent_pos) => parent_pos.add(&local),
+            Some(parent_pos) => parent_pos + local,
             None => local,
         };
         log::trace!("find_orbital_pos pos of {:?} is {:?}", id, pos);
@@ -160,8 +156,6 @@ mod test {
     use crate::game::astrobody::{OrbitalPos, OrbitalPosSystem};
     use crate::game::locations::Location;
     use crate::utils::{Position, TotalTime};
-    use approx::{assert_relative_eq, relative_eq};
-    use commons::math;
     use commons::math::deg_to_rads;
     use shred::World;
     use specs::{Builder, Entity, WorldExt};
@@ -181,7 +175,7 @@ mod test {
         let get_pos =
             |id: Entity| -> Position { locations.get(id).unwrap().as_space().unwrap().pos };
 
-        assert_eq!(Position::zero(), get_pos(star_id));
+        assert_eq!(Position::ZERO, get_pos(star_id));
         assert_eq!(Position::new(1.0, 0.0), get_pos(planet1_id));
         assert_eq!(Position::new(0.0, 1.0), get_pos(planet2_id));
         assert_eq!(Position::new(0.0, 1.5), get_pos(planet2moon1_id));
@@ -216,7 +210,7 @@ mod test {
         let star_id = world
             .create_entity()
             .with(Location::Space {
-                pos: Position::zero(),
+                pos: Position::ZERO,
                 sector_id,
             })
             .build();
@@ -224,7 +218,7 @@ mod test {
         let planet1_id = world
             .create_entity()
             .with(Location::Space {
-                pos: Position::zero(),
+                pos: Position::ZERO,
                 sector_id,
             })
             .with(OrbitalPos {
@@ -237,7 +231,7 @@ mod test {
         let planet2_id = world
             .create_entity()
             .with(Location::Space {
-                pos: Position::zero(),
+                pos: Position::ZERO,
                 sector_id,
             })
             .with(OrbitalPos {
@@ -250,7 +244,7 @@ mod test {
         let planet2_moon1_id = world
             .create_entity()
             .with(Location::Space {
-                pos: Position::zero(),
+                pos: Position::ZERO,
                 sector_id,
             })
             .with(OrbitalPos {
@@ -263,7 +257,7 @@ mod test {
         let station_id = world
             .create_entity()
             .with(Location::Space {
-                pos: Position::zero(),
+                pos: Position::ZERO,
                 sector_id,
             })
             .with(OrbitalPos {

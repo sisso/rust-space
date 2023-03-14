@@ -1,11 +1,10 @@
 use commons::math::{Transform2, P2, V2};
-use commons::{math, unwrap_or_continue, unwrap_or_return};
+use commons::{math, unwrap_or_continue};
 use ggegui::{egui, Gui};
-use ggez::conf::{WindowMode, WindowSetup};
+use ggez::conf::WindowMode;
 use ggez::event::{self, EventHandler, MouseButton};
-use ggez::graphics::{self, Canvas, Color, DrawMode, DrawParam, Drawable, StrokeOptions};
+use ggez::graphics::{self, Canvas, Color, DrawParam, StrokeOptions};
 use ggez::{Context, ContextBuilder, GameError, GameResult};
-use log::info;
 use mint::Point2;
 use space_flap;
 use space_flap::{EventKind, Id, ObjData, SectorData};
@@ -69,7 +68,7 @@ enum TimeSpeed {
 
 #[derive(Default)]
 struct Ui {
-    dragging_start: Option<mint::Point2<f32>>,
+    dragging_start: Option<P2>,
     mouse_wheel: Option<f32>,
 }
 
@@ -124,14 +123,14 @@ impl State {
                 continue;
             }
 
-            let parent_coords = orbit.get_parent_pos();
-            let (parent_x, parent_y) = point_to_screen(&self.sector_view_transform, parent_coords);
+            let parent_coords = orbit.get_parent_pos().into();
+            let parent = point_to_screen(&self.sector_view_transform, parent_coords);
 
             let sw_radius = length_to_screen(&self.sector_view_transform, radius);
 
             let orbit_circle = graphics::Mesh::new_circle(
                 ctx,
-                graphics::DrawMode::Stroke(graphics::StrokeOptions::default()),
+                graphics::DrawMode::Stroke(StrokeOptions::default()),
                 [0.0, 0.0],
                 sw_radius,
                 1.0,
@@ -140,9 +139,7 @@ impl State {
 
             canvas.draw(
                 &orbit_circle,
-                DrawParam::new()
-                    .dest([parent_x, parent_y])
-                    .color(Color::WHITE),
+                DrawParam::new().dest(parent).color(Color::WHITE),
             );
         }
 
@@ -161,9 +158,9 @@ impl State {
 
             let color = Self::resolve_color(&obj);
 
-            let coords = obj.get_coords();
-            let (wx, wy) = point_to_screen(&self.sector_view_transform, coords);
-            canvas.draw(&planet_circle, DrawParam::new().dest([wx, wy]).color(color));
+            let coords = obj.get_coords().into();
+            let w = point_to_screen(&self.sector_view_transform, coords);
+            canvas.draw(&planet_circle, DrawParam::new().dest(w).color(color));
         }
 
         // draw legends
@@ -258,7 +255,7 @@ impl State {
         let fleets = self.game.get_fleets();
 
         let egui_ctx = self.egui_backend.ctx();
-        let result = egui::Window::new("egui-window").show(&egui_ctx, |ui| {
+        egui::Window::new("egui-window").show(&egui_ctx, |ui| {
             match self.time_speed {
                 TimeSpeed::Pause => {
                     if ui.button("time on").clicked() {
@@ -328,7 +325,7 @@ impl State {
             return Ok(());
         }
 
-        let mouse_pos = ctx.mouse.position();
+        let mouse_pos: P2 = ctx.mouse.position().into();
 
         if ctx.mouse.button_pressed(MouseButton::Right) {
             match self.ui.dragging_start {
@@ -355,7 +352,7 @@ impl State {
             log::info!("{:?}", mouse_pos);
 
             match &self.screen {
-                StateScreen::Sector(sector_id) => self.select_nearest(&mouse_pos, *sector_id),
+                StateScreen::Sector(sector_id) => self.select_nearest(mouse_pos, *sector_id),
                 _ => {}
             };
         }
@@ -363,10 +360,10 @@ impl State {
         Ok(())
     }
 
-    fn select_nearest(&mut self, mouse_pos: &Point2<f32>, sector_id: Id) {
-        let local_pos = screen_to_point(&self.sector_view_transform, (mouse_pos.x, mouse_pos.y));
+    fn select_nearest(&mut self, mouse_pos: P2, sector_id: Id) {
+        let local_pos = screen_to_point(&self.sector_view_transform, mouse_pos);
         self.selected_object =
-            search_nearest_object(&self.game, sector_id, P2::new(local_pos.0, local_pos.1))
+            search_nearest_object(&self.game, sector_id, P2::new(local_pos.x, local_pos.y))
                 .and_then(|id| self.game.get_obj(id));
     }
 }
@@ -388,7 +385,7 @@ fn search_nearest_object(
 
         let ipos = coords.get_coords();
         let delta = P2::new(ipos.0, ipos.1) - pos;
-        let distance_sqr = delta.magnitude_squared();
+        let distance_sqr = delta.length_squared();
 
         if nearest_distance
             .map(|dist| distance_sqr < dist)
@@ -471,18 +468,16 @@ fn get_sector_transform(ctx: &Context) -> Transform2 {
 }
 
 fn length_to_screen(transform: &Transform2, length: f32) -> f32 {
-    let v2 = transform.get_similarity() * V2::new(length, 0.0);
-    v2.magnitude()
+    let v2 = transform.get_affine().transform_vector2(V2::X * length);
+    v2.length()
 }
 
-fn screen_to_point(transform: &Transform2, pos: (f32, f32)) -> (f32, f32) {
-    let p = transform.local_to_point(&P2::new(pos.0, pos.1));
-    (p.x, p.y)
+fn screen_to_point(transform: &Transform2, pos: P2) -> P2 {
+    transform.local_to_point(pos)
 }
 
-fn point_to_screen(transform: &Transform2, pos: (f32, f32)) -> (f32, f32) {
-    let p = transform.point_to_local(&P2::new(pos.0, pos.1));
-    (p.x, p.y)
+fn point_to_screen(transform: &Transform2, pos: P2) -> P2 {
+    transform.point_to_local(pos)
 }
 
 fn sector_text(sd: &space_flap::SectorData) -> String {

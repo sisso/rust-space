@@ -5,11 +5,11 @@ use crate::game::navigations::navigation_system::NavigationSystem;
 use crate::game::objects::ObjId;
 use crate::game::sectors::{Jump, Sector, SectorId};
 use crate::game::{GameInitContext, RequireInitializer};
-use crate::utils::Position;
 
 use specs::prelude::*;
 
 use crate::game::locations::Location;
+use commons::math::P2;
 use specs::Entity;
 use specs_derive::*;
 use std::collections::VecDeque;
@@ -36,7 +36,7 @@ pub enum NavRequest {
 
 #[derive(Debug, Clone)]
 pub enum Target {
-    Pos(Position),
+    Pos(P2),
     ObjPos(ObjId),
 }
 
@@ -85,7 +85,7 @@ pub fn create_plan<'a>(
     jumps: &ReadStorage<'a, Jump>,
     locations: &ReadStorage<'a, Location>,
     from_sector_id: SectorId,
-    _from_pos: Position,
+    _from_pos: P2,
     to_sector_id: SectorId,
     target: Target,
     is_docked: bool,
@@ -136,6 +136,7 @@ mod test {
     use super::*;
     use crate::game::navigations;
     use crate::game::sectors::test_scenery::*;
+    use crate::utils::Position;
 
     #[test]
     fn create_plant_test() {
@@ -154,7 +155,7 @@ mod test {
             &jumps,
             &locations,
             sector_scenery.sector_0,
-            Position::new(10.0, 0.0),
+            P2::ZERO,
             sector_scenery.sector_1,
             Target::Pos(Position::new(0.0, 10.0)),
             true,

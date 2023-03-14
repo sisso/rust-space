@@ -60,11 +60,12 @@ mod test {
     use super::*;
 
     use crate::test::test_system;
+    use crate::utils::Position;
 
     #[test]
     fn test_dock_system_should_dock() {
         let (world, (entity, station)) = test_system(DockSystem, |world| {
-            let station_position = Position::new(0.0, 0.0);
+            let station_position = Position::ZERO;
 
             let sector_0 = world.create_entity().build();
 

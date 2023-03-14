@@ -3,6 +3,7 @@ use specs::prelude::*;
 use specs_derive::*;
 use std::borrow::{Borrow, BorrowMut};
 
+use commons::math::P2;
 use std::time::Instant;
 
 use crate::game::locations::Location;
@@ -13,7 +14,7 @@ use crate::utils::*;
 #[derive(Clone, Debug, Component)]
 pub struct Jump {
     pub target_sector_id: SectorId,
-    pub target_pos: Position,
+    pub target_pos: P2,
 }
 
 pub type JumpId = Entity;
@@ -27,12 +28,12 @@ pub struct JumpCache {
 
 #[derive(Clone, Debug, Component)]
 pub struct Sector {
-    pub coords: Position,
+    pub coords: P2,
     pub jumps_cache: Option<Vec<JumpCache>>,
 }
 
 impl Sector {
-    pub fn new(coords: Position) -> Self {
+    pub fn new(coords: P2) -> Self {
         Sector {
             coords,
             jumps_cache: None,
@@ -101,13 +102,13 @@ pub mod test_scenery {
         pub sector_1: ObjId,
         pub sector_2: ObjId,
         pub jump_0_to_1: ObjId,
-        pub jump_0_to_1_pos: Position,
+        pub jump_0_to_1_pos: P2,
         pub jump_1_to_0: ObjId,
-        pub jump_1_to_0_pos: Position,
+        pub jump_1_to_0_pos: P2,
         pub jump_1_to_2: ObjId,
-        pub jump_1_to_2_pos: Position,
+        pub jump_1_to_2_pos: P2,
         pub jump_2_to_1: ObjId,
-        pub jump_2_to_1_pos: Position,
+        pub jump_2_to_1_pos: P2,
     }
 
     /// Setup 3 sector with jump gate connecting
@@ -203,9 +204,9 @@ pub mod test_scenery {
 pub struct PathLeg {
     pub sector_id: SectorId,
     pub jump_id: JumpId,
-    pub jump_pos: Position,
+    pub jump_pos: P2,
     pub target_sector_id: SectorId,
-    pub target_pos: Position,
+    pub target_pos: P2,
 }
 
 pub fn find_path<'a>(
@@ -255,7 +256,7 @@ pub fn find_path_raw<'a>(
                 },
                 |current| {
                     let current_coords = sectors.get(*current).unwrap().coords;
-                    to_coords.sub(&current_coords).length_sqr() as u32 / 1000u32
+                    (to_coords - current_coords).length_squared() as u32 / 1000u32
                 },
                 |current| *current == to,
             )
@@ -348,7 +349,7 @@ pub fn find_path_raw<'a>(
         result.push(PathLeg {
             sector_id: from,
             jump_id: jc.jump_id,
-            jump_pos: *jump_pos,
+            jump_pos: jump_pos,
             target_sector_id: to,
             target_pos: *jump_target_pos,
         });

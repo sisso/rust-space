@@ -10,7 +10,6 @@ edition = "2021"
 # workaround fail to draw o new rust version
 ggez = { git = 'https://github.com/ggez/ggez.git', branch = "devel"  }
 mint = "0.5"
-nalgebra = { version = "0.27.1", features = ["mint"] }
 approx = "0.3.2"
 egui  = "0.16"
 # workaround fail to draw o new rust version
@@ -32,3 +31,4 @@ commons = { version = "*", path = "../commons" }
 #space-domain = { version = "*", path = "../space-domain" }
 space-flap = { version = "*", path = "../space-flap" }
 
+glam =  { version = "0.23.0", features = ["mint", "serde", "approx"] }

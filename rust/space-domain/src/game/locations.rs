@@ -1,5 +1,6 @@
 mod index_per_sector_system;
 
+use commons::math::P2;
 use specs::prelude::*;
 use specs::storage::MaskedStorage;
 use std::collections::HashMap;
@@ -14,7 +15,7 @@ use crate::game::{GameInitContext, RequireInitializer};
 
 #[derive(Debug, Clone)]
 pub struct LocationSpace {
-    pub pos: Position,
+    pub pos: P2,
     pub sector_id: SectorId,
 }
 
@@ -22,7 +23,7 @@ pub struct LocationSpace {
 /// of hangars
 #[derive(Debug, Clone, Component)]
 pub enum Location {
-    Space { pos: Position, sector_id: SectorId },
+    Space { pos: P2, sector_id: SectorId },
     Dock { docked_id: ObjId },
 }
 
@@ -38,7 +39,7 @@ impl Location {
     }
 
     /// Utility method since we can not easily reference a enum type
-    pub fn set_pos(&mut self, new_pos: Position) -> Result<(), ()> {
+    pub fn set_pos(&mut self, new_pos: P2) -> Result<(), ()> {
         match self {
             Location::Space { pos, .. } => {
                 *pos = new_pos;
@@ -49,9 +50,9 @@ impl Location {
     }
 
     /// Utility method since we can not easily reference a enum type
-    pub fn get_pos(&self) -> Option<&Position> {
+    pub fn get_pos(&self) -> Option<P2> {
         match self {
-            Location::Space { pos, .. } => Some(pos),
+            Location::Space { pos, .. } => Some(*pos),
             _ => None,
         }
     }
@@ -192,7 +193,7 @@ impl Locations {
                     pos: pos_b,
                     sector_id: sector_id_b,
                 },
-            ) => sector_id_a == sector_id_b && V2::distance(&pos_a, &pos_b) < MIN_DISTANCE,
+            ) => sector_id_a == sector_id_b && pos_a.distance(*pos_b) < MIN_DISTANCE,
             _ => false,
         }
     }

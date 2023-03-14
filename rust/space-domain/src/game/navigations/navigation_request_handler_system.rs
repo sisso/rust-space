@@ -101,7 +101,7 @@ mod test {
         let asteroid = world
             .create_entity()
             .with(Location::Space {
-                pos: Position::new(1.0, 0.0),
+                pos: P2::X,
                 sector_id: sectors.sector_1,
             })
             .build();
@@ -109,7 +109,7 @@ mod test {
         let station = world
             .create_entity()
             .with(Location::Space {
-                pos: Position::new(0.0, 0.0),
+                pos: P2::ZERO,
                 sector_id: sectors.sector_0,
             })
             .build();
@@ -126,7 +126,7 @@ mod test {
             let miner = world
                 .create_entity()
                 .with(Location::Space {
-                    pos: Position::new(0.0, 0.0),
+                    pos: P2::ZERO,
                     sector_id: sector_scenery.sector_0,
                 })
                 .with(NavRequest::MoveToTarget {

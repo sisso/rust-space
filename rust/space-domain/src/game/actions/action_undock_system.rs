@@ -74,6 +74,7 @@ mod test {
     use super::*;
 
     use crate::test::{assert_v2, test_system};
+    use crate::utils::Position;
 
     #[test]
     fn test_undock_system_should_undock_if_docked() {

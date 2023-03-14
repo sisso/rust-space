@@ -25,7 +25,7 @@ where
 }
 
 pub fn assert_v2(value: V2, expected: V2) {
-    let distance = value.sub(&expected).length();
+    let distance = (value - expected).length();
     if distance > MIN_DISTANCE {
         panic!(
             "fail, receives {:?} but expect {:?}, distance of {:?}",

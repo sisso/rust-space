@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use std::ops::Deref;
 
 use commons;
+use commons::math::P2;
 use commons::{math, unwrap_or_continue};
 use rand::prelude::*;
 use space_galaxy::system_generator;
@@ -25,7 +26,7 @@ use crate::game::station::Station;
 use crate::game::wares::{Cargo, WareAmount, WareId};
 use crate::game::{sectors, Game};
 use crate::specs_extras::*;
-use crate::utils::{DeltaTime, Position, Speed, V2};
+use crate::utils::{DeltaTime, Speed, V2};
 
 pub struct Loader {}
 
@@ -301,9 +302,9 @@ impl Loader {
     pub fn add_jump(
         world: &mut World,
         from_sector_id: SectorId,
-        from_pos: Position,
+        from_pos: P2,
         to_sector_id: JumpId,
-        to_pos: Position,
+        to_pos: P2,
     ) -> (ObjId, ObjId) {
         let jump_from_id = world
             .create_entity()
@@ -350,15 +351,11 @@ impl Loader {
     }
 
     pub fn new_star(sector_id: Entity) -> NewObj {
-        NewObj::new()
-            .at_position(sector_id, Position::zero())
-            .as_star()
+        NewObj::new().at_position(sector_id, P2::ZERO).as_star()
     }
 
     pub fn new_planet(sector_id: Entity) -> NewObj {
-        NewObj::new()
-            .at_position(sector_id, Position::zero())
-            .as_planet()
+        NewObj::new().at_position(sector_id, P2::ZERO).as_planet()
     }
 
     pub fn add_object(world: &mut World, new_obj: &NewObj) -> ObjId {

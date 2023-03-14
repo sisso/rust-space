@@ -1,3 +1,4 @@
+use commons::math::P2;
 ///
 /// Actions are setup by ActionRequest.
 ///
@@ -18,7 +19,7 @@ use crate::game::actions::action_undock_system::UndockSystem;
 use crate::game::sectors::JumpId;
 use crate::game::wares::WareId;
 use crate::game::{GameInitContext, RequireInitializer};
-use crate::utils::{DeltaTime, Position, TotalTime};
+use crate::utils::{DeltaTime, TotalTime};
 
 mod action_dock_system;
 mod action_extract_system;
@@ -41,11 +42,11 @@ pub enum Action {
         target_id: ObjId,
     },
     MoveTo {
-        pos: Position,
+        pos: P2,
     },
     MoveToTargetPos {
         target_id: ObjId,
-        last_position: Option<Position>,
+        last_position: Option<P2>,
     },
     Extract {
         target_id: ObjId,

@@ -368,8 +368,9 @@ mod test {
     use crate::game::sectors::SectorId;
     use crate::game::wares::{Cargo, WareId};
     use crate::test::test_system;
-    use crate::utils::{TotalTime, V2_ZERO};
+    use crate::utils::TotalTime;
 
+    use commons::math::P2;
     use std::borrow::{Borrow, BorrowMut};
 
     struct SceneryRequest {}
@@ -395,7 +396,7 @@ mod test {
         world
             .create_entity()
             .with(Location::Space {
-                pos: V2_ZERO,
+                pos: P2::ZERO,
                 sector_id,
             })
             .with(HasDock)
@@ -408,7 +409,7 @@ mod test {
         world
             .create_entity()
             .with(Location::Space {
-                pos: V2_ZERO,
+                pos: P2::ZERO,
                 sector_id,
             })
             .with(Command::trade())

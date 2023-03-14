@@ -1,3 +1,4 @@
+use commons::math::P2;
 use serde::{Deserialize, Serialize};
 use specs::Entity;
 use std::collections::HashMap;
@@ -6,93 +7,23 @@ use std::hash::Hash;
 pub const MIN_DISTANCE: f32 = 0.01;
 pub const MIN_DISTANCE_SQR: f32 = MIN_DISTANCE * MIN_DISTANCE;
 
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
-pub struct V2 {
-    pub x: f32,
-    pub y: f32,
-}
+pub type V2 = commons::math::V2;
 
-pub const V2_ZERO: V2 = V2 { x: 0.0, y: 0.0 };
-
-impl PartialEq for V2 {
-    fn eq(&self, other: &Self) -> bool {
-        (self.x - other.x).abs() < std::f32::EPSILON && (self.y - other.y).abs() < std::f32::EPSILON
+pub fn move_towards(from: P2, to: P2, max_distance: f32) -> (V2, bool) {
+    let delta = to - from;
+    // delta == zero can cause length sqr NaN
+    let length_sqr = delta.length_squared();
+    if length_sqr.is_nan() || length_sqr <= max_distance {
+        (to, true)
+    } else {
+        let norm = delta / length_sqr.sqrt();
+        let mov = norm * max_distance;
+        let new_position = from + mov;
+        (new_position, false)
     }
 }
 
-impl V2 {
-    pub fn zero() -> V2 {
-        V2_ZERO
-    }
-
-    pub fn new(x: f32, y: f32) -> Self {
-        V2 { x, y }
-    }
-
-    pub fn add(&self, other: &V2) -> V2 {
-        V2 {
-            x: self.x + other.x,
-            y: self.y + other.y,
-        }
-    }
-
-    pub fn sub(&self, other: &V2) -> V2 {
-        V2 {
-            x: self.x - other.x,
-            y: self.y - other.y,
-        }
-    }
-
-    pub fn normalized(&self) -> V2 {
-        self.mult(1.0 / self.length_sqr().sqrt())
-    }
-
-    pub fn length(&self) -> f32 {
-        self.length_sqr().sqrt()
-    }
-
-    pub fn length_sqr(&self) -> f32 {
-        (self.x * self.x) + (self.y * self.y)
-    }
-
-    pub fn mult(&self, scale: f32) -> V2 {
-        V2 {
-            x: self.x * scale,
-            y: self.y * scale,
-        }
-    }
-
-    pub fn div(&self, scale: f32) -> V2 {
-        self.mult(1.0 / scale)
-    }
-
-    pub fn distance(from: &V2, to: &V2) -> f32 {
-        to.sub(from).length()
-    }
-
-    /// returns the new position and true if hit the target
-    pub fn move_towards(from: &V2, to: &V2, max_distance: f32) -> (V2, bool) {
-        let delta = to.sub(&from);
-        // delta == zero can cause length sqr NaN
-        let length_sqr = delta.length_sqr();
-        if length_sqr.is_nan() || length_sqr <= max_distance {
-            (*to, true)
-        } else {
-            let norm = delta.div(length_sqr.sqrt());
-            let mov = norm.mult(max_distance);
-            let new_position = from.add(&mov);
-            (new_position, false)
-        }
-    }
-}
-
-impl From<nalgebra::Point2<f32>> for V2 {
-    fn from(p: nalgebra::Point2<f32>) -> Self {
-        V2::new(p[0], p[1])
-    }
-}
-
-pub type Position = V2;
+pub type Position = P2;
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct Speed(pub f32);
@@ -262,5 +193,6 @@ fn test_v2_eq() {
     let p1 = V2::new(1.123, 0.0001 - 0.0000001);
     let p2 = V2::new(1.1230000001, 0.0001);
 
-    assert_eq!(p1, p2);
+    let equals = p1.abs_diff_eq(p2, f32::EPSILON);
+    assert!(equals);
 }

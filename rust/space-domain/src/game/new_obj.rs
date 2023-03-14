@@ -1,4 +1,4 @@
-use commons::math::Rad;
+use commons::math::{Rad, P2};
 use specs::prelude::*;
 
 use crate::game::commands::Command;
@@ -28,8 +28,8 @@ pub struct NewObj {
     pub has_dock: bool,
     pub ai: bool,
     pub station: bool,
-    pub sector: Option<Position>,
-    pub jump_to: Option<(SectorId, Position)>,
+    pub sector: Option<P2>,
+    pub jump_to: Option<(SectorId, P2)>,
     pub command: Option<Command>,
     pub shipyard: Option<Shipyard>,
     pub ware: bool,
@@ -56,7 +56,7 @@ impl NewObj {
         self
     }
 
-    pub fn at_position(mut self, sector_id: SectorId, pos: Position) -> Self {
+    pub fn at_position(mut self, sector_id: SectorId, pos: P2) -> Self {
         self.location = Some(Location::Space { pos, sector_id });
         self
     }
@@ -106,12 +106,12 @@ impl NewObj {
         self
     }
 
-    pub fn with_sector(mut self, pos: Position) -> Self {
+    pub fn with_sector(mut self, pos: P2) -> Self {
         self.sector = Some(pos);
         self
     }
 
-    pub fn with_jump(mut self, target_sector_id: SectorId, target_pos: Position) -> Self {
+    pub fn with_jump(mut self, target_sector_id: SectorId, target_pos: P2) -> Self {
         self.jump_to = Some((target_sector_id, target_pos));
         self
     }

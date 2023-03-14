@@ -5,8 +5,6 @@ use super::*;
 
 use crate::game::events::{Event, EventKind, Events};
 
-use crate::utils::V2;
-
 pub struct ActionMoveToSystem;
 
 #[derive(SystemData)]
@@ -83,7 +81,7 @@ impl<'a> System<'a> for ActionMoveToSystem {
             let speed = moveable.speed.as_f32();
             let max_distance = speed * delta_time.as_f32();
 
-            let (new_pos, complete) = V2::move_towards(pos, &to, max_distance);
+            let (new_pos, complete) = crate::utils::move_towards(pos, to, max_distance);
 
             // if current move distance is bigger that distance to arrive, move to the position
             if complete {
@@ -120,8 +118,7 @@ mod test {
     use super::super::*;
     use super::*;
     use crate::test::{assert_v2, init_log, test_system};
-    use crate::utils::Speed;
-    use std::borrow::BorrowMut;
+    use crate::utils::{Position, Speed};
 
     #[test]
     fn test_move_to_system_should_move_to_target() {
@@ -137,7 +134,7 @@ mod test {
                 }))
                 .with(ActionMoveTo)
                 .with(Location::Space {
-                    pos: Position::new(0.0, 0.0),
+                    pos: Position::ZERO,
                     sector_id: sector_0,
                 })
                 .with(Moveable { speed: Speed(1.0) })
