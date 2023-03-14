@@ -3,14 +3,14 @@ extern crate space_domain;
 use space_domain::game::commands::Command;
 use space_domain::game::loader::Loader;
 
-
+use space_domain::game::sceneries;
 use space_domain::game::Game;
 use space_domain::utils::DeltaTime;
 use specs::WorldExt;
 use std::borrow::Borrow;
 
 fn load_objects(game: &mut Game) {
-    Loader::load_advanced_scenery(&mut game.world);
+    sceneries::load_advanced_scenery(&mut game.world);
 }
 
 #[test]

@@ -352,7 +352,9 @@ impl State {
             log::info!("{:?}", mouse_pos);
 
             match &self.screen {
-                StateScreen::Sector(sector_id) => self.select_nearest(mouse_pos, *sector_id),
+                StateScreen::Sector(sector_id) => {
+                    self.select_nearest_in_sector(mouse_pos, *sector_id)
+                }
                 _ => {}
             };
         }
@@ -360,15 +362,18 @@ impl State {
         Ok(())
     }
 
-    fn select_nearest(&mut self, mouse_pos: P2, sector_id: Id) {
+    fn select_nearest_in_sector(&mut self, mouse_pos: P2, sector_id: Id) {
         let local_pos = screen_to_point(&self.sector_view_transform, mouse_pos);
-        self.selected_object =
-            search_nearest_object(&self.game, sector_id, P2::new(local_pos.x, local_pos.y))
-                .and_then(|id| self.game.get_obj(id));
+        self.selected_object = search_nearest_object_in_sector(
+            &self.game,
+            sector_id,
+            P2::new(local_pos.x, local_pos.y),
+        )
+        .and_then(|id| self.game.get_obj(id));
     }
 }
 
-fn search_nearest_object(
+fn search_nearest_object_in_sector(
     game: &space_flap::SpaceGame,
     sector_id: space_flap::Id,
     pos: P2,

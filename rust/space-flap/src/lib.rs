@@ -5,11 +5,10 @@ extern crate core;
 use commons::math::P2;
 use itertools::Itertools;
 use space_domain::game::astrobody::{AstroBodies, AstroBody, OrbitalPos};
-use space_domain::game::events;
 use space_domain::game::extractables::Extractable;
 use space_domain::game::factory::Factory;
 use space_domain::game::fleets::Fleet;
-use space_domain::game::loader::{generate_sectors, Loader, RandomMapCfg};
+use space_domain::game::loader::Loader;
 use space_domain::game::locations::{Location, LocationSpace, Locations};
 use space_domain::game::objects::ObjId;
 use space_domain::game::order::{Order, Orders};
@@ -17,6 +16,7 @@ use space_domain::game::sectors::{Jump, Sector};
 use space_domain::game::shipyard::Shipyard;
 use space_domain::game::station::Station;
 use space_domain::game::Game;
+use space_domain::game::{events, scenery_random};
 use space_domain::utils::TotalTime;
 use specs::prelude::*;
 use std::cell::RefCell;
@@ -231,9 +231,9 @@ impl SpaceGame {
         );
 
         let mut game = Game::new();
-        Loader::load_random(
+        scenery_random::load_random(
             &mut game,
-            &RandomMapCfg {
+            &scenery_random::RandomMapCfg {
                 size: size,
                 seed: 0,
                 ships: fleets,

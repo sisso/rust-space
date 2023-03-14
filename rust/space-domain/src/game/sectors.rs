@@ -458,7 +458,7 @@ mod test {
         let p1 = V2::new(12.0, 7.0);
         let p2 = V2::new(31.0, 45.0);
 
-        crate::game::loader::generate_sectors(&mut world, size, 13801247937784236795);
+        crate::game::scenery_random::generate_sectors(&mut world, size, 13801247937784236795);
 
         let entities = &world.entities();
         let sectors = &world.read_storage::<Sector>();

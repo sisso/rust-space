@@ -39,6 +39,8 @@ pub mod new_obj;
 pub mod objects;
 pub mod order;
 pub mod save;
+pub mod sceneries;
+pub mod scenery_random;
 pub mod sectors;
 pub mod ship;
 pub mod shipyard;

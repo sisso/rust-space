@@ -38,6 +38,7 @@ pub struct NewObj {
     pub pos: Option<V2>,
     pub star: Option<()>,
     pub planet: Option<()>,
+    pub asteroid: Option<()>,
     pub orbit: Option<NewObjOrbit>,
 }
 
@@ -103,6 +104,11 @@ impl NewObj {
 
     pub fn as_planet(mut self) -> Self {
         self.planet = Some(());
+        self
+    }
+
+    pub fn as_asteroid(mut self) -> Self {
+        self.asteroid = Some(());
         self
     }
 
