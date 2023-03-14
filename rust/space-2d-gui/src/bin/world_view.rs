@@ -295,6 +295,14 @@ impl State {
                 self.screen = StateScreen::Fleet(fleets[self.selected_fleet].get_id());
             }
 
+            /*  To add:
+               asteroid - resource that can be extracted, surface
+               planets - atmosphere, gravity, see rust/space-2d-gui/src/system_generator.rs BodyDesc
+               planets - surface
+               fleet - command and action
+               star kind
+            */
+
             if let Some(selected) = self.selected_object.as_ref() {
                 let mut kind = "unknown";
                 if selected.is_asteroid() {

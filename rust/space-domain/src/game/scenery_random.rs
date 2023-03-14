@@ -1,6 +1,8 @@
 use crate::game::astrobody::{AstroBodies, OrbitalPos};
+use crate::game::extractables::Extractable;
 use crate::game::factory::Receipt;
 use crate::game::loader::*;
+use crate::game::objects::ObjId;
 use crate::game::sectors::Sector;
 use crate::game::shipyard::Shipyard;
 use crate::game::wares::WareAmount;
@@ -15,6 +17,14 @@ use specs::prelude::*;
 use std::collections::HashSet;
 use std::ops::Deref;
 
+struct SceneryCfg {
+    ware_ore_id: ObjId,
+    ware_components_id: ObjId,
+    ware_energy: ObjId,
+    receipt_process_ores: Receipt,
+    receipt_produce_energy: Receipt,
+}
+
 pub struct RandomMapCfg {
     pub size: usize,
     pub seed: u64,
@@ -28,7 +38,6 @@ pub fn load_random(game: &mut Game, cfg: &RandomMapCfg) {
     let world = &mut game.world;
 
     // add configurations
-    world.insert(cfg.universe_cfg.clone());
     let scenery_cfg = {
         // wares and receipts
         let ware_ore_id = Loader::add_ware(world, "ore".to_string());
@@ -57,8 +66,8 @@ pub fn load_random(game: &mut Game, cfg: &RandomMapCfg) {
 
     // create sectors
     generate_sectors(world, cfg.size, rng.gen());
-    add_bodies_to_sectors(world, rng.gen());
-    add_stations(world, rng.gen(), scenery_cfg);
+    add_bodies_to_sectors(world, rng.gen(), &cfg.universe_cfg, &scenery_cfg);
+    add_stations(world, rng.gen(), &scenery_cfg);
 
     // add ships
     {
@@ -83,7 +92,7 @@ pub fn load_random(game: &mut Game, cfg: &RandomMapCfg) {
     }
 }
 
-pub fn generate_sectors(world: &mut World, size: usize, seed: u64) {
+fn generate_sectors(world: &mut World, size: usize, seed: u64) {
     let mut sectors_by_index = vec![];
 
     let galaxy = space_galaxy::galaxy_generator::Galaxy::new(space_galaxy::galaxy_generator::Cfg {
@@ -121,7 +130,12 @@ pub fn generate_sectors(world: &mut World, size: usize, seed: u64) {
     sectors::update_sectors_index(world);
 }
 
-pub fn add_bodies_to_sectors(world: &mut World, seed: u64) {
+fn add_bodies_to_sectors(
+    world: &mut World,
+    seed: u64,
+    universe_cfg: &system_generator::UniverseCfg,
+    scenery_cfg: &SceneryCfg,
+) {
     let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
 
     let mut sectors_id = vec![];
@@ -132,11 +146,6 @@ pub fn add_bodies_to_sectors(world: &mut World, seed: u64) {
             sectors_id.push(e);
         }
     }
-
-    let universe_cfg = {
-        let universe_cfg = world.read_resource::<system_generator::UniverseCfg>();
-        universe_cfg.deref().clone()
-    };
 
     for sector_id in sectors_id {
         let system = system_generator::new_system(&universe_cfg, rng.gen());
@@ -150,7 +159,9 @@ pub fn add_bodies_to_sectors(world: &mut World, seed: u64) {
                     Some(Loader::add_object(world, &new_obj))
                 }
                 system_generator::BodyDesc::AsteroidField { .. } => {
-                    let new_obj = Loader::new_asteroid(sector_id);
+                    let new_obj = Loader::new_asteroid(sector_id).extractable(Extractable {
+                        ware_id: scenery_cfg.ware_ore_id,
+                    });
                     Some(Loader::add_object(world, &new_obj))
                 }
                 system_generator::BodyDesc::Planet(_) => {
@@ -199,7 +210,7 @@ pub fn add_bodies_to_sectors(world: &mut World, seed: u64) {
     AstroBodies::update_orbits(world);
 }
 
-pub fn add_stations(world: &mut World, seed: u64, scenery: SceneryCfg) {
+fn add_stations(world: &mut World, seed: u64, scenery: &SceneryCfg) {
     let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
 
     let sector_kind_empty = 0;

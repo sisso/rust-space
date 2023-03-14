@@ -35,14 +35,6 @@ pub struct BasicScenery {
     pub component_factory_id: ObjId,
 }
 
-pub struct SceneryCfg {
-    pub ware_ore_id: ObjId,
-    pub ware_components_id: ObjId,
-    pub ware_energy: ObjId,
-    pub receipt_process_ores: Receipt,
-    pub receipt_produce_energy: Receipt,
-}
-
 impl Loader {
     pub fn add_asteroid(world: &mut World, sector_id: SectorId, pos: V2, ware_id: WareId) -> ObjId {
         Loader::add_object(
