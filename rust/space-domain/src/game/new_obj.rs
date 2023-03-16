@@ -87,27 +87,27 @@ impl NewObj {
         self
     }
 
-    pub fn as_station(mut self) -> Self {
+    pub fn with_station(mut self) -> Self {
         self.station = true;
         self
     }
 
-    pub fn as_fleet(mut self) -> Self {
+    pub fn with_fleet(mut self) -> Self {
         self.fleet = true;
         self
     }
 
-    pub fn as_star(mut self) -> Self {
+    pub fn with_star(mut self) -> Self {
         self.star = Some(());
         self
     }
 
-    pub fn as_planet(mut self) -> Self {
+    pub fn with_planet(mut self) -> Self {
         self.planet = Some(());
         self
     }
 
-    pub fn as_asteroid(mut self) -> Self {
+    pub fn with_asteroid(mut self) -> Self {
         self.asteroid = Some(());
         self
     }

@@ -51,7 +51,7 @@ impl Loader {
             &NewObj::new()
                 .with_cargo(100.0)
                 .at_position(sector_id, pos)
-                .as_station()
+                .with_station()
                 .with_shipyard(Shipyard::new(WareAmount(ware_id, 5.0), DeltaTime(5.0)))
                 .has_dock(),
         )
@@ -63,7 +63,7 @@ impl Loader {
             &NewObj::new()
                 .with_cargo(100.0)
                 .at_position(sector_id, pos)
-                .as_station()
+                .with_station()
                 .with_factory(Factory::new(receipt))
                 .has_dock(),
         )
@@ -95,7 +95,7 @@ impl Loader {
             .at_dock(docked_at)
             .can_dock()
             .with_label(label)
-            .as_fleet()
+            .with_fleet()
             .with_command(Command::mine())
     }
 
@@ -159,15 +159,17 @@ impl Loader {
     }
 
     pub fn new_asteroid(sector_id: SectorId) -> NewObj {
-        NewObj::new().as_asteroid().at_position(sector_id, V2::ZERO)
+        NewObj::new()
+            .with_asteroid()
+            .at_position(sector_id, V2::ZERO)
     }
 
     pub fn new_star(sector_id: Entity) -> NewObj {
-        NewObj::new().at_position(sector_id, P2::ZERO).as_star()
+        NewObj::new().at_position(sector_id, P2::ZERO).with_star()
     }
 
     pub fn new_planet(sector_id: Entity) -> NewObj {
-        NewObj::new().at_position(sector_id, P2::ZERO).as_planet()
+        NewObj::new().at_position(sector_id, P2::ZERO).with_planet()
     }
 
     pub fn add_object(world: &mut World, new_obj: &NewObj) -> ObjId {
