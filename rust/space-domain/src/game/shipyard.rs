@@ -63,7 +63,7 @@ impl<'a> System<'a> for ShipyardSystem {
                     let new_obj = NewObj::new()
                         .with_ai()
                         .with_command(command)
-                        .with_cargo(10.0)
+                        .with_cargo(100)
                         .with_speed(Speed(2.0))
                         .at_dock(entity);
 
@@ -106,24 +106,24 @@ mod test {
     use super::*;
 
     use crate::game::locations::Location;
-    use crate::game::wares::WareId;
+    use crate::game::wares::{Volume, WareId};
 
     use crate::test::test_system;
 
     const PRODUCTION_TIME: f32 = 5.0;
-    const REQUIRE_CARGO: f32 = 5.0;
+    const REQUIRE_CARGO: Volume = 50;
 
     #[test]
     fn test_shipyard_system_should_not_start_production_without_enough_cargo() {
-        let (world, (entity, ware_id)) = scenery(0.0, REQUIRE_CARGO - 0.5, None);
-        assert_shipyard_cargo(&world, entity, ware_id, REQUIRE_CARGO - 0.5);
+        let (world, (entity, ware_id)) = scenery(0.0, REQUIRE_CARGO - 5, None);
+        assert_shipyard_cargo(&world, entity, ware_id, REQUIRE_CARGO - 5);
         assert_shipyard_production(&world, entity, None);
     }
 
     #[test]
     fn test_shipyard_system_should_start_production_with_enough_cargo() {
         let (world, (entity, ware_id)) = scenery(0.0, REQUIRE_CARGO, None);
-        assert_shipyard_cargo(&world, entity, ware_id, 0.0);
+        assert_shipyard_cargo(&world, entity, ware_id, 0);
         assert_shipyard_production(&world, entity, Some(TotalTime(PRODUCTION_TIME as f64)));
     }
 
@@ -136,7 +136,7 @@ mod test {
 
     #[test]
     fn test_shipyard_system_should_complete_production() {
-        let (world, (entity, _ware_id)) = scenery(2.0, 0.0, Some(1.0));
+        let (world, (entity, _ware_id)) = scenery(2.0, 0, Some(1.0));
         assert_shipyard_production(&world, entity, None);
 
         let storage = &world.read_storage::<NewObj>();
@@ -159,7 +159,7 @@ mod test {
         assert!(new_obj.command.is_some());
     }
 
-    fn assert_shipyard_cargo(world: &World, entity: Entity, ware_id: WareId, expected: f32) {
+    fn assert_shipyard_cargo(world: &World, entity: Entity, ware_id: WareId, expected: Volume) {
         let current_cargo = world
             .read_storage::<Cargo>()
             .get(entity)
@@ -184,14 +184,14 @@ mod test {
     /// returns the world and shipyard entity
     fn scenery(
         total_time: f64,
-        cargo_amount: f32,
+        cargo_amount: Volume,
         current_production: Option<f64>,
     ) -> (World, (Entity, WareId)) {
         test_system(ShipyardSystem, move |world| {
             let ware_id = world.create_entity().build();
 
-            let mut cargo = Cargo::new(100.0);
-            if cargo_amount > 0.0 {
+            let mut cargo = Cargo::new(1000);
+            if cargo_amount > 0 {
                 cargo.add(ware_id, cargo_amount).unwrap();
             }
 

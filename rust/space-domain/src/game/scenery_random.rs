@@ -45,15 +45,15 @@ pub fn load_random(game: &mut Game, cfg: &RandomMapCfg) {
 
         let receipt_process_ores = Receipt {
             input: vec![
-                WareAmount::new(ware_ore_id, 2.0),
-                WareAmount::new(ware_energy, 1.0),
+                WareAmount::new(ware_ore_id, 20),
+                WareAmount::new(ware_energy, 10),
             ],
-            output: vec![WareAmount::new(ware_components_id, 1.0)],
+            output: vec![WareAmount::new(ware_components_id, 10)],
             time: DeltaTime(1.0),
         };
         let receipt_produce_energy = Receipt {
             input: vec![],
-            output: vec![WareAmount::new(ware_energy, 1.0)],
+            output: vec![WareAmount::new(ware_energy, 10)],
             time: DeltaTime(5.0),
         };
 

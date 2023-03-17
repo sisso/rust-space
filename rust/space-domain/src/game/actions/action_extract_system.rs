@@ -1,6 +1,6 @@
 use crate::game::actions::{Action, ActionActive, ActionExtract};
 use crate::game::extractables::Extractable;
-use crate::game::wares::Cargo;
+use crate::game::wares::{Cargo, Volume};
 use crate::utils::DeltaTime;
 
 use specs::prelude::*;
@@ -35,7 +35,7 @@ impl<'a> System<'a> for ActionExtractSystem {
         )
             .join()
         {
-            let amount_extracted = delta.as_f32();
+            let amount_extracted: Volume = (delta.as_f32() * 100.0) as u32;
 
             let ware_id = match &active_action.0 {
                 Action::Extract {
@@ -90,7 +90,7 @@ mod test {
                     ware_id,
                 }))
                 .with(ActionExtract {})
-                .with(Cargo::new(10.0))
+                .with(Cargo::new(100))
                 .build();
 
             (entity, ware_id)
@@ -98,7 +98,7 @@ mod test {
 
         let cargo_storage = world.read_storage::<Cargo>();
         let cargo = cargo_storage.get(entity).unwrap();
-        assert_eq!(1.0, cargo.get_amount(ware_id));
+        assert_eq!(100, cargo.get_amount(ware_id));
     }
 
     #[test]
@@ -110,8 +110,8 @@ mod test {
 
             let asteroid_id = world.create_entity().build();
 
-            let mut cargo = Cargo::new(10.0);
-            cargo.add(ware_id, 9.5).unwrap();
+            let mut cargo = Cargo::new(100);
+            cargo.add(ware_id, 95).unwrap();
 
             let entity = world
                 .create_entity()
@@ -128,7 +128,7 @@ mod test {
 
         let cargo_storage = world.read_storage::<Cargo>();
         let cargo = cargo_storage.get(entity).unwrap();
-        assert_eq!(10.0, cargo.get_amount(ware_id));
+        assert_eq!(100, cargo.get_amount(ware_id));
 
         assert!(world.read_storage::<ActionActive>().get(entity).is_none());
         assert!(world.read_storage::<ActionExtract>().get(entity).is_none());

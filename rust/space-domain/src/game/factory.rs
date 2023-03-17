@@ -102,24 +102,25 @@ impl<'a> System<'a> for FactorySystem {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::game::wares::Volume;
 
     use crate::test::test_system;
 
-    const REQUIRE_ORE: f32 = 1.0;
-    const REQUIRE_ENERGY: f32 = 10.0;
+    const REQUIRE_ORE: Volume = 10;
+    const REQUIRE_ENERGY: Volume = 100;
     const PRODUCTION_TIME: f32 = 5.0;
-    const TOTAL_CARGO: f32 = 20.0;
-    const PRODUCED_PLATE: f32 = 1.0;
+    const TOTAL_CARGO: Volume = 200;
+    const PRODUCED_PLATE: Volume = 10;
 
     #[test]
     fn test_factory_system_should_not_start_production_without_enough_cargo() {
-        run_factory(0.0, 0.0, 3.0, None, None, 0.0, 0.0, 0.0);
+        run_factory(0, 0, 3.0, None, None, 0, 0, 0);
     }
 
     #[test]
     fn test_factory_system_should_not_start_production_without_both_enough_cargo() {
-        let ore_amount = REQUIRE_ORE - 0.5;
-        run_factory(ore_amount, 0.0, 3.0, None, None, ore_amount, 0.0, 0.0);
+        let ore_amount = REQUIRE_ORE - 5;
+        run_factory(ore_amount, 0, 3.0, None, None, ore_amount, 0, 0);
     }
 
     #[test]
@@ -131,9 +132,9 @@ mod test {
             current_time,
             None,
             Some(current_time + PRODUCTION_TIME as f64),
-            0.0,
-            1.0,
-            0.0,
+            0,
+            10,
+            0,
         );
     }
 
@@ -147,29 +148,29 @@ mod test {
             Some(8.0),
             REQUIRE_ORE,
             REQUIRE_ENERGY,
-            0.0,
+            0,
         );
     }
 
     #[test]
     fn test_factory_system_should_produce() {
-        run_factory(0.0, 0.0, 9.0, Some(8.0), None, 0.0, 0.0, PRODUCED_PLATE);
+        run_factory(0, 0, 9.0, Some(8.0), None, 0, 0, PRODUCED_PLATE);
     }
 
     #[test]
     fn test_factory_system_should_not_complete_production_if_cargo_is_full() {
-        run_factory(TOTAL_CARGO, 0.0, 9.0, Some(8.0), Some(8.0), 0.0, 0.0, 0.0);
+        run_factory(TOTAL_CARGO, 0, 9.0, Some(8.0), Some(8.0), 0, 0, 0);
     }
 
     fn run_factory(
-        ore: f32,
-        energy: f32,
+        ore: Volume,
+        energy: Volume,
         total_time: f64,
         production_time: Option<f64>,
         expect_produce_at: Option<f64>,
-        _expected_ore: f32,
-        _expected_energy: f32,
-        expected_plates: f32,
+        _expected_ore: Volume,
+        _expected_energy: Volume,
+        expected_plates: Volume,
     ) {
         let (world, (entity, plate_id)) = test_system(FactorySystem, move |world| {
             let ore_id = world.create_entity().build();

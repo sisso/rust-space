@@ -4,17 +4,19 @@ use super::objects::ObjId;
 
 pub type WareId = Entity;
 
+pub type Volume = u32;
+
 #[derive(Debug, Clone, Component)]
 pub struct Ware;
 
 #[derive(Debug, Clone, Copy)]
 pub struct WareAmount {
     pub ware_id: WareId,
-    pub amount: f32,
+    pub amount: Volume,
 }
 
 impl WareAmount {
-    pub fn new(ware_id: WareId, amount: f32) -> Self {
+    pub fn new(ware_id: WareId, amount: Volume) -> Self {
         Self { ware_id, amount }
     }
 
@@ -22,21 +24,21 @@ impl WareAmount {
         self.ware_id
     }
 
-    pub fn get_amount(&self) -> f32 {
+    pub fn get_amount(&self) -> Volume {
         self.amount
     }
 }
 
-impl From<(WareId, f32)> for WareAmount {
-    fn from((ware_id, amount): (WareId, f32)) -> Self {
+impl From<(WareId, Volume)> for WareAmount {
+    fn from((ware_id, amount): (WareId, Volume)) -> Self {
         WareAmount::new(ware_id, amount)
     }
 }
 
 #[derive(Debug, Clone, Component)]
 pub struct Cargo {
-    max_volume: f32,
-    current_volume: f32,
+    max_volume: Volume,
+    current_volume: Volume,
     wares: Vec<WareAmount>,
     /// When a whitelist is defined, the total cargo is equally distributed between the wares.
     /// Any other ware is not accepted
@@ -44,10 +46,10 @@ pub struct Cargo {
 }
 
 impl Cargo {
-    pub fn new(max: f32) -> Self {
+    pub fn new(max: Volume) -> Self {
         Cargo {
             max_volume: max,
-            current_volume: 0.0,
+            current_volume: 0,
             wares: vec![],
             whitelist: vec![],
         }
@@ -61,21 +63,25 @@ impl Cargo {
         self.whitelist = wares;
     }
 
-    pub fn remove(&mut self, ware_id: WareId, amount: f32) -> Result<(), ()> {
+    pub fn remove(&mut self, ware_id: WareId, amount: Volume) -> Result<(), ()> {
         if let Some(index) = self.wares.iter().position(|i| i.ware_id == ware_id) {
-            self.wares[index].amount -= amount;
-            if is_near_zero(self.wares[index].amount) {
+            if self.wares[index].amount == amount {
                 self.wares.remove(index);
-            } else {
                 self.current_volume -= amount;
+                Ok(())
+            } else if self.wares[index].amount > amount {
+                self.wares[index].amount -= amount;
+                self.current_volume -= amount;
+                Ok(())
+            } else {
+                Err(())
             }
-            Ok(())
         } else {
             Err(())
         }
     }
 
-    pub fn add(&mut self, ware_id: WareId, amount: f32) -> Result<(), ()> {
+    pub fn add(&mut self, ware_id: WareId, amount: Volume) -> Result<(), ()> {
         if self.free_volume(ware_id) < amount {
             return Err(());
         }
@@ -124,27 +130,27 @@ impl Cargo {
     }
 
     /// Add all cargo possible from to.
-    pub fn add_to_max(&mut self, ware_id: WareId, amount: f32) -> f32 {
+    pub fn add_to_max(&mut self, ware_id: WareId, amount: Volume) -> Volume {
         let to_add = amount.min(self.free_volume(ware_id));
 
-        self.add(ware_id, to_add).map(|_i| to_add).unwrap_or(0.0)
+        self.add(ware_id, to_add).map(|_i| to_add).unwrap_or(0)
     }
 
     /// Clear cargo only, leave configuration
     pub fn clear(&mut self) {
-        self.current_volume = 0.0;
+        self.current_volume = 0;
         self.wares.clear();
     }
 
-    pub fn free_volume(&self, ware_id: WareId) -> f32 {
+    pub fn free_volume(&self, ware_id: WareId) -> Volume {
         if self.whitelist.is_empty() {
             self.max_volume - self.current_volume
         } else {
             if !self.whitelist.contains(&ware_id) {
-                return 0.0;
+                return 0;
             }
 
-            let share = self.max_volume / self.whitelist.len() as f32;
+            let share = self.max_volume / self.whitelist.len() as Volume;
             share - self.get_amount(ware_id)
         }
     }
@@ -154,29 +160,26 @@ impl Cargo {
     }
 
     pub fn is_empty(&self) -> bool {
-        self.current_volume <= 0.001
+        self.current_volume == 0
     }
 
-    pub fn get_current_volume(&self) -> f32 {
+    pub fn get_current_volume(&self) -> Volume {
         self.current_volume
     }
 
     pub fn get_wares_ids<'a>(&'a self) -> impl Iterator<Item = WareId> + 'a {
-        self.wares
-            .iter()
-            .filter(|i| i.amount > 0.0)
-            .map(|i| i.ware_id)
+        self.wares.iter().map(|i| i.ware_id)
     }
 
-    pub fn get_amount(&self, ware_id: WareId) -> f32 {
+    pub fn get_amount(&self, ware_id: WareId) -> Volume {
         self.wares
             .iter()
             .find(|i| i.ware_id == ware_id)
             .map(|i| i.amount)
-            .unwrap_or(0.0)
+            .unwrap_or(0)
     }
 
-    pub fn get_max(&self) -> f32 {
+    pub fn get_max(&self) -> Volume {
         self.max_volume
     }
 }
@@ -211,7 +214,7 @@ impl CargoTransfer {
 
             let available = tmp_to.free_volume(w.ware_id);
             let amount_to_move = w.amount.min(available);
-            if amount_to_move > 0.0 {
+            if amount_to_move > 0 {
                 tmp_to.add(w.ware_id, amount_to_move).unwrap();
                 change
                     .moved
@@ -283,12 +286,6 @@ impl Cargos {
     }
 }
 
-/// consider any value small that 0.01 as zero
-/// TODO: should be better cargo be 1 * 100???"
-pub fn is_near_zero(v: f32) -> bool {
-    v < 0.01 && v > -0.01
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
@@ -306,52 +303,52 @@ mod test {
     fn test_cargo_transfer() {
         let (ware_0, ware_1, _ware_2) = create_wares();
 
-        let mut cargo_from = Cargo::new(10.0);
-        cargo_from.add(ware_0, 4.0).unwrap();
-        cargo_from.add(ware_1, 3.0).unwrap();
+        let mut cargo_from = Cargo::new(10);
+        cargo_from.add(ware_0, 4).unwrap();
+        cargo_from.add(ware_1, 3).unwrap();
 
-        let mut cargo_to = Cargo::new(5.0);
+        let mut cargo_to = Cargo::new(5);
 
         let transfer = CargoTransfer::transfer_all(&cargo_from, &cargo_to);
         transfer.apply_move_from(&mut cargo_from).unwrap();
         transfer.apply_move_to(&mut cargo_to).unwrap();
 
-        assert_eq!(0.0, cargo_from.get_amount(ware_0));
-        assert_eq!(2.0, cargo_from.get_amount(ware_1));
+        assert_eq!(0, cargo_from.get_amount(ware_0));
+        assert_eq!(2, cargo_from.get_amount(ware_1));
 
-        assert_eq!(4.0, cargo_to.get_amount(ware_0));
-        assert_eq!(1.0, cargo_to.get_amount(ware_1));
+        assert_eq!(4, cargo_to.get_amount(ware_0));
+        assert_eq!(1, cargo_to.get_amount(ware_1));
     }
 
     #[test]
     fn test_cargo_transfer_only() {
         let (ware_0, ware_1, ware_2) = create_wares();
 
-        let mut cargo_from = Cargo::new(10.0);
-        cargo_from.add(ware_0, 2.0).unwrap();
-        cargo_from.add(ware_1, 2.0).unwrap();
-        cargo_from.add(ware_2, 2.0).unwrap();
+        let mut cargo_from = Cargo::new(10);
+        cargo_from.add(ware_0, 2).unwrap();
+        cargo_from.add(ware_1, 2).unwrap();
+        cargo_from.add(ware_2, 2).unwrap();
 
-        let mut cargo_to = Cargo::new(5.0);
+        let mut cargo_to = Cargo::new(5);
 
         let transfer = CargoTransfer::transfer_only(&cargo_from, &cargo_to, &vec![ware_0, ware_1]);
         transfer.apply_move_from(&mut cargo_from).unwrap();
         transfer.apply_move_to(&mut cargo_to).unwrap();
 
-        assert_eq!(0.0, cargo_from.get_amount(ware_0));
-        assert_eq!(0.0, cargo_from.get_amount(ware_1));
-        assert_eq!(2.0, cargo_from.get_amount(ware_2));
+        assert_eq!(0, cargo_from.get_amount(ware_0));
+        assert_eq!(0, cargo_from.get_amount(ware_1));
+        assert_eq!(2, cargo_from.get_amount(ware_2));
 
-        assert_eq!(2.0, cargo_to.get_amount(ware_0));
-        assert_eq!(2.0, cargo_to.get_amount(ware_1));
-        assert_eq!(0.0, cargo_to.get_amount(ware_2));
+        assert_eq!(2, cargo_to.get_amount(ware_0));
+        assert_eq!(2, cargo_to.get_amount(ware_1));
+        assert_eq!(0, cargo_to.get_amount(ware_2));
     }
 
     #[test]
     fn test_cargo_add_over_capacity_should_fail() {
         let (ware_0, _, _ware_2) = create_wares();
-        let mut cargo = Cargo::new(1.0);
-        let result = cargo.add(ware_0, 2.0);
+        let mut cargo = Cargo::new(1);
+        let result = cargo.add(ware_0, 2);
         assert!(result.is_err())
     }
 
@@ -359,61 +356,61 @@ mod test {
     fn test_cargo_add_to_max() {
         let (ware_0, _, _ware_2) = create_wares();
 
-        let mut cargo = Cargo::new(1.0);
-        let amount = cargo.add_to_max(ware_0, 2.0);
-        assert_eq!(1.0, amount);
-        assert_eq!(1.0, cargo.get_current_volume());
+        let mut cargo = Cargo::new(1);
+        let amount = cargo.add_to_max(ware_0, 2);
+        assert_eq!(1, amount);
+        assert_eq!(1, cargo.get_current_volume());
 
-        let amount = cargo.add_to_max(ware_0, 2.0);
-        assert_eq!(0.0, amount);
-        assert_eq!(1.0, cargo.get_current_volume());
+        let amount = cargo.add_to_max(ware_0, 2);
+        assert_eq!(0, amount);
+        assert_eq!(1, cargo.get_current_volume());
     }
 
     #[test]
     fn test_cargo_whitelist_should_reject_any_other_ware() {
         let (ware_0, ware_1, _ware_2) = create_wares();
 
-        let mut cargo = Cargo::new(10.0);
+        let mut cargo = Cargo::new(10);
         cargo.set_whitelist(vec![ware_0]);
 
         // with invalid ware
-        assert!(cargo.add(ware_1, 1.0).is_err());
-        assert_eq!(cargo.add_to_max(ware_1, 1.0), 0.0);
-        assert!(cargo.add_all(&vec![WareAmount::new(ware_1, 1.0)]).is_err());
-        assert_eq!(cargo.free_volume(ware_1), 0.0);
+        assert!(cargo.add(ware_1, 1).is_err());
+        assert_eq!(cargo.add_to_max(ware_1, 1), 0);
+        assert!(cargo.add_all(&vec![WareAmount::new(ware_1, 1)]).is_err());
+        assert_eq!(cargo.free_volume(ware_1), 0);
     }
 
     #[test]
     fn test_cargo_whitelist_should_accept_valid_ware() {
         let (ware_0, _ware_1, _ware_2) = create_wares();
 
-        let mut cargo = Cargo::new(10.0);
+        let mut cargo = Cargo::new(10);
         cargo.set_whitelist(vec![ware_0]);
 
-        assert_eq!(cargo.free_volume(ware_0), 10.0);
-        assert!(cargo.add(ware_0, 2.0).is_ok());
-        assert!(cargo.add_all(&vec![WareAmount::new(ware_0, 2.0)]).is_ok());
-        assert_eq!(cargo.get_amount(ware_0), 4.0);
-        assert_eq!(cargo.add_to_max(ware_0, 20.0), 6.0);
+        assert_eq!(cargo.free_volume(ware_0), 10);
+        assert!(cargo.add(ware_0, 2).is_ok());
+        assert!(cargo.add_all(&vec![WareAmount::new(ware_0, 2)]).is_ok());
+        assert_eq!(cargo.get_amount(ware_0), 4);
+        assert_eq!(cargo.add_to_max(ware_0, 20), 6);
     }
 
     #[test]
     fn test_cargo_whitelist_should_split_cargo_even() {
         let (ware_0, ware_1, _ware_2) = create_wares();
 
-        let mut cargo = Cargo::new(10.0);
+        let mut cargo = Cargo::new(10);
         cargo.set_whitelist(vec![ware_0, ware_1]);
 
         for ware_id in vec![ware_0, ware_1] {
-            assert_eq!(cargo.free_volume(ware_id), 5.0);
-            assert!(cargo.add(ware_id, 2.0).is_ok());
-            assert!(cargo.add_all(&vec![WareAmount::new(ware_id, 2.0)]).is_ok());
-            assert_eq!(cargo.get_amount(ware_id), 4.0);
-            assert_eq!(cargo.free_volume(ware_id), 1.0);
-            assert_eq!(cargo.add_to_max(ware_id, 20.0), 1.0);
-            assert_eq!(cargo.get_amount(ware_id), 5.0);
-            assert_eq!(cargo.free_volume(ware_id), 0.0);
-            assert!(cargo.add(ware_id, 1.0).is_err());
+            assert_eq!(cargo.free_volume(ware_id), 5);
+            assert!(cargo.add(ware_id, 2).is_ok());
+            assert!(cargo.add_all(&vec![WareAmount::new(ware_id, 2)]).is_ok());
+            assert_eq!(cargo.get_amount(ware_id), 4);
+            assert_eq!(cargo.free_volume(ware_id), 1);
+            assert_eq!(cargo.add_to_max(ware_id, 20), 1);
+            assert_eq!(cargo.get_amount(ware_id), 5);
+            assert_eq!(cargo.free_volume(ware_id), 0);
+            assert!(cargo.add(ware_id, 1).is_err());
         }
     }
 
@@ -421,19 +418,21 @@ mod test {
     fn test_cargo_should_not_return_empty_lists() {
         let (ware_0, _ware_1, _ware_2) = create_wares();
 
-        let mut cargo = Cargo::new(10.0);
-        cargo.add(ware_0, 4.0).unwrap();
-        cargo.remove(ware_0, 4.0).unwrap();
+        let mut cargo = Cargo::new(10);
+        cargo.add(ware_0, 4).unwrap();
+        cargo.remove(ware_0, 4).unwrap();
 
         assert!(cargo.get_wares_ids().next().is_none());
     }
 
     #[test]
-    fn test_is_near_zero() {
-        assert!(!is_near_zero(0.1));
-        assert!(!is_near_zero(0.01));
-        assert!(is_near_zero(0.005));
-        assert!(is_near_zero(-0.005));
-        assert!(!is_near_zero(-0.01));
+    fn test_cargo_remove_more_that_contains_should_fail() {
+        let (ware_0, _, _) = create_wares();
+
+        let mut cargo = Cargo::new(10);
+        cargo.add(ware_0, 5).unwrap();
+        assert!(cargo.remove(ware_0, 6).is_err());
+
+        assert_eq!(5, cargo.get_amount(ware_0));
     }
 }

@@ -123,7 +123,7 @@ impl<'a> System<'a> for CommandTradeSystem {
                         if let Some(station_cargo) = cargos.get(candidate_id) {
                             if wares
                                 .iter()
-                                .any(|ware_id| station_cargo.get_amount(*ware_id) > 0.0)
+                                .any(|ware_id| station_cargo.get_amount(*ware_id) > 0)
                             {
                                 let active_traders = pickup_targets
                                     .iter()
@@ -213,7 +213,7 @@ impl<'a> System<'a> for CommandTradeSystem {
                         // check if any ware in cargo can be received by the stations
                         wares_in_cargo.iter().any(|ware_id| {
                             let amount = cargo.free_volume(*ware_id);
-                            amount > 0.0
+                            amount > 0
                         })
                     } else {
                         false
@@ -366,7 +366,7 @@ mod test {
     use crate::game::objects::ObjId;
     use crate::game::order::{Order, Orders};
     use crate::game::sectors::SectorId;
-    use crate::game::wares::{Cargo, WareId};
+    use crate::game::wares::{Cargo, Volume, WareId};
     use crate::test::test_system;
     use crate::utils::TotalTime;
 
@@ -375,8 +375,8 @@ mod test {
 
     struct SceneryRequest {}
 
-    const STATION_CARGO: f32 = 20.0;
-    const SHIP_CARGO: f32 = 5.0;
+    const STATION_CARGO: Volume = 2000;
+    const SHIP_CARGO: Volume = 500;
 
     #[derive(Debug)]
     struct SceneryResult {
@@ -525,7 +525,7 @@ mod test {
             .unwrap();
     }
 
-    fn add_cargo(world: &mut World, obj_id: ObjId, ware_id: WareId, amount: f32) {
+    fn add_cargo(world: &mut World, obj_id: ObjId, ware_id: WareId, amount: Volume) {
         let cargo_storage = &mut world.write_storage::<Cargo>();
         let cargo = cargo_storage.get_mut(obj_id).unwrap();
         cargo.add(ware_id, amount).unwrap();
@@ -537,7 +537,7 @@ mod test {
         cargo.clear();
     }
 
-    fn assert_cargo(world: &World, obj_id: ObjId, ware_id: WareId, expected_amount: f32) {
+    fn assert_cargo(world: &World, obj_id: ObjId, ware_id: WareId, expected_amount: Volume) {
         let cargo_storage = &world.read_storage::<Cargo>();
         match cargo_storage
             .get(obj_id)
@@ -691,16 +691,16 @@ mod test {
             set_docked_at(world, scenery.trader_id, scenery.producer_station_id);
 
             clear_cargo(world, scenery.producer_station_id);
-            add_cargo(world, scenery.producer_station_id, scenery.ware0_id, 1.0);
-            add_cargo(world, scenery.producer_station_id, scenery.ware1_id, 1.0);
-            add_cargo(world, scenery.producer_station_id, scenery.ware2_id, 1.0);
+            add_cargo(world, scenery.producer_station_id, scenery.ware0_id, 10);
+            add_cargo(world, scenery.producer_station_id, scenery.ware1_id, 10);
+            add_cargo(world, scenery.producer_station_id, scenery.ware2_id, 10);
 
             scenery
         });
 
-        assert_cargo(&world, scenery.trader_id, scenery.ware0_id, 1.0);
-        assert_cargo(&world, scenery.trader_id, scenery.ware1_id, 1.0);
-        assert_cargo(&world, scenery.trader_id, scenery.ware2_id, 0.0);
+        assert_cargo(&world, scenery.trader_id, scenery.ware0_id, 10);
+        assert_cargo(&world, scenery.trader_id, scenery.ware1_id, 10);
+        assert_cargo(&world, scenery.trader_id, scenery.ware2_id, 0);
     }
 
     #[test]
@@ -787,7 +787,7 @@ mod test {
             scenery
         });
 
-        assert_cargo(&world, scenery.trader_id, scenery.ware0_id, 0.0);
+        assert_cargo(&world, scenery.trader_id, scenery.ware0_id, 0);
         assert_cargo(
             &world,
             scenery.consumer_station_id,
@@ -850,7 +850,7 @@ mod test {
         });
 
         assert_command_trade_idle(&world, scenery.trader_id);
-        assert_cargo(&world, scenery.trader_id, scenery.ware0_id, 0.0);
+        assert_cargo(&world, scenery.trader_id, scenery.ware0_id, 0);
         assert_cargo(
             &world,
             scenery.consumer_station_id,
@@ -865,16 +865,16 @@ mod test {
             let scenery = setup_scenery(world);
 
             set_docked_at(world, scenery.trader_id, scenery.consumer_station_id);
-            add_cargo(world, scenery.trader_id, scenery.ware0_id, 1.0);
-            add_cargo(world, scenery.trader_id, scenery.ware1_id, 1.0);
-            add_cargo(world, scenery.trader_id, scenery.ware2_id, 1.0);
+            add_cargo(world, scenery.trader_id, scenery.ware0_id, 1);
+            add_cargo(world, scenery.trader_id, scenery.ware1_id, 1);
+            add_cargo(world, scenery.trader_id, scenery.ware2_id, 1);
 
             scenery
         });
 
-        assert_cargo(&world, scenery.trader_id, scenery.ware0_id, 0.0);
-        assert_cargo(&world, scenery.trader_id, scenery.ware1_id, 0.0);
-        assert_cargo(&world, scenery.trader_id, scenery.ware2_id, 1.0);
+        assert_cargo(&world, scenery.trader_id, scenery.ware0_id, 0);
+        assert_cargo(&world, scenery.trader_id, scenery.ware1_id, 0);
+        assert_cargo(&world, scenery.trader_id, scenery.ware2_id, 1);
     }
 
     #[test]

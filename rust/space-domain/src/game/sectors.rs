@@ -441,7 +441,7 @@ mod test {
 
     #[test]
     fn test_find_path_performance() {
-        env_logger::builder()
+        _ = env_logger::builder()
             .filter(None, log::LevelFilter::Warn)
             .try_init();
 

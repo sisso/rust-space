@@ -49,10 +49,10 @@ impl Loader {
         Loader::add_object(
             world,
             &NewObj::new()
-                .with_cargo(100.0)
+                .with_cargo(1000)
                 .at_position(sector_id, pos)
                 .with_station()
-                .with_shipyard(Shipyard::new(WareAmount::new(ware_id, 5.0), DeltaTime(5.0)))
+                .with_shipyard(Shipyard::new(WareAmount::new(ware_id, 50), DeltaTime(5.0)))
                 .has_dock(),
         )
     }
@@ -61,7 +61,7 @@ impl Loader {
         Loader::add_object(
             world,
             &NewObj::new()
-                .with_cargo(100.0)
+                .with_cargo(100)
                 .at_position(sector_id, pos)
                 .with_station()
                 .with_factory(Factory::new(receipt))
@@ -90,7 +90,7 @@ impl Loader {
 
     pub fn add_ship(docked_at: ObjId, speed: f32, label: String) -> NewObj {
         NewObj::new()
-            .with_cargo(2.0)
+            .with_cargo(20)
             .with_speed(Speed(speed))
             .at_dock(docked_at)
             .can_dock()
@@ -232,7 +232,7 @@ impl Loader {
             });
         }
 
-        if new_obj.cargo_size > 0.0 {
+        if new_obj.cargo_size > 0 {
             let mut cargo = Cargo::new(new_obj.cargo_size);
             // TODO: shipyards?
             for factory in &new_obj.factory {

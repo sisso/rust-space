@@ -170,7 +170,7 @@ mod test {
 
         match plan.path.get(1).unwrap() {
             Action::MoveTo { pos } => assert_eq!(pos.clone(), sector_scenery.jump_0_to_1_pos),
-            _other => panic!(),
+            other => panic!("found {:?}", other),
         }
 
         match plan.path.get(2).unwrap() {

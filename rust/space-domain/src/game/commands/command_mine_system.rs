@@ -273,7 +273,7 @@ mod test {
             .create_entity()
             .with(location)
             .with(Command::mine())
-            .with(Cargo::new(10.0))
+            .with(Cargo::new(100))
             .build()
     }
 
@@ -299,7 +299,7 @@ mod test {
                 sector_id: sector_scenery.sector_0,
             })
             .with(HasDock)
-            .with(Cargo::new(100.0))
+            .with(Cargo::new(1000))
             .with(Orders::new(Order::WareRequest {
                 wares_id: vec![ware_id],
             }))
@@ -401,7 +401,7 @@ mod test {
             // fill miner cargo
             let cargo_storage = &mut world.write_storage::<Cargo>();
             let cargo = cargo_storage.get_mut(scenery.miner).unwrap();
-            cargo.add_to_max(scenery.ware_id, 10.0);
+            cargo.add_to_max(scenery.ware_id, 100);
 
             scenery
         });
@@ -426,7 +426,7 @@ mod test {
             // fill miner cargo
             let cargo_storage = &mut world.write_storage::<Cargo>();
             let cargo = cargo_storage.get_mut(scenery.miner).unwrap();
-            cargo.add_to_max(scenery.ware_id, 10.0);
+            cargo.add_to_max(scenery.ware_id, 100);
 
             scenery
         });
@@ -451,14 +451,14 @@ mod test {
             // fill miner cargo
             let cargo_storage = &mut world.write_storage::<Cargo>();
             let cargo = cargo_storage.get_mut(scenery.miner).unwrap();
-            cargo.add_to_max(scenery.ware_id, 10.0);
+            cargo.add_to_max(scenery.ware_id, 100);
 
             scenery
         });
 
         let cargo_storage = &world.write_storage::<Cargo>();
         let miner_cargo = cargo_storage.get(scenery.miner).unwrap();
-        assert_eq!(10.0, miner_cargo.get_current_volume());
+        assert_eq!(100, miner_cargo.get_current_volume());
     }
 
     #[test]
@@ -469,7 +469,7 @@ mod test {
             // fill miner cargo
             let cargo_storage = &mut world.write_storage::<Cargo>();
             let cargo = cargo_storage.get_mut(scenery.miner).unwrap();
-            cargo.add_to_max(scenery.ware_id, 10.0);
+            cargo.add_to_max(scenery.ware_id, 100);
 
             scenery
         });
@@ -477,10 +477,10 @@ mod test {
         let cargo_storage = &world.write_storage::<Cargo>();
 
         let miner_cargo = cargo_storage.get(scenery.miner).unwrap();
-        assert_eq!(0.0, miner_cargo.get_current_volume());
+        assert_eq!(0, miner_cargo.get_current_volume());
 
         let station_cargo = cargo_storage.get(scenery.station).unwrap();
-        assert_eq!(10.0, station_cargo.get_current_volume());
+        assert_eq!(100, station_cargo.get_current_volume());
     }
 
     #[test]
@@ -493,11 +493,11 @@ mod test {
             // fill miner cargo
             let cargo_storage = &mut world.write_storage::<Cargo>();
             let cargo = cargo_storage.get_mut(scenery.miner).unwrap();
-            cargo.add_to_max(scenery.ware_id, 10.0);
+            cargo.add_to_max(scenery.ware_id, 100);
 
             // fill station to max
             let cargo = cargo_storage.get_mut(scenery.station).unwrap();
-            cargo.add_to_max(scenery.ware_id, 100.0);
+            cargo.add_to_max(scenery.ware_id, 1000);
 
             scenery
         });
@@ -505,10 +505,10 @@ mod test {
         let cargo_storage = &world.write_storage::<Cargo>();
 
         let miner_cargo = cargo_storage.get(scenery.miner).unwrap();
-        assert_eq!(10.0, miner_cargo.get_current_volume());
+        assert_eq!(100, miner_cargo.get_current_volume());
 
         let station_cargo = cargo_storage.get(scenery.station).unwrap();
-        assert_eq!(100.0, station_cargo.get_current_volume());
+        assert_eq!(1000, station_cargo.get_current_volume());
     }
 
     #[test]
