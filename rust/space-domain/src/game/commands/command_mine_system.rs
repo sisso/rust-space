@@ -458,7 +458,7 @@ mod test {
 
         let cargo_storage = &world.write_storage::<Cargo>();
         let miner_cargo = cargo_storage.get(scenery.miner).unwrap();
-        assert_eq!(10.0, miner_cargo.get_current());
+        assert_eq!(10.0, miner_cargo.get_current_volume());
     }
 
     #[test]
@@ -477,10 +477,10 @@ mod test {
         let cargo_storage = &world.write_storage::<Cargo>();
 
         let miner_cargo = cargo_storage.get(scenery.miner).unwrap();
-        assert_eq!(0.0, miner_cargo.get_current());
+        assert_eq!(0.0, miner_cargo.get_current_volume());
 
         let station_cargo = cargo_storage.get(scenery.station).unwrap();
-        assert_eq!(10.0, station_cargo.get_current());
+        assert_eq!(10.0, station_cargo.get_current_volume());
     }
 
     #[test]
@@ -505,10 +505,10 @@ mod test {
         let cargo_storage = &world.write_storage::<Cargo>();
 
         let miner_cargo = cargo_storage.get(scenery.miner).unwrap();
-        assert_eq!(10.0, miner_cargo.get_current());
+        assert_eq!(10.0, miner_cargo.get_current_volume());
 
         let station_cargo = cargo_storage.get(scenery.station).unwrap();
-        assert_eq!(100.0, station_cargo.get_current());
+        assert_eq!(100.0, station_cargo.get_current_volume());
     }
 
     #[test]

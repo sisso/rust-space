@@ -224,7 +224,7 @@ pub struct ObjCargo {
 
 impl ObjCargo {
     fn volume_total(&self) -> f32 {
-        self.cargo.get_current()
+        self.cargo.get_current_volume()
     }
     fn volume_max(&self) -> f32 {
         self.cargo.get_max()

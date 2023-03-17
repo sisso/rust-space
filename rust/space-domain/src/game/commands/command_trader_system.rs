@@ -212,7 +212,7 @@ impl<'a> System<'a> for CommandTradeSystem {
                     if let Some(cargo) = cargos.get(*target_id) {
                         // check if any ware in cargo can be received by the stations
                         wares_in_cargo.iter().any(|ware_id| {
-                            let amount = cargo.free_space(*ware_id);
+                            let amount = cargo.free_volume(*ware_id);
                             amount > 0.0
                         })
                     } else {

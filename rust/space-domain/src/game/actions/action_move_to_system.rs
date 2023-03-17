@@ -228,7 +228,7 @@ mod test {
 
         // move target
         {
-            let mut l = &mut world.write_storage::<Location>();
+            let l = &mut world.write_storage::<Location>();
             l.insert(
                 target,
                 Location::Space {

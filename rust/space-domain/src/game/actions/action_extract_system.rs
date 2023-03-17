@@ -51,7 +51,7 @@ impl<'a> System<'a> for ActionExtractSystem {
                 entity,
                 amount_extracted,
                 ware_id,
-                cargo.get_current(),
+                cargo.get_current_volume(),
                 cargo.get_max(),
             );
             if amount_added < amount_extracted {
