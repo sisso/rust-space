@@ -8,28 +8,35 @@ pub type WareId = Entity;
 pub struct Ware;
 
 #[derive(Debug, Clone, Copy)]
-pub struct WareAmount(pub WareId, pub f32);
+pub struct WareAmount {
+    pub ware_id: WareId,
+    pub amount: f32,
+}
 
 impl WareAmount {
+    pub fn new(ware_id: WareId, amount: f32) -> Self {
+        Self { ware_id, amount }
+    }
+
     pub fn get_ware_id(&self) -> WareId {
-        self.0
+        self.ware_id
     }
 
     pub fn get_amount(&self) -> f32 {
-        self.1
+        self.amount
     }
 }
 
 impl From<(WareId, f32)> for WareAmount {
     fn from((ware_id, amount): (WareId, f32)) -> Self {
-        WareAmount(ware_id, amount)
+        WareAmount::new(ware_id, amount)
     }
 }
 
 #[derive(Debug, Clone, Component)]
 pub struct Cargo {
-    max: f32,
-    current: f32,
+    max_volume: f32,
+    current_volume: f32,
     wares: Vec<WareAmount>,
     /// When a whitelist is defined, the total cargo is equally distributed between the wares.
     /// Any other ware is not accepted
@@ -39,8 +46,8 @@ pub struct Cargo {
 impl Cargo {
     pub fn new(max: f32) -> Self {
         Cargo {
-            max,
-            current: 0.0,
+            max_volume: max,
+            current_volume: 0.0,
             wares: Default::default(),
             whitelist: Default::default(),
         }
@@ -51,11 +58,11 @@ impl Cargo {
     }
 
     pub fn remove(&mut self, ware_id: WareId, amount: f32) -> Result<(), ()> {
-        match self.wares.iter().position(|i| i.0 == ware_id) {
-            Some(pos) if self.wares[pos].1 >= amount => {
-                self.wares[pos].1 -= amount;
-                self.current -= amount;
-                Result::Ok(())
+        match self.wares.iter().position(|i| i.ware_id == ware_id) {
+            Some(pos) if self.wares[pos].amount >= amount => {
+                self.wares[pos].amount -= amount;
+                self.current_volume -= amount;
+                Ok(())
             }
             _ => Err(()),
         }
@@ -63,32 +70,32 @@ impl Cargo {
 
     pub fn add(&mut self, ware_id: WareId, amount: f32) -> Result<(), ()> {
         if self.free_space(ware_id) < amount {
-            return Result::Err(());
+            return Err(());
         }
 
-        match self.wares.iter().position(|i| i.0 == ware_id) {
+        match self.wares.iter().position(|i| i.ware_id == ware_id) {
             Some(pos) => {
-                self.wares[pos].1 += amount;
+                self.wares[pos].amount += amount;
             }
             None => {
-                self.wares.push(WareAmount(ware_id, amount));
+                self.wares.push(WareAmount::new(ware_id, amount));
             }
         }
 
-        self.current += amount;
-        Result::Ok(())
+        self.current_volume += amount;
+        Ok(())
     }
 
     /// add all wares or none
     pub fn add_all(&mut self, wares: &Vec<WareAmount>) -> Result<(), ()> {
-        for WareAmount(ware_id, amount) in wares {
-            if self.free_space(*ware_id) < *amount {
+        for w in wares {
+            if self.free_space(w.ware_id) < w.amount {
                 return Err(());
             }
         }
 
-        for WareAmount(ware_id, amount) in wares {
-            self.add(*ware_id, *amount).unwrap();
+        for w in wares {
+            self.add(w.ware_id, w.amount).unwrap();
         }
 
         Ok(())
@@ -96,14 +103,14 @@ impl Cargo {
 
     /// remove all wares or none
     pub fn remove_all(&mut self, wares: &Vec<WareAmount>) -> Result<(), ()> {
-        for WareAmount(ware_id, amount) in wares {
-            if self.get_amount(*ware_id) < *amount {
+        for w in wares {
+            if self.get_amount(w.ware_id) < w.amount {
                 return Err(());
             }
         }
 
-        for WareAmount(ware_id, amount) in wares {
-            self.remove(*ware_id, *amount).unwrap();
+        for w in wares {
+            self.remove(w.ware_id, w.amount).unwrap();
         }
 
         Ok(())
@@ -118,57 +125,52 @@ impl Cargo {
 
     /// Clear cargo only, leave configuration
     pub fn clear(&mut self) {
-        self.current = 0.0;
+        self.current_volume = 0.0;
         self.wares.clear();
     }
 
     pub fn free_space(&self, ware_id: WareId) -> f32 {
         if self.whitelist.is_empty() {
-            self.max - self.current
+            self.max_volume - self.current_volume
         } else {
             if self.whitelist.iter().find(|i| **i == ware_id).is_none() {
                 return 0.0;
             }
 
-            let share = self.max / self.whitelist.len() as f32;
+            let share = self.max_volume / self.whitelist.len() as f32;
             share - self.get_amount(ware_id)
         }
     }
 
     pub fn is_full(&self) -> bool {
-        self.current >= self.max
+        self.current_volume >= self.max_volume
     }
 
     pub fn is_empty(&self) -> bool {
-        self.current <= 0.001
+        self.current_volume <= 0.001
     }
 
     pub fn get_current(&self) -> f32 {
-        self.current
+        self.current_volume
     }
 
-    pub fn get_wares<'a>(&'a self) -> impl Iterator<Item = WareId> + 'a {
+    pub fn get_wares_ids<'a>(&'a self) -> impl Iterator<Item = WareId> + 'a {
         self.wares
             .iter()
-            .filter(|WareAmount(_, amount)| *amount > 0.0)
-            .map(|WareAmount(ware_id, _)| *ware_id)
+            .filter(|i| i.amount > 0.0)
+            .map(|i| i.ware_id)
     }
 
     pub fn get_amount(&self, ware_id: WareId) -> f32 {
         self.wares
             .iter()
-            .find_map(|WareAmount(i_ware_id, i_amount)| {
-                if ware_id == *i_ware_id {
-                    Some(*i_amount)
-                } else {
-                    None
-                }
-            })
+            .find(|i| i.ware_id == ware_id)
+            .map(|i| i.amount)
             .unwrap_or(0.0)
     }
 
     pub fn get_max(&self) -> f32 {
-        self.max
+        self.max_volume
     }
 }
 
@@ -193,18 +195,20 @@ impl CargoTransfer {
         // use a temporary copy to simulate the transfer
         let mut tmp_to = to.clone();
 
-        for WareAmount(id, amount) in &from.wares {
+        for w in &from.wares {
             if let Some(wares) = wares {
-                if !wares.contains(id) {
+                if !wares.contains(&w.ware_id) {
                     continue;
                 }
             }
 
-            let available = tmp_to.free_space(*id);
-            let amount_to_move = amount.min(available);
+            let available = tmp_to.free_space(w.ware_id);
+            let amount_to_move = w.amount.min(available);
             if amount_to_move > 0.0 {
-                tmp_to.add(*id, amount_to_move).unwrap();
-                change.moved.push(WareAmount(*id, amount_to_move));
+                tmp_to.add(w.ware_id, amount_to_move).unwrap();
+                change
+                    .moved
+                    .push(WareAmount::new(w.ware_id, amount_to_move));
             }
         }
 
@@ -362,7 +366,7 @@ mod test {
         // with invalid ware
         assert!(cargo.add(ware_1, 1.0).is_err());
         assert_eq!(cargo.add_to_max(ware_1, 1.0), 0.0);
-        assert!(cargo.add_all(&vec![WareAmount(ware_1, 1.0)]).is_err());
+        assert!(cargo.add_all(&vec![WareAmount::new(ware_1, 1.0)]).is_err());
         assert_eq!(cargo.free_space(ware_1), 0.0);
     }
 
@@ -375,7 +379,7 @@ mod test {
 
         assert_eq!(cargo.free_space(ware_0), 10.0);
         assert!(cargo.add(ware_0, 2.0).is_ok());
-        assert!(cargo.add_all(&vec![WareAmount(ware_0, 2.0)]).is_ok());
+        assert!(cargo.add_all(&vec![WareAmount::new(ware_0, 2.0)]).is_ok());
         assert_eq!(cargo.get_amount(ware_0), 4.0);
         assert_eq!(cargo.add_to_max(ware_0, 20.0), 6.0);
     }
@@ -390,7 +394,7 @@ mod test {
         for ware_id in vec![ware_0, ware_1] {
             assert_eq!(cargo.free_space(ware_id), 5.0);
             assert!(cargo.add(ware_id, 2.0).is_ok());
-            assert!(cargo.add_all(&vec![WareAmount(ware_id, 2.0)]).is_ok());
+            assert!(cargo.add_all(&vec![WareAmount::new(ware_id, 2.0)]).is_ok());
             assert_eq!(cargo.get_amount(ware_id), 4.0);
             assert_eq!(cargo.free_space(ware_id), 1.0);
             assert_eq!(cargo.add_to_max(ware_id, 20.0), 1.0);
@@ -408,6 +412,6 @@ mod test {
         cargo.add(ware_0, 4.0).unwrap();
         cargo.remove(ware_0, 4.0).unwrap();
 
-        assert!(cargo.get_wares().next().is_none());
+        assert!(cargo.get_wares_ids().next().is_none());
     }
 }

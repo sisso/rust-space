@@ -209,10 +209,30 @@ impl ObjDesc {
             .map(|i| encode_entity(i.target_id))
     }
 
+    pub fn get_cargo(&self) -> Option<ObjCargo> {}
+
     // pub fn x(&self) {
     //     self.nav_move_to
     //         .map(|i| encode_entity(i.plan.path.iter().map(|j| j.clone())))
     // }
+}
+
+#[derive(Clone, Debug)]
+pub struct ObjCargo {
+    cargo: Cargo,
+}
+
+impl ObjCargo {
+    fn volume_total(&self) -> f32 {
+        self.cargo.get_current()
+    }
+    fn volume_max(&self) -> f32 {
+        self.cargo.get_max()
+    }
+    fn wares_count(&self) -> usize {
+        self.cargo.get_wares_ids().count()
+    }
+    fn get_ware(&self, index: usize) -> (Id, f32) {}
 }
 
 #[derive(Clone, Debug)]

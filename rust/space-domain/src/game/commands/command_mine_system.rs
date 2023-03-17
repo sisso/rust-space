@@ -97,7 +97,7 @@ impl<'a> System<'a> for CommandMineSystem {
                             .unwrap()
                             .sector_id;
 
-                        let wares_to_deliver: Vec<WareId> = cargo.get_wares().collect();
+                        let wares_to_deliver: Vec<WareId> = cargo.get_wares_ids().collect();
 
                         // TODO: build list of delivers
                         match search_orders_target(

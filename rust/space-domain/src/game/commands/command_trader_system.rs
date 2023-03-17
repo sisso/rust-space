@@ -188,7 +188,7 @@ impl<'a> System<'a> for CommandTradeSystem {
                 .unwrap()
                 .sector_id;
 
-            let wares_in_cargo: Vec<WareId> = cargo.get_wares().collect();
+            let wares_in_cargo: Vec<WareId> = cargo.get_wares_ids().collect();
 
             let candidates = sectors_index
                 .search_nearest_stations(sector_id)

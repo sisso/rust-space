@@ -123,12 +123,10 @@ impl Game {
 
         // update systems
         self.dispatcher.dispatch(&mut self.world);
-        // instantiate new objects
-        self.tick_new_objects_system();
         // apply all lazy updates
         self.world.maintain();
-        // apply all lazy updates from later dispatcher
-        self.world.maintain();
+        // instantiate new objects
+        self.tick_new_objects_system();
     }
 
     pub fn save(&self, _save: &mut impl Save) {}

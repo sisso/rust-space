@@ -44,13 +44,16 @@ pub fn load_random(game: &mut Game, cfg: &RandomMapCfg) {
         let ware_energy = Loader::add_ware(world, "energy".to_string());
 
         let receipt_process_ores = Receipt {
-            input: vec![WareAmount(ware_ore_id, 2.0), WareAmount(ware_energy, 1.0)],
-            output: vec![WareAmount(ware_components_id, 1.0)],
+            input: vec![
+                WareAmount::new(ware_ore_id, 2.0),
+                WareAmount::new(ware_energy, 1.0),
+            ],
+            output: vec![WareAmount::new(ware_components_id, 1.0)],
             time: DeltaTime(1.0),
         };
         let receipt_produce_energy = Receipt {
             input: vec![],
-            output: vec![WareAmount(ware_energy, 1.0)],
+            output: vec![WareAmount::new(ware_energy, 1.0)],
             time: DeltaTime(5.0),
         };
 
@@ -91,7 +94,7 @@ pub fn load_random(game: &mut Game, cfg: &RandomMapCfg) {
     }
 }
 
-fn generate_sectors(world: &mut World, size: usize, seed: u64) {
+pub fn generate_sectors(world: &mut World, size: usize, seed: u64) {
     let mut sectors_by_index = vec![];
 
     let galaxy = space_galaxy::galaxy_generator::Galaxy::new(space_galaxy::galaxy_generator::Cfg {
@@ -328,7 +331,7 @@ mod test {
         let universe_cfg = space_galaxy::system_generator::new_config_from_file(&PathBuf::from(
             "../data/system_generator.conf",
         ));
-        Loader::load_random(
+        load_random(
             &mut game,
             &RandomMapCfg {
                 size: 3,

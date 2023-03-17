@@ -35,8 +35,8 @@ pub fn load_basic_scenery(game: &mut Game) -> BasicScenery {
         sector_0,
         V2::new(3.0, -1.0),
         Receipt {
-            input: vec![WareAmount(ware_ore_id, 2.0)],
-            output: vec![WareAmount(ware_components_id, 1.0)],
+            input: vec![WareAmount::new(ware_ore_id, 2.0)],
+            output: vec![WareAmount::new(ware_components_id, 1.0)],
             time: DeltaTime(1.0),
         },
     );
@@ -67,13 +67,16 @@ pub fn load_advanced_scenery(world: &mut World) {
 
     // receipts
     let receipt_process_ores = Receipt {
-        input: vec![WareAmount(ware_ore_id, 2.0), WareAmount(ware_energy, 1.0)],
-        output: vec![WareAmount(ware_components_id, 1.0)],
+        input: vec![
+            WareAmount::new(ware_ore_id, 2.0),
+            WareAmount::new(ware_energy, 1.0),
+        ],
+        output: vec![WareAmount::new(ware_components_id, 1.0)],
         time: DeltaTime(1.0),
     };
     let receipt_produce_energy = Receipt {
         input: vec![],
-        output: vec![WareAmount(ware_energy, 1.0)],
+        output: vec![WareAmount::new(ware_energy, 1.0)],
         time: DeltaTime(5.0),
     };
 

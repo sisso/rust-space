@@ -52,7 +52,7 @@ impl Loader {
                 .with_cargo(100.0)
                 .at_position(sector_id, pos)
                 .with_station()
-                .with_shipyard(Shipyard::new(WareAmount(ware_id, 5.0), DeltaTime(5.0)))
+                .with_shipyard(Shipyard::new(WareAmount::new(ware_id, 5.0), DeltaTime(5.0)))
                 .has_dock(),
         )
     }

@@ -198,7 +198,7 @@ mod test {
             world.insert(TotalTime(total_time));
 
             let mut shipyard = Shipyard::new(
-                WareAmount(ware_id, REQUIRE_CARGO),
+                WareAmount::new(ware_id, REQUIRE_CARGO),
                 DeltaTime(PRODUCTION_TIME),
             );
             shipyard.current_production = current_production.map(|i| TotalTime(i));

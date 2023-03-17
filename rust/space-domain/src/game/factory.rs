@@ -3,7 +3,6 @@ use crate::game::{GameInitContext, RequireInitializer};
 use crate::utils::{DeltaTime, TotalTime};
 use specs::prelude::*;
 
-
 #[derive(Debug, Clone)]
 pub struct Receipt {
     pub input: Vec<WareAmount>,
@@ -13,17 +12,11 @@ pub struct Receipt {
 
 impl Receipt {
     pub fn request_wares_id(&self) -> Vec<WareId> {
-        self.input
-            .iter()
-            .map(|WareAmount(ware_id, _)| *ware_id)
-            .collect()
+        self.input.iter().map(|i| i.ware_id).collect()
     }
 
     pub fn provide_wares_id(&self) -> Vec<WareId> {
-        self.output
-            .iter()
-            .map(|WareAmount(ware_id, _)| *ware_id)
-            .collect()
+        self.output.iter().map(|i| i.ware_id).collect()
     }
 }
 
@@ -42,9 +35,8 @@ impl Factory {
     }
 
     pub fn setup_cargo(&self, cargo: &mut Cargo) {
-        let mut wares = vec![];
-        wares.extend(self.production.input.iter().map(|i| i.0));
-        wares.extend(self.production.output.iter().map(|i| i.0));
+        let mut wares: Vec<_> = self.production.input.iter().map(|i| i.ware_id).collect();
+        wares.extend(self.production.output.iter().map(|i| i.ware_id));
         cargo.set_whitelist(wares);
     }
 }
@@ -186,10 +178,10 @@ mod test {
 
             let production = Receipt {
                 input: vec![
-                    WareAmount(ore_id, REQUIRE_ORE),
-                    WareAmount(energy_id, REQUIRE_ENERGY),
+                    WareAmount::new(ore_id, REQUIRE_ORE),
+                    WareAmount::new(energy_id, REQUIRE_ENERGY),
                 ],
-                output: vec![WareAmount(plate_id, PRODUCED_PLATE)],
+                output: vec![WareAmount::new(plate_id, PRODUCED_PLATE)],
                 time: DeltaTime(PRODUCTION_TIME),
             };
 

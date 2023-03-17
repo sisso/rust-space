@@ -63,6 +63,7 @@ foreign_class!(
         private constructor = empty;
         fn ObjDesc::get_id(&self) -> u64;
         fn ObjDesc::get_action(&self) -> Option<ObjAction>;
+        fn ObjDesc::get_cargo(&self) -> Option<ObjCargo>;
     }
 );
 
@@ -84,6 +85,17 @@ foreign_class!(
         fn ObjAction::get_kind(&self) -> ObjActionKind;
         fn ObjAction::get_target(&self) -> Option<u64>;
         fn ObjAction::get_pos(&self) -> Option<(f32, f32)>;
+    }
+);
+
+foreign_class!(
+    class ObjCargo{
+        self_type ObjCargo;
+        private constructor = empty;
+        fn ObjCargo::volume_total(&self) -> f32;
+        fn ObjCargo::volume_max(&self) -> f32;
+        fn ObjCargo::wares_count(&self) -> usize;
+        fn ObjCargo::get_ware(&self, index: usize) -> (Id, f32);
     }
 );
 
