@@ -35,7 +35,7 @@ pub fn assert_v2(value: V2, expected: V2) {
 }
 
 pub fn init_log() {
-    env_logger::builder()
+    _ = env_logger::builder()
         .filter(None, log::LevelFilter::Trace)
         .try_init();
 }

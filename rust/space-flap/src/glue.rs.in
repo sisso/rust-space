@@ -57,6 +57,36 @@ foreign_class!(
     }
 );
 
+foreign_class!(
+    class ObjDesc {
+        self_type ObjDesc;
+        private constructor = empty;
+        fn ObjDesc::get_id(&self) -> u64;
+        fn ObjDesc::get_action(&self) -> Option<ObjAction>;
+    }
+);
+
+foreign_enum!(
+    enum ObjActionKind {
+        Undock = ObjActionKind::Undock,
+        Jump = ObjActionKind::Jump,
+        Dock = ObjActionKind::Dock,
+        MoveTo = ObjActionKind::MoveTo,
+        MoveToTargetPos = ObjActionKind::MoveToTargetPos,
+        Extract = ObjActionKind::Extract,
+    }
+);
+
+foreign_class!(
+    class ObjAction {
+        self_type ObjAction;
+        private constructor = empty;
+        fn ObjAction::get_kind(&self) -> ObjActionKind;
+        fn ObjAction::get_target(&self) -> Option<u64>;
+        fn ObjAction::get_pos(&self) -> Option<(f32, f32)>;
+    }
+);
+
 foreign_enum!(
     enum EventKind{
         Add = EventKind::Add,
@@ -66,7 +96,6 @@ foreign_enum!(
         Undock = EventKind::Undock,
     }
 );
-
 
 foreign_class!(
     class EventData {

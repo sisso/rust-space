@@ -31,7 +31,8 @@ mod action_undock_system;
 
 pub const ACTION_JUMP_TOTAL_TIME: DeltaTime = DeltaTime(2.0);
 
-/// Not a component, but used to create requests
+/// Not a component, but used to create requests and referenced by ActionActive component
+/// to indicate what action is current active
 #[derive(Debug, Clone, PartialEq)]
 pub enum Action {
     Undock,
@@ -70,11 +71,13 @@ impl Action {
     }
 }
 
+/// Waiting time until ActiveAction can be completed
 #[derive(Debug, Clone, Component)]
 pub struct ActionProgress {
     pub complete_time: TotalTime,
 }
 
+/// Request to change entity action
 #[derive(Debug, Clone, Component)]
 pub struct ActionRequest(pub Action);
 
@@ -84,6 +87,7 @@ impl ActionRequest {
     }
 }
 
+/// Current action that entity is doing
 #[derive(Debug, Clone, Component)]
 pub struct ActionActive(pub Action);
 
@@ -97,6 +101,9 @@ impl ActionActive {
     }
 }
 
+//
+// actions markers
+//
 #[derive(Debug, Clone, Component)]
 pub struct ActionUndock;
 

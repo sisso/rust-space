@@ -7,7 +7,7 @@ use ggez::graphics::{self, Canvas, Color, DrawParam, StrokeOptions};
 use ggez::{Context, ContextBuilder, GameError, GameResult};
 use mint::Point2;
 use space_flap;
-use space_flap::{EventKind, Id, ObjData, SectorData};
+use space_flap::{EventKind, Id, ObjActionKind, ObjData, ObjDesc, SectorData};
 
 const COLOR_FLEET: Color = Color::RED;
 const COLOR_ASTEROID: Color = Color::MAGENTA;
@@ -77,7 +77,7 @@ struct State {
     screen: StateScreen,
     selected_sector: usize,
     selected_fleet: usize,
-    selected_object: Option<ObjData>,
+    selected_object: Option<(ObjData, ObjDesc)>,
     egui_backend: Gui,
     sector_view_transform: Transform2,
     time_speed: TimeSpeed,
@@ -303,21 +303,52 @@ impl State {
                star kind
             */
 
-            if let Some(selected) = self.selected_object.as_ref() {
+            if let Some((data, desc)) = self.selected_object.as_ref() {
                 let mut kind = "unknown";
-                if selected.is_asteroid() {
+                if data.is_asteroid() {
                     kind = "asteroid";
                 }
-                if selected.is_astro() {
+                if data.is_astro() {
                     kind = "astro";
                 }
-                if selected.is_fleet() {
+                if data.is_fleet() {
                     kind = "fleet";
                 }
-                if selected.is_jump() {
+                if data.is_jump() {
                     kind = "jump";
                 }
-                ui.label(format!("selected: {} {}", kind, selected.get_id()));
+                if data.is_station() {
+                    kind = "station";
+                }
+                ui.label(format!("selected: {} {}", kind, data.get_id()));
+
+                if let Some(action) = desc.get_action() {
+                    match action.get_kind() {
+                        ObjActionKind::Undock => {
+                            ui.label(format!("action: undock"));
+                        }
+                        ObjActionKind::Jump => {
+                            let target_id = action.get_target().unwrap();
+                            ui.label(format!("action: jump gate {target_id}"));
+                        }
+                        ObjActionKind::Dock => {
+                            let target_id = action.get_target().unwrap();
+                            ui.label(format!("action: dock at {target_id}"));
+                        }
+                        ObjActionKind::MoveTo => {
+                            let (x, y) = action.get_pos().unwrap();
+                            ui.label(format!("action: move to pos {x} {y}"));
+                        }
+                        ObjActionKind::MoveToTargetPos => {
+                            let target_id = action.get_target().unwrap();
+                            ui.label(format!("action: move to {target_id}"));
+                        }
+                        ObjActionKind::Extract => {
+                            let target_id = action.get_target().unwrap();
+                            ui.label(format!("action: extract {target_id}"));
+                        }
+                    }
+                }
             } else {
                 ui.label("selected: none");
             }
@@ -357,11 +388,12 @@ impl State {
 
         let button_released = ctx.mouse.button_just_released(MouseButton::Left);
         if button_released {
-            log::info!("{:?}", mouse_pos);
-
             match &self.screen {
                 StateScreen::Sector(sector_id) => {
                     self.select_nearest_in_sector(mouse_pos, *sector_id)
+                }
+                StateScreen::Fleet(fleet_id) => {
+                    self.select_nearest_in_fleet_sector(mouse_pos, *fleet_id)
                 }
                 _ => {}
             };
@@ -370,14 +402,25 @@ impl State {
         Ok(())
     }
 
+    fn select_nearest_in_fleet_sector(&mut self, mouse_pos: P2, fleet_id: Id) {
+        self.game
+            .get_obj_coords(fleet_id)
+            .map(|coords| coords.get_sector_id())
+            .into_iter()
+            .for_each(|sector_id| self.select_nearest_in_sector(mouse_pos, sector_id));
+    }
+
     fn select_nearest_in_sector(&mut self, mouse_pos: P2, sector_id: Id) {
         let local_pos = screen_to_point(&self.sector_view_transform, mouse_pos);
-        self.selected_object = search_nearest_object_in_sector(
-            &self.game,
-            sector_id,
-            P2::new(local_pos.x, local_pos.y),
-        )
-        .and_then(|id| self.game.get_obj(id));
+        self.selected_object = search_nearest_object_in_sector(&self.game, sector_id, local_pos)
+            .and_then(|id| {
+                let data = self.game.get_obj(id)?;
+                let desc = self
+                    .game
+                    .get_obj_desc(id)
+                    .expect("fail to get obj desc after get obj data");
+                Some((data, desc))
+            });
     }
 }
 

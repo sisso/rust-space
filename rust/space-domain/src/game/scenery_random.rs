@@ -15,7 +15,6 @@ use shred::World;
 use space_galaxy::system_generator;
 use specs::prelude::*;
 use std::collections::HashSet;
-use std::ops::Deref;
 
 struct SceneryCfg {
     ware_ore_id: ObjId,

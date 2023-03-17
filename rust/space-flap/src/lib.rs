@@ -3,18 +3,21 @@
 extern crate core;
 
 use commons::math::P2;
-use itertools::Itertools;
+use itertools::{cloned, Itertools};
+use space_domain::game::actions::{Action, ActionActive, Actions};
 use space_domain::game::astrobody::{AstroBodies, AstroBody, OrbitalPos};
 use space_domain::game::extractables::Extractable;
 use space_domain::game::factory::Factory;
 use space_domain::game::fleets::Fleet;
 use space_domain::game::loader::Loader;
 use space_domain::game::locations::{Location, LocationSpace, Locations};
+use space_domain::game::navigations::{Navigation, NavigationMoveTo};
 use space_domain::game::objects::ObjId;
 use space_domain::game::order::{Order, Orders};
 use space_domain::game::sectors::{Jump, Sector};
 use space_domain::game::shipyard::Shipyard;
 use space_domain::game::station::Station;
+use space_domain::game::wares::{Cargo, WareId};
 use space_domain::game::Game;
 use space_domain::game::{events, scenery_random};
 use space_domain::utils::TotalTime;
@@ -133,6 +136,83 @@ impl ObjData {
     pub fn is_astro(&self) -> bool {
         self.kind.astro
     }
+}
+
+#[derive(Clone, Debug)]
+pub enum ObjActionKind {
+    Undock,
+    Jump,
+    Dock,
+    MoveTo,
+    MoveToTargetPos,
+    Extract,
+}
+
+#[derive(Clone, Debug)]
+pub struct ObjAction {
+    action: Action,
+}
+
+impl ObjAction {
+    pub fn get_kind(&self) -> ObjActionKind {
+        match &self.action {
+            Action::Undock => ObjActionKind::Undock,
+            Action::Jump { .. } => ObjActionKind::Jump,
+            Action::Dock { .. } => ObjActionKind::Dock,
+            Action::MoveTo { .. } => ObjActionKind::MoveTo,
+            Action::MoveToTargetPos { .. } => ObjActionKind::MoveToTargetPos,
+            Action::Extract { .. } => ObjActionKind::Extract,
+        }
+    }
+
+    pub fn get_target(&self) -> Option<Id> {
+        match &self.action {
+            Action::Jump { jump_id } => Some(encode_entity(*jump_id)),
+            Action::Dock { target_id } => Some(encode_entity(*target_id)),
+            Action::MoveToTargetPos { target_id, .. } => Some(encode_entity(*target_id)),
+            Action::Extract { target_id, .. } => Some(encode_entity(*target_id)),
+            _ => None,
+        }
+    }
+
+    pub fn get_pos(&self) -> Option<(f32, f32)> {
+        match &self.action {
+            _ => None,
+            Action::MoveTo { pos } => Some((pos.x, pos.y)),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ObjDesc {
+    id: Id,
+    extractable: Option<Entity>,
+    action: Option<Action>,
+    nav_move_to: Option<NavigationMoveTo>,
+    cargo: Option<Cargo>,
+}
+
+impl ObjDesc {
+    pub fn get_id(&self) -> Id {
+        self.id
+    }
+
+    pub fn get_action(&self) -> Option<ObjAction> {
+        self.action.as_ref().map(|action| ObjAction {
+            action: action.clone(),
+        })
+    }
+
+    pub fn get_nav_move_to_target(&self) -> Option<Id> {
+        self.nav_move_to
+            .as_ref()
+            .map(|i| encode_entity(i.target_id))
+    }
+
+    // pub fn x(&self) {
+    //     self.nav_move_to
+    //         .map(|i| encode_entity(i.plan.path.iter().map(|j| j.clone())))
+    // }
 }
 
 #[derive(Clone, Debug)]
@@ -364,11 +444,7 @@ impl SpaceGame {
 
     pub fn get_obj(&self, id: Id) -> Option<ObjData> {
         let g = self.game.borrow();
-
-        let time = g.world.read_resource::<TotalTime>();
-
         let entities = g.world.entities();
-
         let e = decode_entity_and_get(&g, id)?;
 
         let locations = g.world.read_storage::<Location>();
@@ -416,6 +492,30 @@ impl SpaceGame {
         Some(obj)
     }
 
+    pub fn get_obj_desc(&self, id: Id) -> Option<ObjDesc> {
+        let g = self.game.borrow();
+        let entities = g.world.entities();
+        let e = decode_entity_and_get(&g, id)?;
+
+        let desc = ObjDesc {
+            id: id,
+            extractable: g
+                .world
+                .read_storage::<Extractable>()
+                .get(e)
+                .map(|ext| ext.ware_id),
+            action: g
+                .world
+                .read_storage::<ActionActive>()
+                .get(e)
+                .map(|action| action.get_action().clone()),
+            nav_move_to: g.world.read_storage::<NavigationMoveTo>().get(e).cloned(),
+            cargo: g.world.read_storage::<Cargo>().get(e).cloned(),
+        };
+
+        Some(desc)
+    }
+
     pub fn get_obj_coords(&self, id: Id) -> Option<ObjCoords> {
         let game = self.game.borrow();
         let e = decode_entity_and_get(&game, id)?;
@@ -450,7 +550,8 @@ impl EventData {
     }
 }
 
-fn encode_entity(entity: Entity) -> u64 {
+// real encoding of a entity
+fn proper_encode_entity(entity: Entity) -> u64 {
     let high: u32 = entity.id();
     let low: i32 = entity.gen().id();
 
@@ -458,10 +559,25 @@ fn encode_entity(entity: Entity) -> u64 {
     return encoded;
 }
 
-fn decode_entity(value: u64) -> (u32, i32) {
+// real decoding of a entity
+fn proper_decode_entity(value: u64) -> (u32, i32) {
     let high = (value >> 32) as u32;
     let low = (value & 0xffffffff) as i32;
     (high, low)
+}
+
+// pretty but broken encode of entity
+fn encode_entity(entity: Entity) -> u64 {
+    let high = entity.id() as u64 * 1_000_000;
+    let low = entity.gen().id() as u64;
+    return high + low;
+}
+
+// pretty but broken decode of entity
+fn decode_entity(value: u64) -> (u32, i32) {
+    let high = value / 1_000_000;
+    let low = value % 1_000_000;
+    (high as u32, low as i32)
 }
 
 fn decode_entity_and_get(g: &Game, id: Id) -> Option<Entity> {
@@ -491,10 +607,10 @@ mod test {
     use std::num::NonZeroI32;
 
     #[test]
-    fn test1() {
+    fn test_v2_distance() {
         env_logger::builder()
             .filter(None, log::LevelFilter::Trace)
-            .init();
+            .try_init();
 
         let mut sg = SpaceGame::new(vec![]);
         let f1 = sg.get_fleets();
@@ -509,7 +625,7 @@ mod test {
         for f in f1 {
             for f2 in &f2 {
                 if f.id == f2.id {
-                    let changed = V2::distance(&f.coords, &f2.coords) > MIN_DISTANCE;
+                    let changed = V2::distance(f.coords, f2.coords) > MIN_DISTANCE;
                     if f.kind.fleet && changed {
                         changed_pos += 1;
                     } else if f.kind.station && changed {
@@ -523,7 +639,42 @@ mod test {
     }
 
     #[test]
+    fn test_proper_encode_decode_entity() {
+        env_logger::builder()
+            .filter(None, log::LevelFilter::Trace)
+            .try_init();
+
+        let mut w = World::new();
+        for _ in 0..100 {
+            w.create_entity().build();
+        }
+
+        for _ in 0..9 {
+            let e = w.create_entity().build();
+            w.delete_entity(e).unwrap();
+        }
+
+        let e = w.create_entity().build();
+        assert_eq!(100, e.id());
+        assert_eq!(10, e.gen().id());
+
+        let v = proper_encode_entity(e);
+        log::info!("encoded {v}");
+        let (id, gen) = proper_decode_entity(v);
+        log::info!("decoded {id} {gen}");
+
+        assert_eq!(e.id(), id);
+        assert_eq!(100, id);
+        assert_eq!(e.gen().id(), gen);
+        assert_eq!(10, gen);
+    }
+
+    #[test]
     fn test_encode_decode_entity() {
+        env_logger::builder()
+            .filter(None, log::LevelFilter::Trace)
+            .try_init();
+
         let mut w = World::new();
         for _ in 0..100 {
             w.create_entity().build();
@@ -539,7 +690,9 @@ mod test {
         assert_eq!(10, e.gen().id());
 
         let v = encode_entity(e);
+        log::info!("encoded {v}");
         let (id, gen) = decode_entity(v);
+        log::info!("decoded {id} {gen}");
 
         assert_eq!(e.id(), id);
         assert_eq!(100, id);
