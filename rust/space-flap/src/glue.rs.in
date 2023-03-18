@@ -92,10 +92,9 @@ foreign_class!(
     class ObjCargo{
         self_type ObjCargo;
         private constructor = empty;
-        fn ObjCargo::volume_total(&self) -> f32;
-        fn ObjCargo::volume_max(&self) -> f32;
-        fn ObjCargo::wares_count(&self) -> usize;
-        fn ObjCargo::get_ware(&self, index: usize) -> (Id, f32);
+        fn ObjCargo::volume_total(&self) -> u32;
+        fn ObjCargo::volume_max(&self) -> u32;
+        fn ObjCargo::get_wares(&self) -> Vec<(u64, u32)>;
     }
 );
 

@@ -349,6 +349,17 @@ impl State {
                         }
                     }
                 }
+
+                if let Some(cargo) = desc.get_cargo() {
+                    ui.label(format!(
+                        "cargo {}/{}:",
+                        cargo.volume_total(),
+                        cargo.volume_max()
+                    ));
+                    for c in cargo.get_wares() {
+                        ui.label(format!("- {}:{}", c.0, c.1));
+                    }
+                }
             } else {
                 ui.label("selected: none");
             }

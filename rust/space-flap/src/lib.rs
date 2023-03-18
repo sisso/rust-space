@@ -209,7 +209,11 @@ impl ObjDesc {
             .map(|i| encode_entity(i.target_id))
     }
 
-    pub fn get_cargo(&self) -> Option<ObjCargo> {}
+    pub fn get_cargo(&self) -> Option<ObjCargo> {
+        self.cargo.as_ref().map(|cargo| ObjCargo {
+            cargo: cargo.clone(),
+        })
+    }
 
     // pub fn x(&self) {
     //     self.nav_move_to
@@ -223,16 +227,19 @@ pub struct ObjCargo {
 }
 
 impl ObjCargo {
-    fn volume_total(&self) -> f32 {
+    pub fn volume_total(&self) -> u32 {
         self.cargo.get_current_volume()
     }
-    fn volume_max(&self) -> f32 {
+    pub fn volume_max(&self) -> u32 {
         self.cargo.get_max()
     }
-    fn wares_count(&self) -> usize {
-        self.cargo.get_wares_ids().count()
+    pub fn get_wares(&self) -> Vec<(Id, u32)> {
+        self.cargo
+            .get_wares()
+            .iter()
+            .map(|i| (encode_entity(i.ware_id), i.amount))
+            .collect()
     }
-    fn get_ware(&self, index: usize) -> (Id, f32) {}
 }
 
 #[derive(Clone, Debug)]
