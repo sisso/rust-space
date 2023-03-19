@@ -1,0 +1,10 @@
+[configuration]
+entry_symbol = "gdext_rust_init"
+
+[libraries]
+linux.debug.x86_64 = "res://../rust/target/debug/libspace_godot.so"
+linux.release.x86_64 = "res://../rust/target/release/libspace_godot.so"
+windows.debug.x86_64 = "res://../rust/target/debug/space_godot.dll"
+windows.release.x86_64 = "res://../rust/target/release/space_godot.dll"
+macos.debug = "res://../rust/target/debug/space_godot.dylib"
+macos.release = "res://../rust/target/release/space_godot.dylib"
