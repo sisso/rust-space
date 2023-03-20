@@ -1,4 +1,5 @@
 use commons::math::{Transform2, P2, V2};
+use godot::engine::Engine;
 use godot::prelude::*;
 use godot::private::You_forgot_the_attribute__godot_api;
 use space_domain::game::{scenery_random, Game};
@@ -15,7 +16,7 @@ unsafe impl ExtensionLibrary for SpaceGame {}
 #[derive(GodotClass)]
 #[class(base=Node2D)]
 pub struct GameApi {
-    state: State,
+    state: Option<State>,
 
     #[base]
     base: Base<Node2D>,
@@ -27,9 +28,20 @@ impl GameApi {}
 #[godot_api]
 impl GodotExt for GameApi {
     fn init(base: Base<Node2D>) -> Self {
-        let state = State::new();
-        godot_print!("init");
-        GameApi { state, base: base }
+        if Engine::singleton().is_editor_hint() {
+            godot_print!("init empty");
+            GameApi {
+                state: None,
+                base: base,
+            }
+        } else {
+            let state = State::new();
+            godot_print!("init state");
+            GameApi {
+                state: Some(state),
+                base: base,
+            }
+        }
     }
 
     fn ready(&mut self) {
