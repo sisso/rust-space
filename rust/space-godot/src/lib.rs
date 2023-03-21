@@ -23,7 +23,27 @@ pub struct GameApi {
 }
 
 #[godot_api]
-impl GameApi {}
+impl GameApi {
+    #[func]
+    pub fn add(&self, a: i64, b: i64) -> i64 {
+        a + b
+    }
+
+    #[func]
+    pub fn get_u64(&self) -> i64 {
+        1
+    }
+
+    #[func]
+    pub fn get_f32(&self) -> f32 {
+        2.33
+    }
+
+    #[func]
+    pub fn get_string(&self) -> GodotString {
+        "one".into()
+    }
+}
 
 #[godot_api]
 impl GodotExt for GameApi {
@@ -46,11 +66,15 @@ impl GodotExt for GameApi {
 
     fn ready(&mut self) {
         godot_print!("ready");
+        if Engine::singleton().is_editor_hint() {
+        } else {
+        }
     }
 
     fn process(&mut self, delta: f64) {
-        // godot_print!("update for {delta}");
-        // self.translate(Vector2::new(delta as f32, 0.0));
+        if Engine::singleton().is_editor_hint() {
+        } else {
+        }
     }
 }
 

@@ -1,5 +1,8 @@
-[gd_scene format=3 uid="uid://b33cktkrr8ut7"]
+[gd_scene load_steps=2 format=3 uid="uid://b33cktkrr8ut7"]
+
+[ext_resource type="Script" path="res://controller.gd" id="1_l0l4u"]
 
 [node name="Node2D" type="Node2D"]
 
 [node name="GameApi" type="GameApi" parent="."]
+script = ExtResource("1_l0l4u")
