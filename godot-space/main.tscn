@@ -1,8 +1,9 @@
-[gd_scene load_steps=2 format=3 uid="uid://b33cktkrr8ut7"]
+[gd_scene load_steps=2 format=3 uid="uid://qdm6iur4h1gv"]
 
-[ext_resource type="Script" path="res://controller.gd" id="1_t1oe5"]
+[ext_resource type="PackedScene" uid="uid://dk8s1os4t4pey" path="res://main_gui.tscn" id="1_moldk"]
 
 [node name="Node2D" type="Node2D"]
 
 [node name="GameApi" type="GameApi" parent="."]
-script = ExtResource("1_t1oe5")
+
+[node name="MainGui" parent="." instance=ExtResource("1_moldk")]

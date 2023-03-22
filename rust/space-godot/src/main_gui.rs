@@ -11,7 +11,10 @@ pub struct MainGui {
 
 #[godot_api]
 impl MainGui {
+    #[func]
     pub fn show_sectors(&self) {
+        godot_print!("MainGui show_sectors");
+
         // let container = self
         //     .base
         //     .get_node_as::<BoxContainer>("TabContainer/Main/SectorsVBoxContainer");
@@ -42,7 +45,10 @@ impl MainGui {
         container.add_child(h1.upcast(), false, InternalMode::INTERNAL_MODE_DISABLED);
     }
 
+    #[func]
     pub fn show_fleets(&self) {
+        godot_print!("MainGui show_fleets");
+
         let mut container = self
             .base
             .find_child("FleetsVBoxContainer".into(), true, true)
@@ -80,8 +86,6 @@ impl GodotExt for MainGui {
     fn ready(&mut self) {
         if Engine::singleton().is_editor_hint() {
         } else {
-            self.show_sectors();
-            self.show_fleets();
         }
     }
 
