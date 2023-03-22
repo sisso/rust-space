@@ -1,3 +1,5 @@
+mod main_gui;
+
 use commons::math::{Transform2, P2, V2};
 use godot::engine::Engine;
 use godot::prelude::*;
@@ -14,12 +16,16 @@ struct SpaceGame;
 unsafe impl ExtensionLibrary for SpaceGame {}
 
 #[derive(GodotClass)]
-#[class(base=Node2D)]
+#[class(base=Node)]
 pub struct GameApi {
     state: Option<State>,
 
+    // #[export]
+    // pub value: i32,
+    // #[export]
+    // pub value_str: GodotString,
     #[base]
-    base: Base<Node2D>,
+    base: Base<Node>,
 }
 
 #[godot_api]
@@ -47,11 +53,13 @@ impl GameApi {
 
 #[godot_api]
 impl GodotExt for GameApi {
-    fn init(base: Base<Node2D>) -> Self {
+    fn init(base: Base<Node>) -> Self {
         if Engine::singleton().is_editor_hint() {
             godot_print!("init empty");
             GameApi {
                 state: None,
+                // value: 1,
+                // value_str: Default::default(),
                 base: base,
             }
         } else {
@@ -59,12 +67,15 @@ impl GodotExt for GameApi {
             godot_print!("init state");
             GameApi {
                 state: Some(state),
+                // value: 2,
+                // value_str: Default::default(),
                 base: base,
             }
         }
     }
 
     fn ready(&mut self) {
+        // godot_print!("ready {} {}", self.value, self.value_str);
         godot_print!("ready");
         if Engine::singleton().is_editor_hint() {
         } else {

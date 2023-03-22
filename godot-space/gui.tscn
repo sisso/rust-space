@@ -8,85 +8,79 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="TabContainer" type="TabContainer" parent="."]
-layout_mode = 1
+[node name="MainGui" type="MainGui" parent="."]
+
+[node name="TabContainer" type="TabContainer" parent="MainGui"]
 anchors_preset = 9
 anchor_bottom = 1.0
 offset_right = 367.0
+offset_bottom = 648.0
 grow_vertical = 2
 size_flags_vertical = 3
 
-[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer"]
+[node name="Main" type="VBoxContainer" parent="MainGui/TabContainer"]
 layout_mode = 2
 
-[node name="HBoxContainer" type="HBoxContainer" parent="TabContainer/VBoxContainer"]
+[node name="Label3" type="Label" parent="MainGui/TabContainer/Main"]
+layout_mode = 2
+text = "Sectors
+"
+
+[node name="SectorsVBoxContainer" type="VBoxContainer" parent="MainGui/TabContainer/Main"]
 layout_mode = 2
 
-[node name="Button" type="Button" parent="TabContainer/VBoxContainer/HBoxContainer"]
+[node name="SectorHBoxContainer" type="HBoxContainer" parent="MainGui/TabContainer/Main/SectorsVBoxContainer"]
+layout_mode = 2
+
+[node name="SectorButton" type="Button" parent="MainGui/TabContainer/Main/SectorsVBoxContainer/SectorHBoxContainer"]
 layout_mode = 2
 text = "0 0"
 
-[node name="Button2" type="Button" parent="TabContainer/VBoxContainer/HBoxContainer"]
+[node name="SectorButton2" type="Button" parent="MainGui/TabContainer/Main/SectorsVBoxContainer/SectorHBoxContainer"]
 layout_mode = 2
-text = "1 0
-"
+text = "0 0"
 
-[node name="HBoxContainer2" type="HBoxContainer" parent="TabContainer/VBoxContainer"]
+[node name="SectorHBoxContainer2" type="HBoxContainer" parent="MainGui/TabContainer/Main/SectorsVBoxContainer"]
 layout_mode = 2
 
-[node name="Button" type="Button" parent="TabContainer/VBoxContainer/HBoxContainer2"]
+[node name="SectorButton" type="Button" parent="MainGui/TabContainer/Main/SectorsVBoxContainer/SectorHBoxContainer2"]
 layout_mode = 2
-text = "0 1
-"
+text = "0 0"
 
-[node name="Button2" type="Button" parent="TabContainer/VBoxContainer/HBoxContainer2"]
+[node name="SectorButton2" type="Button" parent="MainGui/TabContainer/Main/SectorsVBoxContainer/SectorHBoxContainer2"]
 layout_mode = 2
-text = "1 1
-"
+text = "0 0"
 
-[node name="Label2" type="Label" parent="TabContainer/VBoxContainer"]
+[node name="Label2" type="Label" parent="MainGui/TabContainer/Main"]
 layout_mode = 2
 text = "Fleets
 "
 
-[node name="Button4" type="Button" parent="TabContainer/VBoxContainer"]
+[node name="FleetsVBoxContainer" type="VBoxContainer" parent="MainGui/TabContainer/Main"]
+layout_mode = 2
+
+[node name="FleetButton" type="Button" parent="MainGui/TabContainer/Main/FleetsVBoxContainer"]
 layout_mode = 2
 text = "Fleet 0"
 
-[node name="Button5" type="Button" parent="TabContainer/VBoxContainer"]
+[node name="FleetButton2" type="Button" parent="MainGui/TabContainer/Main/FleetsVBoxContainer"]
+layout_mode = 2
+text = "Fleet 1"
+
+[node name="Details" type="VBoxContainer" parent="MainGui/TabContainer"]
+visible = false
+layout_mode = 2
+
+[node name="Button4" type="Button" parent="MainGui/TabContainer/Details"]
+layout_mode = 2
+text = "Fleet 0"
+
+[node name="Button5" type="Button" parent="MainGui/TabContainer/Details"]
 layout_mode = 2
 text = "Fleet 1
 "
 
-[node name="Button6" type="Button" parent="TabContainer/VBoxContainer"]
-layout_mode = 2
-text = "Fleet 3
-"
-
-[node name="Label" type="Label" parent="TabContainer/VBoxContainer"]
-visible = false
-layout_mode = 2
-text = "Systems"
-
-[node name="VBoxContainer2" type="VBoxContainer" parent="TabContainer"]
-visible = false
-layout_mode = 2
-
-[node name="Label2" type="Label" parent="TabContainer/VBoxContainer2"]
-layout_mode = 2
-text = "Fleets
-"
-
-[node name="Button4" type="Button" parent="TabContainer/VBoxContainer2"]
-layout_mode = 2
-text = "Fleet 0"
-
-[node name="Button5" type="Button" parent="TabContainer/VBoxContainer2"]
-layout_mode = 2
-text = "Fleet 1
-"
-
-[node name="Button6" type="Button" parent="TabContainer/VBoxContainer2"]
+[node name="Button6" type="Button" parent="MainGui/TabContainer/Details"]
 layout_mode = 2
 text = "Fleet 3
 "
