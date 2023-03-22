@@ -5,7 +5,7 @@
 [node name="TabContainer" type="TabContainer" parent="."]
 anchors_preset = 9
 anchor_bottom = 1.0
-offset_right = 367.0
+offset_right = 166.0
 offset_bottom = 648.0
 grow_vertical = 2
 size_flags_vertical = 3
@@ -18,28 +18,23 @@ layout_mode = 2
 text = "Sectors
 "
 
-[node name="SectorsVBoxContainer" type="VBoxContainer" parent="TabContainer/Main"]
+[node name="SectorsGridContainer" type="GridContainer" parent="TabContainer/Main"]
 layout_mode = 2
+columns = 2
 
-[node name="SectorHBoxContainer" type="HBoxContainer" parent="TabContainer/Main/SectorsVBoxContainer"]
-layout_mode = 2
-
-[node name="SectorButton" type="Button" parent="TabContainer/Main/SectorsVBoxContainer/SectorHBoxContainer"]
+[node name="SectorButton2" type="Button" parent="TabContainer/Main/SectorsGridContainer"]
 layout_mode = 2
 text = "0 0"
 
-[node name="SectorButton2" type="Button" parent="TabContainer/Main/SectorsVBoxContainer/SectorHBoxContainer"]
+[node name="SectorButton3" type="Button" parent="TabContainer/Main/SectorsGridContainer"]
 layout_mode = 2
 text = "0 0"
 
-[node name="SectorHBoxContainer2" type="HBoxContainer" parent="TabContainer/Main/SectorsVBoxContainer"]
-layout_mode = 2
-
-[node name="SectorButton" type="Button" parent="TabContainer/Main/SectorsVBoxContainer/SectorHBoxContainer2"]
+[node name="SectorButton4" type="Button" parent="TabContainer/Main/SectorsGridContainer"]
 layout_mode = 2
 text = "0 0"
 
-[node name="SectorButton2" type="Button" parent="TabContainer/Main/SectorsVBoxContainer/SectorHBoxContainer2"]
+[node name="SectorButton" type="Button" parent="TabContainer/Main/SectorsGridContainer"]
 layout_mode = 2
 text = "0 0"
 
@@ -48,14 +43,10 @@ layout_mode = 2
 text = "Fleets
 "
 
-[node name="FleetsVBoxContainer" type="VBoxContainer" parent="TabContainer/Main"]
+[node name="FleetsGridContainer" type="GridContainer" parent="TabContainer/Main"]
 layout_mode = 2
 
-[node name="FleetButton" type="Button" parent="TabContainer/Main/FleetsVBoxContainer"]
-layout_mode = 2
-text = "Fleet 0"
-
-[node name="FleetButton2" type="Button" parent="TabContainer/Main/FleetsVBoxContainer"]
+[node name="FleetButton2" type="Button" parent="TabContainer/Main/FleetsGridContainer"]
 layout_mode = 2
 text = "Fleet 1"
 

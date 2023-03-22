@@ -1,5 +1,5 @@
 use godot::engine::node::InternalMode;
-use godot::engine::{BoxContainer, Button, Engine, HBoxContainer};
+use godot::engine::{BoxContainer, Button, Container, Engine, GridContainer, HBoxContainer};
 use godot::prelude::*;
 
 #[derive(GodotClass)]
@@ -14,57 +14,43 @@ impl MainGui {
     #[func]
     pub fn show_sectors(&self) {
         godot_print!("MainGui show_sectors");
-
-        // let container = self
-        //     .base
-        //     .get_node_as::<BoxContainer>("TabContainer/Main/SectorsVBoxContainer");
-        let mut container = self
+        let mut grid = self
             .base
-            .find_child("SectorsVBoxContainer".into(), true, true)
-            .unwrap()
-            .cast::<BoxContainer>();
+            .get_node_as::<GridContainer>("TabContainer/Main/SectorsGridContainer");
+        Self::clear(grid.share());
 
-        Self::clear(&mut container);
+        grid.set_columns(2);
 
-        let mut h1 = HBoxContainer::new_alloc();
-        let mut b1 = Button::new_alloc();
-        b1.set_text("0 0".into());
-        h1.add_child(b1.upcast(), false, InternalMode::INTERNAL_MODE_DISABLED);
-        let mut b1 = Button::new_alloc();
-        b1.set_text("1 0".into());
-        h1.add_child(b1.upcast(), false, InternalMode::INTERNAL_MODE_DISABLED);
-        container.add_child(h1.upcast(), false, InternalMode::INTERNAL_MODE_DISABLED);
-
-        let mut h1 = HBoxContainer::new_alloc();
-        let mut b1 = Button::new_alloc();
-        b1.set_text("0 1".into());
-        h1.add_child(b1.upcast(), false, InternalMode::INTERNAL_MODE_DISABLED);
-        let mut b1 = Button::new_alloc();
-        b1.set_text("1 1".into());
-        h1.add_child(b1.upcast(), false, InternalMode::INTERNAL_MODE_DISABLED);
-        container.add_child(h1.upcast(), false, InternalMode::INTERNAL_MODE_DISABLED);
+        for i in 0..4 {
+            let mut button = Button::new_alloc();
+            button.set_text(format!("0 {i}").into());
+            grid.add_child(button.upcast(), false, InternalMode::INTERNAL_MODE_DISABLED);
+        }
     }
 
     #[func]
     pub fn show_fleets(&self) {
         godot_print!("MainGui show_fleets");
 
-        let mut container = self
+        let mut grid = self
             .base
-            .find_child("FleetsVBoxContainer".into(), true, true)
-            .unwrap()
-            .cast::<BoxContainer>();
-
-        Self::clear(&mut container);
+            .get_node_as::<GridContainer>("TabContainer/Main/FleetsGridContainer");
+        Self::clear(grid.share());
+        grid.set_columns(1);
 
         for i in 0..4 {
-            let mut b1 = Button::new_alloc();
-            b1.set_text(format!("Fleet {i}").into());
-            container.add_child(b1.upcast(), false, InternalMode::INTERNAL_MODE_DISABLED);
+            let mut button = Button::new_alloc();
+            button.set_text(format!("Fleet {i}").into());
+            grid.add_child(button.upcast(), false, InternalMode::INTERNAL_MODE_DISABLED);
         }
     }
 
-    fn clear(container: &mut Gd<BoxContainer>) {
+    fn clear<T>(container: Gd<T>)
+    where
+        T: Inherits<Container>,
+    {
+        let mut container = container.upcast();
+
         for c in container.get_children(true).iter_shared() {
             let mut n = c.cast::<Node>();
             container.remove_child(n.share());
