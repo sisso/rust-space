@@ -5,26 +5,26 @@ use std::cell::RefCell;
 use std::path::PathBuf;
 use std::rc::Rc;
 
-enum StateScreen {
+pub enum StateScreen {
     Sector(Entity),
     Galaxy,
     Fleet(Entity),
 }
 
 #[derive(PartialEq, Debug, Copy, Clone)]
-enum TimeSpeed {
+pub enum TimeSpeed {
     Pause,
     Normal,
 }
 
 pub struct State {
-    game: Rc<RefCell<Game>>,
-    screen: StateScreen,
-    selected_sector: usize,
-    selected_fleet: usize,
-    selected_object: Option<Entity>,
-    sector_view_transform: Transform2,
-    time_speed: TimeSpeed,
+    pub game: Rc<RefCell<Game>>,
+    pub screen: StateScreen,
+    pub selected_sector: usize,
+    pub selected_fleet: usize,
+    pub selected_object: Option<Entity>,
+    pub sector_view_transform: Transform2,
+    pub time_speed: TimeSpeed,
 }
 
 impl State {
@@ -50,7 +50,7 @@ impl State {
         scenery_random::load_random(
             &mut game,
             &scenery_random::RandomMapCfg {
-                size: 4,
+                size: 2,
                 seed: 0,
                 ships: 2,
                 universe_cfg,

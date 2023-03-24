@@ -11,25 +11,24 @@ pub struct MainGui {
 
 #[godot_api]
 impl MainGui {
-    #[func]
-    pub fn show_sectors(&self) {
+    pub fn show_sectors(&self, sectors: Vec<String>) {
         godot_print!("MainGui show_sectors");
         let mut grid = self
             .base
             .get_node_as::<GridContainer>("TabContainer/Main/SectorsGridContainer");
         Self::clear(grid.share());
 
-        grid.set_columns(2);
+        let columns = (sectors.len() as f32).sqrt().floor() as i64;
+        grid.set_columns(columns);
 
-        for i in 0..4 {
+        for sector in sectors {
             let mut button = Button::new_alloc();
-            button.set_text(format!("0 {i}").into());
+            button.set_text(sector.into());
             grid.add_child(button.upcast(), false, InternalMode::INTERNAL_MODE_DISABLED);
         }
     }
 
-    #[func]
-    pub fn show_fleets(&self) {
+    pub fn show_fleets(&self, fleets: Vec<String>) {
         godot_print!("MainGui show_fleets");
 
         let mut grid = self
@@ -38,9 +37,9 @@ impl MainGui {
         Self::clear(grid.share());
         grid.set_columns(1);
 
-        for i in 0..4 {
+        for fleet in fleets {
             let mut button = Button::new_alloc();
-            button.set_text(format!("Fleet {i}").into());
+            button.set_text(fleet.into());
             grid.add_child(button.upcast(), false, InternalMode::INTERNAL_MODE_DISABLED);
         }
     }

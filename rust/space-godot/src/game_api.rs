@@ -6,9 +6,11 @@ use godot::builtin::GodotString;
 use godot::engine::{Engine, Node, NodeExt};
 use godot::log::godot_print;
 use godot::obj::Base;
+use space_domain::game::fleets::Fleet;
+use space_domain::game::sectors::Sector;
 use space_domain::game::{scenery_random, Game};
-use specs::Entity;
-use std::cell::RefCell;
+use specs::{Entity, WorldExt};
+use std::cell::{Ref, RefCell};
 use std::path::PathBuf;
 use std::rc::Rc;
 
@@ -43,6 +45,8 @@ impl GameApi {
     }
 
     pub fn update_gui(&mut self) {
+        let state = self.get_state();
+
         godot_print!("GameApi.update_gui");
         let gui = self
             .base
@@ -51,9 +55,35 @@ impl GameApi {
             .find_child("MainGui".into(), true, false);
         let mut gui = gui.unwrap().cast::<MainGui>();
         let gui = gui.bind_mut();
-        gui.show_sectors();
-        gui.show_fleets();
+
+        let sectors_storage = state.world.read_storage::<Sector>();
+        let sectors: Vec<String> = sectors_storage
+            .as_slice()
+            .iter()
+            .map(|i| format!("{} {}", i.coords.x, i.coords.y))
+            .collect();
+        gui.show_sectors(sectors);
+
+        let fleets_storage = state.world.read_storage::<Fleet>();
+        let fleets: Vec<String> = fleets_storage
+            .as_slice()
+            .iter()
+            .enumerate()
+            .map(|(i, fleet)| format!("Fleet {}", i))
+            .collect();
+        gui.show_fleets(fleets);
+
         godot_print!("GameApi.update_gui end");
+    }
+}
+
+impl GameApi {
+    fn get_state(&self) -> Ref<'_, Game> {
+        self.state
+            .as_ref()
+            .expect("state not initialized")
+            .game
+            .borrow()
     }
 }
 
