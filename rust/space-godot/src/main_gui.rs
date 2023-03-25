@@ -1,6 +1,7 @@
 use godot::engine::node::InternalMode;
 use godot::engine::{BoxContainer, Button, Container, Engine, GridContainer, HBoxContainer};
 use godot::prelude::*;
+use godot::private::You_forgot_the_attribute__godot_api;
 
 #[derive(GodotClass)]
 #[class(base=Node2D)]
@@ -59,7 +60,7 @@ impl MainGui {
 }
 
 #[godot_api]
-impl GodotExt for MainGui {
+impl Node2DVirtual for MainGui {
     fn init(base: Base<Node2D>) -> Self {
         if Engine::singleton().is_editor_hint() {
         } else {

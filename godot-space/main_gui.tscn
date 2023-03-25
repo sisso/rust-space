@@ -15,8 +15,7 @@ layout_mode = 2
 
 [node name="Label3" type="Label" parent="TabContainer/Main"]
 layout_mode = 2
-text = "Sectors
-"
+text = "Sectors"
 
 [node name="SectorsGridContainer" type="GridContainer" parent="TabContainer/Main"]
 layout_mode = 2
@@ -40,8 +39,7 @@ text = "0 0"
 
 [node name="Label2" type="Label" parent="TabContainer/Main"]
 layout_mode = 2
-text = "Fleets
-"
+text = "Fleets"
 
 [node name="FleetsGridContainer" type="GridContainer" parent="TabContainer/Main"]
 layout_mode = 2

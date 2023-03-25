@@ -1,15 +1,17 @@
 use crate::main_gui::MainGui;
 use crate::state::State;
 use commons::math::Transform2;
-use godot::bind::{godot_api, GodotClass, GodotExt};
+use godot::bind::{godot_api, GodotClass};
 use godot::builtin::GodotString;
-use godot::engine::{Engine, Node, NodeExt};
+use godot::engine::{Engine, Node, NodeExt, NodeVirtual};
 use godot::log::godot_print;
 use godot::obj::Base;
 use space_domain::game::fleets::Fleet;
-use space_domain::game::sectors::Sector;
+use space_domain::game::locations::EntityPerSectorIndex;
+use space_domain::game::sectors::{Sector, Sectors};
 use space_domain::game::{scenery_random, Game};
-use specs::{Entity, WorldExt};
+use specs::hibitset::BitSetLike;
+use specs::{Entity, Join, WorldExt};
 use std::cell::{Ref, RefCell};
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -23,27 +25,9 @@ pub struct GameApi {
 }
 
 #[godot_api]
+impl GameApi {}
+
 impl GameApi {
-    #[func]
-    pub fn add(&self, a: i64, b: i64) -> i64 {
-        a + b
-    }
-
-    #[func]
-    pub fn get_u64(&self) -> i64 {
-        1
-    }
-
-    #[func]
-    pub fn get_f32(&self) -> f32 {
-        2.33
-    }
-
-    #[func]
-    pub fn get_string(&self) -> GodotString {
-        "one".into()
-    }
-
     pub fn update_gui(&mut self) {
         let state = self.get_state();
 
@@ -75,9 +59,26 @@ impl GameApi {
 
         godot_print!("GameApi.update_gui end");
     }
-}
 
-impl GameApi {
+    pub fn draw_sector(&mut self) {
+        let state = self.get_state();
+        let entities = state.world.entities();
+        let sectors = state.world.read_storage::<Sector>();
+        let (sector_id, _) = (&entities, &sectors).join().next().unwrap();
+
+        let sectors_index = state.world.read_resource::<EntityPerSectorIndex>();
+        for entity in sectors_index.index.get(&sector_id).unwrap() {}
+
+        // let sector_id = sectors.fetched_entities().create_iter().next().unwrap();
+        // let mut sector_id = None;
+        //
+        // for (e, _) in (entities, sectors).join() {
+        //     sector_id = Some(e);
+        //     break;
+        // }
+        // let sector_id = sector_id.unwrap();
+    }
+
     fn get_state(&self) -> Ref<'_, Game> {
         self.state
             .as_ref()
@@ -88,7 +89,7 @@ impl GameApi {
 }
 
 #[godot_api]
-impl GodotExt for GameApi {
+impl NodeVirtual for GameApi {
     fn init(base: Base<Node>) -> Self {
         if Engine::singleton().is_editor_hint() {
             GameApi {
@@ -115,6 +116,7 @@ impl GodotExt for GameApi {
         } else {
             godot_print!("ready self.update_gui");
             self.update_gui();
+            self.draw_sector();
         }
     }
 
