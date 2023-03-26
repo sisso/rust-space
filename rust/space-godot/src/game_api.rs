@@ -1,18 +1,24 @@
+use crate::graphics::AstroModel;
 use crate::main_gui::MainGui;
+use crate::sector_view::SectorView;
 use crate::state::State;
 use commons::math::Transform2;
+use commons::unwrap_or_continue;
 use godot::bind::{godot_api, GodotClass};
 use godot::builtin::GodotString;
+use godot::engine::node::InternalMode;
 use godot::engine::{Engine, Node, NodeExt, NodeVirtual};
-use godot::log::godot_print;
+use godot::log::{godot_print, godot_warn};
 use godot::obj::Base;
+use godot::prelude::*;
+use space_domain::game::astrobody::{AstroBody, AstroBodyKind};
 use space_domain::game::fleets::Fleet;
-use space_domain::game::locations::EntityPerSectorIndex;
+use space_domain::game::locations::{EntityPerSectorIndex, Location};
 use space_domain::game::sectors::{Sector, Sectors};
 use space_domain::game::{scenery_random, Game};
-use specs::hibitset::BitSetLike;
-use specs::{Entity, Join, WorldExt};
+use specs::prelude::*;
 use std::cell::{Ref, RefCell};
+use std::ops::Deref;
 use std::path::PathBuf;
 use std::rc::Rc;
 
@@ -20,6 +26,7 @@ use std::rc::Rc;
 #[class(base=Node)]
 pub struct GameApi {
     state: Option<State>,
+    sector_view: Option<Gd<SectorView>>,
     #[base]
     base: Base<Node>,
 }
@@ -29,18 +36,19 @@ impl GameApi {}
 
 impl GameApi {
     pub fn update_gui(&mut self) {
-        let state = self.get_state();
+        let game = self.get_game();
 
         godot_print!("GameApi.update_gui");
-        let gui = self
+        let mut gui = self
             .base
             .get_parent()
-            .unwrap()
-            .find_child("MainGui".into(), true, false);
-        let mut gui = gui.unwrap().cast::<MainGui>();
-        let gui = gui.bind_mut();
+            .expect("no parent")
+            .find_child("MainGui".into(), true, false)
+            .expect("MainGui not found in parent")
+            .cast::<MainGui>();
+        let mut gui = gui.bind_mut();
 
-        let sectors_storage = state.world.read_storage::<Sector>();
+        let sectors_storage = game.world.read_storage::<Sector>();
         let sectors: Vec<String> = sectors_storage
             .as_slice()
             .iter()
@@ -48,7 +56,7 @@ impl GameApi {
             .collect();
         gui.show_sectors(sectors);
 
-        let fleets_storage = state.world.read_storage::<Fleet>();
+        let fleets_storage = game.world.read_storage::<Fleet>();
         let fleets: Vec<String> = fleets_storage
             .as_slice()
             .iter()
@@ -61,25 +69,19 @@ impl GameApi {
     }
 
     pub fn draw_sector(&mut self) {
-        let state = self.get_state();
-        let entities = state.world.entities();
-        let sectors = state.world.read_storage::<Sector>();
-        let (sector_id, _) = (&entities, &sectors).join().next().unwrap();
+        godot_print!("GodotApi.draw_sector");
+        let mut sv = self
+            .sector_view
+            .as_mut()
+            .expect("sector_view not defined")
+            .bind_mut();
 
-        let sectors_index = state.world.read_resource::<EntityPerSectorIndex>();
-        for entity in sectors_index.index.get(&sector_id).unwrap() {}
-
-        // let sector_id = sectors.fetched_entities().create_iter().next().unwrap();
-        // let mut sector_id = None;
-        //
-        // for (e, _) in (entities, sectors).join() {
-        //     sector_id = Some(e);
-        //     break;
-        // }
-        // let sector_id = sector_id.unwrap();
+        let state = self.state.as_ref().expect("state not defined");
+        sv.update_sector(state);
+        sv.recenter();
     }
 
-    fn get_state(&self) -> Ref<'_, Game> {
+    fn get_game(&self) -> Ref<'_, Game> {
         self.state
             .as_ref()
             .expect("state not initialized")
@@ -94,27 +96,30 @@ impl NodeVirtual for GameApi {
         if Engine::singleton().is_editor_hint() {
             GameApi {
                 state: None,
-                // value: 1,
-                // value_str: Default::default(),
+                sector_view: None,
                 base: base,
             }
         } else {
             let state = State::new();
             GameApi {
                 state: Some(state),
-                // value: 2,
-                // value_str: Default::default(),
+                sector_view: None,
                 base: base,
             }
         }
     }
 
     fn ready(&mut self) {
+        self.sector_view = self
+            .get_parent()
+            .expect("no parent found")
+            .find_child("SectorView".into(), true, true)
+            .map(|i| i.cast());
+
         // godot_print!("ready {} {}", self.value, self.value_str);
-        godot_print!("ready 2");
         if Engine::singleton().is_editor_hint() {
         } else {
-            godot_print!("ready self.update_gui");
+            godot_print!("ready");
             self.update_gui();
             self.draw_sector();
         }

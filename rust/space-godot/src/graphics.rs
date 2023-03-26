@@ -1,5 +1,6 @@
 use godot::engine::{CanvasItem, Node2DVirtual};
 use godot::prelude::*;
+use godot::sys;
 
 #[derive(GodotClass)]
 #[class(base=Node2D)]
@@ -11,7 +12,17 @@ pub struct AstroModel {
 }
 
 #[godot_api]
-impl AstroModel {}
+impl AstroModel {
+    #[must_use]
+    pub fn new_alloc() -> Gd<Self> {
+        unsafe {
+            let __class_name = StringName::from("AstroModel");
+            let __object_ptr =
+                sys::interface_fn!(classdb_construct_object)(__class_name.string_sys());
+            Gd::from_obj_sys(__object_ptr)
+        }
+    }
+}
 
 #[godot_api]
 impl Node2DVirtual for AstroModel {
@@ -55,7 +66,7 @@ impl Node2DVirtual for OrbitModel {
             1.0,
             0.0,
             (360.0f32.to_radians()) as f64,
-            128,
+            32,
             self.color,
             -1.0,
             true,

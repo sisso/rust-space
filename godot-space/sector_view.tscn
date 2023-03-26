@@ -1,0 +1,5 @@
+[gd_scene format=3 uid="uid://ddr02an8jihyo"]
+
+[node name="SectorView" type="SectorView"]
+
+[node name="objects" type="Node2D" parent="."]
