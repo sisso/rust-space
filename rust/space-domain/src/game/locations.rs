@@ -1,6 +1,7 @@
 mod index_per_sector_system;
 
 use commons::math::P2;
+use shred::RunWithPool;
 use specs::prelude::*;
 use specs::storage::MaskedStorage;
 use std::collections::HashMap;
@@ -247,4 +248,9 @@ impl Locations {
             }
         }
     }
+}
+
+pub fn update_locations_index(world: &World) {
+    let mut system = index_per_sector_system::IndexPerSectorSystem {};
+    system.run_now(world);
 }

@@ -22,6 +22,11 @@ impl AstroModel {
             Gd::from_obj_sys(__object_ptr)
         }
     }
+
+    #[func]
+    pub fn set_color(&mut self, color: Color) {
+        self.color = color;
+    }
 }
 
 #[godot_api]

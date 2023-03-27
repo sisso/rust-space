@@ -6,7 +6,7 @@ use crate::game::objects::ObjId;
 use crate::game::sectors::Sector;
 use crate::game::shipyard::Shipyard;
 use crate::game::wares::WareAmount;
-use crate::game::{sectors, Game};
+use crate::game::{locations, sectors, Game};
 use crate::utils::DeltaTime;
 use commons::math::V2;
 use commons::unwrap_or_continue;
@@ -92,6 +92,9 @@ pub fn load_random(game: &mut Game, cfg: &RandomMapCfg) {
             }
         }
     }
+
+    // update index
+    game.reindex_sectors();
 }
 
 pub fn generate_sectors(world: &mut World, size: usize, seed: u64) {

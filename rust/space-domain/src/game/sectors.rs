@@ -50,7 +50,7 @@ impl RequireInitializer for Sectors {
     }
 }
 
-pub fn update_sectors_index(world: &mut World) {
+pub fn update_sectors_index(world: &World) {
     let mut dispatcher = DispatcherBuilder::new()
         .with(UpdateIndexSystem, "index", &[])
         .build();

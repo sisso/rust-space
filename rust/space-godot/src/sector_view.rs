@@ -7,7 +7,8 @@ use godot::prelude::*;
 use godot::private::You_forgot_the_attribute__godot_api;
 use space_domain::game::astrobody::{AstroBody, AstroBodyKind};
 use space_domain::game::fleets::Fleet;
-use space_domain::game::locations::Location;
+use space_domain::game::locations::{EntityPerSectorIndex, Location};
+use space_domain::game::sectors::Sector;
 use specs::prelude::*;
 
 #[derive(GodotClass)]
@@ -24,19 +25,28 @@ impl SectorView {
 
         let game = state.game.borrow();
         let entities = game.world.entities();
-        // let sectors = game.world.read_storage::<Sector>();
-        // let (sector_id, _) = (&entities, &sectors).join().next().unwrap();
-        //
-        // let sectors_index = game.world.read_resource::<EntityPerSectorIndex>();
-        // let objects_at_sector = match sectors_index.index.get(&sector_id) {
-        //     Some(list) => {
-        //         godot_warn!("sector {} has no index, skipping draw sector", sector_id.id());
-        //         list
-        //     },
-        //     None => return,
-        // };
-        //
-        // let bs = BitSet::from_iter(objects_at_sector.iter().map(|e| e.id()));
+        let sectors = game.world.read_storage::<Sector>();
+        let (sector_id, _) = (&entities, &sectors).join().next().unwrap();
+
+        godot_print!("selected sector_id {}", sector_id.id());
+
+        let sectors_index = game.world.read_resource::<EntityPerSectorIndex>();
+        let objects_at_sector = match sectors_index.index.get(&sector_id) {
+            Some(list) if !list.is_empty() => list,
+            Some(list) => {
+                godot_warn!("sector {} has index, but sector is empty", sector_id.id());
+                list
+            }
+            None => {
+                godot_warn!(
+                    "sector {} has no index, skipping draw sector",
+                    sector_id.id()
+                );
+                return;
+            }
+        };
+
+        let bs = BitSet::from_iter(objects_at_sector.iter().map(|e| e.id()));
 
         // add objects
         let locations = game.world.read_storage::<Location>();
@@ -47,23 +57,34 @@ impl SectorView {
         let astro_color = crate::utils::color_blue();
         let star_color = crate::utils::color_yellow();
 
-        for (e, l, f, a) in (&entities, &locations, fleets.maybe(), astros.maybe()).join() {
+        for (_, e, l, f, a) in (&bs, &entities, &locations, fleets.maybe(), astros.maybe()).join() {
             godot_print!("id {}", e.id());
 
             let pos = unwrap_or_continue!(l.get_pos());
 
+            let scale = 0.25;
+            let scale_v = Vector2::new(scale, scale);
+
             if f.is_some() {
+                let mut model = AstroModel::new_alloc();
+                model.bind_mut().set_color(fleet_color);
+
+                let mut base: Gd<Node2D> = model.upcast();
+                base.set_name(format!("Fleet {}", e.id()).into());
+                base.set_scale(scale_v);
+                base.set_position(Vector2::new(pos.x, pos.y));
             } else if let Some(astro) = a {
                 let color = match astro.kind {
                     AstroBodyKind::Star => star_color,
                     AstroBodyKind::Planet => astro_color,
                 };
 
-                let scale = 0.25;
                 let mut model = AstroModel::new_alloc();
+                model.bind_mut().set_color(color);
+
                 let mut base: Gd<Node2D> = model.upcast();
                 base.set_name(format!("Astro {}", e.id()).into());
-                base.set_scale(Vector2::new(scale, scale));
+                base.set_scale(scale_v);
                 base.set_position(Vector2::new(pos.x, pos.y));
                 godot_print!("create model at {} {}", pos.x, pos.y);
                 self.base
@@ -102,30 +123,30 @@ impl Node2DVirtual for SectorView {
         }
 
         // TODO: fix change relative to current screen scale
-        let change = 10.0 * delta as f32;
-        let scale_change = 0.01f32;
+        let speed = 100.0 * delta as f32;
+        let scale_speed = 0.02f32;
 
         let input = Input::singleton();
         if input.is_key_pressed(global::Key::KEY_W) {
-            self.base.translate(Vector2::new(0.0, change));
+            self.base.translate(Vector2::new(0.0, speed));
         }
         if input.is_key_pressed(global::Key::KEY_S) {
-            self.base.translate(Vector2::new(0.0, -change));
+            self.base.translate(Vector2::new(0.0, -speed));
         }
         if input.is_key_pressed(global::Key::KEY_A) {
-            self.base.translate(Vector2::new(change, 0.0));
+            self.base.translate(Vector2::new(speed, 0.0));
         }
         if input.is_key_pressed(global::Key::KEY_D) {
-            self.base.translate(Vector2::new(-change, 0.0));
+            self.base.translate(Vector2::new(-speed, 0.0));
         }
 
         if input.is_key_pressed(global::Key::KEY_Q) {
             self.base
-                .apply_scale(Vector2::new(1.0 - scale_change, 1.0 - scale_change));
+                .apply_scale(Vector2::new(1.0 - scale_speed, 1.0 - scale_speed));
         }
         if input.is_key_pressed(global::Key::KEY_E) {
             self.base
-                .apply_scale(Vector2::new(1.0 + scale_change, 1.0 + scale_change));
+                .apply_scale(Vector2::new(1.0 + scale_speed, 1.0 + scale_speed));
         }
     }
 }

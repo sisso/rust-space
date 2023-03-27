@@ -8,7 +8,6 @@ use crate::utils::*;
 use self::new_obj::NewObj;
 
 use self::save::{Load, Save};
-use self::sectors::*;
 
 use crate::game::actions::Actions;
 use crate::game::astrobody::AstroBodies;
@@ -19,6 +18,7 @@ use crate::game::fleets::Fleet;
 use crate::game::loader::Loader;
 use crate::game::navigations::Navigations;
 use crate::game::order::Orders;
+use crate::game::sectors::Sectors;
 use crate::game::shipyard::Shipyard;
 use crate::game::station::Stations;
 
@@ -135,7 +135,8 @@ impl Game {
 
     pub fn reindex_sectors(&mut self) {
         log::info!("reindex_sectors");
-        sectors::update_sectors_index(&mut self.world);
+        sectors::update_sectors_index(&self.world);
+        locations::update_locations_index(&self.world)
     }
 
     pub fn tick_new_objects_system(&mut self) {
