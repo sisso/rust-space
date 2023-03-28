@@ -12,6 +12,16 @@ pub struct MainGui {
 
 #[godot_api]
 impl MainGui {
+    #[func]
+    pub fn on_click_sector(&mut self) {
+        godot_print!("on click sector received");
+    }
+
+    #[func]
+    pub fn on_click_fleet(&mut self) {
+        godot_print!("on click fleet received");
+    }
+
     pub fn show_sectors(&self, sectors: Vec<String>) {
         godot_print!("MainGui show_sectors");
         let mut grid = self
@@ -25,6 +35,11 @@ impl MainGui {
         for sector in sectors {
             let mut button = Button::new_alloc();
             button.set_text(sector.into());
+            button.connect(
+                "button_down".into(),
+                Callable::from_object_method(self.base.share(), "on_click_sector"),
+                0,
+            );
             grid.add_child(button.upcast(), false, InternalMode::INTERNAL_MODE_DISABLED);
         }
     }
@@ -41,6 +56,11 @@ impl MainGui {
         for fleet in fleets {
             let mut button = Button::new_alloc();
             button.set_text(fleet.into());
+            button.connect(
+                "button_down".into(),
+                Callable::from_object_method(self.base.share(), "on_click_fleet"),
+                0,
+            );
             grid.add_child(button.upcast(), false, InternalMode::INTERNAL_MODE_DISABLED);
         }
     }
