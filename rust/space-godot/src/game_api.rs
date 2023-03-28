@@ -1,5 +1,5 @@
 use crate::graphics::AstroModel;
-use crate::main_gui::MainGui;
+use crate::main_gui::{LabeledEntity, MainGui};
 use crate::sector_view::SectorView;
 use crate::state::State;
 use commons::math::Transform2;
@@ -48,11 +48,15 @@ impl GameApi {
             .cast::<MainGui>();
         let mut gui = gui.bind_mut();
 
+        let entities = game.world.entities();
         let sectors_storage = game.world.read_storage::<Sector>();
-        let sectors: Vec<String> = sectors_storage
-            .as_slice()
-            .iter()
-            .map(|i| format!("{} {}", i.coords.x, i.coords.y))
+
+        let sectors: Vec<_> = (&entities, &sectors_storage)
+            .join()
+            .map(|(e, s)| LabeledEntity {
+                id: e,
+                label: format!("{} {}", s.coords.x, s.coords.y),
+            })
             .collect();
         gui.show_sectors(sectors);
 
