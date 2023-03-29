@@ -3,9 +3,7 @@
 [ext_resource type="PackedScene" uid="uid://dk8s1os4t4pey" path="res://main_gui.tscn" id="1_moldk"]
 [ext_resource type="PackedScene" uid="uid://ddr02an8jihyo" path="res://sector_view.tscn" id="2_e32bs"]
 
-[node name="Node2D" type="Node2D"]
-
-[node name="GameApi" type="GameApi" parent="."]
+[node name="GameApi" type="GameApi"]
 
 [node name="MainGui" parent="." instance=ExtResource("1_moldk")]
 

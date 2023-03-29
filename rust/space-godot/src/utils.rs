@@ -1,4 +1,17 @@
-use godot::prelude::Color;
+use godot::prelude::*;
+
+pub fn clear<T>(container: Gd<T>)
+where
+    T: Inherits<Node>,
+{
+    let mut container = container.upcast();
+
+    for c in container.get_children(true).iter_shared() {
+        let mut n = c.cast::<Node>();
+        container.remove_child(n.share());
+        n.queue_free();
+    }
+}
 
 pub fn color_black() -> Color {
     Color::from_rgba8(0, 0, 0, 255)

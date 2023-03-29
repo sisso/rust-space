@@ -8,7 +8,7 @@ use godot::private::You_forgot_the_attribute__godot_api;
 use space_domain::game::astrobody::{AstroBody, AstroBodyKind};
 use space_domain::game::fleets::Fleet;
 use space_domain::game::locations::{EntityPerSectorIndex, Location};
-use space_domain::game::sectors::Sector;
+use space_domain::game::sectors::{Sector, SectorId};
 use specs::prelude::*;
 
 #[derive(GodotClass)]
@@ -20,15 +20,20 @@ pub struct SectorView {
 
 #[godot_api]
 impl SectorView {
-    pub fn update_sector(&mut self, state: &State) {
+    pub fn update_sector(&mut self, state: &State, sector_id: Option<SectorId>) {
         godot_print!("SectorView.draw_sector");
 
         let game = state.game.borrow();
         let entities = game.world.entities();
         let sectors = game.world.read_storage::<Sector>();
-        let (sector_id, _) = (&entities, &sectors).join().next().unwrap();
 
-        godot_print!("selected sector_id {}", sector_id.id());
+        let sector_id = match sector_id {
+            Some(id) => id,
+            None => {
+                let (sector_id, _) = (&entities, &sectors).join().next().unwrap();
+                sector_id
+            }
+        };
 
         let sectors_index = game.world.read_resource::<EntityPerSectorIndex>();
         let objects_at_sector = match sectors_index.index.get(&sector_id) {
@@ -48,6 +53,9 @@ impl SectorView {
 
         let bs = BitSet::from_iter(objects_at_sector.iter().map(|e| e.id()));
 
+        // clear first
+        crate::utils::clear(self.base.share());
+
         // add objects
         let locations = game.world.read_storage::<Location>();
         let fleets = game.world.read_storage::<Fleet>();
@@ -58,8 +66,6 @@ impl SectorView {
         let star_color = crate::utils::color_yellow();
 
         for (_, e, l, f, a) in (&bs, &entities, &locations, fleets.maybe(), astros.maybe()).join() {
-            godot_print!("id {}", e.id());
-
             let pos = unwrap_or_continue!(l.get_pos());
 
             let scale = 0.25;
@@ -91,8 +97,6 @@ impl SectorView {
                     .add_child(base.upcast(), false, InternalMode::INTERNAL_MODE_DISABLED);
             }
         }
-
-        godot_print!("done")
     }
 
     pub fn recenter(&mut self) {

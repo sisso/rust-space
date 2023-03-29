@@ -1,6 +1,8 @@
+use crate::game_api::GameApi;
 use godot::engine::node::InternalMode;
 use godot::engine::{BoxContainer, Button, Container, Engine, GridContainer, HBoxContainer};
 use godot::prelude::*;
+use space_domain::game::sectors::SectorId;
 use specs::Entity;
 
 #[derive(GodotClass)]
@@ -21,15 +23,10 @@ pub struct LabeledEntity {
 impl MainGui {
     #[func]
     pub fn on_click_sector(&mut self) {
-        godot_print!("on click sector received");
-        let container = self.get_sectors_container();
-        let children = container.get_children(false);
-        for (i, node) in children.iter_shared().enumerate() {
-            if let Some(button) = node.try_cast::<Button>() {
-                if button.is_pressed() {
-                    godot_print!("clicked on {:?}", self.buttons_sectors.get(i));
-                }
-            }
+        if let Some(sector_id) = self.get_clicked_sector() {
+            GameApi::get_instance(self.base.share())
+                .bind_mut()
+                .on_click_sector(sector_id);
         }
     }
 
@@ -38,12 +35,25 @@ impl MainGui {
         godot_print!("on click fleet received");
     }
 
+    pub fn get_clicked_sector(&self) -> Option<SectorId> {
+        let container = self.get_sectors_container();
+        let children = container.get_children(false);
+        for (i, node) in children.iter_shared().enumerate() {
+            if let Some(button) = node.try_cast::<Button>() {
+                if button.is_pressed() {
+                    return self.buttons_sectors.get(i).copied();
+                }
+            }
+        }
+
+        None
+    }
+
     pub fn show_sectors(&mut self, sectors: Vec<LabeledEntity>) {
-        godot_print!("MainGui show_sectors");
         self.buttons_sectors.clear();
 
         let mut grid = self.get_sectors_container();
-        Self::clear(grid.share());
+        crate::utils::clear(grid.share());
 
         let columns = (sectors.len() as f32).sqrt().floor() as i64;
         grid.set_columns(columns);
@@ -69,10 +79,8 @@ impl MainGui {
     }
 
     pub fn show_fleets(&self, fleets: Vec<String>) {
-        godot_print!("MainGui show_fleets");
-
         let mut grid = self.get_fleets_group();
-        Self::clear(grid.share());
+        crate::utils::clear(grid.share());
         grid.set_columns(1);
 
         for fleet in fleets {
@@ -92,19 +100,6 @@ impl MainGui {
             .base
             .get_node_as::<GridContainer>("TabContainer/Main/FleetsGridContainer");
         grid
-    }
-
-    fn clear<T>(container: Gd<T>)
-    where
-        T: Inherits<Container>,
-    {
-        let mut container = container.upcast();
-
-        for c in container.get_children(true).iter_shared() {
-            let mut n = c.cast::<Node>();
-            container.remove_child(n.share());
-            n.queue_free();
-        }
     }
 }
 
