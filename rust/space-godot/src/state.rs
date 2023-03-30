@@ -1,12 +1,14 @@
 use commons::math::Transform2;
+use space_domain::game::sectors::{Sector, SectorId};
 use space_domain::game::{scenery_random, Game};
-use specs::Entity;
+use specs::prelude::*;
 use std::cell::RefCell;
 use std::path::PathBuf;
 use std::rc::Rc;
 
+#[derive(Copy, Clone, Debug)]
 pub enum StateScreen {
-    Sector(Entity),
+    Sector(SectorId),
     Galaxy,
     Fleet(Entity),
 }
@@ -20,8 +22,6 @@ pub enum TimeSpeed {
 pub struct State {
     pub game: Rc<RefCell<Game>>,
     pub screen: StateScreen,
-    pub selected_sector: usize,
-    pub selected_fleet: usize,
     pub selected_object: Option<Entity>,
     pub sector_view_transform: Transform2,
     pub time_speed: TimeSpeed,
@@ -57,13 +57,18 @@ impl State {
             },
         );
 
+        let sector_id = {
+            let entities = game.world.entities();
+            let sectors = game.world.read_storage::<Sector>();
+            let (sector_id, _) = (&entities, &sectors).join().next().unwrap();
+            sector_id
+        };
+
         let game = Rc::new(RefCell::new(game));
 
         let state = State {
             game: game,
-            screen: StateScreen::Galaxy,
-            selected_sector: 0,
-            selected_fleet: 0,
+            screen: StateScreen::Sector(sector_id),
             sector_view_transform: Transform2::identity(),
             time_speed: TimeSpeed::Normal,
             selected_object: None,

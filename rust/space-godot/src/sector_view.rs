@@ -1,5 +1,5 @@
 use crate::graphics::AstroModel;
-use crate::state::State;
+use crate::state::{State, StateScreen};
 use commons::unwrap_or_continue;
 use godot::engine::node::InternalMode;
 use godot::engine::{global, Engine};
@@ -10,30 +10,33 @@ use space_domain::game::fleets::Fleet;
 use space_domain::game::locations::{EntityPerSectorIndex, Location};
 use space_domain::game::sectors::{Sector, SectorId};
 use specs::prelude::*;
+use std::collections::{HashMap, HashSet};
+
+#[derive(Debug, Default)]
+struct ShowSectorState {
+    bodies: HashMap<Entity, Gd<Node2D>>,
+}
 
 #[derive(GodotClass)]
 #[class(base = Node2D)]
 pub struct SectorView {
+    show_sector_state: ShowSectorState,
+
     #[base]
     base: Base<Node2D>,
 }
 
 #[godot_api]
 impl SectorView {
-    pub fn update_sector(&mut self, state: &State, sector_id: Option<SectorId>) {
-        godot_print!("SectorView.draw_sector");
-
+    pub fn update(&mut self, state: &State) {
+        match state.screen {
+            StateScreen::Sector(sector_id) => self.update_sector(state, sector_id),
+            _ => todo!("not implemented"),
+        }
+    }
+    fn update_sector(&mut self, state: &State, sector_id: SectorId) {
         let game = state.game.borrow();
         let entities = game.world.entities();
-        let sectors = game.world.read_storage::<Sector>();
-
-        let sector_id = match sector_id {
-            Some(id) => id,
-            None => {
-                let (sector_id, _) = (&entities, &sectors).join().next().unwrap();
-                sector_id
-            }
-        };
 
         let sectors_index = game.world.read_resource::<EntityPerSectorIndex>();
         let objects_at_sector = match sectors_index.index.get(&sector_id) {
@@ -53,9 +56,6 @@ impl SectorView {
 
         let bs = BitSet::from_iter(objects_at_sector.iter().map(|e| e.id()));
 
-        // clear first
-        crate::utils::clear(self.base.share());
-
         // add objects
         let locations = game.world.read_storage::<Location>();
         let fleets = game.world.read_storage::<Fleet>();
@@ -65,10 +65,19 @@ impl SectorView {
         let astro_color = crate::utils::color_blue();
         let star_color = crate::utils::color_yellow();
 
+        let mut current_entities = HashSet::new();
+
+        // add and update entities
         for (_, e, l, f, a) in (&bs, &entities, &locations, fleets.maybe(), astros.maybe()).join() {
             let pos = unwrap_or_continue!(l.get_pos());
+            let pos = Vector2::new(pos.x, pos.y);
 
-            let scale = 0.25;
+            if let Some(node) = self.show_sector_state.bodies.get_mut(&e) {
+                node.set_position(pos);
+                continue;
+            }
+
+            let scale = 0.1;
             let scale_v = Vector2::new(scale, scale);
 
             if f.is_some() {
@@ -78,7 +87,11 @@ impl SectorView {
                 let mut base: Gd<Node2D> = model.upcast();
                 base.set_name(format!("Fleet {}", e.id()).into());
                 base.set_scale(scale_v);
-                base.set_position(Vector2::new(pos.x, pos.y));
+                base.set_position(pos);
+                self.show_sector_state.bodies.insert(e, base.share());
+                self.base
+                    .add_child(base.upcast(), false, InternalMode::INTERNAL_MODE_DISABLED);
+                current_entities.insert(e);
             } else if let Some(astro) = a {
                 let color = match astro.kind {
                     AstroBodyKind::Star => star_color,
@@ -91,12 +104,24 @@ impl SectorView {
                 let mut base: Gd<Node2D> = model.upcast();
                 base.set_name(format!("Astro {}", e.id()).into());
                 base.set_scale(scale_v);
-                base.set_position(Vector2::new(pos.x, pos.y));
-                godot_print!("create model at {} {}", pos.x, pos.y);
+                base.set_position(pos);
+                self.show_sector_state.bodies.insert(e, base.share());
                 self.base
                     .add_child(base.upcast(), false, InternalMode::INTERNAL_MODE_DISABLED);
+                current_entities.insert(e);
             }
         }
+
+        // remove non existing entities
+        self.show_sector_state.bodies.retain(|k, v| {
+            if current_entities.contains(k) {
+                true
+            } else {
+                self.base.remove_child(v.share().upcast());
+                v.queue_free();
+                false
+            }
+        });
     }
 
     pub fn recenter(&mut self) {
@@ -112,7 +137,10 @@ impl Node2DVirtual for SectorView {
         } else {
         }
 
-        Self { base }
+        Self {
+            show_sector_state: Default::default(),
+            base,
+        }
     }
 
     fn ready(&mut self) {

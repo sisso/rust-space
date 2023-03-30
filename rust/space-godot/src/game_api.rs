@@ -1,7 +1,7 @@
 use crate::graphics::AstroModel;
 use crate::main_gui::{LabeledEntity, MainGui};
 use crate::sector_view::SectorView;
-use crate::state::State;
+use crate::state::{State, StateScreen};
 use commons::math::Transform2;
 use commons::unwrap_or_continue;
 use godot::bind::{godot_api, GodotClass};
@@ -16,6 +16,7 @@ use space_domain::game::fleets::Fleet;
 use space_domain::game::locations::{EntityPerSectorIndex, Location};
 use space_domain::game::sectors::{Sector, SectorId, Sectors};
 use space_domain::game::{scenery_random, Game};
+use space_domain::utils::DeltaTime;
 use specs::prelude::*;
 use std::cell::{Ref, RefCell};
 use std::ops::Deref;
@@ -43,11 +44,13 @@ impl GameApi {
     }
 
     pub fn on_click_sector(&mut self, sector_id: SectorId) {
+        self.state.as_mut().unwrap().screen = StateScreen::Sector(sector_id);
+
         self.sector_view
             .as_mut()
             .unwrap()
             .bind_mut()
-            .update_sector(self.state.as_ref().unwrap(), Some(sector_id));
+            .update(self.state.as_ref().unwrap());
     }
 
     pub fn update_gui(&mut self) {
@@ -89,7 +92,7 @@ impl GameApi {
             .bind_mut();
 
         let state = self.state.as_ref().expect("state not defined");
-        sv.update_sector(state, None);
+        sv.update(state);
         sv.recenter();
     }
 
@@ -130,12 +133,6 @@ impl NodeVirtual for GameApi {
         if Engine::singleton().is_editor_hint() {
         } else {
             godot_print!("ready");
-            self.gui.as_mut().unwrap().bind_mut().connect(
-                "signal_on_click_sector".into(),
-                Callable::from_object_method(self.base.share(), "on_click_sector"),
-                0,
-            );
-
             self.update_gui();
             self.draw_sector();
         }
@@ -143,7 +140,12 @@ impl NodeVirtual for GameApi {
 
     fn process(&mut self, delta: f64) {
         if Engine::singleton().is_editor_hint() {
-        } else {
+            return;
         }
+
+        let mut game = self.state.as_mut().unwrap().game.borrow_mut();
+        game.tick(DeltaTime::from(delta as f32));
+        drop(game);
+        // self.draw_sector();
     }
 }
