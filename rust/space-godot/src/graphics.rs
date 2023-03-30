@@ -1,4 +1,4 @@
-use godot::engine::{CanvasItem, Node2DVirtual};
+use godot::engine::{Node2DVirtual};
 use godot::prelude::*;
 use godot::sys;
 

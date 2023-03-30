@@ -1,6 +1,6 @@
 use crate::game_api::GameApi;
 use godot::engine::node::InternalMode;
-use godot::engine::{BoxContainer, Button, Container, Engine, GridContainer, HBoxContainer};
+use godot::engine::{Button, Engine, GridContainer};
 use godot::prelude::*;
 use space_domain::game::sectors::SectorId;
 use specs::Entity;
@@ -72,7 +72,7 @@ impl MainGui {
     }
 
     fn get_sectors_container(&self) -> Gd<GridContainer> {
-        let mut grid = self
+        let grid = self
             .base
             .get_node_as::<GridContainer>("TabContainer/Main/SectorsGridContainer");
         grid
@@ -96,7 +96,7 @@ impl MainGui {
     }
 
     fn get_fleets_group(&self) -> Gd<GridContainer> {
-        let mut grid = self
+        let grid = self
             .base
             .get_node_as::<GridContainer>("TabContainer/Main/FleetsGridContainer");
         grid
@@ -123,7 +123,7 @@ impl Node2DVirtual for MainGui {
         }
     }
 
-    fn process(&mut self, delta: f64) {
+    fn process(&mut self, _delta: f64) {
         if Engine::singleton().is_editor_hint() {
         } else {
         }

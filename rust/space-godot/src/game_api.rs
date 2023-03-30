@@ -3,21 +3,21 @@ use crate::sector_view::SectorView;
 use crate::state::{State, StateScreen};
 use godot::bind::{godot_api, GodotClass};
 use godot::engine::{Engine, Node, NodeExt, NodeVirtual};
-use godot::log::{godot_print, godot_warn};
+
 use godot::obj::Base;
 use godot::prelude::*;
-use rand::random;
-use space_domain::game::astrobody::{AstroBody, AstroBodyKind};
+
+
 use space_domain::game::fleets::Fleet;
-use space_domain::game::locations::{EntityPerSectorIndex, Location};
-use space_domain::game::sectors::{Sector, SectorId, Sectors};
-use space_domain::game::{scenery_random, Game};
+
+use space_domain::game::sectors::{Sector, SectorId};
+
 use space_domain::utils::DeltaTime;
 use specs::prelude::*;
-use std::cell::{Ref, RefCell};
-use std::ops::Deref;
-use std::path::PathBuf;
-use std::rc::Rc;
+
+
+
+
 
 #[derive(GodotClass)]
 #[class(base=Node)]
@@ -70,7 +70,7 @@ impl GameApi {
                 .as_slice()
                 .iter()
                 .enumerate()
-                .map(|(i, fleet)| format!("Fleet {}", i))
+                .map(|(i, _fleet)| format!("Fleet {}", i))
                 .collect();
 
             (sectors, fleets)

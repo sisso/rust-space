@@ -1,15 +1,15 @@
 use crate::graphics::AstroModel;
 use crate::state::{State, StateScreen};
 use commons::unwrap_or_continue;
-use glam::Vec2;
+
 use godot::engine::node::InternalMode;
 use godot::engine::{global, Engine};
 use godot::prelude::*;
-use godot::private::You_forgot_the_attribute__godot_api;
+
 use space_domain::game::astrobody::{AstroBody, AstroBodyKind};
 use space_domain::game::fleets::Fleet;
 use space_domain::game::locations::{EntityPerSectorIndex, Location};
-use space_domain::game::sectors::{Jump, Sector, SectorId};
+use space_domain::game::sectors::{Jump, SectorId};
 use space_domain::game::station::Station;
 use specs::prelude::*;
 use std::collections::{HashMap, HashSet};
