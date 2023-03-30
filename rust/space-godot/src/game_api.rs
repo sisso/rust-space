@@ -22,11 +22,15 @@ use std::rc::Rc;
 #[derive(GodotClass)]
 #[class(base=Node)]
 pub struct GameApi {
-    state: Option<State>,
-    sector_view: Option<Gd<SectorView>>,
-    gui: Option<Gd<MainGui>>,
+    runtime: Option<Runtime>,
     #[base]
     base: Base<Node>,
+}
+
+struct Runtime {
+    state: State,
+    sector_view: Gd<SectorView>,
+    gui: Gd<MainGui>,
 }
 
 #[godot_api]
@@ -40,18 +44,15 @@ impl GameApi {
     }
 
     pub fn on_click_sector(&mut self, sector_id: SectorId) {
-        self.state.as_mut().unwrap().screen = StateScreen::Sector(sector_id);
+        let runtime = self.runtime.as_mut().unwrap();
+        runtime.state.screen = StateScreen::Sector(sector_id);
 
-        self.sector_view
-            .as_mut()
-            .unwrap()
-            .bind_mut()
-            .update(self.state.as_ref().unwrap());
+        runtime.sector_view.bind_mut().update(&runtime.state);
     }
 
     pub fn update_gui(&mut self) {
         let (sectors, fleets) = {
-            let game = self.get_game();
+            let game = self.runtime.as_ref().unwrap().state.game.borrow();
 
             let entities = game.world.entities();
             let sectors_storage = game.world.read_storage::<Sector>();
@@ -75,28 +76,26 @@ impl GameApi {
             (sectors, fleets)
         };
 
-        let mut gui = self.gui.as_mut().expect("MainGui not provided").bind_mut();
+        let runtime = self.runtime.as_mut().unwrap();
+        let mut gui = runtime.gui.bind_mut();
         gui.show_sectors(sectors);
         gui.show_fleets(fleets);
     }
 
     pub fn draw_sector(&mut self) {
-        let mut sv = self
-            .sector_view
-            .as_mut()
-            .expect("sector_view not defined")
-            .bind_mut();
-
-        let state = self.state.as_ref().expect("state not defined");
+        let runtime = self.runtime.as_mut().unwrap();
+        let state = &runtime.state;
+        let mut sv = runtime.sector_view.bind_mut();
         sv.update(state);
     }
 
-    fn get_game(&self) -> Ref<'_, Game> {
-        self.state
-            .as_ref()
-            .expect("state not initialized")
-            .game
-            .borrow()
+    pub fn recenter(&mut self) {
+        self.runtime
+            .as_mut()
+            .unwrap()
+            .sector_view
+            .bind_mut()
+            .recenter();
     }
 }
 
@@ -105,31 +104,37 @@ impl NodeVirtual for GameApi {
     fn init(base: Base<Node>) -> Self {
         if Engine::singleton().is_editor_hint() {
             GameApi {
-                state: None,
-                sector_view: None,
-                gui: None,
+                runtime: None,
                 base: base,
             }
         } else {
-            let state = State::new();
             GameApi {
-                state: Some(state),
-                sector_view: None,
-                gui: None,
+                runtime: None,
                 base: base,
             }
         }
     }
 
     fn ready(&mut self) {
-        self.sector_view = self.try_get_node_as("/root/GameApi/SectorView");
-        self.gui = self.try_get_node_as("/root/GameApi/MainGui");
-
         if Engine::singleton().is_editor_hint() {
         } else {
+            let sector_view = self
+                .try_get_node_as("/root/GameApi/SectorView")
+                .expect("SectorView not found");
+            let gui = self
+                .try_get_node_as("/root/GameApi/MainGui")
+                .expect("MainGui not found");
+
+            let state = State::new();
+            self.runtime = Some(Runtime {
+                state,
+                sector_view,
+                gui,
+            });
+
             self.update_gui();
             self.draw_sector();
-            self.sector_view.as_mut().unwrap().bind_mut().recenter();
+            self.recenter();
         }
     }
 
@@ -139,7 +144,7 @@ impl NodeVirtual for GameApi {
         }
 
         {
-            let mut game = self.state.as_mut().unwrap().game.borrow_mut();
+            let mut game = self.runtime.as_mut().unwrap().state.game.borrow_mut();
             game.tick(DeltaTime::from(delta as f32));
         }
 
