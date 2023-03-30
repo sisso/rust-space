@@ -6,7 +6,7 @@ use crate::game::objects::ObjId;
 use crate::game::sectors::Sector;
 use crate::game::shipyard::Shipyard;
 use crate::game::wares::WareAmount;
-use crate::game::{locations, sectors, Game};
+use crate::game::{sectors, Game};
 use crate::utils::DeltaTime;
 use commons::math::V2;
 use commons::unwrap_or_continue;

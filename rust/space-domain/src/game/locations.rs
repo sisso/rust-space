@@ -1,7 +1,6 @@
 mod index_per_sector_system;
 
 use commons::math::P2;
-use shred::RunWithPool;
 use specs::prelude::*;
 use specs::storage::MaskedStorage;
 use std::collections::HashMap;

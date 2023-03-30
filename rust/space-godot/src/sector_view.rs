@@ -53,8 +53,7 @@ impl SectorView {
                 return;
             }
         };
-
-        let bs = BitSet::from_iter(objects_at_sector.iter().map(|e| e.id()));
+        let sector_entities_bitset = BitSet::from_iter(objects_at_sector.iter().map(|e| e.id()));
 
         // add objects
         let locations = game.world.read_storage::<Location>();
@@ -68,12 +67,21 @@ impl SectorView {
         let mut current_entities = HashSet::new();
 
         // add and update entities
-        for (_, e, l, f, a) in (&bs, &entities, &locations, fleets.maybe(), astros.maybe()).join() {
+        for (_, e, l, f, a) in (
+            &sector_entities_bitset,
+            &entities,
+            &locations,
+            fleets.maybe(),
+            astros.maybe(),
+        )
+            .join()
+        {
             let pos = unwrap_or_continue!(l.get_pos());
             let pos = Vector2::new(pos.x, pos.y);
 
             if let Some(node) = self.show_sector_state.bodies.get_mut(&e) {
                 node.set_position(pos);
+                current_entities.insert(e);
                 continue;
             }
 
@@ -125,7 +133,7 @@ impl SectorView {
     }
 
     pub fn recenter(&mut self) {
-        self.base.translate(Vector2::new(600.0, 350.0));
+        self.base.set_position(Vector2::new(600.0, 350.0));
         self.base.set_scale(Vector2::new(50.0, 50.0))
     }
 }

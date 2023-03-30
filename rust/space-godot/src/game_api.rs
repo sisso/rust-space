@@ -1,16 +1,12 @@
-use crate::graphics::AstroModel;
 use crate::main_gui::{LabeledEntity, MainGui};
 use crate::sector_view::SectorView;
 use crate::state::{State, StateScreen};
-use commons::math::Transform2;
-use commons::unwrap_or_continue;
 use godot::bind::{godot_api, GodotClass};
-use godot::builtin::GodotString;
-use godot::engine::node::InternalMode;
 use godot::engine::{Engine, Node, NodeExt, NodeVirtual};
 use godot::log::{godot_print, godot_warn};
 use godot::obj::Base;
 use godot::prelude::*;
+use rand::random;
 use space_domain::game::astrobody::{AstroBody, AstroBodyKind};
 use space_domain::game::fleets::Fleet;
 use space_domain::game::locations::{EntityPerSectorIndex, Location};
@@ -93,7 +89,6 @@ impl GameApi {
 
         let state = self.state.as_ref().expect("state not defined");
         sv.update(state);
-        sv.recenter();
     }
 
     fn get_game(&self) -> Ref<'_, Game> {
@@ -132,9 +127,9 @@ impl NodeVirtual for GameApi {
 
         if Engine::singleton().is_editor_hint() {
         } else {
-            godot_print!("ready");
             self.update_gui();
             self.draw_sector();
+            self.sector_view.as_mut().unwrap().bind_mut().recenter();
         }
     }
 
@@ -143,9 +138,11 @@ impl NodeVirtual for GameApi {
             return;
         }
 
-        let mut game = self.state.as_mut().unwrap().game.borrow_mut();
-        game.tick(DeltaTime::from(delta as f32));
-        drop(game);
-        // self.draw_sector();
+        {
+            let mut game = self.state.as_mut().unwrap().game.borrow_mut();
+            game.tick(DeltaTime::from(delta as f32));
+        }
+
+        self.draw_sector();
     }
 }
