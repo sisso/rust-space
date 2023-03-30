@@ -1,6 +1,7 @@
 use crate::graphics::AstroModel;
 use crate::state::{State, StateScreen};
 use commons::unwrap_or_continue;
+use glam::Vec2;
 use godot::engine::node::InternalMode;
 use godot::engine::{global, Engine};
 use godot::prelude::*;
@@ -8,7 +9,8 @@ use godot::private::You_forgot_the_attribute__godot_api;
 use space_domain::game::astrobody::{AstroBody, AstroBodyKind};
 use space_domain::game::fleets::Fleet;
 use space_domain::game::locations::{EntityPerSectorIndex, Location};
-use space_domain::game::sectors::{Sector, SectorId};
+use space_domain::game::sectors::{Jump, Sector, SectorId};
+use space_domain::game::station::Station;
 use specs::prelude::*;
 use std::collections::{HashMap, HashSet};
 
@@ -59,20 +61,26 @@ impl SectorView {
         let locations = game.world.read_storage::<Location>();
         let fleets = game.world.read_storage::<Fleet>();
         let astros = game.world.read_storage::<AstroBody>();
+        let stations = game.world.read_storage::<Station>();
+        let jumps = game.world.read_storage::<Jump>();
 
         let fleet_color = crate::utils::color_red();
-        let astro_color = crate::utils::color_blue();
+        let astro_color = crate::utils::color_green();
         let star_color = crate::utils::color_yellow();
+        let jump_color = crate::utils::color_blue();
+        let station_color = crate::utils::color_light_gray();
 
         let mut current_entities = HashSet::new();
 
         // add and update entities
-        for (_, e, l, f, a) in (
+        for (_, e, l, f, a, s, j) in (
             &sector_entities_bitset,
             &entities,
             &locations,
             fleets.maybe(),
             astros.maybe(),
+            stations.maybe(),
+            jumps.maybe(),
         )
             .join()
         {
@@ -85,39 +93,36 @@ impl SectorView {
                 continue;
             }
 
-            let scale = 0.1;
-            let scale_v = Vector2::new(scale, scale);
-
-            if f.is_some() {
-                let mut model = AstroModel::new_alloc();
-                model.bind_mut().set_color(fleet_color);
-
-                let mut base: Gd<Node2D> = model.upcast();
-                base.set_name(format!("Fleet {}", e.id()).into());
-                base.set_scale(scale_v);
-                base.set_position(pos);
-                self.show_sector_state.bodies.insert(e, base.share());
-                self.base
-                    .add_child(base.upcast(), false, InternalMode::INTERNAL_MODE_DISABLED);
-                current_entities.insert(e);
+            let model = if f.is_some() {
+                Some(Self::new_model(
+                    format!("Fleet {}", e.id()),
+                    pos,
+                    fleet_color,
+                ))
             } else if let Some(astro) = a {
                 let color = match astro.kind {
                     AstroBodyKind::Star => star_color,
                     AstroBodyKind::Planet => astro_color,
                 };
+                Some(Self::new_model(format!("Astro {}", e.id()), pos, color))
+            } else if s.is_some() {
+                Some(Self::new_model(
+                    format!("Jump {}", e.id()),
+                    pos,
+                    station_color,
+                ))
+            } else if j.is_some() {
+                Some(Self::new_model(format!("Jump {}", e.id()), pos, jump_color))
+            } else {
+                None
+            };
 
-                let mut model = AstroModel::new_alloc();
-                model.bind_mut().set_color(color);
+            let model = unwrap_or_continue!(model);
 
-                let mut base: Gd<Node2D> = model.upcast();
-                base.set_name(format!("Astro {}", e.id()).into());
-                base.set_scale(scale_v);
-                base.set_position(pos);
-                self.show_sector_state.bodies.insert(e, base.share());
-                self.base
-                    .add_child(base.upcast(), false, InternalMode::INTERNAL_MODE_DISABLED);
-                current_entities.insert(e);
-            }
+            self.show_sector_state.bodies.insert(e, model.share());
+            self.base
+                .add_child(model.upcast(), false, InternalMode::INTERNAL_MODE_DISABLED);
+            current_entities.insert(e);
         }
 
         // remove non existing entities
@@ -130,6 +135,21 @@ impl SectorView {
                 false
             }
         });
+    }
+
+    fn new_model(name: String, pos: Vector2, color: Color) -> Gd<Node2D> {
+        let scale = 0.1;
+        let scale_v = Vector2::new(scale, scale);
+
+        let mut model = AstroModel::new_alloc();
+        model.bind_mut().set_color(color);
+
+        let mut base: Gd<Node2D> = model.upcast();
+        base.set_name(name.into());
+        base.set_scale(scale_v);
+        base.set_position(pos);
+
+        base
     }
 
     pub fn recenter(&mut self) {
