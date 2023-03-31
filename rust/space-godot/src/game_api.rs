@@ -7,17 +7,12 @@ use godot::engine::{Engine, Node, NodeExt, NodeVirtual};
 use godot::obj::Base;
 use godot::prelude::*;
 
-
 use space_domain::game::fleets::Fleet;
 
 use space_domain::game::sectors::{Sector, SectorId};
 
 use space_domain::utils::DeltaTime;
 use specs::prelude::*;
-
-
-
-
 
 #[derive(GodotClass)]
 #[class(base=Node)]
@@ -35,6 +30,26 @@ struct Runtime {
 
 #[godot_api]
 impl GameApi {
+    #[func]
+    pub fn add(&mut self, a: i32, b: i32) -> i32 {
+        a + b
+    }
+
+    // // do not work
+    // #[func]
+    // pub fn test_str(&mut self) -> GodotString {
+    //     "no way".to_string().into()
+    // }
+
+    // // do not open godot
+    // #[func]
+    // pub fn test_dick(&mut self) -> Dictionary {
+    //     let mut d = Dictionary::new();
+    //     d.insert(1, 2);
+    //     d.insert(3, 4);
+    //     d
+    // }
+
     pub fn get_instance<T>(provided: Gd<T>) -> Gd<GameApi>
     where
         T: Inherits<Node>,

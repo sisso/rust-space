@@ -1,9 +1,12 @@
+@tool
+
 extends GameApi
 
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
-	pass # Replace with function body.
+	print(add(1,2))
+#	print(test_str())
 
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
