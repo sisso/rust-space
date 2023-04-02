@@ -1,4 +1,4 @@
-use godot::engine::{Node2DVirtual};
+use godot::engine::Node2DVirtual;
 use godot::prelude::*;
 use godot::sys;
 
@@ -54,7 +54,22 @@ pub struct OrbitModel {
 }
 
 #[godot_api]
-impl OrbitModel {}
+impl OrbitModel {
+    #[func]
+    pub fn set_color(&mut self, color: Color) {
+        self.color = color;
+    }
+
+    #[must_use]
+    pub fn new_alloc() -> Gd<Self> {
+        unsafe {
+            let __class_name = StringName::from("OrbitModel");
+            let __object_ptr =
+                sys::interface_fn!(classdb_construct_object)(__class_name.string_sys());
+            Gd::from_obj_sys(__object_ptr)
+        }
+    }
+}
 
 #[godot_api]
 impl Node2DVirtual for OrbitModel {

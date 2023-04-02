@@ -1,3 +1,4 @@
+use commons::math::V2;
 use godot::prelude::*;
 
 pub fn clear<T>(container: Gd<T>)
@@ -75,4 +76,18 @@ pub fn color_yellow() -> Color {
 
 pub fn color_white() -> Color {
     Color::from_rgba8(255, 255, 255, 255)
+}
+
+pub trait V2Vec {
+    fn as_vector2(&self) -> Vector2;
+}
+
+impl V2Vec for V2 {
+    fn as_vector2(&self) -> Vector2 {
+        v2vec(self)
+    }
+}
+
+pub fn v2vec(vec: &V2) -> Vector2 {
+    Vector2::new(vec.x, vec.y)
 }

@@ -1,4 +1,4 @@
-use crate::graphics::AstroModel;
+use crate::graphics::{AstroModel, OrbitModel};
 use crate::state::{State, StateScreen};
 use commons::unwrap_or_continue;
 
@@ -6,23 +6,27 @@ use godot::engine::node::InternalMode;
 use godot::engine::{global, Engine};
 use godot::prelude::*;
 
-use space_domain::game::astrobody::{AstroBody, AstroBodyKind};
+use crate::utils::V2Vec;
+use commons::math::V2;
+use space_domain::game::astrobody::{AstroBody, AstroBodyKind, OrbitalPos};
 use space_domain::game::fleets::Fleet;
-use space_domain::game::locations::{EntityPerSectorIndex, Location};
+use space_domain::game::locations::{EntityPerSectorIndex, Location, Locations};
 use space_domain::game::sectors::{Jump, SectorId};
 use space_domain::game::station::Station;
+use space_domain::utils;
 use specs::prelude::*;
 use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Default)]
 struct ShowSectorState {
     bodies: HashMap<Entity, Gd<Node2D>>,
+    orbits: HashMap<Entity, Gd<Node2D>>,
 }
 
 #[derive(GodotClass)]
 #[class(base = Node2D)]
 pub struct SectorView {
-    show_sector_state: ShowSectorState,
+    state: ShowSectorState,
 
     #[base]
     base: Base<Node2D>,
@@ -36,6 +40,7 @@ impl SectorView {
             _ => todo!("not implemented"),
         }
     }
+
     fn update_sector(&mut self, state: &State, sector_id: SectorId) {
         let game = state.game.borrow();
         let entities = game.world.entities();
@@ -63,6 +68,7 @@ impl SectorView {
         let astros = game.world.read_storage::<AstroBody>();
         let stations = game.world.read_storage::<Station>();
         let jumps = game.world.read_storage::<Jump>();
+        let orbits = game.world.read_storage::<OrbitalPos>();
 
         let fleet_color = crate::utils::color_red();
         let astro_color = crate::utils::color_green();
@@ -85,53 +91,101 @@ impl SectorView {
             .join()
         {
             let pos = unwrap_or_continue!(l.get_pos());
-            let pos = Vector2::new(pos.x, pos.y);
+            let gpos = pos.as_vector2();
 
-            if let Some(node) = self.show_sector_state.bodies.get_mut(&e) {
-                node.set_position(pos);
+            if let Some(node) = self.state.bodies.get_mut(&e) {
+                node.set_position(gpos);
                 current_entities.insert(e);
+            } else {
+                let model = if f.is_some() {
+                    Some(Self::new_model(
+                        format!("Fleet {}", e.id()),
+                        gpos,
+                        fleet_color,
+                    ))
+                } else if let Some(astro) = a {
+                    let color = match astro.kind {
+                        AstroBodyKind::Star => star_color,
+                        AstroBodyKind::Planet => astro_color,
+                    };
+                    Some(Self::new_model(format!("Astro {}", e.id()), gpos, color))
+                } else if s.is_some() {
+                    Some(Self::new_model(
+                        format!("Jump {}", e.id()),
+                        gpos,
+                        station_color,
+                    ))
+                } else if j.is_some() {
+                    Some(Self::new_model(
+                        format!("Jump {}", e.id()),
+                        gpos,
+                        jump_color,
+                    ))
+                } else {
+                    None
+                };
+
+                let model = unwrap_or_continue!(model);
+
+                self.state.bodies.insert(e, model.share());
+                self.base
+                    .add_child(model.upcast(), false, InternalMode::INTERNAL_MODE_DISABLED);
+                current_entities.insert(e);
+            }
+        }
+
+        for (_, e, o, l) in (&sector_entities_bitset, &entities, &orbits, &locations).join() {
+            // skip orbits of any entity that was not displaying
+            if !current_entities.contains(&e) {
                 continue;
             }
 
-            let model = if f.is_some() {
-                Some(Self::new_model(
-                    format!("Fleet {}", e.id()),
-                    pos,
-                    fleet_color,
-                ))
-            } else if let Some(astro) = a {
-                let color = match astro.kind {
-                    AstroBodyKind::Star => star_color,
-                    AstroBodyKind::Planet => astro_color,
-                };
-                Some(Self::new_model(format!("Astro {}", e.id()), pos, color))
-            } else if s.is_some() {
-                Some(Self::new_model(
-                    format!("Jump {}", e.id()),
-                    pos,
-                    station_color,
-                ))
-            } else if j.is_some() {
-                Some(Self::new_model(format!("Jump {}", e.id()), pos, jump_color))
-            } else {
-                None
-            };
+            // get current and parent position and compute radius distance
+            let self_pos = unwrap_or_continue!(l.get_pos());
+            let parent =
+                unwrap_or_continue!(Locations::resolve_space_position(&locations, o.parent));
+            let distance = self_pos.distance(parent.pos);
+            let parent_pos = parent.pos.as_vector2();
 
-            let model = unwrap_or_continue!(model);
-
-            self.show_sector_state.bodies.insert(e, model.share());
-            self.base
-                .add_child(model.upcast(), false, InternalMode::INTERNAL_MODE_DISABLED);
-            current_entities.insert(e);
+            // create or update model
+            self.state
+                .orbits
+                .entry(e)
+                .and_modify(|model| {
+                    model.set_scale(Vector2::ONE * distance);
+                    model.set_position(parent_pos);
+                })
+                .or_insert_with(|| {
+                    let model = Self::new_orbit_model(
+                        format!("orbit of {:?}", e.id()),
+                        distance,
+                        crate::utils::color_white(),
+                        parent_pos,
+                    );
+                    self.base.add_child(
+                        model.share().upcast(),
+                        false,
+                        InternalMode::INTERNAL_MODE_DISABLED,
+                    );
+                    current_entities.insert(e);
+                    model
+                });
         }
 
         // remove non existing entities
-        self.show_sector_state.bodies.retain(|k, v| {
-            if current_entities.contains(k) {
+        self.state.bodies.retain(|entity, node| {
+            if current_entities.contains(entity) {
                 true
             } else {
-                self.base.remove_child(v.share().upcast());
-                v.queue_free();
+                if let Some(mut orbit_model) = self.state.orbits.remove(entity) {
+                    godot_print!("removing orbit {:?}", entity);
+                    self.base.remove_child(orbit_model.share().upcast());
+                    orbit_model.queue_free();
+                }
+
+                godot_print!("removing object {:?}", entity);
+                self.base.remove_child(node.share().upcast());
+                node.queue_free();
                 false
             }
         });
@@ -152,6 +206,24 @@ impl SectorView {
         base
     }
 
+    fn new_orbit_model(name: String, radius: f32, color: Color, pos: Vector2) -> Gd<Node2D> {
+        let scale = radius;
+        let scale_v = Vector2::new(scale, scale);
+
+        let mut model = OrbitModel::new_alloc();
+        {
+            let mut model = model.bind_mut();
+            model.set_color(color);
+            model.set_name(name.into());
+        }
+
+        let mut base: Gd<Node2D> = model.upcast();
+        base.set_scale(scale_v);
+        base.set_position(pos);
+
+        base
+    }
+
     pub fn recenter(&mut self) {
         self.base.set_position(Vector2::new(600.0, 350.0));
         self.base.set_scale(Vector2::new(50.0, 50.0))
@@ -166,7 +238,7 @@ impl Node2DVirtual for SectorView {
         }
 
         Self {
-            show_sector_state: Default::default(),
+            state: Default::default(),
             base,
         }
     }
