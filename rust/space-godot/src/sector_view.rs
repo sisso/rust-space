@@ -32,6 +32,27 @@ pub struct SectorView {
     base: Base<Node2D>,
 }
 
+pub enum ObjectKind {
+    Fleet,
+    Jump,
+    Station,
+    Astro,
+    AstroStar,
+}
+
+pub enum ObjectUpdate {
+    Obj {
+        id: Entity,
+        pos: V2,
+        kind: ObjectKind,
+    },
+    Orbit {
+        id: Entity,
+        pos: V2,
+        parent_pos: V2,
+    },
+}
+
 #[godot_api]
 impl SectorView {
     pub fn update(&mut self, state: &State) {
@@ -42,6 +63,8 @@ impl SectorView {
     }
 
     fn update_sector(&mut self, state: &State, sector_id: SectorId) {
+        let mut updates = vec![];
+
         let game = state.game.borrow();
         let entities = game.world.entities();
 
@@ -70,14 +93,6 @@ impl SectorView {
         let jumps = game.world.read_storage::<Jump>();
         let orbits = game.world.read_storage::<OrbitalPos>();
 
-        let fleet_color = crate::utils::color_red();
-        let astro_color = crate::utils::color_green();
-        let star_color = crate::utils::color_yellow();
-        let jump_color = crate::utils::color_blue();
-        let station_color = crate::utils::color_light_gray();
-
-        let mut current_entities = HashSet::new();
-
         // add and update entities
         for (_, e, l, f, a, s, j) in (
             &sector_entities_bitset,
@@ -91,85 +106,131 @@ impl SectorView {
             .join()
         {
             let pos = unwrap_or_continue!(l.get_pos());
-            let gpos = pos.as_vector2();
 
-            if let Some(node) = self.state.bodies.get_mut(&e) {
-                node.set_position(gpos);
-                current_entities.insert(e);
+            let kind = if f.is_some() {
+                ObjectKind::Fleet
+            } else if let Some(astro) = a {
+                match astro.kind {
+                    AstroBodyKind::Star => ObjectKind::AstroStar,
+                    AstroBodyKind::Planet => ObjectKind::Astro,
+                }
+            } else if s.is_some() {
+                ObjectKind::Station
+            } else if j.is_some() {
+                ObjectKind::Jump
             } else {
-                let model = if f.is_some() {
-                    Some(Self::new_model(
-                        format!("Fleet {}", e.id()),
-                        gpos,
-                        fleet_color,
-                    ))
-                } else if let Some(astro) = a {
-                    let color = match astro.kind {
-                        AstroBodyKind::Star => star_color,
-                        AstroBodyKind::Planet => astro_color,
-                    };
-                    Some(Self::new_model(format!("Astro {}", e.id()), gpos, color))
-                } else if s.is_some() {
-                    Some(Self::new_model(
-                        format!("Jump {}", e.id()),
-                        gpos,
-                        station_color,
-                    ))
-                } else if j.is_some() {
-                    Some(Self::new_model(
-                        format!("Jump {}", e.id()),
-                        gpos,
-                        jump_color,
-                    ))
-                } else {
-                    None
-                };
+                // godot_warn!("unknown object {:?}", e);
+                continue;
+            };
 
-                let model = unwrap_or_continue!(model);
-
-                self.state.bodies.insert(e, model.share());
-                self.base
-                    .add_child(model.upcast(), false, InternalMode::INTERNAL_MODE_DISABLED);
-                current_entities.insert(e);
-            }
+            updates.push(ObjectUpdate::Obj { id: e, pos, kind })
         }
 
         for (_, e, o, l) in (&sector_entities_bitset, &entities, &orbits, &locations).join() {
-            // skip orbits of any entity that was not displaying
-            if !current_entities.contains(&e) {
-                continue;
-            }
-
             // get current and parent position and compute radius distance
             let self_pos = unwrap_or_continue!(l.get_pos());
             let parent =
                 unwrap_or_continue!(Locations::resolve_space_position(&locations, o.parent));
-            let distance = self_pos.distance(parent.pos);
-            let parent_pos = parent.pos.as_vector2();
 
-            // create or update model
-            self.state
-                .orbits
-                .entry(e)
-                .and_modify(|model| {
-                    model.set_scale(Vector2::ONE * distance);
-                    model.set_position(parent_pos);
-                })
-                .or_insert_with(|| {
-                    let model = Self::new_orbit_model(
-                        format!("orbit of {:?}", e.id()),
-                        distance,
-                        crate::utils::color_white(),
-                        parent_pos,
-                    );
-                    self.base.add_child(
-                        model.share().upcast(),
-                        false,
-                        InternalMode::INTERNAL_MODE_DISABLED,
-                    );
-                    current_entities.insert(e);
-                    model
-                });
+            updates.push(ObjectUpdate::Orbit {
+                id: e,
+                pos: self_pos,
+                parent_pos: parent.pos,
+            });
+        }
+
+        self.update_sector_objects(updates);
+    }
+
+    fn update_sector_objects(&mut self, updates: Vec<ObjectUpdate>) {
+        let mut current_entities = HashSet::new();
+
+        let fleet_color = crate::utils::color_red();
+        let astro_color = crate::utils::color_green();
+        let star_color = crate::utils::color_yellow();
+        let jump_color = crate::utils::color_blue();
+        let station_color = crate::utils::color_light_gray();
+
+        // add and update entities
+        for update in updates {
+            match update {
+                ObjectUpdate::Obj { id, pos, kind } => {
+                    if let Some(node) = self.state.bodies.get_mut(&id) {
+                        node.set_position(pos.as_vector2());
+                        current_entities.insert(id);
+                    } else {
+                        let model = match kind {
+                            ObjectKind::Fleet => Some(Self::new_model(
+                                format!("Fleet {}", id.id()),
+                                pos.as_vector2(),
+                                fleet_color,
+                            )),
+                            ObjectKind::Jump => Some(Self::new_model(
+                                format!("Jump {}", id.id()),
+                                pos.as_vector2(),
+                                jump_color,
+                            )),
+                            ObjectKind::Station => Some(Self::new_model(
+                                format!("Station {}", id.id()),
+                                pos.as_vector2(),
+                                station_color,
+                            )),
+                            ObjectKind::AstroStar => Some(Self::new_model(
+                                format!("Star {}", id.id()),
+                                pos.as_vector2(),
+                                star_color,
+                            )),
+                            ObjectKind::Astro => Some(Self::new_model(
+                                format!("Astro {}", id.id()),
+                                pos.as_vector2(),
+                                astro_color,
+                            )),
+                        };
+
+                        let model = unwrap_or_continue!(model);
+
+                        self.state.bodies.insert(id, model.share());
+                        self.base.add_child(
+                            model.upcast(),
+                            false,
+                            InternalMode::INTERNAL_MODE_DISABLED,
+                        );
+                        current_entities.insert(id);
+                    }
+                }
+
+                ObjectUpdate::Orbit {
+                    id,
+                    pos,
+                    parent_pos,
+                } => {
+                    let distance = parent_pos.distance(pos);
+                    let color = crate::utils::color_white();
+
+                    self.state
+                        .orbits
+                        .entry(id)
+                        .and_modify(|model| {
+                            model.set_scale(Vector2::ONE * distance);
+                            model.set_position(parent_pos.as_vector2());
+                        })
+                        .or_insert_with(|| {
+                            let model = Self::new_orbit_model(
+                                format!("orbit of {:?}", id.id()),
+                                distance,
+                                color,
+                                parent_pos.as_vector2(),
+                            );
+                            self.base.add_child(
+                                model.share().upcast(),
+                                false,
+                                InternalMode::INTERNAL_MODE_DISABLED,
+                            );
+                            current_entities.insert(id);
+                            model
+                        });
+                }
+            }
         }
 
         // remove non existing entities
