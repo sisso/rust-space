@@ -1,16 +1,12 @@
+use crate::SpaceApi;
 use commons::math::Transform2;
-use space_domain::game::sectors::{Sector, SectorId};
-use space_domain::game::{scenery_random, Game};
-use specs::prelude::*;
-use std::cell::RefCell;
-use std::path::PathBuf;
-use std::rc::Rc;
+use space_flap::{Id, SpaceGame};
 
 #[derive(Copy, Clone, Debug)]
 pub enum StateScreen {
-    Sector(SectorId),
+    Sector(Id),
     Galaxy,
-    Fleet(Entity),
+    Fleet(Id),
 }
 
 #[derive(PartialEq, Debug, Copy, Clone)]
@@ -20,9 +16,9 @@ pub enum TimeSpeed {
 }
 
 pub struct State {
-    pub game: Rc<RefCell<Game>>,
+    pub game: SpaceGame,
     pub screen: StateScreen,
-    pub selected_object: Option<Entity>,
+    pub selected_object: Option<Id>,
     pub sector_view_transform: Transform2,
     pub time_speed: TimeSpeed,
 }
@@ -41,30 +37,18 @@ impl State {
                 Err(err)
             });
 
-        let universe_cfg = space_domain::space_galaxy::system_generator::new_config_from_file(
-            // TODO: remove abs path
-            &PathBuf::from("/home/sisso/work/rust-space/rust/data/system_generator.conf"),
-        );
+        let mut game = SpaceGame::new(vec![
+            "--size".to_string(),
+            "2".to_string(),
+            "--fleets".to_string(),
+            "2".to_string(),
+        ]);
 
-        let mut game = Game::new();
-        scenery_random::load_random(
-            &mut game,
-            &scenery_random::RandomMapCfg {
-                size: 2,
-                seed: 0,
-                ships: 2,
-                universe_cfg,
-            },
-        );
-
-        let sector_id = {
-            let entities = game.world.entities();
-            let sectors = game.world.read_storage::<Sector>();
-            let (sector_id, _) = (&entities, &sectors).join().next().unwrap();
-            sector_id
-        };
-
-        let game = Rc::new(RefCell::new(game));
+        let sector_id = game
+            .get_sectors()
+            .get(0)
+            .expect("game has no sector")
+            .get_id();
 
         let state = State {
             game: game,

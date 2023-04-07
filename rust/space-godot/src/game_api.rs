@@ -1,4 +1,4 @@
-use crate::main_gui::{LabeledEntity, MainGui};
+use crate::main_gui::{LabeledId, MainGui};
 use crate::sector_view::SectorView;
 use crate::state::{State, StateScreen};
 use godot::bind::{godot_api, GodotClass};
@@ -7,12 +7,8 @@ use godot::engine::{Engine, Node, NodeExt, NodeVirtual};
 use godot::obj::Base;
 use godot::prelude::*;
 
-use space_domain::game::fleets::Fleet;
-
-use space_domain::game::sectors::{Sector, SectorId};
-
-use space_domain::utils::DeltaTime;
-use specs::prelude::*;
+use crate::runtime::Runtime;
+use space_flap::*;
 
 #[derive(GodotClass)]
 #[class(base=Node)]
@@ -20,12 +16,6 @@ pub struct GameApi {
     runtime: Option<Runtime>,
     #[base]
     base: Base<Node>,
-}
-
-struct Runtime {
-    state: State,
-    sector_view: Gd<SectorView>,
-    gui: Gd<MainGui>,
 }
 
 #[godot_api]
@@ -58,59 +48,9 @@ impl GameApi {
         node.get_node_as::<GameApi>("/root/GameApi")
     }
 
-    pub fn on_click_sector(&mut self, sector_id: SectorId) {
-        let runtime = self.runtime.as_mut().unwrap();
-        runtime.state.screen = StateScreen::Sector(sector_id);
-
-        runtime.sector_view.bind_mut().update(&runtime.state);
-    }
-
-    pub fn update_gui(&mut self) {
-        let (sectors, fleets) = {
-            let game = self.runtime.as_ref().unwrap().state.game.borrow();
-
-            let entities = game.world.entities();
-            let sectors_storage = game.world.read_storage::<Sector>();
-
-            let sectors: Vec<_> = (&entities, &sectors_storage)
-                .join()
-                .map(|(e, s)| LabeledEntity {
-                    id: e,
-                    label: format!("{} {}", s.coords.x, s.coords.y),
-                })
-                .collect();
-
-            let fleets_storage = game.world.read_storage::<Fleet>();
-            let fleets: Vec<String> = fleets_storage
-                .as_slice()
-                .iter()
-                .enumerate()
-                .map(|(i, _fleet)| format!("Fleet {}", i))
-                .collect();
-
-            (sectors, fleets)
-        };
-
-        let runtime = self.runtime.as_mut().unwrap();
-        let mut gui = runtime.gui.bind_mut();
-        gui.show_sectors(sectors);
-        gui.show_fleets(fleets);
-    }
-
-    pub fn draw_sector(&mut self) {
-        let runtime = self.runtime.as_mut().unwrap();
-        let state = &runtime.state;
-        let mut sv = runtime.sector_view.bind_mut();
-        sv.update(state);
-    }
-
-    pub fn recenter(&mut self) {
-        self.runtime
-            .as_mut()
-            .unwrap()
-            .sector_view
-            .bind_mut()
-            .recenter();
+    pub fn on_click_sector(&mut self, sector_id: Id) {
+        let runtime = self.runtime.as_mut().expect("runtime not initialized");
+        runtime.change_sector(sector_id);
     }
 }
 
@@ -141,15 +81,13 @@ impl NodeVirtual for GameApi {
                 .expect("MainGui not found");
 
             let state = State::new();
-            self.runtime = Some(Runtime {
-                state,
-                sector_view,
-                gui,
-            });
 
-            self.update_gui();
-            self.draw_sector();
-            self.recenter();
+            let mut runtime = Runtime::new(state, sector_view, gui);
+            runtime.update_gui();
+            runtime.recenter();
+            runtime.refresh_sector_view();
+
+            self.runtime = Some(runtime);
         }
     }
 
@@ -158,11 +96,7 @@ impl NodeVirtual for GameApi {
             return;
         }
 
-        {
-            let mut game = self.runtime.as_mut().unwrap().state.game.borrow_mut();
-            game.tick(DeltaTime::from(delta as f32));
-        }
-
-        self.draw_sector();
+        let runtime = self.runtime.as_mut().expect("runtime not intiialized");
+        runtime.tick(delta);
     }
 }

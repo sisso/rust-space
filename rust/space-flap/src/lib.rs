@@ -303,8 +303,8 @@ pub struct SpaceGame {
 
 impl SpaceGame {
     pub fn new(args: Vec<String>) -> Self {
-        let mut size = 50;
-        let mut fleets = 100;
+        let mut size = 4;
+        let mut fleets = 10;
 
         for mut pair in &args.iter().chunks(2) {
             let k = pair.next().unwrap();
@@ -333,8 +333,9 @@ impl SpaceGame {
             }
         }
 
-        let universe_cfg = space_domain::space_galaxy::system_generator::new_config_from_file(
-            &PathBuf::from("data/system_generator.conf"),
+        let system_generator_conf = include_str!("../../data/system_generator.conf");
+        let universe_cfg = space_domain::space_galaxy::system_generator::new_config_from_str(
+            system_generator_conf,
         );
 
         let mut game = Game::new();
@@ -595,8 +596,8 @@ fn proper_decode_entity(value: u64) -> (u32, i32) {
 
 // pretty but broken encode of entity
 fn encode_entity(entity: Entity) -> u64 {
-    let high = entity.id() as u64 * 1_000_000;
-    let low = entity.gen().id() as u64;
+    let high = entity.gen().id() as u64 * 1_000_000;
+    let low = entity.id() as u64;
     return high + low;
 }
 
@@ -604,7 +605,7 @@ fn encode_entity(entity: Entity) -> u64 {
 fn decode_entity(value: u64) -> (u32, i32) {
     let high = value / 1_000_000;
     let low = value % 1_000_000;
-    (high as u32, low as i32)
+    (low as u32, high as i32)
 }
 
 fn decode_entity_and_get(g: &Game, id: Id) -> Option<Entity> {

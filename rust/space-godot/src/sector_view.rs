@@ -1,6 +1,5 @@
 use crate::graphics::{AstroModel, OrbitModel};
 use crate::state::{State, StateScreen};
-use commons::unwrap_or_continue;
 
 use godot::engine::node::InternalMode;
 use godot::engine::{global, Engine};
@@ -8,19 +7,15 @@ use godot::prelude::*;
 
 use crate::utils::V2Vec;
 use commons::math::V2;
-use space_domain::game::astrobody::{AstroBody, AstroBodyKind, OrbitalPos};
-use space_domain::game::fleets::Fleet;
-use space_domain::game::locations::{EntityPerSectorIndex, Location, Locations};
-use space_domain::game::sectors::{Jump, SectorId};
-use space_domain::game::station::Station;
-use space_domain::utils;
-use specs::prelude::*;
+use commons::unwrap_or_continue;
+use godot::private::callbacks::create;
+use space_flap::{Id, ObjData};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Default)]
 struct ShowSectorState {
-    bodies: HashMap<Entity, Gd<Node2D>>,
-    orbits: HashMap<Entity, Gd<Node2D>>,
+    bodies: HashMap<Id, Gd<Node2D>>,
+    orbits: HashMap<Id, Gd<Node2D>>,
 }
 
 #[derive(GodotClass)]
@@ -32,39 +27,31 @@ pub struct SectorView {
     base: Base<Node2D>,
 }
 
-pub enum ObjectKind {
-    Fleet,
-    Jump,
-    Station,
-    Astro,
-    AstroStar,
+pub struct ObjKind {
+    pub fleet: bool,
+    pub jump: bool,
+    pub station: bool,
+    pub asteroid: bool,
+    pub astro: bool,
 }
 
 pub enum Update {
     Obj {
-        id: Entity,
+        id: Id,
         pos: V2,
-        kind: ObjectKind,
+        kind: ObjKind,
     },
     Orbit {
-        id: Entity,
+        id: Id,
         pos: V2,
         parent_pos: V2,
+        radius: f32,
     },
 }
 
 #[godot_api]
 impl SectorView {
-    pub fn update(&mut self, state: &State) {
-        match state.screen {
-            StateScreen::Sector(sector_id) => {
-                self.update_sector_objects(generate_sector_updates(state, sector_id))
-            }
-            _ => todo!("not implemented"),
-        }
-    }
-
-    fn update_sector_objects(&mut self, updates: Vec<Update>) {
+    pub fn refresh(&mut self, updates: Vec<Update>) {
         let mut current_entities = HashSet::new();
 
         // add and update entities
@@ -89,20 +76,19 @@ impl SectorView {
                     id,
                     pos,
                     parent_pos,
+                    radius,
                 } => {
-                    let distance = parent_pos.distance(pos);
-
                     self.state
                         .orbits
                         .entry(id)
                         .and_modify(|model| {
-                            model.set_scale(Vector2::ONE * distance);
+                            model.set_scale(Vector2::ONE * radius);
                             model.set_position(parent_pos.as_vector2());
                         })
                         .or_insert_with(|| {
                             let model = new_orbit_model(
-                                format!("orbit of {:?}", id.id()),
-                                distance,
+                                format!("orbit of {:?}", id),
+                                radius,
                                 crate::utils::color_white(),
                                 parent_pos.as_vector2(),
                             );
@@ -122,7 +108,7 @@ impl SectorView {
         self.remove_missing(current_entities);
     }
 
-    fn remove_missing(&mut self, current_entities: HashSet<Entity>) {
+    fn remove_missing(&mut self, current_entities: HashSet<Id>) {
         self.state.bodies.retain(|entity, node| {
             if current_entities.contains(entity) {
                 true
@@ -200,104 +186,28 @@ impl Node2DVirtual for SectorView {
     }
 }
 
-fn generate_sector_updates(state: &State, sector_id: SectorId) -> Vec<Update> {
-    let mut updates = vec![];
-
-    let game = state.game.borrow();
-    let entities = game.world.entities();
-
-    let sectors_index = game.world.read_resource::<EntityPerSectorIndex>();
-    let objects_at_sector = match sectors_index.index.get(&sector_id) {
-        Some(list) if !list.is_empty() => list,
-        Some(list) => {
-            godot_warn!("sector {} has index, but sector is empty", sector_id.id());
-            list
-        }
-        None => {
-            godot_warn!(
-                "sector {} has no index, skipping draw sector",
-                sector_id.id()
-            );
-            return vec![];
-        }
-    };
-    let sector_entities_bitset = BitSet::from_iter(objects_at_sector.iter().map(|e| e.id()));
-
-    // add objects
-    let locations = game.world.read_storage::<Location>();
-    let fleets = game.world.read_storage::<Fleet>();
-    let astros = game.world.read_storage::<AstroBody>();
-    let stations = game.world.read_storage::<Station>();
-    let jumps = game.world.read_storage::<Jump>();
-    let orbits = game.world.read_storage::<OrbitalPos>();
-
-    // add and update entities
-    for (_, e, l, f, a, s, j) in (
-        &sector_entities_bitset,
-        &entities,
-        &locations,
-        fleets.maybe(),
-        astros.maybe(),
-        stations.maybe(),
-        jumps.maybe(),
-    )
-        .join()
-    {
-        let pos = unwrap_or_continue!(l.get_pos());
-
-        let kind = if f.is_some() {
-            ObjectKind::Fleet
-        } else if let Some(astro) = a {
-            match astro.kind {
-                AstroBodyKind::Star => ObjectKind::AstroStar,
-                AstroBodyKind::Planet => ObjectKind::Astro,
-            }
-        } else if s.is_some() {
-            ObjectKind::Station
-        } else if j.is_some() {
-            ObjectKind::Jump
-        } else {
-            // godot_warn!("unknown object {:?}", e);
-            continue;
-        };
-
-        updates.push(Update::Obj { id: e, pos, kind })
-    }
-
-    for (_, e, o, l) in (&sector_entities_bitset, &entities, &orbits, &locations).join() {
-        // get current and parent position and compute radius distance
-        let self_pos = unwrap_or_continue!(l.get_pos());
-        let parent = unwrap_or_continue!(Locations::resolve_space_position(&locations, o.parent));
-
-        updates.push(Update::Orbit {
-            id: e,
-            pos: self_pos,
-            parent_pos: parent.pos,
-        });
-    }
-
-    updates
-}
-
-fn resolve_model_for_kind(id: Entity, pos: V2, kind: ObjectKind) -> Gd<Node2D> {
+fn resolve_model_for_kind(id: Id, pos: V2, kind: ObjKind) -> Gd<Node2D> {
     let fleet_color = crate::utils::color_red();
     let astro_color = crate::utils::color_green();
-    let star_color = crate::utils::color_yellow();
     let jump_color = crate::utils::color_blue();
     let station_color = crate::utils::color_light_gray();
 
-    match kind {
-        ObjectKind::Fleet => new_model(format!("Fleet {}", id.id()), pos.as_vector2(), fleet_color),
-        ObjectKind::Jump => new_model(format!("Jump {}", id.id()), pos.as_vector2(), jump_color),
-        ObjectKind::Station => new_model(
-            format!("Station {}", id.id()),
+    if kind.fleet {
+        new_model(format!("Fleet {}", id), pos.as_vector2(), fleet_color)
+    } else if kind.jump {
+        new_model(format!("Jump {}", id), pos.as_vector2(), jump_color)
+    } else if kind.station {
+        new_model(format!("Station {}", id), pos.as_vector2(), station_color)
+    } else if kind.astro {
+        new_model(format!("Astro {}", id), pos.as_vector2(), astro_color)
+    } else if kind.asteroid {
+        new_model(
+            format!("Asteroid {}", id),
             pos.as_vector2(),
-            station_color,
-        ),
-        ObjectKind::AstroStar => {
-            new_model(format!("Star {}", id.id()), pos.as_vector2(), star_color)
-        }
-        ObjectKind::Astro => new_model(format!("Astro {}", id.id()), pos.as_vector2(), astro_color),
+            crate::utils::color_brown(),
+        )
+    } else {
+        new_model(format!("Unknown {}", id), pos.as_vector2(), astro_color)
     }
 }
 

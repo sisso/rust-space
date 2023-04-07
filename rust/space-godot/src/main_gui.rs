@@ -2,20 +2,19 @@ use crate::game_api::GameApi;
 use godot::engine::node::InternalMode;
 use godot::engine::{Button, Engine, GridContainer};
 use godot::prelude::*;
-use space_domain::game::sectors::SectorId;
-use specs::Entity;
+use space_flap::Id;
 
 #[derive(GodotClass)]
 #[class(base=Node2D)]
 pub struct MainGui {
     #[base]
     base: Base<Node2D>,
-    buttons_sectors: Vec<Entity>,
-    buttons_fleets: Vec<Entity>,
+    buttons_sectors: Vec<Id>,
+    buttons_fleets: Vec<Id>,
 }
 
-pub struct LabeledEntity {
-    pub id: Entity,
+pub struct LabeledId {
+    pub id: Id,
     pub label: String,
 }
 
@@ -35,7 +34,7 @@ impl MainGui {
         godot_print!("on click fleet received");
     }
 
-    pub fn get_clicked_sector(&self) -> Option<SectorId> {
+    pub fn get_clicked_sector(&self) -> Option<Id> {
         let container = self.get_sectors_container();
         let children = container.get_children(false);
         for (i, node) in children.iter_shared().enumerate() {
@@ -49,7 +48,7 @@ impl MainGui {
         None
     }
 
-    pub fn show_sectors(&mut self, sectors: Vec<LabeledEntity>) {
+    pub fn show_sectors(&mut self, sectors: Vec<LabeledId>) {
         self.buttons_sectors.clear();
 
         let mut grid = self.get_sectors_container();
@@ -78,14 +77,14 @@ impl MainGui {
         grid
     }
 
-    pub fn show_fleets(&self, fleets: Vec<String>) {
+    pub fn show_fleets(&self, fleets: Vec<LabeledId>) {
         let mut grid = self.get_fleets_group();
         crate::utils::clear(grid.share());
         grid.set_columns(1);
 
         for fleet in fleets {
             let mut button = Button::new_alloc();
-            button.set_text(fleet.into());
+            button.set_text(fleet.label.into());
             button.connect(
                 "button_down".into(),
                 Callable::from_object_method(self.base.share(), "on_click_fleet"),
