@@ -5,7 +5,7 @@ extern crate core;
 use commons::math::P2;
 use itertools::{cloned, Itertools};
 use space_domain::game::actions::{Action, ActionActive, Actions};
-use space_domain::game::astrobody::{AstroBodies, AstroBody, OrbitalPos};
+use space_domain::game::astrobody::{AstroBodies, AstroBody, AstroBodyKind, OrbitalPos};
 use space_domain::game::extractables::Extractable;
 use space_domain::game::factory::Factory;
 use space_domain::game::fleets::Fleet;
@@ -44,6 +44,7 @@ pub struct ObjKind {
     station: bool,
     asteroid: bool,
     astro: bool,
+    astro_star: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -135,6 +136,10 @@ impl ObjData {
 
     pub fn is_astro(&self) -> bool {
         self.kind.astro
+    }
+
+    pub fn is_astro_star(&self) -> bool {
+        self.kind.astro_star
     }
 }
 
@@ -431,6 +436,7 @@ impl SpaceGame {
                 station: st.is_some(),
                 asteroid: false,
                 astro: false,
+                astro_star: false,
             };
 
             r.push(ObjData {
@@ -498,6 +504,7 @@ impl SpaceGame {
             station: st.is_some(),
             asteroid: ext.is_some(),
             astro: ab.is_some(),
+            astro_star: ab.map(|ab| ab.kind == AstroBodyKind::Star).unwrap_or(false),
         };
 
         let orbit_data = orb.map(|o| {

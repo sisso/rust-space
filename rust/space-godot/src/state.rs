@@ -19,7 +19,6 @@ pub struct State {
     pub game: SpaceGame,
     pub screen: StateScreen,
     pub selected_object: Option<Id>,
-    pub sector_view_transform: Transform2,
     pub time_speed: TimeSpeed,
 }
 
@@ -53,7 +52,6 @@ impl State {
         let state = State {
             game: game,
             screen: StateScreen::Sector(sector_id),
-            sector_view_transform: Transform2::identity(),
             time_speed: TimeSpeed::Normal,
             selected_object: None,
         };

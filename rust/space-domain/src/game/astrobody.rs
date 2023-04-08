@@ -7,7 +7,7 @@ use commons::math::{Rad, P2};
 use specs::prelude::*;
 use std::collections::HashMap;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum AstroBodyKind {
     Star,
     Planet,

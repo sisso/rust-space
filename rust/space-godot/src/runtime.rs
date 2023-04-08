@@ -91,6 +91,7 @@ pub fn generate_sectorview_updates(state: &State, sector_id: Id) -> Vec<sector_v
                 station: data.is_station(),
                 asteroid: data.is_asteroid(),
                 astro: data.is_astro(),
+                astro_star: data.is_astro_star(),
             },
         });
 

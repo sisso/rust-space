@@ -8,6 +8,7 @@ use godot::prelude::*;
 use crate::utils::V2Vec;
 use commons::math::V2;
 use commons::unwrap_or_continue;
+use godot::engine::global::MouseButton;
 use godot::private::callbacks::create;
 use space_flap::{Id, ObjData};
 use std::collections::{HashMap, HashSet};
@@ -17,6 +18,8 @@ struct ShowSectorState {
     bodies: HashMap<Id, Gd<Node2D>>,
     orbits: HashMap<Id, Gd<Node2D>>,
 }
+
+struct SectorStateEntry(Gd<Node2D>, Update);
 
 #[derive(GodotClass)]
 #[class(base = Node2D)]
@@ -33,6 +36,7 @@ pub struct ObjKind {
     pub station: bool,
     pub asteroid: bool,
     pub astro: bool,
+    pub astro_star: bool,
 }
 
 pub enum Update {
@@ -131,6 +135,21 @@ impl SectorView {
         self.base.set_position(Vector2::new(600.0, 350.0));
         self.base.set_scale(Vector2::new(50.0, 50.0))
     }
+
+    pub fn find_nearest(&self, local_pos: Vector2) -> Option<Id> {
+        let mut nid = None;
+        let mut dist = f32::MAX;
+        for (id, gd) in &self.state.bodies {
+            let ipos = gd.get_position();
+            let idist = ipos.distance_squared_to(local_pos);
+            if idist < dist {
+                nid = Some(*id);
+                dist = idist;
+            }
+        }
+
+        nid
+    }
 }
 
 #[godot_api]
@@ -183,6 +202,17 @@ impl Node2DVirtual for SectorView {
             self.base
                 .apply_scale(Vector2::new(1.0 + scale_speed, 1.0 + scale_speed));
         }
+
+        if input.is_mouse_button_pressed(MouseButton::MOUSE_BUTTON_LEFT) {
+            let pos = self.base.get_global_mouse_position();
+            let local_pos = self.base.to_local(pos);
+            godot_print!("mouse pos {:?}, local_pos {:?}", pos, local_pos);
+            if let Some(id) = self.find_nearest(local_pos) {
+                godot_print!("found {:?}", id);
+            } else {
+                godot_print!("not found");
+            }
+        }
     }
 }
 
@@ -198,6 +228,12 @@ fn resolve_model_for_kind(id: Id, pos: V2, kind: ObjKind) -> Gd<Node2D> {
         new_model(format!("Jump {}", id), pos.as_vector2(), jump_color)
     } else if kind.station {
         new_model(format!("Station {}", id), pos.as_vector2(), station_color)
+    } else if kind.astro && kind.astro_star {
+        new_model(
+            format!("Star {}", id),
+            pos.as_vector2(),
+            crate::utils::color_yellow(),
+        )
     } else if kind.astro {
         new_model(format!("Astro {}", id), pos.as_vector2(), astro_color)
     } else if kind.asteroid {
