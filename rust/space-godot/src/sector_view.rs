@@ -1,22 +1,30 @@
-use crate::graphics::{AstroModel, OrbitModel};
+use crate::graphics::{AstroModel, OrbitModel, SelectedModel};
 use crate::state::{State, StateScreen};
 
 use godot::engine::node::InternalMode;
 use godot::engine::{global, Engine};
 use godot::prelude::*;
 
+use crate::utils;
 use crate::utils::V2Vec;
 use commons::math::V2;
-use commons::unwrap_or_continue;
+use commons::{unwrap_or_continue, unwrap_or_return};
 use godot::engine::global::MouseButton;
 use godot::private::callbacks::create;
 use space_flap::{Id, ObjData};
 use std::collections::{HashMap, HashSet};
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
+struct SelectedObject {
+    model: Gd<Node2D>,
+    id: Option<Id>,
+}
+
+#[derive(Debug)]
 struct ShowSectorState {
-    bodies: HashMap<Id, Gd<Node2D>>,
-    orbits: HashMap<Id, Gd<Node2D>>,
+    bodies_model: HashMap<Id, Gd<Node2D>>,
+    orbits_model: HashMap<Id, Gd<Node2D>>,
+    selected: SelectedObject,
 }
 
 struct SectorStateEntry(Gd<Node2D>, Update);
@@ -62,11 +70,11 @@ impl SectorView {
         for update in updates {
             match update {
                 Update::Obj { id, pos, kind } => {
-                    if let Some(node) = self.state.bodies.get_mut(&id) {
+                    if let Some(node) = self.state.bodies_model.get_mut(&id) {
                         node.set_position(pos.as_vector2());
                     } else {
                         let model = resolve_model_for_kind(id, pos, kind);
-                        self.state.bodies.insert(id, model.share());
+                        self.state.bodies_model.insert(id, model.share());
                         self.base.add_child(
                             model.upcast(),
                             false,
@@ -83,7 +91,7 @@ impl SectorView {
                     radius,
                 } => {
                     self.state
-                        .orbits
+                        .orbits_model
                         .entry(id)
                         .and_modify(|model| {
                             model.set_scale(Vector2::ONE * radius);
@@ -113,11 +121,24 @@ impl SectorView {
     }
 
     fn remove_missing(&mut self, current_entities: HashSet<Id>) {
-        self.state.bodies.retain(|entity, node| {
+        // remove selected before the object get removed
+        let will_remove_selected = self
+            .state
+            .selected
+            .id
+            .as_ref()
+            .map(|id| !current_entities.contains(id))
+            .unwrap_or(false);
+
+        if will_remove_selected {
+            self.set_selected(None);
+        }
+
+        self.state.bodies_model.retain(|entity, node| {
             if current_entities.contains(entity) {
                 true
             } else {
-                if let Some(mut orbit_model) = self.state.orbits.remove(entity) {
+                if let Some(mut orbit_model) = self.state.orbits_model.remove(entity) {
                     godot_print!("removing orbit {:?}", entity);
                     self.base.remove_child(orbit_model.share().upcast());
                     orbit_model.queue_free();
@@ -139,7 +160,7 @@ impl SectorView {
     pub fn find_nearest(&self, local_pos: Vector2) -> Option<Id> {
         let mut nid = None;
         let mut dist = f32::MAX;
-        for (id, gd) in &self.state.bodies {
+        for (id, gd) in &self.state.bodies_model {
             let ipos = gd.get_position();
             let idist = ipos.distance_squared_to(local_pos);
             if idist < dist {
@@ -150,6 +171,40 @@ impl SectorView {
 
         nid
     }
+
+    pub fn set_selected(&mut self, id: Option<Id>) {
+        // do nothing if is still same object
+        if id == self.state.selected.id {
+            return;
+        }
+
+        godot_print!(
+            "setting selected {:?} from {:?} are euqals {:?}",
+            id,
+            self.state.selected.id,
+            id == self.state.selected.id,
+        );
+
+        // remove parent if exists
+        self.state.selected.model.get_parent().map(|mut parent| {
+            let gd = self.state.selected.model.share();
+            parent.remove_child(gd.upcast())
+        });
+
+        self.state.selected.id = id;
+        let id = unwrap_or_return!(self.state.selected.id);
+
+        let model = unwrap_or_return!(self.state.bodies_model.get(&id));
+        let mut model = model.share();
+
+        self.state.selected.model.show();
+
+        model.add_child(
+            self.state.selected.model.share().upcast(),
+            false,
+            InternalMode::INTERNAL_MODE_DISABLED,
+        );
+    }
 }
 
 #[godot_api]
@@ -159,9 +214,27 @@ impl Node2DVirtual for SectorView {
         } else {
         }
 
+        let mut selected_model = SelectedModel::new_alloc();
+        selected_model
+            .bind_mut()
+            .set_color(utils::color_bright_cyan());
+
+        let mut selected_model_base: Gd<Node2D> = selected_model.upcast();
+        selected_model_base.set_name("selected".into());
+        selected_model_base.hide();
+
+        let state = ShowSectorState {
+            bodies_model: Default::default(),
+            orbits_model: Default::default(),
+            selected: SelectedObject {
+                model: selected_model_base,
+                id: None,
+            },
+        };
+
         Self {
-            state: Default::default(),
-            base,
+            state: state,
+            base: base,
         }
     }
 
@@ -207,20 +280,17 @@ impl Node2DVirtual for SectorView {
             let pos = self.base.get_global_mouse_position();
             let local_pos = self.base.to_local(pos);
             godot_print!("mouse pos {:?}, local_pos {:?}", pos, local_pos);
-            if let Some(id) = self.find_nearest(local_pos) {
-                godot_print!("found {:?}", id);
-            } else {
-                godot_print!("not found");
-            }
+            let nearest = self.find_nearest(local_pos);
+            self.set_selected(nearest);
         }
     }
 }
 
 fn resolve_model_for_kind(id: Id, pos: V2, kind: ObjKind) -> Gd<Node2D> {
-    let fleet_color = crate::utils::color_red();
-    let astro_color = crate::utils::color_green();
-    let jump_color = crate::utils::color_blue();
-    let station_color = crate::utils::color_light_gray();
+    let fleet_color = utils::color_red();
+    let astro_color = utils::color_green();
+    let jump_color = utils::color_blue();
+    let station_color = utils::color_light_gray();
 
     if kind.fleet {
         new_model(format!("Fleet {}", id), pos.as_vector2(), fleet_color)
