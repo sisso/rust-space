@@ -1,9 +1,9 @@
 use crate::main_gui::{LabeledId, MainGui};
-use crate::sector_view;
 use crate::sector_view::SectorView;
 use crate::state::{State, StateScreen};
+use crate::{main_gui, sector_view};
 use godot::obj::Gd;
-use space_flap::Id;
+use space_flap::{Id, ObjAction, ObjActionKind, ObjCargo, ObjData, ObjDesc};
 
 pub struct Runtime {
     state: State,
@@ -70,6 +70,83 @@ impl Runtime {
 
     pub fn recenter(&mut self) {
         self.sector_view.bind_mut().recenter();
+    }
+
+    pub fn on_selected_entity(&mut self, id: Option<Id>) {
+        if let Some(id) = id {
+            let data = self.state.game.get_obj(id);
+            let desc = self.state.game.get_obj_desc(id);
+            let uidesc = describe_obj(data, desc);
+            self.gui.bind_mut().show_selected_object(uidesc);
+        } else {
+            self.gui
+                .bind_mut()
+                .show_selected_object(main_gui::Description::None);
+        }
+    }
+}
+
+fn describe_obj(data: Option<ObjData>, desc: Option<ObjDesc>) -> main_gui::Description {
+    match (data, desc) {
+        (Some(data), Some(desc)) => {
+            let kind = get_kind_str(&data);
+            let mut buffer = vec![];
+            if let Some(action) = desc.get_action() {
+                buffer.push(get_action_string(action));
+            }
+            if let Some(cargo) = desc.get_cargo() {
+                buffer.extend(get_cargo_str(cargo));
+            }
+            main_gui::Description::Obj {
+                title: format!("{} {:?}", kind, data.get_id()),
+                desc: buffer.join("\n"),
+            }
+        }
+        _ => main_gui::Description::None,
+    }
+}
+
+fn get_cargo_str(cargo: ObjCargo) -> Vec<String> {
+    let mut b = vec![];
+    b.push("Cargo:".to_string());
+    if b.is_empty() {
+        b.push("<empty>".to_string());
+    } else {
+        for (id, amount) in cargo.get_wares() {
+            b.push(format!("- {}: {}", id, amount))
+        }
+    }
+    b
+}
+
+fn get_action_string(action: ObjAction) -> String {
+    match action.get_kind() {
+        ObjActionKind::Undock => "undock".to_string(),
+        ObjActionKind::Jump => "jump".to_string(),
+        ObjActionKind::Dock => "dock".to_string(),
+        ObjActionKind::MoveTo => "move to".to_string(),
+        ObjActionKind::MoveToTargetPos => "move to target".to_string(),
+        ObjActionKind::Extract => "extract".to_string(),
+    }
+}
+
+fn get_kind_str(data: &ObjData) -> &str {
+    if data.is_jump() {
+        "jump"
+    } else if data.is_astro() {
+        "planet"
+    } else if data.is_fleet() {
+        "fleet"
+    } else if data.is_station() {
+        "station"
+    } else if data.is_jump() {
+        "jump"
+    } else if data.is_astro_star() {
+        "star"
+    } else if data.is_asteroid() {
+        "asteroid"
+    } else {
+        "unknown"
     }
 }
 

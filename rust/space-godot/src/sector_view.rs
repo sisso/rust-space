@@ -5,6 +5,7 @@ use godot::engine::node::InternalMode;
 use godot::engine::{global, Engine};
 use godot::prelude::*;
 
+use crate::game_api::GameApi;
 use crate::utils;
 use crate::utils::V2Vec;
 use commons::math::V2;
@@ -178,32 +179,31 @@ impl SectorView {
             return;
         }
 
-        godot_print!(
-            "setting selected {:?} from {:?} are euqals {:?}",
-            id,
-            self.state.selected.id,
-            id == self.state.selected.id,
-        );
-
         // remove parent if exists
         self.state.selected.model.get_parent().map(|mut parent| {
             let gd = self.state.selected.model.share();
             parent.remove_child(gd.upcast())
         });
 
+        // update selection
         self.state.selected.id = id;
-        let id = unwrap_or_return!(self.state.selected.id);
+        if let Some(id) = self.state.selected.id {
+            let model = unwrap_or_return!(self.state.bodies_model.get(&id));
+            let mut model = model.share();
 
-        let model = unwrap_or_return!(self.state.bodies_model.get(&id));
-        let mut model = model.share();
+            self.state.selected.model.show();
 
-        self.state.selected.model.show();
+            model.add_child(
+                self.state.selected.model.share().upcast(),
+                false,
+                InternalMode::INTERNAL_MODE_DISABLED,
+            );
+        }
 
-        model.add_child(
-            self.state.selected.model.share().upcast(),
-            false,
-            InternalMode::INTERNAL_MODE_DISABLED,
-        );
+        // notify API
+        GameApi::get_instance(self.base.share())
+            .bind_mut()
+            .on_selected_entity(id);
     }
 }
 
@@ -279,7 +279,6 @@ impl Node2DVirtual for SectorView {
         if input.is_mouse_button_pressed(MouseButton::MOUSE_BUTTON_LEFT) {
             let pos = self.base.get_global_mouse_position();
             let local_pos = self.base.to_local(pos);
-            godot_print!("mouse pos {:?}, local_pos {:?}", pos, local_pos);
             let nearest = self.find_nearest(local_pos);
             self.set_selected(nearest);
         }

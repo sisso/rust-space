@@ -52,16 +52,8 @@ text = "Fleet 1"
 visible = false
 layout_mode = 2
 
-[node name="Button4" type="Button" parent="TabContainer/Details"]
+[node name="SelectedObjRichTextLabel" type="RichTextLabel" parent="TabContainer/Details"]
 layout_mode = 2
-text = "Fleet 0"
-
-[node name="Button5" type="Button" parent="TabContainer/Details"]
-layout_mode = 2
-text = "Fleet 1
-"
-
-[node name="Button6" type="Button" parent="TabContainer/Details"]
-layout_mode = 2
-text = "Fleet 3
-"
+bbcode_enabled = true
+text = "None"
+fit_content = true

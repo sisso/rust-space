@@ -1,6 +1,5 @@
-use crate::main_gui::{LabeledId, MainGui};
-use crate::sector_view::SectorView;
-use crate::state::{State, StateScreen};
+use crate::main_gui::MainGui;
+use crate::state::State;
 use godot::bind::{godot_api, GodotClass};
 use godot::engine::{Engine, Node, NodeExt, NodeVirtual};
 
@@ -20,26 +19,6 @@ pub struct GameApi {
 
 #[godot_api]
 impl GameApi {
-    #[func]
-    pub fn add(&mut self, a: i32, b: i32) -> i32 {
-        a + b
-    }
-
-    // // do not work
-    // #[func]
-    // pub fn test_str(&mut self) -> GodotString {
-    //     "no way".to_string().into()
-    // }
-
-    // // do not open godot
-    // #[func]
-    // pub fn test_dick(&mut self) -> Dictionary {
-    //     let mut d = Dictionary::new();
-    //     d.insert(1, 2);
-    //     d.insert(3, 4);
-    //     d
-    // }
-
     pub fn get_instance<T>(provided: Gd<T>) -> Gd<GameApi>
     where
         T: Inherits<Node>,
@@ -51,6 +30,12 @@ impl GameApi {
     pub fn on_click_sector(&mut self, sector_id: Id) {
         let runtime = self.runtime.as_mut().expect("runtime not initialized");
         runtime.change_sector(sector_id);
+    }
+
+    pub fn on_selected_entity(&mut self, id: Option<Id>) {
+        godot_print!("on selected on sector {:?}", id);
+        let runtime = self.runtime.as_mut().expect("runtime not initialized");
+        runtime.on_selected_entity(id);
     }
 }
 

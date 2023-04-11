@@ -1,6 +1,6 @@
 use crate::game_api::GameApi;
 use godot::engine::node::InternalMode;
-use godot::engine::{Button, Engine, GridContainer};
+use godot::engine::{Button, Engine, GridContainer, RichTextLabel, TabContainer};
 use godot::prelude::*;
 use space_flap::Id;
 
@@ -16,6 +16,11 @@ pub struct MainGui {
 pub struct LabeledId {
     pub id: Id,
     pub label: String,
+}
+
+pub enum Description {
+    None,
+    Obj { title: String, desc: String },
 }
 
 #[godot_api]
@@ -99,6 +104,29 @@ impl MainGui {
             .base
             .get_node_as::<GridContainer>("TabContainer/Main/FleetsGridContainer");
         grid
+    }
+
+    pub fn show_selected_object(&mut self, d: Description) {
+        // update rich text
+        let mut rich_text = self
+            .base
+            .get_node_as::<RichTextLabel>("TabContainer/Details/SelectedObjRichTextLabel");
+
+        let text = match d {
+            Description::None => "none".to_string(),
+            Description::Obj { mut title, desc } => {
+                title.push('\n');
+                title.push_str(&desc);
+                title
+            }
+        };
+        rich_text.set_text(text.into());
+
+        // automatic swich to tab to details
+        let mut tabs = self.base.get_node_as::<TabContainer>("TabContainer");
+        if tabs.get_current_tab() != 1 {
+            tabs.set_current_tab(1);
+        }
     }
 }
 
