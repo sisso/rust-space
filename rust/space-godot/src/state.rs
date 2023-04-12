@@ -1,5 +1,3 @@
-use crate::SpaceApi;
-use commons::math::Transform2;
 use space_flap::{Id, SpaceGame};
 
 #[derive(Copy, Clone, Debug)]

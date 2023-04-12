@@ -2,8 +2,15 @@
 
 extern crate core;
 
-use commons::math::P2;
+use std::cell::RefCell;
+use std::path::PathBuf;
+use std::rc::Rc;
+
 use itertools::{cloned, Itertools};
+use specs::prelude::*;
+
+use commons::math::P2;
+pub use models::*;
 use space_domain::game::actions::{Action, ActionActive, Actions};
 use space_domain::game::astrobody::{AstroBodies, AstroBody, AstroBodyKind, OrbitalPos};
 use space_domain::game::extractables::Extractable;
@@ -21,286 +28,10 @@ use space_domain::game::wares::{Cargo, WareId};
 use space_domain::game::Game;
 use space_domain::game::{events, scenery_random};
 use space_domain::utils::TotalTime;
-use specs::prelude::*;
-use std::cell::RefCell;
-use std::path::PathBuf;
-use std::rc::Rc;
 
-pub type Id = u64;
+pub mod models;
 
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum EventKind {
-    Add,
-    Move,
-    Jump,
-    Dock,
-    Undock,
-}
-
-#[derive(Clone, Debug)]
-pub struct ObjKind {
-    fleet: bool,
-    jump: bool,
-    station: bool,
-    asteroid: bool,
-    astro: bool,
-    astro_star: bool,
-}
-
-#[derive(Clone, Debug)]
-pub struct ObjOrbitData {
-    radius: f32,
-    parent_pos: P2,
-}
-
-impl ObjOrbitData {
-    pub fn get_radius(&self) -> f32 {
-        self.radius
-    }
-
-    pub fn get_parent_pos(&self) -> (f32, f32) {
-        (self.parent_pos.x, self.parent_pos.y)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct ObjCoords {
-    location: LocationSpace,
-    is_docked: bool,
-}
-
-impl ObjCoords {
-    pub fn get_sector_id(&self) -> Id {
-        encode_entity(self.location.sector_id)
-    }
-
-    pub fn get_coords(&self) -> (f32, f32) {
-        (self.location.pos.x, self.location.pos.y)
-    }
-
-    pub fn is_docked(&self) -> bool {
-        self.is_docked
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct ObjData {
-    id: Entity,
-    coords: P2,
-    sector_id: Entity,
-    docked: Option<Entity>,
-    kind: ObjKind,
-    orbit: Option<ObjOrbitData>,
-}
-
-impl ObjData {
-    pub fn get_id(&self) -> Id {
-        encode_entity(self.id)
-    }
-
-    pub fn is_docked(&self) -> bool {
-        self.docked.is_some()
-    }
-
-    pub fn get_docked_id(&self) -> Option<Id> {
-        self.docked.map(|e| encode_entity(e))
-    }
-
-    pub fn get_sector_id(&self) -> Id {
-        encode_entity(self.sector_id)
-    }
-
-    pub fn get_coords(&self) -> (f32, f32) {
-        (self.coords.x, self.coords.y)
-    }
-
-    pub fn get_orbit(&self) -> Option<ObjOrbitData> {
-        self.orbit.clone()
-    }
-
-    pub fn is_fleet(&self) -> bool {
-        self.kind.fleet
-    }
-
-    pub fn is_station(&self) -> bool {
-        self.kind.station
-    }
-
-    pub fn is_asteroid(&self) -> bool {
-        self.kind.asteroid
-    }
-
-    pub fn is_jump(&self) -> bool {
-        self.kind.jump
-    }
-
-    pub fn is_astro(&self) -> bool {
-        self.kind.astro
-    }
-
-    pub fn is_astro_star(&self) -> bool {
-        self.kind.astro_star
-    }
-}
-
-#[derive(Clone, Debug)]
-pub enum ObjActionKind {
-    Undock,
-    Jump,
-    Dock,
-    MoveTo,
-    MoveToTargetPos,
-    Extract,
-}
-
-#[derive(Clone, Debug)]
-pub struct ObjAction {
-    action: Action,
-}
-
-impl ObjAction {
-    pub fn get_kind(&self) -> ObjActionKind {
-        match &self.action {
-            Action::Undock => ObjActionKind::Undock,
-            Action::Jump { .. } => ObjActionKind::Jump,
-            Action::Dock { .. } => ObjActionKind::Dock,
-            Action::MoveTo { .. } => ObjActionKind::MoveTo,
-            Action::MoveToTargetPos { .. } => ObjActionKind::MoveToTargetPos,
-            Action::Extract { .. } => ObjActionKind::Extract,
-        }
-    }
-
-    pub fn get_target(&self) -> Option<Id> {
-        match &self.action {
-            Action::Jump { jump_id } => Some(encode_entity(*jump_id)),
-            Action::Dock { target_id } => Some(encode_entity(*target_id)),
-            Action::MoveToTargetPos { target_id, .. } => Some(encode_entity(*target_id)),
-            Action::Extract { target_id, .. } => Some(encode_entity(*target_id)),
-            _ => None,
-        }
-    }
-
-    pub fn get_pos(&self) -> Option<(f32, f32)> {
-        match &self.action {
-            _ => None,
-            Action::MoveTo { pos } => Some((pos.x, pos.y)),
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct ObjDesc {
-    id: Id,
-    extractable: Option<Entity>,
-    action: Option<Action>,
-    nav_move_to: Option<NavigationMoveTo>,
-    cargo: Option<Cargo>,
-}
-
-impl ObjDesc {
-    pub fn get_id(&self) -> Id {
-        self.id
-    }
-
-    pub fn get_action(&self) -> Option<ObjAction> {
-        self.action.as_ref().map(|action| ObjAction {
-            action: action.clone(),
-        })
-    }
-
-    pub fn get_nav_move_to_target(&self) -> Option<Id> {
-        self.nav_move_to
-            .as_ref()
-            .map(|i| encode_entity(i.target_id))
-    }
-
-    pub fn get_cargo(&self) -> Option<ObjCargo> {
-        self.cargo.as_ref().map(|cargo| ObjCargo {
-            cargo: cargo.clone(),
-        })
-    }
-
-    // pub fn x(&self) {
-    //     self.nav_move_to
-    //         .map(|i| encode_entity(i.plan.path.iter().map(|j| j.clone())))
-    // }
-}
-
-#[derive(Clone, Debug)]
-pub struct ObjCargo {
-    cargo: Cargo,
-}
-
-impl ObjCargo {
-    pub fn volume_total(&self) -> u32 {
-        self.cargo.get_current_volume()
-    }
-    pub fn volume_max(&self) -> u32 {
-        self.cargo.get_max()
-    }
-    pub fn get_wares(&self) -> Vec<(Id, u32)> {
-        self.cargo
-            .get_wares()
-            .iter()
-            .map(|i| (encode_entity(i.ware_id), i.amount))
-            .collect()
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct SectorData {
-    id: Id,
-    coords: (f32, f32),
-}
-
-#[derive(Clone)]
-pub struct JumpData {
-    entity: Entity,
-    game: Rc<RefCell<Game>>,
-}
-
-impl JumpData {
-    pub fn get_id(&self) -> Id {
-        encode_entity(self.entity)
-    }
-
-    pub fn get_sector_id(&self) -> Id {
-        let g = self.game.borrow();
-        let locations = g.world.read_storage::<Location>();
-        let loc = Locations::resolve_space_position(&locations, self.entity);
-        encode_entity(loc.unwrap().sector_id)
-    }
-
-    pub fn get_coords(&self) -> (f32, f32) {
-        let g = self.game.borrow();
-        let locations = g.world.read_storage::<Location>();
-        let loc = Locations::resolve_space_position(&locations, self.entity);
-        let pos = loc.unwrap().pos;
-        (pos.x, pos.y)
-    }
-
-    pub fn get_to_sector_id(&self) -> Id {
-        let g = self.game.borrow();
-        let jumps = g.world.read_storage::<Jump>();
-        encode_entity((&jumps).get(self.entity).unwrap().target_sector_id)
-    }
-
-    pub fn get_to_coords(&self) -> (f32, f32) {
-        let g = self.game.borrow();
-        let jumps = g.world.read_storage::<Jump>();
-        let pos = (&jumps).get(self.entity).unwrap().target_pos;
-        (pos.x, pos.y)
-    }
-}
-
-impl SectorData {
-    pub fn get_id(&self) -> Id {
-        self.id
-    }
-    pub fn get_coords(&self) -> (f32, f32) {
-        self.coords.clone()
-    }
-}
+// EOF models
 
 pub struct SpaceGame {
     game: Rc<RefCell<Game>>,
@@ -437,6 +168,8 @@ impl SpaceGame {
                 asteroid: false,
                 astro: false,
                 astro_star: false,
+                factory: false,
+                shipyard: false,
             };
 
             r.push(ObjData {
@@ -482,29 +215,23 @@ impl SpaceGame {
         let e = decode_entity_and_get(&g, id)?;
 
         let locations = g.world.read_storage::<Location>();
-        let stations = g.world.read_storage::<Station>();
-        let extractables = g.world.read_storage::<Extractable>();
-        let jumps = g.world.read_storage::<Jump>();
-        let fleets = g.world.read_storage::<Fleet>();
         let astros = g.world.read_storage::<AstroBody>();
         let orbits = g.world.read_storage::<OrbitalPos>();
 
-        let flt = (&fleets).get(e);
         let loc = (&locations).get(e)?;
-        let ext = (&extractables).get(e);
-        let st = (&stations).get(e);
         let ls = Locations::resolve_space_position_from(&locations, loc)?;
-        let jp = (&jumps).get(e);
         let ab = astros.get(e);
         let orb = orbits.get(e);
 
         let kind = ObjKind {
-            fleet: flt.is_some(),
-            jump: jp.is_some(),
-            station: st.is_some(),
-            asteroid: ext.is_some(),
+            fleet: g.world.read_storage::<Fleet>().contains(e),
+            jump: g.world.read_storage::<Jump>().contains(e),
+            station: g.world.read_storage::<Station>().contains(e),
+            asteroid: g.world.read_storage::<Extractable>().contains(e),
             astro: ab.is_some(),
             astro_star: ab.map(|ab| ab.kind == AstroBodyKind::Star).unwrap_or(false),
+            factory: g.world.read_storage::<Factory>().contains(e),
+            shipyard: g.world.read_storage::<Shipyard>().contains(e),
         };
 
         let orbit_data = orb.map(|o| {
@@ -546,6 +273,8 @@ impl SpaceGame {
                 .map(|action| action.get_action().clone()),
             nav_move_to: g.world.read_storage::<NavigationMoveTo>().get(e).cloned(),
             cargo: g.world.read_storage::<Cargo>().get(e).cloned(),
+            factory: g.world.read_storage::<Factory>().get(e).cloned(),
+            shipyard: g.world.read_storage::<Shipyard>().get(e).cloned(),
         };
 
         Some(desc)
@@ -636,10 +365,13 @@ include!(concat!(env!("OUT_DIR"), "/glue.rs"));
 
 #[cfg(test)]
 mod test {
-    use super::*;
-    use space_domain::utils::{MIN_DISTANCE, MIN_DISTANCE_SQR, V2};
-    use specs::world::Generation;
     use std::num::NonZeroI32;
+
+    use specs::world::Generation;
+
+    use space_domain::utils::{MIN_DISTANCE, MIN_DISTANCE_SQR, V2};
+
+    use super::*;
 
     #[test]
     fn test_v2_distance() {

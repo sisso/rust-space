@@ -1,19 +1,18 @@
-use crate::graphics::{AstroModel, OrbitModel, SelectedModel};
-use crate::state::{State, StateScreen};
+use std::collections::{HashMap, HashSet};
 
+use godot::engine::global::MouseButton;
 use godot::engine::node::InternalMode;
 use godot::engine::{global, Engine};
 use godot::prelude::*;
 
+use commons::math::V2;
+use commons::unwrap_or_return;
+use space_flap::Id;
+
 use crate::game_api::GameApi;
+use crate::graphics::{AstroModel, OrbitModel, SelectedModel};
 use crate::utils;
 use crate::utils::V2Vec;
-use commons::math::V2;
-use commons::{unwrap_or_continue, unwrap_or_return};
-use godot::engine::global::MouseButton;
-use godot::private::callbacks::create;
-use space_flap::{Id, ObjData};
-use std::collections::{HashMap, HashSet};
 
 #[derive(Debug)]
 struct SelectedObject {
@@ -27,8 +26,6 @@ struct ShowSectorState {
     orbits_model: HashMap<Id, Gd<Node2D>>,
     selected: SelectedObject,
 }
-
-struct SectorStateEntry(Gd<Node2D>, Update);
 
 #[derive(GodotClass)]
 #[class(base = Node2D)]

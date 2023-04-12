@@ -1,4 +1,3 @@
-
 foreign_class!(
     class SectorData {
         self_type SectorData;
@@ -55,6 +54,8 @@ foreign_class!(
         fn ObjData::is_jump(&self) -> bool;
         fn ObjData::is_astro(&self) -> bool;
         fn ObjData::is_astro_star(&self) -> bool;
+        fn ObjData::is_factory(&self) -> bool;
+        fn ObjData::is_shipyard(&self) -> bool;
     }
 );
 
@@ -65,6 +66,8 @@ foreign_class!(
         fn ObjDesc::get_id(&self) -> u64;
         fn ObjDesc::get_action(&self) -> Option<ObjAction>;
         fn ObjDesc::get_cargo(&self) -> Option<ObjCargo>;
+        fn ObjDesc::get_shipyard(&self) -> Option<ObjShipyard>;
+        fn ObjDesc::get_factory(&self) -> Option<ObjFactory>;
     }
 );
 
@@ -100,7 +103,7 @@ foreign_class!(
 );
 
 foreign_enum!(
-    enum EventKind{
+    enum EventKind {
         Add = EventKind::Add,
         Move = EventKind::Move,
         Jump = EventKind::Jump,
@@ -129,5 +132,19 @@ foreign_class!(
         fn SpaceGame::get_obj_coords(&self, id: u64) -> Option<ObjCoords>;
         fn SpaceGame::update(&mut self, delta: f32);
         fn SpaceGame::take_events(&mut self) -> Vec<EventData>;
+    }
+);
+
+foreign_class!(
+    class ObjFactory {
+        self_type ObjFactory;
+        private constructor = empty;
+    }
+);
+
+foreign_class!(
+    class ObjShipyard {
+        self_type ObjShipyard;
+        private constructor = empty;
     }
 );

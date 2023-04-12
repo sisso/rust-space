@@ -1,9 +1,11 @@
+use godot::obj::Gd;
+
+use space_flap::{Id, ObjAction, ObjActionKind, ObjCargo, ObjData, ObjDesc};
+
 use crate::main_gui::{LabeledId, MainGui};
 use crate::sector_view::SectorView;
 use crate::state::{State, StateScreen};
 use crate::{main_gui, sector_view};
-use godot::obj::Gd;
-use space_flap::{Id, ObjAction, ObjActionKind, ObjCargo, ObjData, ObjDesc};
 
 pub struct Runtime {
     state: State,
@@ -93,6 +95,9 @@ fn describe_obj(data: Option<ObjData>, desc: Option<ObjDesc>) -> main_gui::Descr
             let mut buffer = vec![];
             if let Some(action) = desc.get_action() {
                 buffer.push(get_action_string(action));
+            }
+            if let Some(target_id) = desc.get_nav_move_to_target() {
+                buffer.push(format!("target id: {:?}", target_id));
             }
             if let Some(cargo) = desc.get_cargo() {
                 buffer.extend(get_cargo_str(cargo));

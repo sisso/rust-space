@@ -1,13 +1,12 @@
-use crate::main_gui::MainGui;
-use crate::state::State;
 use godot::bind::{godot_api, GodotClass};
 use godot::engine::{Engine, Node, NodeExt, NodeVirtual};
-
 use godot::obj::Base;
 use godot::prelude::*;
 
-use crate::runtime::Runtime;
 use space_flap::*;
+
+use crate::runtime::Runtime;
+use crate::state::State;
 
 #[derive(GodotClass)]
 #[class(base=Node)]
