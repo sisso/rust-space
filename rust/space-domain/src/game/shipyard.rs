@@ -1,16 +1,17 @@
+use rand::RngCore;
+use specs::prelude::*;
+
 use crate::game::commands::Command;
 use crate::game::new_obj::NewObj;
 use crate::game::wares::{Cargo, WareAmount};
 use crate::game::{GameInitContext, RequireInitializer};
 use crate::utils::{DeltaTime, Speed, TotalTime};
-use rand::RngCore;
-use specs::prelude::*;
 
 #[derive(Debug, Clone, Component)]
 pub struct Shipyard {
     pub input: WareAmount,
     pub production_time: DeltaTime,
-    current_production: Option<TotalTime>,
+    pub current_production: Option<TotalTime>,
 }
 
 impl Shipyard {
@@ -103,12 +104,11 @@ impl<'a> System<'a> for ShipyardSystem {
 
 #[cfg(test)]
 mod test {
-    use super::*;
-
     use crate::game::locations::Location;
     use crate::game::wares::{Volume, WareId};
-
     use crate::test::test_system;
+
+    use super::*;
 
     const PRODUCTION_TIME: f32 = 5.0;
     const REQUIRE_CARGO: Volume = 50;

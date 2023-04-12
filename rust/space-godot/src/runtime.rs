@@ -102,6 +102,16 @@ fn describe_obj(data: Option<ObjData>, desc: Option<ObjDesc>) -> main_gui::Descr
             if let Some(cargo) = desc.get_cargo() {
                 buffer.extend(get_cargo_str(cargo));
             }
+            if let Some(factory) = desc.get_factory() {
+                if factory.is_producing() {
+                    buffer.push("producing products".to_string());
+                }
+            }
+            if let Some(shipyard) = desc.get_shipyard() {
+                if shipyard.is_producing() {
+                    buffer.push("producing ship".to_string());
+                }
+            }
             main_gui::Description::Obj {
                 title: format!("{} {:?}", kind, data.get_id()),
                 desc: buffer.join("\n"),
@@ -143,7 +153,13 @@ fn get_kind_str(data: &ObjData) -> &str {
     } else if data.is_fleet() {
         "fleet"
     } else if data.is_station() {
-        "station"
+        if data.is_shipyard() {
+            "shipyard"
+        } else if data.is_factory() {
+            "factory station"
+        } else {
+            "station"
+        }
     } else if data.is_jump() {
         "jump"
     } else if data.is_astro_star() {

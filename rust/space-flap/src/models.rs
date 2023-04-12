@@ -315,6 +315,18 @@ pub struct ObjFactory {
     pub(crate) factory: Factory,
 }
 
+impl ObjFactory {
+    pub fn is_producing(&self) -> bool {
+        self.factory.production_time.is_some()
+    }
+}
+
 pub struct ObjShipyard {
     pub(crate) shipyard: Shipyard,
+}
+
+impl ObjShipyard {
+    pub fn is_producing(&self) -> bool {
+        self.shipyard.current_production.is_some()
+    }
 }

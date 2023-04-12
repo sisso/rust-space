@@ -139,6 +139,7 @@ foreign_class!(
     class ObjFactory {
         self_type ObjFactory;
         private constructor = empty;
+        fn ObjFactory::is_producing(&self) -> bool;
     }
 );
 
@@ -146,5 +147,6 @@ foreign_class!(
     class ObjShipyard {
         self_type ObjShipyard;
         private constructor = empty;
+        fn ObjShipyard::is_producing(&self) -> bool;
     }
 );

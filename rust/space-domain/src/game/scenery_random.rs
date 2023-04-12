@@ -85,7 +85,9 @@ pub fn load_random(game: &mut Game, cfg: &RandomMapCfg) {
 
         for i in 0..cfg.ships {
             let shipyard = commons::prob::select(&mut rng, &shipyards).unwrap();
-            if rng.gen_range(0..=1) == 0 {
+
+            let choose = rng.gen_range(0..=1);
+            if i == 0 || (i != 1 && choose == 0) {
                 Loader::add_ship_miner(world, shipyard.to_owned(), 1.0, format!("miner-{}", i));
             } else {
                 Loader::add_ship_trader(world, shipyard.to_owned(), 1.0, format!("trader-{}", i));
