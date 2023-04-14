@@ -61,6 +61,10 @@ pub enum Update {
 
 #[godot_api]
 impl SectorView {
+    pub fn get_selected_id(&self) -> Option<Id> {
+        self.state.selected.id
+    }
+
     pub fn refresh(&mut self, updates: Vec<Update>) {
         let mut current_entities = HashSet::new();
 
@@ -155,9 +159,9 @@ impl SectorView {
         self.base.set_scale(Vector2::new(50.0, 50.0))
     }
 
-    pub fn find_nearest(&self, local_pos: Vector2) -> Option<Id> {
+    pub fn find_nearest(&self, local_pos: Vector2, min_distance: f32) -> Option<Id> {
         let mut nid = None;
-        let mut dist = f32::MAX;
+        let mut dist = min_distance;
         for (id, gd) in &self.state.bodies_model {
             let ipos = gd.get_position();
             let idist = ipos.distance_squared_to(local_pos);
@@ -196,11 +200,6 @@ impl SectorView {
                 InternalMode::INTERNAL_MODE_DISABLED,
             );
         }
-
-        // notify API
-        GameApi::get_instance(self.base.share())
-            .bind_mut()
-            .on_selected_entity(id);
     }
 }
 
@@ -276,7 +275,7 @@ impl Node2DVirtual for SectorView {
         if input.is_mouse_button_pressed(MouseButton::MOUSE_BUTTON_LEFT) {
             let pos = self.base.get_global_mouse_position();
             let local_pos = self.base.to_local(pos);
-            let nearest = self.find_nearest(local_pos);
+            let nearest = self.find_nearest(local_pos, 1.0);
             self.set_selected(nearest);
         }
     }

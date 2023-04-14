@@ -11,6 +11,7 @@ pub struct MainGui {
     base: Base<Node2D>,
     buttons_sectors: Vec<Id>,
     buttons_fleets: Vec<Id>,
+    selected_sector: Option<Id>,
 }
 
 pub struct LabeledId {
@@ -28,15 +29,17 @@ impl MainGui {
     #[func]
     pub fn on_click_sector(&mut self) {
         if let Some(sector_id) = self.get_clicked_sector() {
-            GameApi::get_instance(self.base.share())
-                .bind_mut()
-                .on_click_sector(sector_id);
+            self.selected_sector = Some(sector_id);
         }
     }
 
     #[func]
     pub fn on_click_fleet(&mut self) {
         godot_print!("on click fleet received");
+    }
+
+    pub fn get_selected_sector_id(&self) -> Option<Id> {
+        self.selected_sector
     }
 
     pub fn get_clicked_sector(&self) -> Option<Id> {
@@ -106,7 +109,7 @@ impl MainGui {
         grid
     }
 
-    pub fn show_selected_object(&mut self, d: Description) {
+    pub fn show_selected_object(&mut self, change_focus: bool, d: Description) {
         // update rich text
         let mut rich_text = self
             .base
@@ -122,10 +125,11 @@ impl MainGui {
         };
         rich_text.set_text(text.into());
 
-        // automatic swich to tab to details
-        let mut tabs = self.base.get_node_as::<TabContainer>("TabContainer");
-        if tabs.get_current_tab() != 1 {
-            tabs.set_current_tab(1);
+        if change_focus {
+            let mut tabs = self.base.get_node_as::<TabContainer>("TabContainer");
+            if tabs.get_current_tab() != 1 {
+                tabs.set_current_tab(1);
+            }
         }
     }
 }
@@ -141,6 +145,7 @@ impl Node2DVirtual for MainGui {
             base,
             buttons_sectors: vec![],
             buttons_fleets: vec![],
+            selected_sector: None,
         }
     }
 

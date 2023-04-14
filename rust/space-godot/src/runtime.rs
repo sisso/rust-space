@@ -1,3 +1,4 @@
+use godot::log::godot_print;
 use godot::obj::Gd;
 
 use space_flap::{Id, ObjAction, ObjActionKind, ObjCargo, ObjData, ObjDesc};
@@ -24,6 +25,12 @@ impl Runtime {
 
     pub fn tick(&mut self, delta_seconds: f64) {
         self.state.game.update(delta_seconds as f32);
+        let selected_id = self.sector_view.bind().get_selected_id();
+        self.on_selected_entity(selected_id);
+        let selected_sector_id = self.gui.bind().get_selected_sector_id();
+        if let Some(sector_id) = selected_sector_id {
+            self.change_sector(sector_id);
+        }
         self.refresh_sector_view();
     }
 
@@ -74,15 +81,22 @@ impl Runtime {
     }
 
     pub fn on_selected_entity(&mut self, id: Option<Id>) {
-        if let Some(id) = id {
+        let is_same = id == self.state.selected_object;
+        if !is_same {
+            godot_print!("changing selected object to {:?}", id);
+        }
+
+        self.state.selected_object = id;
+
+        if let Some(id) = self.state.selected_object {
             let data = self.state.game.get_obj(id);
             let desc = self.state.game.get_obj_desc(id);
             let uidesc = describe_obj(data, desc);
-            self.gui.bind_mut().show_selected_object(uidesc);
+            self.gui.bind_mut().show_selected_object(!is_same, uidesc);
         } else {
             self.gui
                 .bind_mut()
-                .show_selected_object(main_gui::Description::None);
+                .show_selected_object(false, main_gui::Description::None);
         }
     }
 }

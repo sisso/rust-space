@@ -18,13 +18,13 @@ pub struct GameApi {
 
 #[godot_api]
 impl GameApi {
-    pub fn get_instance<T>(provided: Gd<T>) -> Gd<GameApi>
-    where
-        T: Inherits<Node>,
-    {
-        let node = provided.upcast();
-        node.get_node_as::<GameApi>("/root/GameApi")
-    }
+    // pub fn get_instance<T>(provided: Gd<T>) -> Gd<GameApi>
+    // where
+    //     T: Inherits<Node>,
+    // {
+    //     let node = provided.upcast();
+    //     node.get_node_as::<GameApi>("/root/GameApi")
+    // }
 
     pub fn on_click_sector(&mut self, sector_id: Id) {
         let runtime = self.runtime.as_mut().expect("runtime not initialized");
