@@ -29,7 +29,6 @@ impl Runtime {
 
     pub fn change_sector(&mut self, sector_id: Id) {
         self.state.screen = StateScreen::Sector(sector_id);
-        self.refresh_sector_view();
     }
 
     pub fn refresh_sector_view(&mut self) {
@@ -92,7 +91,7 @@ fn describe_obj(data: Option<ObjData>, desc: Option<ObjDesc>) -> main_gui::Descr
     match (data, desc) {
         (Some(data), Some(desc)) => {
             let kind = get_kind_str(&data);
-            let mut buffer = vec![];
+            let mut buffer = vec![format!("{} {:?}", kind, data.get_id())];
             if let Some(action) = desc.get_action() {
                 buffer.push(get_action_string(action));
             }
@@ -113,7 +112,7 @@ fn describe_obj(data: Option<ObjData>, desc: Option<ObjDesc>) -> main_gui::Descr
                 }
             }
             main_gui::Description::Obj {
-                title: format!("{} {:?}", kind, data.get_id()),
+                title: desc.get_label().to_string(),
                 desc: buffer.join("\n"),
             }
         }

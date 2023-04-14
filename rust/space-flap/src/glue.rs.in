@@ -64,6 +64,7 @@ foreign_class!(
         self_type ObjDesc;
         private constructor = empty;
         fn ObjDesc::get_id(&self) -> u64;
+        fn ObjDesc::get_label(&self) -> &str;
         fn ObjDesc::get_action(&self) -> Option<ObjAction>;
         fn ObjDesc::get_cargo(&self) -> Option<ObjCargo>;
         fn ObjDesc::get_shipyard(&self) -> Option<ObjShipyard>;

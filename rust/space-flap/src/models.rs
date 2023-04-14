@@ -191,6 +191,7 @@ impl ObjAction {
 #[derive(Clone, Debug)]
 pub struct ObjDesc {
     pub(crate) id: Id,
+    pub(crate) label: String,
     pub(crate) extractable: Option<Entity>,
     pub(crate) action: Option<Action>,
     pub(crate) nav_move_to: Option<NavigationMoveTo>,
@@ -202,6 +203,10 @@ pub struct ObjDesc {
 impl ObjDesc {
     pub fn get_id(&self) -> Id {
         self.id
+    }
+
+    pub fn get_label(&self) -> &str {
+        self.label.as_str()
     }
 
     pub fn get_action(&self) -> Option<ObjAction> {

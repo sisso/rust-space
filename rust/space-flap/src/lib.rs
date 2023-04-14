@@ -16,6 +16,7 @@ use space_domain::game::astrobody::{AstroBodies, AstroBody, AstroBodyKind, Orbit
 use space_domain::game::extractables::Extractable;
 use space_domain::game::factory::Factory;
 use space_domain::game::fleets::Fleet;
+use space_domain::game::label::Label;
 use space_domain::game::loader::Loader;
 use space_domain::game::locations::{Location, LocationSpace, Locations};
 use space_domain::game::navigations::{Navigation, NavigationMoveTo};
@@ -261,6 +262,12 @@ impl SpaceGame {
 
         let desc = ObjDesc {
             id: id,
+            label: g
+                .world
+                .read_storage::<Label>()
+                .get(e)
+                .map(|i| i.label.clone())
+                .unwrap_or_else(|| "unknown".to_string()),
             extractable: g
                 .world
                 .read_storage::<Extractable>()
