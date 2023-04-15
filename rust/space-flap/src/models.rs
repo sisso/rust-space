@@ -265,6 +265,20 @@ impl ObjCargo {
 pub struct SectorData {
     pub(crate) id: Id,
     pub(crate) coords: (f32, f32),
+    pub(crate) label: String,
+}
+
+impl SectorData {
+    pub fn get_id(&self) -> Id {
+        self.id
+    }
+    pub fn get_coords(&self) -> (f32, f32) {
+        self.coords.clone()
+    }
+
+    pub fn get_label(&self) -> &str {
+        self.label.as_str()
+    }
 }
 
 #[derive(Clone)]
@@ -304,15 +318,6 @@ impl JumpData {
         let jumps = g.world.read_storage::<Jump>();
         let pos = (&jumps).get(self.entity).unwrap().target_pos;
         (pos.x, pos.y)
-    }
-}
-
-impl SectorData {
-    pub fn get_id(&self) -> Id {
-        self.id
-    }
-    pub fn get_coords(&self) -> (f32, f32) {
-        self.coords.clone()
     }
 }
 

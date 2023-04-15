@@ -110,7 +110,8 @@ pub fn generate_sectors(world: &mut World, size: usize, seed: u64) {
     // add sectors
     for s in &galaxy.sectors.list {
         let pos = V2::new(s.coords.x as f32, s.coords.y as f32);
-        let sector_id = Loader::add_sector(world, pos, format!("sector {}", s.id));
+        let sector_id =
+            Loader::add_sector(world, pos, format!("sector {} {}", s.coords.x, s.coords.y));
         sectors_by_index.push((sector_id, pos));
     }
     // add portals

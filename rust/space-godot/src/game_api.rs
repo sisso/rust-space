@@ -5,7 +5,7 @@ use godot::prelude::*;
 
 use space_flap::*;
 
-use crate::runtime::Runtime;
+use crate::game_api_runtime::Runtime;
 use crate::state::State;
 
 #[derive(GodotClass)]

@@ -113,18 +113,20 @@ impl SpaceGame {
 
         let entities = g.world.entities();
         let sectors = g.world.read_storage::<Sector>();
+        let labels = g.world.read_storage::<Label>();
 
         let mut r = vec![];
-        for (e, s) in (&entities, &sectors).join() {
+        for (e, s, l) in (&entities, &sectors, &labels).join() {
             r.push(SectorData {
                 id: encode_entity(e),
                 coords: (s.coords.x, s.coords.y),
+                label: l.label.clone(),
             });
         }
         r
     }
 
-    pub fn get_jumps(&self) -> Vec<JumpData> {
+    pub fn list_jumps(&self) -> Vec<JumpData> {
         let g = self.game.borrow();
 
         let entities = g.world.entities();
@@ -138,6 +140,17 @@ impl SpaceGame {
             });
         }
         r
+    }
+
+    pub fn get_jump(&self, id: Id) -> Option<JumpData> {
+        let g = self.game.borrow();
+        let e = decode_entity_and_get(&g, id)?;
+        let jumps = g.world.read_storage::<Jump>();
+        let jump = jumps.get(e)?;
+        Some(JumpData {
+            entity: e,
+            game: self.game.clone(),
+        })
     }
 
     pub fn get_fleets(&self) -> Vec<ObjData> {

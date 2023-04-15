@@ -4,6 +4,7 @@ foreign_class!(
         private constructor = empty;
         fn SectorData::get_id(&self) -> u64;
         fn SectorData::get_coords(&self) -> (f32, f32);
+        fn SectorData::get_label(&self) -> &str;
     }
 );
 
@@ -136,7 +137,8 @@ foreign_class!(
         self_type SpaceGame;
         constructor SpaceGame::new(rgs: Vec<String>) -> SpaceGame;
         fn SpaceGame::get_sectors(&self) -> Vec<SectorData>;
-        fn SpaceGame::get_jumps(&self) -> Vec<JumpData>;
+        fn SpaceGame::list_jumps(&self) -> Vec<JumpData>;
+        fn SpaceGame::get_jump(&self, id: u64) -> Option<JumpData>;
         fn SpaceGame::get_fleets(&self) -> Vec<ObjData>;
         fn SpaceGame::get_obj(&self, id: u64) -> Option<ObjData>;
         fn SpaceGame::get_obj_coords(&self, id: u64) -> Option<ObjCoords>;

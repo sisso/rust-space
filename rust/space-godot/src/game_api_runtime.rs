@@ -1,7 +1,7 @@
 use godot::log::godot_print;
 use godot::obj::Gd;
 
-use space_flap::{Id, ObjAction, ObjActionKind, ObjCargo, ObjData, ObjDesc, WareData};
+use space_flap::{Id, JumpData, ObjAction, ObjActionKind, ObjCargo, ObjData, ObjDesc, WareData};
 
 use crate::main_gui::{LabeledId, MainGui};
 use crate::sector_view::SectorView;
@@ -54,12 +54,9 @@ impl Runtime {
     pub fn update_gui(&mut self) {
         let mut sectors = vec![];
         for sector in self.state.game.get_sectors() {
-            let (x, y) = sector.get_coords();
-            let x = x as i32;
-            let y = y as i32;
             sectors.push(LabeledId {
                 id: sector.get_id(),
-                label: format!("{} {}", x, y),
+                label: sector.get_label().to_string(),
             })
         }
 
@@ -89,9 +86,7 @@ impl Runtime {
         self.state.selected_object = id;
 
         if let Some(id) = self.state.selected_object {
-            let data = self.state.game.get_obj(id);
-            let desc = self.state.game.get_obj_desc(id);
-            let uidesc = describe_obj(&self.state.wares, data, desc);
+            let uidesc = self.describe_obj(id);
             self.gui.bind_mut().show_selected_object(!is_same, uidesc);
         } else {
             self.gui
@@ -99,12 +94,25 @@ impl Runtime {
                 .show_selected_object(false, main_gui::Description::None);
         }
     }
+
+    pub fn describe_obj(&self, id: Id) -> main_gui::Description {
+        let dt = self.state.game.get_obj(id);
+        let ds = self.state.game.get_obj_desc(id);
+        let jump_target = self
+            .state
+            .game
+            .get_jump(id)
+            .and_then(|jump| self.state.game.get_obj_desc(jump.get_to_sector_id()))
+            .map(|target_desc| target_desc.get_label().to_string());
+        describe_obj(&self.state.wares, dt, ds, jump_target)
+    }
 }
 
 fn describe_obj(
     wares: &Vec<WareData>,
     data: Option<ObjData>,
     desc: Option<ObjDesc>,
+    jump_target_sector: Option<String>,
 ) -> main_gui::Description {
     match (data, desc) {
         (Some(data), Some(desc)) => {
@@ -128,6 +136,9 @@ fn describe_obj(
                 if shipyard.is_producing() {
                     buffer.push("producing ship".to_string());
                 }
+            }
+            if let Some(target_sector) = jump_target_sector {
+                buffer.push(format!("jump to {}", target_sector));
             }
             main_gui::Description::Obj {
                 title: desc.get_label().to_string(),
