@@ -123,6 +123,15 @@ foreign_class!(
 );
 
 foreign_class!(
+    class WareData {
+        self_type WareData;
+        private constructor = empty;
+        fn WareData::get_label(&self) -> &str;
+        fn WareData::get_id(&self) -> u64;
+    }
+);
+
+foreign_class!(
     class SpaceGame {
         self_type SpaceGame;
         constructor SpaceGame::new(rgs: Vec<String>) -> SpaceGame;
@@ -133,6 +142,7 @@ foreign_class!(
         fn SpaceGame::get_obj_coords(&self, id: u64) -> Option<ObjCoords>;
         fn SpaceGame::update(&mut self, delta: f32);
         fn SpaceGame::take_events(&mut self) -> Vec<EventData>;
+        fn SpaceGame::list_wares(&self) -> Vec<WareData>;
     }
 );
 

@@ -1,3 +1,4 @@
+use crate::game::GameInitContext;
 use specs::prelude::*;
 
 use super::objects::ObjId;
@@ -8,6 +9,14 @@ pub type Volume = u32;
 
 #[derive(Debug, Clone, Component)]
 pub struct Ware;
+
+pub struct Wares;
+
+impl Wares {
+    pub fn init(ctx: &mut GameInitContext) {
+        ctx.world.register::<Ware>();
+    }
+}
 
 #[derive(Debug, Clone, Copy)]
 pub struct WareAmount {

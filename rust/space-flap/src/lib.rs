@@ -25,7 +25,7 @@ use space_domain::game::order::{Order, Orders};
 use space_domain::game::sectors::{Jump, Sector};
 use space_domain::game::shipyard::Shipyard;
 use space_domain::game::station::Station;
-use space_domain::game::wares::{Cargo, WareId};
+use space_domain::game::wares::{Cargo, Ware, WareId};
 use space_domain::game::Game;
 use space_domain::game::{events, scenery_random};
 use space_domain::utils::TotalTime;
@@ -298,6 +298,21 @@ impl SpaceGame {
             location: ls,
             is_docked,
         })
+    }
+
+    pub fn list_wares(&self) -> Vec<WareData> {
+        let game = self.game.borrow();
+        let entities = game.world.entities();
+        let labels = game.world.read_storage::<Label>();
+        let wares = game.world.read_storage::<Ware>();
+
+        (&entities, &labels, &wares)
+            .join()
+            .map(|(e, l, _)| WareData {
+                id: encode_entity(e),
+                label: l.label.clone(),
+            })
+            .collect()
     }
 }
 

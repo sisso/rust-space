@@ -1,7 +1,7 @@
 use godot::log::godot_print;
 use godot::obj::Gd;
 
-use space_flap::{Id, ObjAction, ObjActionKind, ObjCargo, ObjData, ObjDesc};
+use space_flap::{Id, ObjAction, ObjActionKind, ObjCargo, ObjData, ObjDesc, WareData};
 
 use crate::main_gui::{LabeledId, MainGui};
 use crate::sector_view::SectorView;
@@ -91,7 +91,7 @@ impl Runtime {
         if let Some(id) = self.state.selected_object {
             let data = self.state.game.get_obj(id);
             let desc = self.state.game.get_obj_desc(id);
-            let uidesc = describe_obj(data, desc);
+            let uidesc = describe_obj(&self.state.wares, data, desc);
             self.gui.bind_mut().show_selected_object(!is_same, uidesc);
         } else {
             self.gui
@@ -101,7 +101,11 @@ impl Runtime {
     }
 }
 
-fn describe_obj(data: Option<ObjData>, desc: Option<ObjDesc>) -> main_gui::Description {
+fn describe_obj(
+    wares: &Vec<WareData>,
+    data: Option<ObjData>,
+    desc: Option<ObjDesc>,
+) -> main_gui::Description {
     match (data, desc) {
         (Some(data), Some(desc)) => {
             let kind = get_kind_str(&data);
@@ -113,7 +117,7 @@ fn describe_obj(data: Option<ObjData>, desc: Option<ObjDesc>) -> main_gui::Descr
                 buffer.push(format!("target id: {:?}", target_id));
             }
             if let Some(cargo) = desc.get_cargo() {
-                buffer.extend(get_cargo_str(cargo));
+                buffer.extend(get_cargo_str(wares, cargo));
             }
             if let Some(factory) = desc.get_factory() {
                 if factory.is_producing() {
@@ -134,17 +138,26 @@ fn describe_obj(data: Option<ObjData>, desc: Option<ObjDesc>) -> main_gui::Descr
     }
 }
 
-fn get_cargo_str(cargo: ObjCargo) -> Vec<String> {
+fn get_cargo_str(wares: &Vec<WareData>, cargo: ObjCargo) -> Vec<String> {
     let mut b = vec![];
     b.push("Cargo:".to_string());
     if b.is_empty() {
         b.push("<empty>".to_string());
     } else {
         for (id, amount) in cargo.get_wares() {
-            b.push(format!("- {}: {}", id, amount))
+            let ware_label = get_ware_label(wares, id);
+            b.push(format!("- {}: {}", ware_label, amount))
         }
     }
     b
+}
+
+fn get_ware_label(wares: &Vec<WareData>, id: Id) -> String {
+    wares
+        .iter()
+        .find(|i| i.get_id() == id)
+        .map(|l| l.get_label().to_string())
+        .unwrap_or_else(|| format!("id {}", id))
 }
 
 fn get_action_string(action: ObjAction) -> String {
@@ -192,6 +205,7 @@ pub fn generate_sectorview_updates(state: &State, sector_id: Id) -> Vec<sector_v
         .list_at_sector(sector_id)
         .into_iter()
         .flat_map(|id| state.game.get_obj(id));
+
     for data in list {
         updates.push(sector_view::Update::Obj {
             id: data.get_id(),

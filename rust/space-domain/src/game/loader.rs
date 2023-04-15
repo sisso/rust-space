@@ -10,6 +10,7 @@ use crate::game::events::{Event, EventKind, Events};
 use crate::game::extractables::Extractable;
 use crate::game::factory::{Factory, Receipt};
 use crate::game::fleets::Fleet;
+use crate::game::label::Label;
 use crate::game::locations::{Location, Moveable};
 use crate::game::new_obj::NewObj;
 use crate::game::objects::ObjId;
@@ -17,7 +18,7 @@ use crate::game::order::{Order, Orders};
 use crate::game::sectors::{Jump, JumpId, Sector, SectorId};
 use crate::game::shipyard::Shipyard;
 use crate::game::station::Station;
-use crate::game::wares::{Cargo, WareAmount, WareId};
+use crate::game::wares::{Cargo, Ware, WareAmount, WareId};
 use crate::specs_extras::*;
 use crate::utils::{DeltaTime, Speed, V2};
 
@@ -72,7 +73,7 @@ impl Loader {
     pub fn add_ship_miner(world: &mut World, docked_at: ObjId, speed: f32, label: String) -> ObjId {
         Loader::add_object(
             world,
-            &Loader::add_ship(docked_at, speed, label).with_command(Command::mine()),
+            &Loader::new_ship(docked_at, speed, label).with_command(Command::mine()),
         )
     }
 
@@ -84,11 +85,11 @@ impl Loader {
     ) -> ObjId {
         Loader::add_object(
             world,
-            &Loader::add_ship(docked_at, speed, label).with_command(Command::trade()),
+            &Loader::new_ship(docked_at, speed, label).with_command(Command::trade()),
         )
     }
 
-    pub fn add_ship(docked_at: ObjId, speed: f32, label: String) -> NewObj {
+    pub fn new_ship(docked_at: ObjId, speed: f32, label: String) -> NewObj {
         NewObj::new()
             .with_cargo(20)
             .with_speed(Speed(speed))
@@ -184,6 +185,12 @@ impl Loader {
             );
         }
 
+        if let Some(label) = new_obj.label.as_ref() {
+            builder.set(Label {
+                label: label.to_string(),
+            })
+        }
+
         if new_obj.has_dock {
             builder.set(HasDock);
         }
@@ -275,6 +282,10 @@ impl Loader {
             });
         }
 
+        if new_obj.ware {
+            builder.set(Ware {});
+        }
+
         let entity = builder.build();
 
         log::debug!("add_object {:?} from {:?}", entity, new_obj);
@@ -331,4 +342,36 @@ pub fn set_orbit_random_body(world: &mut World, obj_id: ObjId, seed: u64) {
     let radius = rng.gen_range((base_radius * 0.1)..(base_radius * 0.5));
     let angle = rng.gen_range(0.0..math::TWO_PI);
     AstroBodies::set_orbit(world, obj_id, candidates[selected].0, radius, angle);
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::game::label::Label;
+
+    #[test]
+    fn test_load_wares() {
+        let mut world = World::new();
+        world.register::<Ware>();
+        world.register::<Label>();
+        world.insert(Events::default());
+
+        Loader::add_ware(&mut world, "ore".to_string());
+        Loader::add_ware(&mut world, "wood".to_string());
+        Loader::add_ware(&mut world, "metal".to_string());
+
+        let entities = world.entities();
+        let wares = world.read_storage::<Ware>();
+        let labels = world.read_storage::<Label>();
+
+        let wares = (&entities, &wares, &labels)
+            .join()
+            .map(|(e, _, l)| (e, true, l.label.to_string()))
+            .collect::<Vec<_>>();
+
+        assert_eq!(3, wares.len());
+        for w in wares {
+            println!("{:?}", w);
+        }
+    }
 }

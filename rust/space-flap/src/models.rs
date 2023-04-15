@@ -335,3 +335,18 @@ impl ObjShipyard {
         self.shipyard.current_production.is_some()
     }
 }
+
+#[derive(Debug)]
+pub struct WareData {
+    pub(crate) id: Id,
+    pub(crate) label: String,
+}
+
+impl WareData {
+    pub fn get_id(&self) -> Id {
+        self.id
+    }
+    pub fn get_label(&self) -> &str {
+        self.label.as_str()
+    }
+}

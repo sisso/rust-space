@@ -1,4 +1,4 @@
-use space_flap::{Id, SpaceGame};
+use space_flap::{Id, SpaceGame, WareData};
 
 #[derive(Copy, Clone, Debug)]
 pub enum StateScreen {
@@ -16,6 +16,7 @@ pub enum TimeSpeed {
 pub struct State {
     pub game: SpaceGame,
     pub screen: StateScreen,
+    pub wares: Vec<WareData>,
     pub selected_object: Option<Id>,
     pub time_speed: TimeSpeed,
 }
@@ -47,11 +48,14 @@ impl State {
             .expect("game has no sector")
             .get_id();
 
+        let wares = game.list_wares();
+
         let state = State {
-            game: game,
+            game,
             screen: StateScreen::Sector(sector_id),
             time_speed: TimeSpeed::Normal,
             selected_object: None,
+            wares,
         };
 
         state
@@ -60,6 +64,9 @@ impl State {
 
 #[cfg(test)]
 mod test {
+    use crate::state::State;
+    use log::LevelFilter::Debug;
+
     #[test]
     fn test1() {}
 }

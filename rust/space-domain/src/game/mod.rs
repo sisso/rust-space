@@ -21,6 +21,7 @@ use crate::game::order::Orders;
 use crate::game::sectors::Sectors;
 use crate::game::shipyard::Shipyard;
 use crate::game::station::Stations;
+use crate::game::wares::Wares;
 
 pub mod actions;
 pub mod astrobody;
@@ -96,6 +97,7 @@ impl Game {
         Stations::init(&mut ictx);
         Fleet::init(&mut ictx);
         AstroBodies::init(&mut ictx);
+        Wares::init(&mut ictx);
 
         let mut dispatcher = ictx.dispatcher.build();
 
