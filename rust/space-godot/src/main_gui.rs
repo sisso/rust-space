@@ -109,13 +109,13 @@ impl MainGui {
         grid
     }
 
-    pub fn show_selected_object(&mut self, change_focus: bool, d: Description) {
+    pub fn show_selected_object(&mut self, desc: Description) {
         // update rich text
         let mut rich_text = self
             .base
-            .get_node_as::<RichTextLabel>("TabContainer/Details/SelectedObjRichTextLabel");
+            .get_node_as::<RichTextLabel>("TabContainer/Main/SelectedObjRichTextLabel");
 
-        let text = match d {
+        let text = match desc {
             Description::None => "none".to_string(),
             Description::Obj { mut title, desc } => {
                 title.push('\n');
@@ -124,13 +124,6 @@ impl MainGui {
             }
         };
         rich_text.set_text(text.into());
-
-        if change_focus {
-            let mut tabs = self.base.get_node_as::<TabContainer>("TabContainer");
-            if tabs.get_current_tab() != 1 {
-                tabs.set_current_tab(1);
-            }
-        }
     }
 }
 

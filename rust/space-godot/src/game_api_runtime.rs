@@ -78,20 +78,15 @@ impl Runtime {
     }
 
     pub fn on_selected_entity(&mut self, id: Option<Id>) {
-        let is_same = id == self.state.selected_object;
-        if !is_same {
-            godot_print!("changing selected object to {:?}", id);
-        }
-
         self.state.selected_object = id;
 
         if let Some(id) = self.state.selected_object {
             let uidesc = self.describe_obj(id);
-            self.gui.bind_mut().show_selected_object(!is_same, uidesc);
+            self.gui.bind_mut().show_selected_object(uidesc);
         } else {
             self.gui
                 .bind_mut()
-                .show_selected_object(false, main_gui::Description::None);
+                .show_selected_object(main_gui::Description::None);
         }
     }
 

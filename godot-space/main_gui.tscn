@@ -48,12 +48,12 @@ layout_mode = 2
 layout_mode = 2
 text = "Fleet 1"
 
-[node name="Details" type="VBoxContainer" parent="TabContainer"]
-visible = false
-layout_mode = 2
-
-[node name="SelectedObjRichTextLabel" type="RichTextLabel" parent="TabContainer/Details"]
+[node name="SelectedObjRichTextLabel" type="RichTextLabel" parent="TabContainer/Main"]
 layout_mode = 2
 bbcode_enabled = true
 text = "None"
 fit_content = true
+
+[node name="Details" type="VBoxContainer" parent="TabContainer"]
+visible = false
+layout_mode = 2
