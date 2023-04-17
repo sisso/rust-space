@@ -35,6 +35,7 @@ pub fn load_basic_scenery(game: &mut Game) -> BasicScenery {
         sector_0,
         V2::new(3.0, -1.0),
         Receipt {
+            label: "ore processing".to_string(),
             input: vec![WareAmount::new(ware_ore_id, 20)],
             output: vec![WareAmount::new(ware_components_id, 10)],
             time: DeltaTime(1.0),
@@ -67,6 +68,7 @@ pub fn load_advanced_scenery(world: &mut World) {
 
     // receipts
     let receipt_process_ores = Receipt {
+        label: "ore processing".to_string(),
         input: vec![
             WareAmount::new(ware_ore_id, 20),
             WareAmount::new(ware_energy, 10),
@@ -75,6 +77,7 @@ pub fn load_advanced_scenery(world: &mut World) {
         time: DeltaTime(1.0),
     };
     let receipt_produce_energy = Receipt {
+        label: "solar power".to_string(),
         input: vec![],
         output: vec![WareAmount::new(ware_energy, 10)],
         time: DeltaTime(5.0),

@@ -46,7 +46,7 @@ pub struct UniverseCfg {
     pub planet_size: RDistrib,
     pub star_kinds: Vec<Weighted<String>>,
     pub resources: Vec<Resource>,
-    pub system_resources_max: u32,
+    pub system_resources_max: usize,
     pub system_resources_amount: RDistrib,
     pub system_distance_padding: f32,
 }
@@ -137,6 +137,7 @@ impl IdGen {
     }
 }
 
+// TODO: add asteroids
 pub fn new_system(cfg: &UniverseCfg, seed: u64) -> System {
     let mut rng: StdRng = rand::SeedableRng::seed_from_u64(seed);
     let rng = &mut rng;

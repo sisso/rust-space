@@ -13,6 +13,7 @@ use commons::unwrap_or_continue;
 use rand::prelude::*;
 use shred::World;
 use space_galaxy::system_generator;
+use space_galaxy::system_generator::BodyDesc::AsteroidField;
 use specs::prelude::*;
 use std::collections::HashSet;
 
@@ -24,11 +25,17 @@ struct SceneryCfg {
     receipt_produce_energy: Receipt,
 }
 
+pub enum InitialCondition {
+    Random,
+    Minimal,
+}
+
 pub struct RandomMapCfg {
     pub size: usize,
     pub seed: u64,
-    pub ships: usize,
+    pub fleets: usize,
     pub universe_cfg: system_generator::UniverseCfg,
+    pub initial_condition: InitialCondition,
 }
 
 pub fn load_random(game: &mut Game, cfg: &RandomMapCfg) {
@@ -44,6 +51,7 @@ pub fn load_random(game: &mut Game, cfg: &RandomMapCfg) {
         let ware_energy = Loader::add_ware(world, "energy".to_string());
 
         let receipt_process_ores = Receipt {
+            label: "ore processing".to_string(),
             input: vec![
                 WareAmount::new(ware_ore_id, 20),
                 WareAmount::new(ware_energy, 10),
@@ -52,6 +60,7 @@ pub fn load_random(game: &mut Game, cfg: &RandomMapCfg) {
             time: DeltaTime(1.0),
         };
         let receipt_produce_energy = Receipt {
+            label: "solar power".to_string(),
             input: vec![],
             output: vec![WareAmount::new(ware_energy, 10)],
             time: DeltaTime(5.0),
@@ -69,7 +78,11 @@ pub fn load_random(game: &mut Game, cfg: &RandomMapCfg) {
     // create sectors
     generate_sectors(world, cfg.size, rng.gen());
     add_bodies_to_sectors(world, rng.gen(), &cfg.universe_cfg, &scenery_cfg);
-    add_stations(world, rng.gen(), &scenery_cfg);
+    add_asteroid_fields_to_sectors(world, rng.gen(), &scenery_cfg);
+    match cfg.initial_condition {
+        InitialCondition::Random { .. } => add_stations_random(world, rng.gen(), &scenery_cfg),
+        InitialCondition::Minimal => add_stations_minimal(world, rng.gen(), &scenery_cfg),
+    }
 
     // add ships
     {
@@ -83,14 +96,20 @@ pub fn load_random(game: &mut Game, cfg: &RandomMapCfg) {
             }
         }
 
-        for i in 0..cfg.ships {
-            let shipyard = commons::prob::select(&mut rng, &shipyards).unwrap();
+        // add mandatory ships
+        let shipyard = *commons::prob::select(&mut rng, &shipyards).unwrap();
+        Loader::add_ship_miner(world, shipyard, 1.0, format!("miner-{}", 0));
+        let shipyard = *commons::prob::select(&mut rng, &shipyards).unwrap();
+        Loader::add_ship_trader(world, shipyard, 1.0, format!("trader-{}", 0));
 
+        for i in 0..cfg.fleets {
+            let shipyard = *commons::prob::select(&mut rng, &shipyards).unwrap();
             let choose = rng.gen_range(0..=1);
-            if i == 0 || (i != 1 && choose == 0) {
-                Loader::add_ship_miner(world, shipyard.to_owned(), 1.0, format!("miner-{}", i));
+            let code = i + 2;
+            if choose == 0 {
+                Loader::add_ship_miner(world, shipyard, 0.75, format!("miner-{}", code));
             } else {
-                Loader::add_ship_trader(world, shipyard.to_owned(), 1.0, format!("trader-{}", i));
+                Loader::add_ship_trader(world, shipyard, 1.0, format!("trader-{}", code));
             }
         }
     }
@@ -146,14 +165,7 @@ fn add_bodies_to_sectors(
 ) {
     let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
 
-    let mut sectors_id = vec![];
-    {
-        let sectors = &world.read_storage::<Sector>();
-        let entities = &world.entities();
-        for (e, _) in (entities, sectors).join() {
-            sectors_id.push(e);
-        }
-    }
+    let sectors_id = list_sectors(&world);
 
     for sector_id in sectors_id {
         let system = system_generator::new_system(&universe_cfg, rng.gen());
@@ -218,21 +230,30 @@ fn add_bodies_to_sectors(
     AstroBodies::update_orbits(world);
 }
 
-fn add_stations(world: &mut World, seed: u64, scenery: &SceneryCfg) {
+fn sector_pos<R: rand::Rng>(rng: &mut R) -> V2 {
+    V2::new(
+        (rng.gen_range(0..10) - 5) as f32,
+        (rng.gen_range(0..10) - 5) as f32,
+    )
+}
+
+fn list_sectors(world: &World) -> Vec<Entity> {
+    (&world.entities(), &world.read_storage::<Sector>())
+        .join()
+        .map(|(e, _)| e)
+        .collect()
+}
+
+fn add_stations_random(world: &mut World, seed: u64, scenery: &SceneryCfg) {
     let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
 
     let sector_kind_empty = 0;
-    let sector_kind_asteroid = 1;
-    let sector_kind_power = 2;
-    let sector_kind_factory = 3;
+    let sector_kind_power = 1;
+    let sector_kind_factory = 2;
     let sector_kind_prob = vec![
         commons::prob::Weighted {
             prob: 1.0,
             value: sector_kind_empty,
-        },
-        commons::prob::Weighted {
-            prob: 1.0,
-            value: sector_kind_asteroid,
         },
         commons::prob::Weighted {
             prob: 1.0,
@@ -243,13 +264,6 @@ fn add_stations(world: &mut World, seed: u64, scenery: &SceneryCfg) {
             value: sector_kind_power,
         },
     ];
-
-    fn sector_pos<R: rand::Rng>(rng: &mut R) -> V2 {
-        V2::new(
-            (rng.gen_range(0..10) - 5) as f32,
-            (rng.gen_range(0..10) - 5) as f32,
-        )
-    }
 
     let mut sectors_id = vec![];
     {
@@ -280,16 +294,6 @@ fn add_stations(world: &mut World, seed: u64, scenery: &SceneryCfg) {
             log::info!("creating {:?} on sector {:?}", kind, sector_id);
 
             match kind {
-                Some(i) if *i == sector_kind_asteroid => {
-                    required_kinds[0] = true;
-                    let obj_id = Loader::add_asteroid(
-                        world,
-                        sector_id,
-                        sector_pos(&mut rng),
-                        scenery.ware_ore_id,
-                    );
-                    set_orbit_random_body(world, obj_id, rng.next_u64());
-                }
                 Some(i) if *i == sector_kind_factory => {
                     required_kinds[1] = true;
 
@@ -321,6 +325,58 @@ fn add_stations(world: &mut World, seed: u64, scenery: &SceneryCfg) {
 
     AstroBodies::update_orbits(world);
 }
+fn add_asteroid_fields_to_sectors(world: &mut World, seed: u64, scenery: &SceneryCfg) {
+    let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
+
+    // we only execute if world generation has no asteroid
+    if !world.read_storage::<Extractable>().is_empty() {
+        return;
+    }
+
+    let sectors = list_sectors(&world);
+    let sector_id = *commons::prob::select_array(&mut rng, sectors.as_slice());
+    let obj_id = Loader::add_object(
+        world,
+        &Loader::new_asteroid(sector_id)
+            .extractable(Extractable {
+                ware_id: scenery.ware_ore_id,
+            })
+            .with_label("ore asteroid".to_string()),
+    );
+    set_orbit_random_body(world, obj_id, rng.next_u64());
+}
+
+fn add_stations_minimal(world: &mut World, seed: u64, scenery: &SceneryCfg) {
+    let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
+
+    let (sector_id, _) = (&world.entities(), &world.read_storage::<Sector>())
+        .join()
+        .next()
+        .expect("no sector found");
+
+    // add shipyard
+    let obj_id = Loader::add_shipyard(
+        world,
+        sector_id,
+        sector_pos(&mut rng),
+        scenery.ware_components_id,
+    );
+    set_orbit_random_body(world, obj_id, rng.next_u64());
+
+    // add factory
+    let obj_id = Loader::add_object(
+        world,
+        &Loader::new_factory(sector_id, V2::ZERO, scenery.receipt_process_ores.clone()),
+    );
+    set_orbit_random_body(world, obj_id, rng.next_u64());
+
+    // add power generation
+    let obj_id = Loader::add_object(
+        world,
+        &Loader::new_factory(sector_id, V2::ZERO, scenery.receipt_produce_energy.clone()),
+    );
+    set_orbit_random_body(world, obj_id, rng.next_u64());
+}
 
 #[cfg(test)]
 mod test {
@@ -329,7 +385,7 @@ mod test {
 
     #[test]
     pub fn test_random_scenery() {
-        env_logger::builder()
+        let _ = env_logger::builder()
             .filter(None, log::LevelFilter::Debug)
             .try_init();
 
@@ -342,8 +398,9 @@ mod test {
             &RandomMapCfg {
                 size: 3,
                 seed: 0,
-                ships: 3,
+                fleets: 3,
                 universe_cfg,
+                initial_condition: InitialCondition::Random,
             },
         );
     }

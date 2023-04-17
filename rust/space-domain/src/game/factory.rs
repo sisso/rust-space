@@ -5,6 +5,7 @@ use specs::prelude::*;
 
 #[derive(Debug, Clone)]
 pub struct Receipt {
+    pub label: String,
     pub input: Vec<WareAmount>,
     pub output: Vec<WareAmount>,
     pub time: DeltaTime,

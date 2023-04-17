@@ -81,8 +81,9 @@ impl SpaceGame {
             &scenery_random::RandomMapCfg {
                 size: size,
                 seed: 0,
-                ships: fleets,
+                fleets: fleets,
                 universe_cfg,
+                initial_condition: scenery_random::InitialCondition::Minimal,
             },
         );
 

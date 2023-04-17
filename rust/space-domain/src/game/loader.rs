@@ -38,18 +38,18 @@ pub struct BasicScenery {
 
 impl Loader {
     pub fn add_asteroid(world: &mut World, sector_id: SectorId, pos: V2, ware_id: WareId) -> ObjId {
-        Loader::add_object(
-            world,
-            &NewObj::new()
-                .extractable(Extractable { ware_id })
-                .at_position(sector_id, pos),
-        )
+        let asteroid = Self::new_asteroid(sector_id)
+            .with_label("asteroid".to_string())
+            .with_pos(pos)
+            .extractable(Extractable { ware_id });
+        Loader::add_object(world, &asteroid)
     }
 
     pub fn add_shipyard(world: &mut World, sector_id: SectorId, pos: V2, ware_id: WareId) -> ObjId {
         Loader::add_object(
             world,
             &NewObj::new()
+                .with_label("shipyard".to_string())
                 .with_cargo(1000)
                 .at_position(sector_id, pos)
                 .with_station()
@@ -59,15 +59,17 @@ impl Loader {
     }
 
     pub fn add_factory(world: &mut World, sector_id: SectorId, pos: V2, receipt: Receipt) -> ObjId {
-        Loader::add_object(
-            world,
-            &NewObj::new()
-                .with_cargo(100)
-                .at_position(sector_id, pos)
-                .with_station()
-                .with_factory(Factory::new(receipt))
-                .has_dock(),
-        )
+        Loader::add_object(world, &Self::new_factory(sector_id, pos, receipt))
+    }
+
+    pub fn new_factory(sector_id: SectorId, pos: V2, receipt: Receipt) -> NewObj {
+        NewObj::new()
+            .with_label(format!("factory {}", receipt.label))
+            .with_cargo(100)
+            .at_position(sector_id, pos)
+            .with_station()
+            .with_factory(Factory::new(receipt))
+            .has_dock()
     }
 
     pub fn add_ship_miner(world: &mut World, docked_at: ObjId, speed: f32, label: String) -> ObjId {
