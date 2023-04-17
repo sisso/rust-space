@@ -10,7 +10,6 @@ pub mod prob;
 pub mod random_grid;
 pub mod recti;
 pub mod tree;
-pub mod v2i;
 
 #[macro_export]
 macro_rules! unwrap_or_continue {

@@ -179,6 +179,7 @@ mod test {
             let plate_id = world.create_entity().build();
 
             let production = Receipt {
+                label: "ore processing".to_string(),
                 input: vec![
                     WareAmount::new(ore_id, REQUIRE_ORE),
                     WareAmount::new(energy_id, REQUIRE_ENERGY),

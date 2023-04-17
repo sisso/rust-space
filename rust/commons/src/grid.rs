@@ -1,4 +1,4 @@
-use super::v2i::V2I;
+use crate::math::V2I;
 use crate::recti::RectI;
 use std::collections::HashMap;
 
@@ -139,24 +139,26 @@ pub fn index_to_coord(_width: Index) -> Coord {
 
 /// return sequentially with DIR_ALL
 pub fn get_4_neighbours(coords: &Coord) -> Vec<(Dir, Coord)> {
+    let coords = *coords;
     vec![
-        (Dir::N, coords.translate(0, -1)),
-        (Dir::E, coords.translate(1, 0)),
-        (Dir::S, coords.translate(0, 1)),
-        (Dir::W, coords.translate(-1, 0)),
+        (Dir::N, coords + V2I::new(0, -1)),
+        (Dir::E, coords + V2I::new(1, 0)),
+        (Dir::S, coords + V2I::new(0, 1)),
+        (Dir::W, coords + V2I::new(-1, 0)),
     ]
 }
 
 pub fn get_8_neighbours(coords: &Coord) -> Vec<Coord> {
+    let coords = *coords;
     vec![
-        coords.translate(0, -1),
-        coords.translate(1, -1),
-        coords.translate(1, 0),
-        coords.translate(1, 1),
-        coords.translate(0, 1),
-        coords.translate(-1, 1),
-        coords.translate(-1, 0),
-        coords.translate(-1, -1),
+        coords + V2I::new(0, -1),
+        coords + V2I::new(1, -1),
+        coords + V2I::new(1, 0),
+        coords + V2I::new(1, 1),
+        coords + V2I::new(0, 1),
+        coords + V2I::new(-1, 1),
+        coords + V2I::new(-1, 0),
+        coords + V2I::new(-1, -1),
     ]
 }
 

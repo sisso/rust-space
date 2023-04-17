@@ -1,4 +1,4 @@
-use super::v2i::V2I;
+use super::math::V2I;
 
 #[derive(Debug, Clone)]
 pub struct RectI {
@@ -54,11 +54,11 @@ impl RectI {
 }
 
 pub fn to_local(rectxy: &V2I, pxy: &V2I) -> V2I {
-    pxy.translate(-rectxy.x, -rectxy.y)
+    *pxy - V2I::new(rectxy.x, rectxy.y)
 }
 
 pub fn to_global(rectxy: &V2I, pxy: &V2I) -> V2I {
-    pxy.translate(rectxy.x, rectxy.y)
+    *pxy + V2I::new(rectxy.x, rectxy.y)
 }
 
 #[test]
