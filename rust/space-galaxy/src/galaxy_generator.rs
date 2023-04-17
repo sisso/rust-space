@@ -1,7 +1,8 @@
 use commons::grid::Grid;
-use commons::math::{P2, P2I};
+use commons::math::{P2, P2I, V2, V2I};
 use rand::prelude::*;
 use std::collections::HashSet;
+use std::ops::Sub;
 
 #[derive(Debug, Clone)]
 pub struct Cfg {
@@ -50,8 +51,8 @@ fn generate_random_map(size: i32, seed: u64) -> (Grid<Sector>, Vec<Jump>) {
 
     fn sector_pos<R: rand::Rng>(rng: &mut R) -> P2 {
         P2::new(
-            (rng.gen_range(0..10) - 5) as f32,
-            (rng.gen_range(0..10) - 5) as f32,
+            rng.gen_range(0.0..10.0) - 5.0,
+            rng.gen_range(0.0..10.0) - 5.0,
         )
     }
 
@@ -87,21 +88,36 @@ fn generate_random_map(size: i32, seed: u64) -> (Grid<Sector>, Vec<Jump>) {
     let mut jumps = vec![];
     let mut cached: HashSet<(usize, usize)> = Default::default();
 
-    for index in 0..rgrid.len() {
-        for other in rgrid.neighbors_connected(index) {
-            if !cached.insert((index, other)) {
+    for sector_a in 0..rgrid.len() {
+        for sector_b in rgrid.neighbors_connected(sector_a) {
+            if !cached.insert((sector_a, sector_b)) {
                 continue;
             }
 
-            if !cached.insert((other, index)) {
+            if !cached.insert((sector_b, sector_a)) {
                 continue;
             }
+
+            let coor_a: V2I = rgrid.get_coords_slice_i32(sector_a).into();
+            let coor_b: V2I = rgrid.get_coords_slice_i32(sector_b).into();
+            let delta = coor_b.sub(coor_a);
+
+            fn get_pos<R: rand::Rng>(rng: &mut R, delta: i32) -> f32 {
+                if delta == 0 {
+                    rng.gen_range(0.0..6.0) - 3.0
+                } else {
+                    rng.gen_range(4.0..5.0) * delta as f32
+                }
+            }
+
+            let pos_a = V2::new(get_pos(&mut rng, delta.x), get_pos(&mut rng, delta.y));
+            let pos_b = V2::new(get_pos(&mut rng, -delta.x), get_pos(&mut rng, -delta.y));
 
             jumps.push(Jump {
-                sector_a: index,
-                pos_a: sector_pos(&mut rng),
-                sector_b: other,
-                pos_b: sector_pos(&mut rng),
+                sector_a,
+                pos_a,
+                sector_b,
+                pos_b,
             });
         }
     }

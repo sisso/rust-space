@@ -74,6 +74,11 @@ impl LevelGrid {
         (index % self.width, index / self.height)
     }
 
+    pub fn get_coords_slice_i32(&self, index: usize) -> [i32; 2] {
+        let (x, y) = self.get_coords(index);
+        [x as i32, y as i32]
+    }
+
     pub fn neighbors(&self, index: usize) -> Vec<usize> {
         let mut list = vec![];
         let (x, y) = self.get_coords(index);
