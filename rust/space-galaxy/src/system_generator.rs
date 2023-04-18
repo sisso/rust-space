@@ -1,6 +1,7 @@
 use commons::math::V2;
 use commons::prob::{self, select_weighted, RDistrib, Weighted};
 use commons::tree::Tree;
+use commons::unwrap_or_continue;
 use rand::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
@@ -36,7 +37,6 @@ pub struct UniverseCfgWrapper {
 pub struct UniverseCfg {
     pub planets_prob: AstroProb,
     pub moons_prob: AstroProb,
-    // pub moons_moons_prob: AstroProb,
     pub asteroids_prob: AstroProb,
     pub biomes_kinds: Vec<Weighted<String>>,
     pub atm_kinds: Vec<Weighted<String>>,
@@ -44,14 +44,17 @@ pub struct UniverseCfg {
     pub gravity_force: RDistrib,
     pub star_size: RDistrib,
     pub planet_size: RDistrib,
+    pub asteroid_size: RDistrib,
     pub star_kinds: Vec<Weighted<String>>,
     pub resources: Vec<Resource>,
+    pub asteroid_atm: String,
+    pub asteroid_biome: String,
     pub system_resources_max: usize,
     pub system_resources_amount: RDistrib,
     pub system_distance_padding: f32,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct System {
     pub coords: V2,
     pub bodies: Vec<SpaceBody>,
@@ -71,7 +74,7 @@ impl System {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Planet {
     pub atmosphere: String,
     pub gravity: f32,
@@ -80,14 +83,14 @@ pub struct Planet {
     pub resources: Vec<BodyResource>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum BodyDesc {
     Star { kind: String },
     AsteroidField { resources: Vec<BodyResource> },
     Planet(Planet),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SpaceBody {
     pub index: usize,
     pub parent: usize,
@@ -109,7 +112,7 @@ pub struct PlanetSubCfg {
     pub max_distance: f32,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BodyResource {
     pub resource: String,
     pub amount: f32,
@@ -137,7 +140,6 @@ impl IdGen {
     }
 }
 
-// TODO: add asteroids
 pub fn new_system(cfg: &UniverseCfg, seed: u64) -> System {
     let mut rng: StdRng = rand::SeedableRng::seed_from_u64(seed);
     let rng = &mut rng;
@@ -162,8 +164,8 @@ pub fn new_system(cfg: &UniverseCfg, seed: u64) -> System {
     let mut bodies = vec![star];
     let mut aabb: commons::lineboundbox::LineBoundBox = Default::default();
 
-    let num_bodies = cfg.planets_prob.count_prob.next_int(rng);
-    for _ in 0..num_bodies {
+    let num_planets = cfg.planets_prob.count_prob.next_int(rng);
+    for _ in 0..num_planets {
         for _ in 0..RETRIES {
             let mut local_igen = igen.clone();
             let system_bodies = new_planet(cfg, rng, &mut local_igen, star_i);
@@ -173,6 +175,23 @@ pub fn new_system(cfg: &UniverseCfg, seed: u64) -> System {
                 max + cfg.system_distance_padding,
             ) {
                 bodies.extend(system_bodies);
+                igen = local_igen;
+                break;
+            }
+        }
+    }
+
+    let num_asteroids = cfg.asteroids_prob.count_prob.next_int(rng);
+    for _ in 0..num_asteroids {
+        for _ in 0..RETRIES {
+            let mut local_igen = igen.clone();
+            let asteroids = new_asteroid(cfg, rng, &mut local_igen, star_i);
+            let (min, max) = compute_bounds(&asteroids);
+            if aabb.add(
+                min - cfg.system_distance_padding,
+                max + cfg.system_distance_padding,
+            ) {
+                bodies.extend(asteroids);
                 igen = local_igen;
                 break;
             }
@@ -198,20 +217,6 @@ fn compute_bounds(bodies: &Vec<SpaceBody>) -> (f32, f32) {
     (min, max)
 }
 
-/*
-sytem
-2 - planet
-  1 - moon
-
-
-[(1,3)]
-
---###
-
-4 - planet
-1 fail, 4-1 =3 and is in use
-reject? retry?
- */
 fn new_planet(
     cfg: &UniverseCfg,
     rng: &mut StdRng,
@@ -227,7 +232,7 @@ fn new_planet(
     let ocean = prob::select_weighted(rng, &cfg.ocean_kinds)
         .unwrap()
         .clone();
-    let resources = generate_resources(&cfg, rng, &atm, &biome, &ocean);
+    let resources = generate_body_resources(&cfg, rng, &atm, &biome, &ocean);
     let angle = prob::RDistrib::MinMax(0., 360.).next(rng);
     let speed = cfg.planets_prob.rotation_speed_prob.next(rng);
 
@@ -290,7 +295,7 @@ fn new_moon(
     let ocean = prob::select_weighted(rng, &cfg.ocean_kinds)
         .unwrap()
         .clone();
-    let resources = generate_resources(&cfg, rng, &atm, &biome, &ocean);
+    let resources = generate_body_resources(&cfg, rng, &atm, &biome, &ocean);
     let angle = prob::RDistrib::MinMax(0., 360.).next(rng);
     let speed = cfg.moons_prob.rotation_speed_prob.next(rng);
 
@@ -313,74 +318,138 @@ fn new_moon(
     vec![moon]
 }
 
-fn generate_resources(
+fn new_asteroid(
     cfg: &UniverseCfg,
     rng: &mut StdRng,
+    id_gen: &mut IdGen,
+    parent: usize,
+) -> Vec<SpaceBody> {
+    let distance = cfg.asteroids_prob.distance_prob.next(rng);
+
+    let id = id_gen.next();
+    let atm = prob::select_weighted(rng, &cfg.atm_kinds).unwrap().clone();
+    let biome = prob::select_weighted(rng, &cfg.biomes_kinds)
+        .unwrap()
+        .clone();
+    let ocean = prob::select_weighted(rng, &cfg.ocean_kinds)
+        .unwrap()
+        .clone();
+    let resources = generate_body_resources(&cfg, rng, &atm, &biome, &ocean);
+    let angle = prob::RDistrib::MinMax(0., 360.).next(rng);
+    let speed = cfg.asteroids_prob.rotation_speed_prob.next(rng);
+
+    let asteroid = SpaceBody {
+        index: id,
+        parent,
+        distance,
+        angle,
+        speed,
+        size: cfg.asteroid_size.next(rng),
+        desc: BodyDesc::AsteroidField { resources },
+    };
+
+    vec![asteroid]
+}
+
+struct FilteredResources<'a> {
+    must: Vec<&'a Resource>,
+    candidate: Vec<&'a Resource>,
+}
+
+fn filter_resources<'a>(
+    resources: &'a Vec<Resource>,
     _atm: &str,
     biome: &str,
     _ocean: &str,
-) -> Vec<BodyResource> {
-    fn cmp(a: &str, b: &str) -> bool {
-        a.eq_ignore_ascii_case(b)
+) -> FilteredResources<'a> {
+    let mut fr = FilteredResources {
+        must: vec![],
+        candidate: vec![],
+    };
+
+    for resource in resources {
+        let is_forbidden = resource
+            .forbidden
+            .iter()
+            .find(|n| n.as_str().eq_ignore_ascii_case(biome))
+            .is_some();
+
+        if is_forbidden {
+            continue;
+        }
+
+        let must_have = resource
+            .always
+            .iter()
+            .find(|n| n.as_str().eq_ignore_ascii_case(biome))
+            .is_some();
+
+        if must_have {
+            fr.must.push(resource);
+            continue;
+        }
+
+        if resource.require.is_empty() {
+            fr.candidate.push(resource);
+            continue;
+        }
+
+        let has_biome = resource
+            .require
+            .iter()
+            .find(|n| n.as_str().eq_ignore_ascii_case(biome))
+            .is_some();
+
+        if has_biome {
+            fr.candidate.push(resource);
+        }
     }
 
+    fr
+}
+
+fn generate_body_resources(
+    cfg: &UniverseCfg,
+    rng: &mut StdRng,
+    atm: &str,
+    biome: &str,
+    ocean: &str,
+) -> Vec<BodyResource> {
     let mut rng: StdRng = SeedableRng::seed_from_u64(rng.gen());
     let rng = &mut rng;
-    let mut resources = vec![];
-    let mut candidates: Vec<Weighted<&Resource>> = vec![];
 
-    cfg.resources
-        .iter()
-        .flat_map(|r| {
-            if r.forbidden
-                .iter()
-                .find(|n| cmp(n.as_str(), biome))
-                .is_some()
-            {
-                None
-            } else if r.always.iter().find(|n| cmp(n.as_str(), biome)).is_some() {
-                resources.push(BodyResource {
-                    resource: r.kind.to_string(),
-                    amount: 1.0,
-                });
-                None
-            } else if !r.require.is_empty()
-                && r.require.iter().find(|n| cmp(n.as_str(), biome)).is_none()
-            {
-                None
-            } else {
-                Some(r)
-            }
-        })
-        .for_each(|r| {
-            candidates.push(Weighted {
-                prob: r.prob,
-                value: r,
-            })
+    let fr = filter_resources(&cfg.resources, atm, biome, ocean);
+
+    let mut resources = vec![];
+    for resource in fr.must {
+        resources.push(BodyResource {
+            resource: resource.kind.clone(),
+            amount: 1.0,
         });
+    }
+
+    let mut candidates: Vec<Weighted<&Resource>> = vec![];
+    for resource in fr.candidate {
+        candidates.push(Weighted {
+            prob: resource.prob,
+            value: resource,
+        })
+    }
 
     for _ in resources.len()..(cfg.system_resources_max as usize) {
-        let selected = select_weighted(rng, &candidates);
-        if selected.is_none() {
-            continue;
-        }
-        let selected = selected.unwrap();
-
-        if selected.kind == "none" {
-            continue;
-        }
+        let selected = unwrap_or_continue!(select_weighted(rng, &candidates));
 
         let amount = cfg.system_resources_amount.next_positive(rng);
         if amount <= 0.0 {
             continue;
         }
 
+        // check if resource was already selected and sum with the amount
         match resources
             .iter_mut()
             .find(|i| i.resource.as_str() == selected.kind)
         {
-            Some(found) => found.amount += cfg.system_resources_amount.next(rng),
-
+            Some(found) => found.amount += amount,
             None => resources.push(BodyResource {
                 resource: selected.kind.clone(),
                 amount: amount,
@@ -397,7 +466,9 @@ mod test {
 
     #[test]
     fn test1() {
-        let cfg = new_config_from_file(std::path::PathBuf::from("./data").as_path());
+        let cfg = new_config_from_file(
+            std::path::PathBuf::from("../data/system_generator.conf").as_path(),
+        );
         let system = new_system(&cfg, 0);
         assert!(0 < system.bodies.len());
     }

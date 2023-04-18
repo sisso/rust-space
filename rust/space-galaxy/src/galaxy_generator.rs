@@ -49,13 +49,6 @@ fn generate_random_map(size: i32, seed: u64) -> (Grid<Sector>, Vec<Jump>) {
 
     let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
 
-    fn sector_pos<R: rand::Rng>(rng: &mut R) -> P2 {
-        P2::new(
-            rng.gen_range(0.0..10.0) - 5.0,
-            rng.gen_range(0.0..10.0) - 5.0,
-        )
-    }
-
     // generate galaxy grid
     let rgcfg = commons::random_grid::RandomGridCfg {
         width: size as usize,

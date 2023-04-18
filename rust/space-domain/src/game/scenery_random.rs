@@ -355,12 +355,7 @@ fn add_stations_minimal(world: &mut World, seed: u64, scenery: &SceneryCfg) {
         .expect("no sector found");
 
     // add shipyard
-    let obj_id = Loader::add_shipyard(
-        world,
-        sector_id,
-        sector_pos(&mut rng),
-        scenery.ware_components_id,
-    );
+    let obj_id = Loader::add_shipyard(world, sector_id, V2::ZERO, scenery.ware_components_id);
     set_orbit_random_body(world, obj_id, rng.next_u64());
 
     // add factory

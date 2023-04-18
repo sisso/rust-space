@@ -3,6 +3,9 @@ use serde::Deserialize;
 use std::path::Path;
 
 pub fn load_file<'a, K: Deserialize<'a>>(path: &Path) -> Result<K, String> {
+    if !path.exists() {
+        return Err(format!("file not found at {}", path.display()));
+    }
     let mut loader = HoconLoader::new().strict().no_system();
     loader = loader.load_file(path).map_err(|err| format!("{:?}", err))?;
     let raw = loader.hocon().map_err(|err| format!("{:?}", err))?;
