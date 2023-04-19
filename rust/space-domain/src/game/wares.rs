@@ -1,3 +1,4 @@
+use crate::game::label::Label;
 use crate::game::GameInitContext;
 use specs::prelude::*;
 
@@ -42,6 +43,16 @@ impl From<(WareId, Volume)> for WareAmount {
     fn from((ware_id, amount): (WareId, Volume)) -> Self {
         WareAmount::new(ware_id, amount)
     }
+}
+
+pub fn list_all(world: &World) -> Vec<(Entity, &Ware, &Label)> {
+    (
+        &world.entities(),
+        &world.read_storage::<Ware>(),
+        &world.read_storage::<Label>(),
+    )
+        .join()
+        .collect()
 }
 
 #[derive(Debug, Clone, Component)]

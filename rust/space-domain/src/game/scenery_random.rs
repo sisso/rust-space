@@ -1,12 +1,12 @@
 use crate::game::astrobody::{AstroBodies, OrbitalPos};
 use crate::game::extractables::Extractable;
 use crate::game::factory::Receipt;
-use crate::game::loader::*;
+use crate::game::loader::Loader;
 use crate::game::objects::ObjId;
 use crate::game::sectors::Sector;
 use crate::game::shipyard::Shipyard;
 use crate::game::wares::WareAmount;
-use crate::game::{sectors, Game};
+use crate::game::{conf, loader, sectors, wares, Game};
 use crate::utils::DeltaTime;
 use commons::math::V2;
 use commons::unwrap_or_continue;
@@ -18,11 +18,11 @@ use specs::prelude::*;
 use std::collections::HashSet;
 
 struct SceneryCfg {
-    ware_ore_id: ObjId,
-    ware_components_id: ObjId,
-    ware_energy: ObjId,
-    receipt_process_ores: Receipt,
-    receipt_produce_energy: Receipt,
+    // ware_ore_id: ObjId,
+    // ware_components_id: ObjId,
+    // ware_energy: ObjId,
+    // receipt_process_ores: Receipt,
+    // receipt_produce_energy: Receipt,
 }
 
 pub enum InitialCondition {
@@ -36,6 +36,7 @@ pub struct RandomMapCfg {
     pub fleets: usize,
     pub universe_cfg: system_generator::UniverseCfg,
     pub initial_condition: InitialCondition,
+    pub prefabs: conf::Prefabs,
 }
 
 pub fn load_random(game: &mut Game, cfg: &RandomMapCfg) {
@@ -43,35 +44,33 @@ pub fn load_random(game: &mut Game, cfg: &RandomMapCfg) {
 
     let world = &mut game.world;
 
+    loader::load_prefabs(world, &cfg.prefabs);
+
     // add configurations
     let scenery_cfg = {
-        // wares and receipts
-        let ware_ore_id = Loader::add_ware(world, "ore".to_string());
-        let ware_components_id = Loader::add_ware(world, "components".to_string());
-        let ware_energy = Loader::add_ware(world, "energy".to_string());
-
-        let receipt_process_ores = Receipt {
-            label: "ore processing".to_string(),
-            input: vec![
-                WareAmount::new(ware_ore_id, 20),
-                WareAmount::new(ware_energy, 10),
-            ],
-            output: vec![WareAmount::new(ware_components_id, 10)],
-            time: DeltaTime(1.0),
-        };
-        let receipt_produce_energy = Receipt {
-            label: "solar power".to_string(),
-            input: vec![],
-            output: vec![WareAmount::new(ware_energy, 10)],
-            time: DeltaTime(5.0),
-        };
+        // // wares and receipts
+        // let receipt_process_ores = Receipt {
+        //     label: "ore processing".to_string(),
+        //     input: vec![
+        //         WareAmount::new(ware_ore_id, 20),
+        //         WareAmount::new(ware_energy, 10),
+        //     ],
+        //     output: vec![WareAmount::new(ware_components_id, 10)],
+        //     time: DeltaTime(1.0),
+        // };
+        // let receipt_produce_energy = Receipt {
+        //     label: "solar power".to_string(),
+        //     input: vec![],
+        //     output: vec![WareAmount::new(ware_energy, 10)],
+        //     time: DeltaTime(5.0),
+        // };
 
         SceneryCfg {
-            ware_ore_id,
-            ware_components_id,
-            ware_energy,
-            receipt_process_ores,
-            receipt_produce_energy,
+            // ware_ore_id,
+            // ware_components_id,
+            // ware_energy,
+            // receipt_process_ores,
+            // receipt_produce_energy,
         }
     };
 
@@ -167,22 +166,38 @@ fn add_bodies_to_sectors(
 
     let sectors_id = list_sectors(&world);
 
+    let wares = wares::list_all(world).clone();
+
     for sector_id in sectors_id {
         let system = system_generator::new_system(&universe_cfg, rng.gen());
 
         // create bodies
         let mut new_bodies = vec![];
         for body in &system.bodies {
-            let maybe_obj_id = match body.desc {
+            let maybe_obj_id = match &body.desc {
                 system_generator::BodyDesc::Star { .. } => {
                     let new_obj = Loader::new_star(sector_id);
                     Some(Loader::add_object(world, &new_obj))
                 }
-                system_generator::BodyDesc::AsteroidField { .. } => {
-                    let new_obj = Loader::new_asteroid(sector_id).extractable(Extractable {
-                        ware_id: scenery_cfg.ware_ore_id,
-                    });
-                    Some(Loader::add_object(world, &new_obj))
+                system_generator::BodyDesc::AsteroidField { resources } => {
+                    let maybe_ware_id = resources
+                        .iter()
+                        .flat_map(|body_resource| {
+                            wares.iter().find(|(e, w, l)| {
+                                l.label
+                                    .eq_ignore_ascii_case(body_resource.resource.as_str())
+                            })
+                        })
+                        .map(|(e, _, _)| *e)
+                        .next();
+
+                    if let Some(ware_id) = maybe_ware_id {
+                        let new_obj = Loader::new_asteroid(sector_id)
+                            .extractable(Extractable { ware_id: ware_id });
+                        Some(Loader::add_object(world, &new_obj))
+                    } else {
+                        None
+                    }
                 }
                 system_generator::BodyDesc::Planet(_) => {
                     let new_obj = Loader::new_planet(sector_id);
@@ -283,7 +298,7 @@ fn add_stations_random(world: &mut World, seed: u64, scenery: &SceneryCfg) {
             sector_pos(&mut rng),
             scenery.ware_components_id,
         );
-        set_orbit_random_body(world, obj_id, rng.next_u64());
+        loader::set_orbit_random_body(world, obj_id, rng.next_u64());
     }
 
     let mut required_kinds = [false, false, false];
@@ -303,7 +318,7 @@ fn add_stations_random(world: &mut World, seed: u64, scenery: &SceneryCfg) {
                         sector_pos(&mut rng),
                         scenery.receipt_process_ores.clone(),
                     );
-                    set_orbit_random_body(world, obj_id, rng.next_u64());
+                    loader::set_orbit_random_body(world, obj_id, rng.next_u64());
                 }
                 Some(i) if *i == sector_kind_power => {
                     required_kinds[2] = true;
@@ -314,7 +329,7 @@ fn add_stations_random(world: &mut World, seed: u64, scenery: &SceneryCfg) {
                         sector_pos(&mut rng),
                         scenery.receipt_produce_energy.clone(),
                     );
-                    set_orbit_random_body(world, obj_id, rng.next_u64());
+                    loader::set_orbit_random_body(world, obj_id, rng.next_u64());
                 }
                 _ => {
                     log::warn!("unknown weight {:?}", kind);
@@ -343,7 +358,7 @@ fn add_asteroid_fields_to_sectors(world: &mut World, seed: u64, scenery: &Scener
             })
             .with_label("ore asteroid".to_string()),
     );
-    set_orbit_random_body(world, obj_id, rng.next_u64());
+    loader::set_orbit_random_body(world, obj_id, rng.next_u64());
 }
 
 fn add_stations_minimal(world: &mut World, seed: u64, scenery: &SceneryCfg) {
@@ -356,21 +371,21 @@ fn add_stations_minimal(world: &mut World, seed: u64, scenery: &SceneryCfg) {
 
     // add shipyard
     let obj_id = Loader::add_shipyard(world, sector_id, V2::ZERO, scenery.ware_components_id);
-    set_orbit_random_body(world, obj_id, rng.next_u64());
+    loader::set_orbit_random_body(world, obj_id, rng.next_u64());
 
     // add factory
     let obj_id = Loader::add_object(
         world,
         &Loader::new_factory(sector_id, V2::ZERO, scenery.receipt_process_ores.clone()),
     );
-    set_orbit_random_body(world, obj_id, rng.next_u64());
+    loader::set_orbit_random_body(world, obj_id, rng.next_u64());
 
     // add power generation
     let obj_id = Loader::add_object(
         world,
         &Loader::new_factory(sector_id, V2::ZERO, scenery.receipt_produce_energy.clone()),
     );
-    set_orbit_random_body(world, obj_id, rng.next_u64());
+    loader::set_orbit_random_body(world, obj_id, rng.next_u64());
 }
 
 #[cfg(test)]

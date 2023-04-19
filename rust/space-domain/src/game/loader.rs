@@ -5,6 +5,7 @@ use specs::prelude::*;
 
 use crate::game::astrobody::{AstroBodies, AstroBody, AstroBodyKind, OrbitalPos};
 use crate::game::commands::Command;
+use crate::game::conf;
 use crate::game::dock::HasDock;
 use crate::game::events::{Event, EventKind, Events};
 use crate::game::extractables::Extractable;
@@ -344,6 +345,18 @@ pub fn set_orbit_random_body(world: &mut World, obj_id: ObjId, seed: u64) {
     let radius = rng.gen_range((base_radius * 0.1)..(base_radius * 0.5));
     let angle = rng.gen_range(0.0..math::TWO_PI);
     AstroBodies::set_orbit(world, obj_id, candidates[selected].0, radius, angle);
+}
+
+pub fn load_prefabs(world: &mut World, prefabs: &conf::Prefabs) {
+    for ware in &prefabs.wares {
+        Loader::add_ware(world, ware.kind.clone());
+    }
+
+    for receipt in &prefabs.receipts {}
+
+    for stations in &prefabs.stations {}
+
+    for fleets in &prefabs.fleets {}
 }
 
 #[cfg(test)]

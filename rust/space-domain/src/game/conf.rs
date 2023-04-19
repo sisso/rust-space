@@ -33,6 +33,7 @@ pub struct Receipt {
     pub label: String,
     pub input: Vec<ReceiptWare>,
     pub output: Vec<ReceiptWare>,
+    pub time: f32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
