@@ -24,11 +24,12 @@ pub struct State {
 impl State {
     pub fn new() -> Self {
         _ = env_logger::builder()
-            .filter(None, log::LevelFilter::Warn)
-            .filter(Some("world_view"), log::LevelFilter::Warn)
-            .filter(Some("space_flap"), log::LevelFilter::Warn)
-            .filter(Some("space_domain"), log::LevelFilter::Warn)
-            .filter(Some("space_domain::game::loader"), log::LevelFilter::Warn)
+            .filter(None, log::LevelFilter::Info)
+            // .filter(Some("world_view"), log::LevelFilter::Warn)
+            // .filter(Some("space_flap"), log::LevelFilter::Warn)
+            // .filter(Some("space_domain"), log::LevelFilter::Warn)
+            // .filter(Some("space_domain::conf"), log::LevelFilter::Debug)
+            // .filter(Some("space_domain::game::loader"), log::LevelFilter::Warn)
             .try_init()
             .or_else(|err| {
                 log::warn!("fail to initialize log {err:?}");
@@ -68,5 +69,7 @@ mod test {
     use log::LevelFilter::Debug;
 
     #[test]
-    fn test1() {}
+    fn test1() {
+        State::new();
+    }
 }

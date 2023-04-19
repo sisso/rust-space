@@ -153,6 +153,7 @@ foreign_class!(
         self_type ObjFactory;
         private constructor = empty;
         fn ObjFactory::is_producing(&self) -> bool;
+        fn ObjFactory::get_receipt_label(&self) -> &str;
     }
 );
 

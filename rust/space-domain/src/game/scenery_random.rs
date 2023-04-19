@@ -98,7 +98,7 @@ pub fn load_random(game: &mut Game, cfg: &RandomMapCfg) {
 
         // add mandatory ships
         let shipyard = *commons::prob::select(&mut rng, &shipyards).unwrap();
-        Loader::add_ship_miner(world, shipyard, 1.0, format!("miner-{}", 0));
+        Loader::add_ship_miner(world, shipyard, 0.75, format!("miner-{}", 0));
         let shipyard = *commons::prob::select(&mut rng, &shipyards).unwrap();
         Loader::add_ship_trader(world, shipyard, 1.0, format!("trader-{}", 0));
 

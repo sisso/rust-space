@@ -124,7 +124,7 @@ fn describe_obj(
             }
             if let Some(factory) = desc.get_factory() {
                 if factory.is_producing() {
-                    buffer.push("producing products".to_string());
+                    buffer.push("producing".to_string());
                 }
             }
             if let Some(shipyard) = desc.get_shipyard() {

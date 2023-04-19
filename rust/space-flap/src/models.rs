@@ -329,6 +329,10 @@ impl ObjFactory {
     pub fn is_producing(&self) -> bool {
         self.factory.production_time.is_some()
     }
+
+    pub fn get_receipt_label(&self) -> &str {
+        self.factory.production.label.as_str()
+    }
 }
 
 pub struct ObjShipyard {

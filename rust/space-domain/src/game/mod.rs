@@ -26,6 +26,7 @@ use crate::game::wares::Wares;
 pub mod actions;
 pub mod astrobody;
 pub mod commands;
+pub mod conf;
 pub mod dock;
 pub mod events;
 pub mod extractables;

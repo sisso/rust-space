@@ -70,10 +70,9 @@ impl SpaceGame {
             }
         }
 
-        let system_generator_conf = include_str!("../../data/system_generator.conf");
-        let universe_cfg = space_domain::space_galaxy::system_generator::new_config_from_str(
-            system_generator_conf,
-        );
+        let system_generator_conf = include_str!("../../data/game.conf");
+        let cfg = space_domain::game::conf::load_str(system_generator_conf)
+            .expect("fail to read config file");
 
         let mut game = Game::new();
         scenery_random::load_random(
@@ -82,7 +81,7 @@ impl SpaceGame {
                 size: size,
                 seed: 0,
                 fleets: fleets,
-                universe_cfg,
+                universe_cfg: cfg.system_generator,
                 initial_condition: scenery_random::InitialCondition::Minimal,
             },
         );
