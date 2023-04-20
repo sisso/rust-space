@@ -2,10 +2,12 @@ use commons;
 use commons::math::{self, P2};
 use rand::prelude::*;
 use specs::prelude::*;
+use std::collections::HashMap;
 
 use crate::game::astrobody::{AstroBodies, AstroBody, AstroBodyKind, OrbitalPos};
+use crate::game::code::Code;
 use crate::game::commands::Command;
-use crate::game::conf;
+use crate::game::conf::ReceiptWare;
 use crate::game::dock::HasDock;
 use crate::game::events::{Event, EventKind, Events};
 use crate::game::extractables::Extractable;
@@ -19,7 +21,8 @@ use crate::game::order::{Order, Orders};
 use crate::game::sectors::{Jump, JumpId, Sector, SectorId};
 use crate::game::shipyard::Shipyard;
 use crate::game::station::Station;
-use crate::game::wares::{Cargo, Ware, WareAmount, WareId};
+use crate::game::wares::{Cargo, Ware, WareAmount, WareId, WaresByCode};
+use crate::game::{conf, wares};
 use crate::specs_extras::*;
 use crate::utils::{DeltaTime, Speed, V2};
 
@@ -107,8 +110,11 @@ impl Loader {
         Loader::add_object(world, &NewObj::new().with_sector(pos).with_label(name))
     }
 
-    pub fn add_ware(world: &mut World, name: String) -> WareId {
-        Loader::add_object(world, &NewObj::new().with_ware().with_label(name))
+    pub fn add_ware(world: &mut World, code: String, name: String) -> WareId {
+        Loader::add_object(
+            world,
+            &NewObj::new().with_ware().with_code(code).with_label(name),
+        )
     }
 
     pub fn add_jump(
@@ -186,6 +192,12 @@ impl Loader {
                 "fatal {:?}: entity that can dock should be moveable",
                 new_obj
             );
+        }
+
+        if let Some(code) = new_obj.code.as_ref() {
+            builder.set(Code {
+                code: code.to_string(),
+            })
         }
 
         if let Some(label) = new_obj.label.as_ref() {
@@ -348,13 +360,84 @@ pub fn set_orbit_random_body(world: &mut World, obj_id: ObjId, seed: u64) {
 }
 
 pub fn load_prefabs(world: &mut World, prefabs: &conf::Prefabs) {
+    // generate wares and collect index
     for ware in &prefabs.wares {
-        Loader::add_ware(world, ware.kind.clone());
+        Loader::add_ware(world, ware.code.clone(), ware.label.clone());
+    }
+    let wares_by_code = wares::list_wares_by_code(world);
+
+    // generate receipts
+    let mut receipts: HashMap<String, Receipt> = Default::default();
+
+    fn map_wareamount(wares_by_code: &WaresByCode, code: &str, amount: f32) -> WareAmount {
+        let ware_id = wares_by_code
+            .get(code)
+            .unwrap_or_else(|| panic!("ware {} not found", code));
+        WareAmount {
+            ware_id,
+            amount: amount as u32,
+        }
     }
 
-    for receipt in &prefabs.receipts {}
+    for receipt in &prefabs.receipts {
+        receipts.insert(
+            receipt.code.clone(),
+            Receipt {
+                label: receipt.label.clone(),
+                input: receipt
+                    .input
+                    .iter()
+                    .map(|rw| map_wareamount(&wares_by_code, rw.ware.as_str(), rw.amount))
+                    .collect(),
+                output: receipt
+                    .output
+                    .iter()
+                    .map(|rw| map_wareamount(&wares_by_code, rw.ware.as_str(), rw.amount))
+                    .collect(),
+                time: DeltaTime(receipt.time),
+            },
+        );
+    }
 
-    for stations in &prefabs.stations {}
+    for station in &prefabs.stations {
+        let mut obj = NewObj::new()
+            .with_label(station.label.clone())
+            .with_station()
+            .with_cargo(station.storage as u32)
+            .has_dock();
+
+        if let Some(shipyard) = &station.shipyard {
+            obj.with_shipyard(Shipyard {
+                input: map_wareamount(
+                    &wares_by_code,
+                    shipyard.consumes_ware.as_str(),
+                    shipyard.consumes_amount,
+                ),
+                production_time: DeltaTime(shipyard.time),
+                current_production: None,
+            });
+        }
+
+        if let Some(factory) = &station.factory {
+            let receipt = receipts
+                .get(factory.receipt.as_str())
+                .unwrap_or_else(|| panic!("receipt {} not found", factory.receipt))
+                .clone();
+
+            obj.with_factory(Factory {
+                production: receipt,
+                production_time: None,
+            });
+        }
+
+        world
+            .create_entity()
+            .with(Code {
+                code: station.code.clone(),
+            })
+            .with(obj)
+            .build();
+    }
 
     for fleets in &prefabs.fleets {}
 }

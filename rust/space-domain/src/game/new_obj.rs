@@ -36,6 +36,7 @@ pub struct NewObj {
     pub ware: bool,
     pub factory: Option<Factory>,
     pub label: Option<String>,
+    pub code: Option<String>,
     pub pos: Option<V2>,
     pub star: Option<()>,
     pub planet: Option<()>,
@@ -140,6 +141,11 @@ impl NewObj {
 
     pub fn with_factory(mut self, factory: Factory) -> Self {
         self.factory = Some(factory);
+        self
+    }
+
+    pub fn with_code(mut self, code: String) -> Self {
+        self.code = Some(code);
         self
     }
 

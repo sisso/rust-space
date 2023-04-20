@@ -1,6 +1,8 @@
+use crate::game::code::{Code, CodeString};
 use crate::game::label::Label;
 use crate::game::GameInitContext;
 use specs::prelude::*;
+use std::collections::HashMap;
 
 use super::objects::ObjId;
 
@@ -45,13 +47,47 @@ impl From<(WareId, Volume)> for WareAmount {
     }
 }
 
-pub fn list_all(world: &World) -> Vec<(Entity, &Ware, &Label)> {
+pub fn find_ware_by_code(world: &World, code: &str) -> Option<Entity> {
     (
         &world.entities(),
         &world.read_storage::<Ware>(),
-        &world.read_storage::<Label>(),
+        &world.read_storage::<Code>(),
     )
         .join()
+        .find(|(_, _, c)| c.code.eq_ignore_ascii_case(code))
+        .map(|(e, _, _)| e)
+}
+
+pub struct WaresByCode {
+    map: HashMap<String, Entity>,
+}
+
+impl WaresByCode {
+    pub fn new(world: &World) -> Self {
+        let mut map = Default::default();
+        for (e, code) in list_wares(world) {
+            map.iter(code.to_string(), e);
+        }
+        Self { map }
+    }
+
+    pub fn get(&self, code: &str) -> Option<Entity> {
+        self.map.get(code).cloned()
+    }
+}
+
+pub fn list_wares_by_code(world: &World) -> WaresByCode {
+    WaresByCode::new(world)
+}
+
+pub fn list_wares(world: &World) -> Vec<(Entity, &str)> {
+    (
+        &world.entities(),
+        &world.read_storage::<Ware>(),
+        &world.read_storage::<Code>(),
+    )
+        .join()
+        .map(|(e, _, c)| (e, c.code.as_str()))
         .collect()
 }
 

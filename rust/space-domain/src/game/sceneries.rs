@@ -12,8 +12,9 @@ pub fn load_basic_scenery(game: &mut Game) -> BasicScenery {
     let world = &mut game.world;
 
     // init wares
-    let ware_ore_id = Loader::add_ware(world, "ore".to_string());
-    let ware_components_id = Loader::add_ware(world, "components".to_string());
+    let ware_ore_id = Loader::add_ware(world, "ore".to_string(), "Ore".to_string());
+    let ware_components_id =
+        Loader::add_ware(world, "components".to_string(), "Components".to_string());
 
     // init sectors
     let sector_0 = Loader::add_sector(world, V2::new(0.0, 0.0), "Sector 0".to_string());
@@ -62,9 +63,10 @@ pub fn load_basic_scenery(game: &mut Game) -> BasicScenery {
 /// Advanced scenery
 pub fn load_advanced_scenery(world: &mut World) {
     // init wares
-    let ware_ore_id = Loader::add_ware(world, "ore".to_string());
-    let ware_components_id = Loader::add_ware(world, "components".to_string());
-    let ware_energy = Loader::add_ware(world, "energy".to_string());
+    let ware_ore_id = Loader::add_ware(world, "ore".to_string(), "Ore".to_string());
+    let ware_components_id =
+        Loader::add_ware(world, "components".to_string(), "Components".to_string());
+    let ware_energy = Loader::add_ware(world, "energy".to_string(), "Energy".to_string());
 
     // receipts
     let receipt_process_ores = Receipt {

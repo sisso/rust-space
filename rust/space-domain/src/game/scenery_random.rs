@@ -166,8 +166,6 @@ fn add_bodies_to_sectors(
 
     let sectors_id = list_sectors(&world);
 
-    let wares = wares::list_all(world).clone();
-
     for sector_id in sectors_id {
         let system = system_generator::new_system(&universe_cfg, rng.gen());
 
@@ -183,12 +181,8 @@ fn add_bodies_to_sectors(
                     let maybe_ware_id = resources
                         .iter()
                         .flat_map(|body_resource| {
-                            wares.iter().find(|(e, w, l)| {
-                                l.label
-                                    .eq_ignore_ascii_case(body_resource.resource.as_str())
-                            })
+                            wares::find_ware_by_code(world, body_resource.resource.as_str())
                         })
-                        .map(|(e, _, _)| *e)
                         .next();
 
                     if let Some(ware_id) = maybe_ware_id {

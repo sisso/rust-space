@@ -25,6 +25,7 @@ use crate::game::wares::Wares;
 
 pub mod actions;
 pub mod astrobody;
+pub mod code;
 pub mod commands;
 pub mod conf;
 pub mod dock;
@@ -87,6 +88,7 @@ impl Game {
 
         // initializations
         ictx.world.register::<label::Label>();
+        ictx.world.register::<code::Code>();
         Sectors::init(&mut ictx);
         Locations::init(&mut ictx);
         Actions::init(&mut ictx);

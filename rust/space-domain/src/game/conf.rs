@@ -18,7 +18,8 @@ pub struct Prefabs {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Ware {
-    pub kind: String,
+    pub code: String,
+    pub label: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -55,13 +56,14 @@ pub struct Station {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Shipyard {
-    consumes_ware: String,
-    consumes_amount: f32,
+    pub consumes_ware: String,
+    pub consumes_amount: f32,
+    pub time: f32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Factory {
-    receipt: String,
+    pub receipt: String,
 }
 
 pub fn load_str(buffer: &str) -> Result<Conf, String> {
