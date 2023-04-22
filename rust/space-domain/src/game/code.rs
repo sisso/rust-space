@@ -1,10 +1,8 @@
 use specs::prelude::*;
 
-pub type CodeString = String;
-
 #[derive(Component)]
 pub struct Code {
-    pub code: CodeString,
+    pub code: String,
 }
 
 pub fn get_entity_by_code(world: &World, code: &str) -> Option<Entity> {

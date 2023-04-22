@@ -1,11 +1,16 @@
 use serde::{Deserialize, Serialize};
 use space_galaxy::system_generator::UniverseCfg;
-use std::path::Path;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Conf {
     pub system_generator: UniverseCfg,
     pub prefabs: Prefabs,
+    pub params: Params,
+}
+
+pub fn load_str(buffer: &str) -> Result<Conf, String> {
+    let result = commons::hocon::load_str(buffer);
+    result.map_err(|err| format!("fail to load config from str by: {:?}", err))
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -25,7 +30,7 @@ pub struct Ware {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ReceiptWare {
     pub ware: String,
-    pub amount: f32,
+    pub amount: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -42,7 +47,7 @@ pub struct Fleet {
     pub code: String,
     pub label: String,
     pub speed: f32,
-    pub storage: f32,
+    pub storage: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -57,7 +62,7 @@ pub struct Station {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Shipyard {
     pub consumes_ware: String,
-    pub consumes_amount: f32,
+    pub consumes_amount: u32,
     pub time: f32,
 }
 
@@ -66,7 +71,11 @@ pub struct Factory {
     pub receipt: String,
 }
 
-pub fn load_str(buffer: &str) -> Result<Conf, String> {
-    let result = commons::hocon::load_str(buffer);
-    result.map_err(|err| format!("fail to load config from str by: {:?}", err))
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Params {
+    pub prefab_station_shipyard: String,
+    pub prefab_station_factory: String,
+    pub prefab_station_solar: String,
+    pub prefab_ship_trade: String,
+    pub prefab_ship_miner: String,
 }

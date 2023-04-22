@@ -1,4 +1,4 @@
-use crate::game::code::{Code, CodeString};
+use crate::game::code::Code;
 use crate::game::label::Label;
 use crate::game::GameInitContext;
 use specs::prelude::*;

@@ -12,6 +12,7 @@ use self::save::{Load, Save};
 use crate::game::actions::Actions;
 use crate::game::astrobody::AstroBodies;
 use crate::game::commands::Commands;
+use crate::game::conf::Conf;
 
 use crate::game::factory::Factory;
 use crate::game::fleets::Fleet;
@@ -41,6 +42,7 @@ pub mod navigations;
 pub mod new_obj;
 pub mod objects;
 pub mod order;
+pub mod prefab;
 pub mod save;
 pub mod sceneries;
 pub mod scenery_random;
@@ -71,7 +73,7 @@ pub trait RequireInitializer {
 }
 
 impl Game {
-    pub fn new() -> Self {
+    pub fn new(conf: Conf) -> Self {
         let thread_pool: Arc<rayon_core::ThreadPool> = Arc::new(
             rayon_core::ThreadPoolBuilder::new()
                 .build()
@@ -81,31 +83,36 @@ impl Game {
         let dispatcher_builder = DispatcherBuilder::new().with_pool(thread_pool.clone());
 
         // initialize all
-        let mut ictx = GameInitContext {
+        let mut init_ctx = GameInitContext {
             world: World::new(),
             dispatcher: dispatcher_builder,
         };
 
         // initializations
-        ictx.world.register::<label::Label>();
-        ictx.world.register::<code::Code>();
-        Sectors::init(&mut ictx);
-        Locations::init(&mut ictx);
-        Actions::init(&mut ictx);
-        Commands::init(&mut ictx);
-        Navigations::init(&mut ictx);
-        Shipyard::init(&mut ictx);
-        Factory::init(&mut ictx);
-        Orders::init(&mut ictx);
-        Stations::init(&mut ictx);
-        Fleet::init(&mut ictx);
-        AstroBodies::init(&mut ictx);
-        Wares::init(&mut ictx);
+        init_ctx.world.register::<label::Label>();
+        init_ctx.world.register::<code::Code>();
+        init_ctx.world.register::<prefab::Prefab>();
+        Sectors::init(&mut init_ctx);
+        Locations::init(&mut init_ctx);
+        Actions::init(&mut init_ctx);
+        Commands::init(&mut init_ctx);
+        Navigations::init(&mut init_ctx);
+        Shipyard::init(&mut init_ctx);
+        Factory::init(&mut init_ctx);
+        Orders::init(&mut init_ctx);
+        Stations::init(&mut init_ctx);
+        Fleet::init(&mut init_ctx);
+        AstroBodies::init(&mut init_ctx);
+        Wares::init(&mut init_ctx);
 
-        let mut dispatcher = ictx.dispatcher.build();
+        let mut dispatcher = init_ctx.dispatcher.build();
 
-        let mut world = ictx.world;
+        let mut world = init_ctx.world;
         dispatcher.setup(&mut world);
+
+        loader::load_prefabs(&mut world, &conf.prefabs);
+
+        world.insert(conf);
 
         Game {
             total_time: TotalTime(0.0),

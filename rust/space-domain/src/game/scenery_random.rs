@@ -1,19 +1,15 @@
 use crate::game::astrobody::{AstroBodies, OrbitalPos};
+use crate::game::conf::Conf;
 use crate::game::extractables::Extractable;
-use crate::game::factory::Receipt;
-use crate::game::loader::Loader;
-use crate::game::objects::ObjId;
+use crate::game::loader::{load_prefabs, Loader};
 use crate::game::sectors::Sector;
 use crate::game::shipyard::Shipyard;
-use crate::game::wares::WareAmount;
-use crate::game::{conf, loader, sectors, wares, Game};
-use crate::utils::DeltaTime;
+use crate::game::{conf, loader, prefab, sectors, wares, Game};
 use commons::math::V2;
 use commons::unwrap_or_continue;
 use rand::prelude::*;
 use shred::World;
 use space_galaxy::system_generator;
-use space_galaxy::system_generator::BodyDesc::AsteroidField;
 use specs::prelude::*;
 use std::collections::HashSet;
 
@@ -43,8 +39,6 @@ pub fn load_random(game: &mut Game, cfg: &RandomMapCfg) {
     let mut rng: StdRng = SeedableRng::seed_from_u64(cfg.seed);
 
     let world = &mut game.world;
-
-    loader::load_prefabs(world, &cfg.prefabs);
 
     // add configurations
     let scenery_cfg = {
@@ -256,6 +250,8 @@ fn list_sectors(world: &World) -> Vec<Entity> {
 fn add_stations_random(world: &mut World, seed: u64, scenery: &SceneryCfg) {
     let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
 
+    let game_params = world.read_resource::<Conf>().params.clone();
+
     let sector_kind_empty = 0;
     let sector_kind_power = 1;
     let sector_kind_factory = 2;
@@ -286,6 +282,12 @@ fn add_stations_random(world: &mut World, seed: u64, scenery: &SceneryCfg) {
     // adding shipyard
     {
         let sector_id = commons::prob::select(&mut rng, &sectors_id).expect("empty sectors_id");
+
+        let shipyard_prefab =
+            prefab::find_prefab_by_code(world, &game_params.prefab_station_shipyard)
+                .expect("shipyard prefab not found")
+                .clone();
+
         let obj_id = Loader::add_shipyard(
             world,
             *sector_id,

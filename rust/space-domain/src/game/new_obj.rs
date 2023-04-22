@@ -1,4 +1,5 @@
 use commons::math::{Rad, P2};
+use serde::{Deserialize, Serialize};
 use specs::prelude::*;
 
 use crate::game::commands::Command;
@@ -18,7 +19,7 @@ pub struct NewObjOrbit {
     pub angle: Rad,
 }
 
-#[derive(Debug, Clone, Component, Default)]
+#[derive(Debug, Clone, Component, Default, Serialize, Deserialize)]
 pub struct NewObj {
     pub speed: Option<Speed>,
     pub cargo_size: Volume,
