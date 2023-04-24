@@ -1,4 +1,5 @@
-use crate::game::wares::{NewWare, WareId, Wares};
+use crate::game::conf;
+use crate::game::conf::Ware;
 use crate::utils::{MIN_DISTANCE, V2};
 use specs::prelude::*;
 
@@ -41,6 +42,8 @@ pub fn init_log() {
         .try_init();
 }
 
-pub fn arbitrary_ware(world: &mut World) -> WareId {
-    world.read_resource::<Wares>().add(NewWare::default())
+pub fn arbitrary_ware(world: &mut World) -> usize {
+    let mut prefabs = world.write_resource::<conf::Prefabs>();
+    prefabs.wares.push(Ware::default());
+    prefabs.wares.len()
 }

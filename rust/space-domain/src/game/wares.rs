@@ -6,59 +6,6 @@ pub type WareId = usize;
 
 pub type Volume = u32;
 
-#[derive(Debug, Clone)]
-pub struct NewWare {
-    pub code: String,
-    pub label: String,
-}
-
-impl Default for NewWare {
-    fn default() -> Self {
-        Self {
-            code: "".to_string(),
-            label: Default::default(),
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Ware {
-    pub id: WareId,
-    pub code: String,
-    pub label: String,
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct Wares {
-    wares: Vec<Option<Ware>>,
-}
-
-impl Wares {
-    pub fn add(&mut self, ware: NewWare) -> WareId {
-        let id = self.wares.len();
-        self.wares[id] = Some(Ware {
-            id,
-            code: ware.code,
-            label: ware.label,
-        });
-        id
-    }
-
-    pub fn find_by_code<'a>(&'a self, code: &str) -> Option<&'a Ware> {
-        self.wares
-            .iter()
-            .flatten()
-            .find(|ware| ware.code.as_str() == code)
-    }
-
-    pub fn get_by_ware_id(&self, ware_id: WareId) -> Option<&Ware> {
-        match self.wares.get(ware_id) {
-            Some(Some(ware)) => Some(ware),
-            _ => None,
-        }
-    }
-}
-
 #[derive(Debug, Clone, Copy)]
 pub struct WareAmount {
     pub ware_id: WareId,
@@ -83,10 +30,6 @@ impl From<(WareId, Volume)> for WareAmount {
     fn from((ware_id, amount): (WareId, Volume)) -> Self {
         WareAmount::new(ware_id, amount)
     }
-}
-
-pub fn find_ware_by_code<'a>(world: &'a World, code: &str) -> Option<&'a Ware> {
-    world.fetch::<Wares>().find_by_code(code)
 }
 
 #[derive(Debug, Clone, Component)]

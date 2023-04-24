@@ -175,14 +175,15 @@ fn add_bodies_to_sectors(
                     let maybe_ware_id = resources
                         .iter()
                         .flat_map(|body_resource| {
-                            wares::find_ware_by_code(world, body_resource.resource.as_str())
+                            world
+                                .read_resource::<conf::Prefabs>()
+                                .find_by_code(body_resource.resource.as_str())
                         })
-                        .map(|ware| ware.id)
                         .next();
 
                     if let Some(ware_id) = maybe_ware_id {
-                        let new_obj = Loader::new_asteroid(sector_id)
-                            .extractable(Extractable { ware_id: ware_id });
+                        let new_obj =
+                            Loader::new_asteroid(sector_id).extractable(Extractable { ware_id });
                         Some(Loader::add_object(world, &new_obj))
                     } else {
                         None

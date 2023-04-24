@@ -1,7 +1,8 @@
+use crate::game::conf::Ware;
 use crate::game::factory::Receipt;
 use crate::game::loader::{BasicScenery, Loader};
-use crate::game::wares::{NewWare, WareAmount, Wares};
-use crate::game::{sectors, Game};
+use crate::game::wares::WareAmount;
+use crate::game::{conf, sectors, Game};
 use crate::utils::{DeltaTime, V2};
 use shred::World;
 use specs::WorldExt;
@@ -13,11 +14,15 @@ pub fn load_basic_scenery(game: &mut Game) -> BasicScenery {
     let world = &mut game.world;
 
     // init wares
-    let ware_ore_id = (&mut world.write_resource::<Wares>()).add(NewWare {
+    let mut prefabs = game.world.write_resource::<conf::Prefabs>();
+    let ware_ore_id = 0;
+    prefabs.wares.push(Ware {
         code: "ore".to_string(),
         label: "Ore".to_string(),
     });
-    let ware_components_id = (&mut world.write_resource::<Wares>()).add(NewWare {
+
+    let ware_components_id = 1;
+    prefabs.wares.push(Ware {
         code: "components".to_string(),
         label: "Components".to_string(),
     });
@@ -69,18 +74,23 @@ pub fn load_basic_scenery(game: &mut Game) -> BasicScenery {
 /// Advanced scenery
 pub fn load_advanced_scenery(world: &mut World) {
     // init wares
-    let ware_ore_id = (&mut world.write_resource::<Wares>()).add(NewWare {
+    let mut prefabs = world.write_resource::<conf::Prefabs>();
+    let ware_ore_id = 0;
+    prefabs.wares.push(Ware {
         code: "ore".to_string(),
         label: "Ore".to_string(),
     });
-    let ware_components_id = (&mut world.write_resource::<Wares>()).add(NewWare {
+
+    let ware_components_id = 1;
+    prefabs.wares.push(Ware {
         code: "components".to_string(),
         label: "Components".to_string(),
     });
 
-    let ware_energy_id = (&mut world.write_resource::<Wares>()).add(NewWare {
+    let ware_energy_id = 2;
+    prefabs.wares.push(Ware {
         code: "energy".to_string(),
-        label: "Energy".to_string(),
+        label: "energy".to_string(),
     });
 
     // receipts

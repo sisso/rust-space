@@ -20,7 +20,7 @@ use crate::game::order::{Order, Orders};
 use crate::game::sectors::{Jump, JumpId, Sector, SectorId};
 use crate::game::shipyard::Shipyard;
 use crate::game::station::Station;
-use crate::game::wares::{Cargo, NewWare, Ware, WareAmount, WareId, Wares};
+use crate::game::wares::{Cargo, WareAmount, WareId};
 use crate::game::{conf, prefab};
 use crate::specs_extras::*;
 use crate::utils::{DeltaTime, Speed, V2};
@@ -347,16 +347,8 @@ pub fn set_orbit_random_body(world: &mut World, obj_id: ObjId, seed: u64) {
     AstroBodies::set_orbit(world, obj_id, candidates[selected].0, radius, angle);
 }
 
-pub fn load_prefabs(world: &mut World, prefabs: &conf::Prefabs) {
-    let mut wares = world.write_resource::<Wares>();
-
-    for ware in &prefabs.wares {
-        let id = (&mut wares).add(NewWare {
-            code: ware.code.clone(),
-            label: ware.label.clone(),
-        });
-        log::info!("loading ware {} {}", id, ware.code);
-    }
+pub fn load_prefabs(world: &mut World, prefabs: conf::Prefabs) {
+    world.insert(prefabs);
 }
 
 // pub fn load_station_prefab_by_code(world: &mut World, code: &str) -> Option<Entity> {
