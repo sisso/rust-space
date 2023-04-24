@@ -1,23 +1,61 @@
-use crate::game::code::Code;
-use crate::game::label::Label;
-use crate::game::GameInitContext;
 use specs::prelude::*;
-use std::collections::HashMap;
 
 use super::objects::ObjId;
 
-pub type WareId = Entity;
+pub type WareId = usize;
 
 pub type Volume = u32;
 
-#[derive(Debug, Clone, Component)]
-pub struct Ware;
+#[derive(Debug, Clone)]
+pub struct NewWare {
+    pub code: String,
+    pub label: String,
+}
 
-pub struct Wares;
+impl Default for NewWare {
+    fn default() -> Self {
+        Self {
+            code: "".to_string(),
+            label: Default::default(),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Ware {
+    pub id: WareId,
+    pub code: String,
+    pub label: String,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct Wares {
+    wares: Vec<Option<Ware>>,
+}
 
 impl Wares {
-    pub fn init(ctx: &mut GameInitContext) {
-        ctx.world.register::<Ware>();
+    pub fn add(&mut self, ware: NewWare) -> WareId {
+        let id = self.wares.len();
+        self.wares[id] = Some(Ware {
+            id,
+            code: ware.code,
+            label: ware.label,
+        });
+        id
+    }
+
+    pub fn find_by_code<'a>(&'a self, code: &str) -> Option<&'a Ware> {
+        self.wares
+            .iter()
+            .flatten()
+            .find(|ware| ware.code.as_str() == code)
+    }
+
+    pub fn get_by_ware_id(&self, ware_id: WareId) -> Option<&Ware> {
+        match self.wares.get(ware_id) {
+            Some(Some(ware)) => Some(ware),
+            _ => None,
+        }
     }
 }
 
@@ -47,48 +85,8 @@ impl From<(WareId, Volume)> for WareAmount {
     }
 }
 
-pub fn find_ware_by_code(world: &World, code: &str) -> Option<Entity> {
-    (
-        &world.entities(),
-        &world.read_storage::<Ware>(),
-        &world.read_storage::<Code>(),
-    )
-        .join()
-        .find(|(_, _, c)| c.code.eq_ignore_ascii_case(code))
-        .map(|(e, _, _)| e)
-}
-
-pub struct WaresByCode {
-    map: HashMap<String, Entity>,
-}
-
-impl WaresByCode {
-    pub fn new(world: &World) -> Self {
-        let mut map = Default::default();
-        for (e, code) in list_wares(world) {
-            map.iter(code.to_string(), e);
-        }
-        Self { map }
-    }
-
-    pub fn get(&self, code: &str) -> Option<Entity> {
-        self.map.get(code).cloned()
-    }
-}
-
-pub fn list_wares_by_code(world: &World) -> WaresByCode {
-    WaresByCode::new(world)
-}
-
-pub fn list_wares(world: &World) -> Vec<(Entity, &str)> {
-    (
-        &world.entities(),
-        &world.read_storage::<Ware>(),
-        &world.read_storage::<Code>(),
-    )
-        .join()
-        .map(|(e, _, c)| (e, c.code.as_str()))
-        .collect()
+pub fn find_ware_by_code<'a>(world: &'a World, code: &str) -> Option<&'a Ware> {
+    world.fetch::<Wares>().find_by_code(code)
 }
 
 #[derive(Debug, Clone, Component)]
@@ -346,13 +344,8 @@ impl Cargos {
 mod test {
     use super::*;
 
-    // TODO: how to create entities without a world?
     fn create_wares() -> (WareId, WareId, WareId) {
-        let mut world = World::new();
-        let ware_0 = world.create_entity().build();
-        let ware_1 = world.create_entity().build();
-        let ware_2 = world.create_entity().build();
-        (ware_0, ware_1, ware_2)
+        (0, 1, 2)
     }
 
     #[test]

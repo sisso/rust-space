@@ -1,5 +1,4 @@
 use commons::math::{Rad, P2};
-use serde::{Deserialize, Serialize};
 use specs::prelude::*;
 
 use crate::game::commands::Command;
@@ -19,7 +18,7 @@ pub struct NewObjOrbit {
     pub angle: Rad,
 }
 
-#[derive(Debug, Clone, Component, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Component, Default)]
 pub struct NewObj {
     pub speed: Option<Speed>,
     pub cargo_size: Volume,
@@ -34,7 +33,6 @@ pub struct NewObj {
     pub jump_to: Option<(SectorId, P2)>,
     pub command: Option<Command>,
     pub shipyard: Option<Shipyard>,
-    pub ware: bool,
     pub factory: Option<Factory>,
     pub label: Option<String>,
     pub code: Option<String>,
@@ -132,11 +130,6 @@ impl NewObj {
 
     pub fn with_shipyard(mut self, shipyard: Shipyard) -> Self {
         self.shipyard = Some(shipyard);
-        self
-    }
-
-    pub fn with_ware(mut self) -> Self {
-        self.ware = true;
         self
     }
 

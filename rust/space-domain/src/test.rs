@@ -1,3 +1,4 @@
+use crate::game::wares::{NewWare, WareId, Wares};
 use crate::utils::{MIN_DISTANCE, V2};
 use specs::prelude::*;
 
@@ -38,4 +39,8 @@ pub fn init_log() {
     _ = env_logger::builder()
         .filter(None, log::LevelFilter::Trace)
         .try_init();
+}
+
+pub fn arbitrary_ware(world: &mut World) -> WareId {
+    world.read_resource::<Wares>().add(NewWare::default())
 }

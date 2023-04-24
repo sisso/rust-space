@@ -177,6 +177,7 @@ fn add_bodies_to_sectors(
                         .flat_map(|body_resource| {
                             wares::find_ware_by_code(world, body_resource.resource.as_str())
                         })
+                        .map(|ware| ware.id)
                         .next();
 
                     if let Some(ware_id) = maybe_ware_id {

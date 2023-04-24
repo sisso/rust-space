@@ -20,7 +20,7 @@ use crate::game::order::{Order, Orders};
 use crate::game::sectors::{Jump, JumpId, Sector, SectorId};
 use crate::game::shipyard::Shipyard;
 use crate::game::station::Station;
-use crate::game::wares::{Cargo, Ware, WareAmount, WareId};
+use crate::game::wares::{Cargo, NewWare, Ware, WareAmount, WareId, Wares};
 use crate::game::{conf, prefab};
 use crate::specs_extras::*;
 use crate::utils::{DeltaTime, Speed, V2};
@@ -107,13 +107,6 @@ impl Loader {
 
     pub fn add_sector(world: &mut World, pos: V2, name: String) -> ObjId {
         Loader::add_object(world, &NewObj::new().with_sector(pos).with_label(name))
-    }
-
-    pub fn add_ware(world: &mut World, code: String, name: String) -> WareId {
-        Loader::add_object(
-            world,
-            &NewObj::new().with_ware().with_code(code).with_label(name),
-        )
     }
 
     pub fn add_jump(
@@ -296,10 +289,6 @@ impl Loader {
             });
         }
 
-        if new_obj.ware {
-            builder.set(Ware {});
-        }
-
         let entity = builder.build();
 
         log::debug!("add_object {:?} from {:?}", entity, new_obj);
@@ -359,25 +348,31 @@ pub fn set_orbit_random_body(world: &mut World, obj_id: ObjId, seed: u64) {
 }
 
 pub fn load_prefabs(world: &mut World, prefabs: &conf::Prefabs) {
+    let mut wares = world.write_resource::<Wares>();
+
     for ware in &prefabs.wares {
-        Loader::add_ware(world, ware.code.clone(), ware.label.clone());
+        let id = (&mut wares).add(NewWare {
+            code: ware.code.clone(),
+            label: ware.label.clone(),
+        });
+        log::info!("loading ware {} {}", id, ware.code);
     }
 }
 
-pub fn load_station_prefab_by_code(world: &mut World, code: &str) -> Option<Entity> {
-    // let prefab = prefab::find_prefab_by_code(world, &game_params.prefab_station_shipyard)?;
+// pub fn load_station_prefab_by_code(world: &mut World, code: &str) -> Option<Entity> {
+//     // let prefab = prefab::find_prefab_by_code(world, &game_params.prefab_station_shipyard)?;
+//
+//     let conf = world.read_resource::<Conf>();
+//     let entity = conf
+//         .prefabs
+//         .stations
+//         .iter()
+//         .find(|station| station.code.as_str() == code)
+//         .map(|station| load_station_prefab(world, station));
+//     entity
+// }
 
-    let conf = world.read_resource::<Conf>();
-    let entity = conf
-        .prefabs
-        .stations
-        .iter()
-        .find(|station| station.code.as_str() == code)
-        .map(|station| load_station_prefab(world, station));
-    entity
-}
-
-pub fn load_station_prefab(world: &mut World, station: &conf::Station) -> Option<Entity> {}
+// pub fn load_station_prefab(world: &mut World, station: &conf::Station) -> Option<Entity> {}
 
 // pub fn load_prefab_station(world: &mut World, prefabs: &conf::Prefabs) {
 //     // generate wares and collect index
@@ -474,35 +469,3 @@ pub fn load_station_prefab(world: &mut World, station: &conf::Station) -> Option
 //             .build();
 //     }
 // }
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    use crate::game::label::Label;
-
-    #[test]
-    fn test_load_wares() {
-        let mut world = World::new();
-        world.register::<Ware>();
-        world.register::<Label>();
-        world.insert(Events::default());
-
-        Loader::add_ware(&mut world, "ore".to_string());
-        Loader::add_ware(&mut world, "wood".to_string());
-        Loader::add_ware(&mut world, "metal".to_string());
-
-        let entities = world.entities();
-        let wares = world.read_storage::<Ware>();
-        let labels = world.read_storage::<Label>();
-
-        let wares = (&entities, &wares, &labels)
-            .join()
-            .map(|(e, _, l)| (e, true, l.label.to_string()))
-            .collect::<Vec<_>>();
-
-        assert_eq!(3, wares.len());
-        for w in wares {
-            println!("{:?}", w);
-        }
-    }
-}

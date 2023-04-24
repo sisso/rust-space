@@ -79,7 +79,7 @@ mod test {
         let (world, (entity, ware_id)) = test_system(ActionExtractSystem, |world| {
             world.insert(DeltaTime(1.0));
 
-            let ware_id = world.create_entity().build();
+            let ware_id = crate::test::arbitrary_ware(world);
 
             let asteroid_id = world.create_entity().build();
 
@@ -106,7 +106,7 @@ mod test {
         let (world, (entity, ware_id)) = test_system(ActionExtractSystem, |world| {
             world.insert(DeltaTime(1.0));
 
-            let ware_id = world.create_entity().build();
+            let ware_id = crate::test::arbitrary_ware(world);
 
             let asteroid_id = world.create_entity().build();
 

@@ -103,7 +103,6 @@ impl Game {
         Stations::init(&mut init_ctx);
         Fleet::init(&mut init_ctx);
         AstroBodies::init(&mut init_ctx);
-        Wares::init(&mut init_ctx);
 
         let mut dispatcher = init_ctx.dispatcher.build();
 

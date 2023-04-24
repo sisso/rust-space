@@ -281,7 +281,7 @@ mod test {
     fn setup_scenery(world: &mut World) -> SceneryResult {
         let sector_scenery = crate::game::sectors::test_scenery::setup_sector_scenery(world);
 
-        let ware_id = world.create_entity().build();
+        let ware_id = crate::test::arbitrary_ware(world);
 
         let asteroid = create_asteroid(
             world,
