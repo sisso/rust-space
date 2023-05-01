@@ -1,10 +1,25 @@
+use crate::game::code::Code;
+use crate::game::label::Label;
+use crate::game::GameInitContext;
 use specs::prelude::*;
+use std::collections::HashMap;
 
 use super::objects::ObjId;
 
-pub type WareId = usize;
+pub type WareId = Entity;
 
 pub type Volume = u32;
+
+#[derive(Debug, Clone, Component)]
+pub struct Ware;
+
+pub struct Wares;
+
+impl Wares {
+    pub fn init(ctx: &mut GameInitContext) {
+        ctx.world.register::<Ware>();
+    }
+}
 
 #[derive(Debug, Clone, Copy)]
 pub struct WareAmount {
@@ -30,6 +45,50 @@ impl From<(WareId, Volume)> for WareAmount {
     fn from((ware_id, amount): (WareId, Volume)) -> Self {
         WareAmount::new(ware_id, amount)
     }
+}
+
+pub fn find_ware_by_code(world: &World, code: &str) -> Option<Entity> {
+    (
+        &world.entities(),
+        &world.read_storage::<Ware>(),
+        &world.read_storage::<Code>(),
+    )
+        .join()
+        .find(|(_, _, c)| c.code.eq_ignore_ascii_case(code))
+        .map(|(e, _, _)| e)
+}
+
+pub struct WaresByCode {
+    map: HashMap<String, Entity>,
+}
+
+impl WaresByCode {
+    pub fn new(world: &World) -> Self {
+        let mut map = Default::default();
+        for (e, code) in list_wares(world) {
+            map.iter(code.to_string(), e);
+        }
+        Self { map }
+    }
+
+    pub fn get(&self, code: &str) -> Option<Entity> {
+        self.map.get(code).cloned()
+    }
+}
+
+pub fn list_wares_by_code(world: &World) -> WaresByCode {
+    WaresByCode::new(world)
+}
+
+pub fn list_wares(world: &World) -> Vec<(Entity, &str)> {
+    (
+        &world.entities(),
+        &world.read_storage::<Ware>(),
+        &world.read_storage::<Code>(),
+    )
+        .join()
+        .map(|(e, _, c)| (e, c.code.as_str()))
+        .collect()
 }
 
 #[derive(Debug, Clone, Component)]
@@ -287,8 +346,13 @@ impl Cargos {
 mod test {
     use super::*;
 
+    // TODO: how to create entities without a world?
     fn create_wares() -> (WareId, WareId, WareId) {
-        (0, 1, 2)
+        let mut world = World::new();
+        let ware_0 = world.create_entity().build();
+        let ware_1 = world.create_entity().build();
+        let ware_2 = world.create_entity().build();
+        (ware_0, ware_1, ware_2)
     }
 
     #[test]

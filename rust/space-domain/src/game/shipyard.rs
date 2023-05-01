@@ -188,7 +188,7 @@ mod test {
         current_production: Option<f64>,
     ) -> (World, (Entity, WareId)) {
         test_system(ShipyardSystem, move |world| {
-            let ware_id = crate::test::arbitrary_ware(world);
+            let ware_id = world.create_entity().build();
 
             let mut cargo = Cargo::new(1000);
             if cargo_amount > 0 {

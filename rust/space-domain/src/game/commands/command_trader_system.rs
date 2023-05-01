@@ -422,9 +422,9 @@ mod test {
 
         let sector_id = world.create_entity().build();
 
-        let ware0_id = crate::test::arbitrary_ware(world);
-        let ware1_id = crate::test::arbitrary_ware(world);
-        let ware2_id = crate::test::arbitrary_ware(world);
+        let ware0_id = world.create_entity().build();
+        let ware1_id = world.create_entity().build();
+        let ware2_id = world.create_entity().build();
 
         let producer_station_id = add_station(
             world,

@@ -174,9 +174,9 @@ mod test {
         expected_plates: Volume,
     ) {
         let (world, (entity, plate_id)) = test_system(FactorySystem, move |world| {
-            let ore_id = crate::test::arbitrary_ware(world);
-            let energy_id = crate::test::arbitrary_ware(world);
-            let plate_id = crate::test::arbitrary_ware(world);
+            let ore_id = world.create_entity().build();
+            let energy_id = world.create_entity().build();
+            let plate_id = world.create_entity().build();
 
             let production = Receipt {
                 label: "ore processing".to_string(),

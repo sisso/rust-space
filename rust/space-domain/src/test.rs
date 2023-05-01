@@ -1,5 +1,3 @@
-use crate::game::conf;
-use crate::game::conf::Ware;
 use crate::utils::{MIN_DISTANCE, V2};
 use specs::prelude::*;
 
@@ -40,10 +38,4 @@ pub fn init_log() {
     _ = env_logger::builder()
         .filter(None, log::LevelFilter::Trace)
         .try_init();
-}
-
-pub fn arbitrary_ware(world: &mut World) -> usize {
-    let mut prefabs = world.write_resource::<conf::Prefabs>();
-    prefabs.wares.push(Ware::default());
-    prefabs.wares.len()
 }

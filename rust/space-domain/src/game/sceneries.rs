@@ -1,11 +1,9 @@
-use crate::game::conf::Ware;
 use crate::game::factory::Receipt;
 use crate::game::loader::{BasicScenery, Loader};
 use crate::game::wares::WareAmount;
-use crate::game::{conf, sectors, Game};
+use crate::game::{sectors, Game};
 use crate::utils::{DeltaTime, V2};
 use shred::World;
-use specs::WorldExt;
 
 /// Basic scenery used for testing and samples
 ///
@@ -14,18 +12,9 @@ pub fn load_basic_scenery(game: &mut Game) -> BasicScenery {
     let world = &mut game.world;
 
     // init wares
-    let mut prefabs = game.world.write_resource::<conf::Prefabs>();
-    let ware_ore_id = 0;
-    prefabs.wares.push(Ware {
-        code: "ore".to_string(),
-        label: "Ore".to_string(),
-    });
-
-    let ware_components_id = 1;
-    prefabs.wares.push(Ware {
-        code: "components".to_string(),
-        label: "Components".to_string(),
-    });
+    let ware_ore_id = Loader::add_ware(world, "ore".to_string(), "Ore".to_string());
+    let ware_components_id =
+        Loader::add_ware(world, "components".to_string(), "Components".to_string());
 
     // init sectors
     let sector_0 = Loader::add_sector(world, V2::new(0.0, 0.0), "Sector 0".to_string());
@@ -74,31 +63,17 @@ pub fn load_basic_scenery(game: &mut Game) -> BasicScenery {
 /// Advanced scenery
 pub fn load_advanced_scenery(world: &mut World) {
     // init wares
-    let mut prefabs = world.write_resource::<conf::Prefabs>();
-    let ware_ore_id = 0;
-    prefabs.wares.push(Ware {
-        code: "ore".to_string(),
-        label: "Ore".to_string(),
-    });
-
-    let ware_components_id = 1;
-    prefabs.wares.push(Ware {
-        code: "components".to_string(),
-        label: "Components".to_string(),
-    });
-
-    let ware_energy_id = 2;
-    prefabs.wares.push(Ware {
-        code: "energy".to_string(),
-        label: "energy".to_string(),
-    });
+    let ware_ore_id = Loader::add_ware(world, "ore".to_string(), "Ore".to_string());
+    let ware_components_id =
+        Loader::add_ware(world, "components".to_string(), "Components".to_string());
+    let ware_energy = Loader::add_ware(world, "energy".to_string(), "Energy".to_string());
 
     // receipts
     let receipt_process_ores = Receipt {
         label: "ore processing".to_string(),
         input: vec![
             WareAmount::new(ware_ore_id, 20),
-            WareAmount::new(ware_energy_id, 10),
+            WareAmount::new(ware_energy, 10),
         ],
         output: vec![WareAmount::new(ware_components_id, 10)],
         time: DeltaTime(1.0),
@@ -106,7 +81,7 @@ pub fn load_advanced_scenery(world: &mut World) {
     let receipt_produce_energy = Receipt {
         label: "solar power".to_string(),
         input: vec![],
-        output: vec![WareAmount::new(ware_energy_id, 10)],
+        output: vec![WareAmount::new(ware_energy, 10)],
         time: DeltaTime(5.0),
     };
 
