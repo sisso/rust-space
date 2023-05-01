@@ -393,6 +393,13 @@ pub fn get_sector_by_coords<'a>(
     None
 }
 
+pub fn list(world: &World) -> Vec<Entity> {
+    (&world.entities(), &world.read_storage::<Sector>())
+        .join()
+        .map(|(e, _)| e)
+        .collect()
+}
+
 #[cfg(test)]
 mod test {
     use super::test_scenery::setup_sector_scenery;

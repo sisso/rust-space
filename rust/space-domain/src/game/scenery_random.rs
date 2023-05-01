@@ -1,10 +1,9 @@
 use crate::game::astrobody::{AstroBodies, OrbitalPos};
-use crate::game::conf::Conf;
 use crate::game::extractables::Extractable;
-use crate::game::loader::{load_prefabs, Loader};
+use crate::game::loader::Loader;
 use crate::game::sectors::Sector;
 use crate::game::shipyard::Shipyard;
-use crate::game::{conf, loader, prefab, sectors, wares, Game};
+use crate::game::{conf, loader, sectors, wares, Game};
 use commons::math::V2;
 use commons::unwrap_or_continue;
 use rand::prelude::*;
@@ -177,7 +176,7 @@ fn add_bodies_to_sectors(
                         .flat_map(|body_resource| {
                             world
                                 .read_resource::<conf::Prefabs>()
-                                .find_by_code(body_resource.resource.as_str())
+                                .find_were_id_by_code(body_resource.resource.as_str())
                         })
                         .next();
 
@@ -222,7 +221,7 @@ fn add_bodies_to_sectors(
                 }
             };
 
-            AstroBodies::set_orbit_2(
+            AstroBodies::set_orbits_from_storage(
                 &mut orbits,
                 *obj_id,
                 *parent_obj_id,
@@ -252,7 +251,7 @@ fn list_sectors(world: &World) -> Vec<Entity> {
 fn add_stations_random(world: &mut World, seed: u64, scenery: &SceneryCfg) {
     let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
 
-    let game_params = world.read_resource::<Conf>().params.clone();
+    let conf = world.read_resource::<conf::Conf>();
 
     let sector_kind_empty = 0;
     let sector_kind_power = 1;
@@ -283,23 +282,13 @@ fn add_stations_random(world: &mut World, seed: u64, scenery: &SceneryCfg) {
 
     // adding shipyard
     {
-        let sector_id = commons::prob::select(&mut rng, &sectors_id).expect("empty sectors_id");
-
-        let shipyard_prefab =
-            prefab::find_prefab_by_code(world, &game_params.prefab_station_shipyard)
-                .expect("shipyard prefab not found")
-                .clone();
-
-        let obj_id = Loader::add_shipyard(
-            world,
-            *sector_id,
-            sector_pos(&mut rng),
-            scenery.ware_components_id,
-        );
+        let new_obj =
+            loader::new_station_from_prefab(&conf, conf.params.prefab_station_shipyard.as_str());
+        let obj_id = Loader::add_object(world, &new_obj);
         loader::set_orbit_random_body(world, obj_id, rng.next_u64());
     }
 
-    let mut required_kinds = [false, false, false];
+    let mut required_kinds = [false, false];
     while required_kinds.iter().any(|i| !*i) {
         for &sector_id in &sectors_id {
             let kind = commons::prob::select_weighted(&mut rng, &sector_kind_prob);
@@ -308,25 +297,23 @@ fn add_stations_random(world: &mut World, seed: u64, scenery: &SceneryCfg) {
 
             match kind {
                 Some(i) if *i == sector_kind_factory => {
-                    required_kinds[1] = true;
+                    required_kinds[0] = true;
 
-                    let obj_id = Loader::add_factory(
-                        world,
-                        sector_id,
-                        sector_pos(&mut rng),
-                        scenery.receipt_process_ores.clone(),
+                    let new_obj = loader::new_station_from_prefab(
+                        &conf,
+                        conf.params.prefab_station_factory.as_str(),
                     );
+                    let obj_id = Loader::add_object(world, &new_obj);
                     loader::set_orbit_random_body(world, obj_id, rng.next_u64());
                 }
                 Some(i) if *i == sector_kind_power => {
-                    required_kinds[2] = true;
+                    required_kinds[1] = true;
 
-                    let obj_id = Loader::add_factory(
-                        world,
-                        sector_id,
-                        sector_pos(&mut rng),
-                        scenery.receipt_produce_energy.clone(),
+                    let new_obj = loader::new_station_from_prefab(
+                        &conf,
+                        conf.params.prefab_station_solar.as_str(),
                     );
+                    let obj_id = Loader::add_object(world, &new_obj);
                     loader::set_orbit_random_body(world, obj_id, rng.next_u64());
                 }
                 _ => {
@@ -338,6 +325,7 @@ fn add_stations_random(world: &mut World, seed: u64, scenery: &SceneryCfg) {
 
     AstroBodies::update_orbits(world);
 }
+
 fn add_asteroid_fields_to_sectors(world: &mut World, seed: u64, scenery: &SceneryCfg) {
     let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
 
@@ -346,21 +334,24 @@ fn add_asteroid_fields_to_sectors(world: &mut World, seed: u64, scenery: &Scener
         return;
     }
 
-    let sectors = list_sectors(&world);
-    let sector_id = *commons::prob::select_array(&mut rng, sectors.as_slice());
-    let obj_id = Loader::add_object(
-        world,
-        &Loader::new_asteroid(sector_id)
-            .extractable(Extractable {
-                ware_id: scenery.ware_ore_id,
-            })
-            .with_label("ore asteroid".to_string()),
-    );
-    loader::set_orbit_random_body(world, obj_id, rng.next_u64());
+    // let sectors = list_sectors(&world);
+    // let sector_id = *commons::prob::select_array(&mut rng, sectors.as_slice());
+    //
+    // let obj_id = Loader::add_object(
+    //     world,
+    //     &Loader::new_asteroid(sector_id)
+    //         .extractable(Extractable {
+    //             ware_id: scenery.ware_ore_id,
+    //         })
+    //         .with_label("ore asteroid".to_string()),
+    // );
+    // loader::set_orbit_random_body(world, obj_id, rng.next_u64());
 }
 
 fn add_stations_minimal(world: &mut World, seed: u64, scenery: &SceneryCfg) {
     let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
+
+    let conf = world.read_resource::<conf::Conf>();
 
     let (sector_id, _) = (&world.entities(), &world.read_storage::<Sector>())
         .join()
@@ -368,21 +359,20 @@ fn add_stations_minimal(world: &mut World, seed: u64, scenery: &SceneryCfg) {
         .expect("no sector found");
 
     // add shipyard
-    let obj_id = Loader::add_shipyard(world, sector_id, V2::ZERO, scenery.ware_components_id);
+    let new_obj =
+        loader::new_station_from_prefab(&conf, conf.params.prefab_station_shipyard.as_str());
+    let obj_id = Loader::add_object(world, &new_obj);
     loader::set_orbit_random_body(world, obj_id, rng.next_u64());
 
     // add factory
-    let obj_id = Loader::add_object(
-        world,
-        &Loader::new_factory(sector_id, V2::ZERO, scenery.receipt_process_ores.clone()),
-    );
+    let new_obj =
+        loader::new_station_from_prefab(&conf, conf.params.prefab_station_factory.as_str());
+    let obj_id = Loader::add_object(world, &new_obj);
     loader::set_orbit_random_body(world, obj_id, rng.next_u64());
 
     // add power generation
-    let obj_id = Loader::add_object(
-        world,
-        &Loader::new_factory(sector_id, V2::ZERO, scenery.receipt_produce_energy.clone()),
-    );
+    let new_obj = loader::new_station_from_prefab(&conf, conf.params.prefab_station_solar.as_str());
+    let obj_id = Loader::add_object(world, &new_obj);
     loader::set_orbit_random_body(world, obj_id, rng.next_u64());
 }
 
@@ -397,19 +387,18 @@ mod test {
             .filter(None, log::LevelFilter::Debug)
             .try_init();
 
-        let mut game = Game::new();
-        let universe_cfg = space_galaxy::system_generator::new_config_from_file(&PathBuf::from(
-            "../data/system_generator.conf",
-        ));
-        load_random(
-            &mut game,
-            &RandomMapCfg {
-                size: 3,
-                seed: 0,
-                fleets: 3,
-                universe_cfg,
-                initial_condition: InitialCondition::Random,
-            },
-        );
+        let cfg = conf::load_str("../data/game.conf").expect("fail to read config file");
+
+        let rcfg = RandomMapCfg {
+            size: 3,
+            seed: 0,
+            fleets: 3,
+            universe_cfg: cfg.system_generator.clone(),
+            initial_condition: InitialCondition::Random,
+            prefabs: cfg.prefabs.clone(),
+        };
+
+        let mut game = Game::new(cfg);
+        load_random(&mut game, &rcfg);
     }
 }

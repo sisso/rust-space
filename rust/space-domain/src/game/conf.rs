@@ -23,7 +23,7 @@ pub struct Prefabs {
 }
 
 impl Prefabs {
-    pub fn find_by_code(&self, code: &str) -> Option<WareId> {
+    pub fn find_were_id_by_code(&self, code: &str) -> Option<WareId> {
         self.wares
             .iter()
             .enumerate()

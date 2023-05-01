@@ -51,7 +51,7 @@ impl AstroBodies {
         system.run_now(world);
     }
 
-    pub fn set_orbit_2(
+    pub fn set_orbits_from_storage(
         orbits: &mut WriteStorage<OrbitalPos>,
         obj_id: ObjId,
         parent_id: ObjId,
@@ -72,7 +72,7 @@ impl AstroBodies {
 
     pub fn set_orbit(world: &mut World, obj_id: ObjId, parent_id: ObjId, radius: f32, angle: f32) {
         let mut orbits = world.write_storage::<OrbitalPos>();
-        AstroBodies::set_orbit_2(&mut orbits, obj_id, parent_id, radius, angle);
+        Self::set_orbits_from_storage(&mut orbits, obj_id, parent_id, radius, angle);
     }
 }
 

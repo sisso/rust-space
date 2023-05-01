@@ -6,7 +6,6 @@ use specs::prelude::*;
 use crate::game::astrobody::{AstroBodies, AstroBody, AstroBodyKind, OrbitalPos};
 use crate::game::code::Code;
 use crate::game::commands::Command;
-use crate::game::conf::Conf;
 use crate::game::dock::HasDock;
 use crate::game::events::{Event, EventKind, Events};
 use crate::game::extractables::Extractable;
@@ -21,7 +20,7 @@ use crate::game::sectors::{Jump, JumpId, Sector, SectorId};
 use crate::game::shipyard::Shipyard;
 use crate::game::station::Station;
 use crate::game::wares::{Cargo, WareAmount, WareId};
-use crate::game::{conf, prefab};
+use crate::game::{conf, sectors};
 use crate::specs_extras::*;
 use crate::utils::{DeltaTime, Speed, V2};
 
@@ -301,23 +300,54 @@ impl Loader {
 }
 
 pub fn set_orbit_random_body(world: &mut World, obj_id: ObjId, seed: u64) {
+    let (seed, sector_id) = {
+        let locations = world.read_storage::<Location>();
+        match locations.get(obj_id).and_then(|i| i.as_space()) {
+            None => {
+                let sectors = sectors::list(world);
+                let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
+                let sector_id =
+                    commons::prob::select(&mut rng, &sectors).expect("no sector defined");
+                (rng.next_u64(), *sector_id)
+            }
+            Some(v) => (seed, v.sector_id),
+        }
+    };
+
+    set_orbit_random_body_at_sector(world, obj_id, sector_id, seed);
+}
+
+pub fn set_orbit_random_body_at_sector(
+    world: &mut World,
+    obj_id: ObjId,
+    sector_id: SectorId,
+    seed: u64,
+) {
     let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
 
-    let mut candidates = vec![];
+    // ensure object is on the sector
+    {
+        let mut locations = world.write_storage::<Location>();
+        if !locations.contains(obj_id) {
+            locations
+                .insert(
+                    obj_id,
+                    Location::Space {
+                        pos: Default::default(),
+                        sector_id,
+                    },
+                )
+                .expect("fail to insert initial location");
+        }
+    }
 
+    // find candidate orbital objects to use
+    let mut candidates = vec![];
     {
         let entities = world.entities();
         let locations = world.read_storage::<Location>();
         let astros = world.read_storage::<AstroBody>();
         let orbits = world.read_storage::<OrbitalPos>();
-
-        let sector_id = match locations.get(obj_id).and_then(|i| i.as_space()) {
-            None => {
-                log::warn!("obj {:?} it is not in a sector to set a orbit", obj_id);
-                return;
-            }
-            Some(v) => v.sector_id,
-        };
 
         for (id, l, o, _) in (&entities, &locations, &orbits, &astros).join() {
             if l.get_sector_id() != Some(sector_id) {
@@ -347,9 +377,65 @@ pub fn set_orbit_random_body(world: &mut World, obj_id: ObjId, seed: u64) {
     AstroBodies::set_orbit(world, obj_id, candidates[selected].0, radius, angle);
 }
 
-pub fn load_prefabs(world: &mut World, prefabs: conf::Prefabs) {
-    world.insert(prefabs);
+fn map_wareamount(prefabs: &conf::Prefabs, code: &str, amount: u32) -> WareAmount {
+    let ware_id = prefabs
+        .find_were_id_by_code(code)
+        .unwrap_or_else(|| panic!("ware {} not found", code));
+
+    WareAmount {
+        ware_id,
+        amount: amount as u32,
+    }
 }
+
+pub fn new_station_from_prefab(conf: &conf::Conf, code: &str) -> NewObj {
+    let station = conf
+        .prefabs
+        .stations
+        .iter()
+        .find(|i| i.code == code)
+        .expect("prefab station not found");
+
+    let mut obj = NewObj::new()
+        .with_label(station.label.clone())
+        .with_station()
+        .with_cargo(station.storage as u32)
+        .has_dock();
+
+    if let Some(shipyard) = &station.shipyard {
+        let input = map_wareamount(
+            &conf.prefabs,
+            shipyard.consumes_ware.as_str(),
+            shipyard.consumes_amount,
+        );
+
+        obj = obj.with_shipyard(Shipyard {
+            input: input,
+            production_time: DeltaTime(shipyard.time),
+            current_production: None,
+        });
+    }
+
+    if let Some(factory) = &station.factory {
+        todo!()
+
+        // let receipt = receipts
+        //     .get(factory.receipt.as_str())
+        //     .unwrap_or_else(|| panic!("receipt {} not found", factory.receipt))
+        //     .clone();
+        //
+        // obj.with_factory(Factory {
+        //     production: receipt,
+        //     production_time: None,
+        // });
+    }
+
+    obj
+}
+
+// pub fn load_prefabs(world: &mut World, prefabs: conf::Prefabs) {
+//     world.insert(prefabs);
+// }
 
 // pub fn load_station_prefab_by_code(world: &mut World, code: &str) -> Option<Entity> {
 //     // let prefab = prefab::find_prefab_by_code(world, &game_params.prefab_station_shipyard)?;

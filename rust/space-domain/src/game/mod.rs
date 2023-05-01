@@ -41,7 +41,6 @@ pub mod navigations;
 pub mod new_obj;
 pub mod objects;
 pub mod order;
-pub mod prefab;
 pub mod save;
 pub mod sceneries;
 pub mod scenery_random;
@@ -90,7 +89,6 @@ impl Game {
         // initializations
         init_ctx.world.register::<label::Label>();
         init_ctx.world.register::<code::Code>();
-        init_ctx.world.register::<prefab::Prefab>();
         Sectors::init(&mut init_ctx);
         Locations::init(&mut init_ctx);
         Actions::init(&mut init_ctx);
