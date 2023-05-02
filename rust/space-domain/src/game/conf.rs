@@ -2,9 +2,9 @@ use crate::game::wares::WareId;
 use serde::{Deserialize, Serialize};
 use space_galaxy::system_generator::UniverseCfg;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Conf {
-    pub system_generator: UniverseCfg,
+    pub system_generator: Option<UniverseCfg>,
     pub prefabs: Prefabs,
     pub params: Params,
 }
@@ -20,20 +20,6 @@ pub struct Prefabs {
     pub receipts: Vec<Receipt>,
     pub fleets: Vec<Fleet>,
     pub stations: Vec<Station>,
-}
-
-impl Prefabs {
-    pub fn find_were_id_by_code(&self, code: &str) -> Option<WareId> {
-        self.wares
-            .iter()
-            .enumerate()
-            .find(|(_, ware)| ware.code.as_str() == code)
-            .map(|(id, _)| id)
-    }
-
-    pub fn get_by_ware_id(&self, ware_id: WareId) -> &Ware {
-        self.wares.get(ware_id).expect("fail to find ware by id")
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -86,7 +72,7 @@ pub struct Factory {
     pub receipt: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Params {
     pub prefab_station_shipyard: String,
     pub prefab_station_factory: String,

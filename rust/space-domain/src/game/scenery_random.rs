@@ -157,7 +157,8 @@ fn add_bodies_to_sectors(
 ) {
     let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
 
-    let sectors_id = list_sectors(&world);
+    let sectors_id = sectors::list(world);
+    let wares = wares::list_wares_by_code(world);
 
     for sector_id in sectors_id {
         let system = system_generator::new_system(&universe_cfg, rng.gen());
@@ -174,9 +175,14 @@ fn add_bodies_to_sectors(
                     let maybe_ware_id = resources
                         .iter()
                         .flat_map(|body_resource| {
-                            world
-                                .read_resource::<conf::Prefabs>()
-                                .find_were_id_by_code(body_resource.resource.as_str())
+                            let ware_id = wares.get(body_resource.resource.as_str());
+                            if ware_id.is_none() {
+                                log::warn!(
+                                    "asteroid resource {:?} is not a ware",
+                                    body_resource.resource
+                                );
+                            }
+                            ware_id
                         })
                         .next();
 
@@ -185,6 +191,7 @@ fn add_bodies_to_sectors(
                             Loader::new_asteroid(sector_id).extractable(Extractable { ware_id });
                         Some(Loader::add_object(world, &new_obj))
                     } else {
+                        log::warn!("fail to create asteroid field {:?}", body);
                         None
                     }
                 }
@@ -241,89 +248,83 @@ fn sector_pos<R: rand::Rng>(rng: &mut R) -> V2 {
     )
 }
 
-fn list_sectors(world: &World) -> Vec<Entity> {
-    (&world.entities(), &world.read_storage::<Sector>())
-        .join()
-        .map(|(e, _)| e)
-        .collect()
-}
-
 fn add_stations_random(world: &mut World, seed: u64, scenery: &SceneryCfg) {
-    let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
-
-    let conf = world.read_resource::<conf::Conf>();
-
-    let sector_kind_empty = 0;
-    let sector_kind_power = 1;
-    let sector_kind_factory = 2;
-    let sector_kind_prob = vec![
-        commons::prob::Weighted {
-            prob: 1.0,
-            value: sector_kind_empty,
-        },
-        commons::prob::Weighted {
-            prob: 1.0,
-            value: sector_kind_factory,
-        },
-        commons::prob::Weighted {
-            prob: 1.0,
-            value: sector_kind_power,
-        },
-    ];
-
-    let mut sectors_id = vec![];
-    {
-        let entities = world.entities();
-        let sectors_repo = world.read_storage::<Sector>();
-        for (sector_id, _) in (&entities, &sectors_repo).join() {
-            sectors_id.push(sector_id);
-        }
-    }
-
-    // adding shipyard
-    {
-        let new_obj =
-            loader::new_station_from_prefab(&conf, conf.params.prefab_station_shipyard.as_str());
-        let obj_id = Loader::add_object(world, &new_obj);
-        loader::set_orbit_random_body(world, obj_id, rng.next_u64());
-    }
-
-    let mut required_kinds = [false, false];
-    while required_kinds.iter().any(|i| !*i) {
-        for &sector_id in &sectors_id {
-            let kind = commons::prob::select_weighted(&mut rng, &sector_kind_prob);
-
-            log::info!("creating {:?} on sector {:?}", kind, sector_id);
-
-            match kind {
-                Some(i) if *i == sector_kind_factory => {
-                    required_kinds[0] = true;
-
-                    let new_obj = loader::new_station_from_prefab(
-                        &conf,
-                        conf.params.prefab_station_factory.as_str(),
-                    );
-                    let obj_id = Loader::add_object(world, &new_obj);
-                    loader::set_orbit_random_body(world, obj_id, rng.next_u64());
-                }
-                Some(i) if *i == sector_kind_power => {
-                    required_kinds[1] = true;
-
-                    let new_obj = loader::new_station_from_prefab(
-                        &conf,
-                        conf.params.prefab_station_solar.as_str(),
-                    );
-                    let obj_id = Loader::add_object(world, &new_obj);
-                    loader::set_orbit_random_body(world, obj_id, rng.next_u64());
-                }
-                _ => {
-                    log::warn!("unknown weight {:?}", kind);
-                }
-            }
-        }
-    }
-
-    AstroBodies::update_orbits(world);
+    // let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
+    //
+    // let conf = world.read_resource::<conf::Conf>();
+    //
+    // let sector_kind_empty = 0;
+    // let sector_kind_power = 1;
+    // let sector_kind_factory = 2;
+    // let sector_kind_prob = vec![
+    //     commons::prob::Weighted {
+    //         prob: 1.0,
+    //         value: sector_kind_empty,
+    //     },
+    //     commons::prob::Weighted {
+    //         prob: 1.0,
+    //         value: sector_kind_factory,
+    //     },
+    //     commons::prob::Weighted {
+    //         prob: 1.0,
+    //         value: sector_kind_power,
+    //     },
+    // ];
+    //
+    // let mut sectors_id = vec![];
+    // {
+    //     let entities = world.entities();
+    //     let sectors_repo = world.read_storage::<Sector>();
+    //     for (sector_id, _) in (&entities, &sectors_repo).join() {
+    //         sectors_id.push(sector_id);
+    //     }
+    // }
+    //
+    // // adding shipyard
+    // {
+    //     let new_obj =
+    //         loader::new_station_from_prefab(&conf, conf.params.prefab_station_shipyard.as_str());
+    //     let obj_id = Loader::add_object(world, &new_obj);
+    //     loader::set_orbit_random_body(world, obj_id, rng.next_u64());
+    // }
+    //
+    // let mut required_kinds = [false, false];
+    // while required_kinds.iter().any(|i| !*i) {
+    //     for &sector_id in &sectors_id {
+    //         let kind = commons::prob::select_weighted(&mut rng, &sector_kind_prob);
+    //
+    //         log::info!("creating {:?} on sector {:?}", kind, sector_id);
+    //
+    //         match kind {
+    //             Some(i) if *i == sector_kind_factory => {
+    //                 required_kinds[0] = true;
+    //
+    //                 let new_obj = loader::new_station_from_prefab(
+    //                     &conf,
+    //                     conf.params.prefab_station_factory.as_str(),
+    //                 );
+    //                 let obj_id = Loader::add_object(world, &new_obj);
+    //                 loader::set_orbit_random_body(world, obj_id, rng.next_u64());
+    //             }
+    //             Some(i) if *i == sector_kind_power => {
+    //                 required_kinds[1] = true;
+    //
+    //                 let new_obj = loader::new_station_from_prefab(
+    //                     &conf,
+    //                     conf.params.prefab_station_solar.as_str(),
+    //                 );
+    //                 let obj_id = Loader::add_object(world, &new_obj);
+    //                 loader::set_orbit_random_body(world, obj_id, rng.next_u64());
+    //             }
+    //             _ => {
+    //                 log::warn!("unknown weight {:?}", kind);
+    //             }
+    //         }
+    //     }
+    // }
+    //
+    // AstroBodies::update_orbits(world);
+    todo!("not implemented")
 }
 
 fn add_asteroid_fields_to_sectors(world: &mut World, seed: u64, scenery: &SceneryCfg) {
@@ -351,7 +352,7 @@ fn add_asteroid_fields_to_sectors(world: &mut World, seed: u64, scenery: &Scener
 fn add_stations_minimal(world: &mut World, seed: u64, scenery: &SceneryCfg) {
     let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
 
-    let conf = world.read_resource::<conf::Conf>();
+    let params = world.read_resource::<conf::Conf>().params.clone();
 
     let (sector_id, _) = (&world.entities(), &world.read_storage::<Sector>())
         .join()
@@ -359,20 +360,16 @@ fn add_stations_minimal(world: &mut World, seed: u64, scenery: &SceneryCfg) {
         .expect("no sector found");
 
     // add shipyard
-    let new_obj =
-        loader::new_station_from_prefab(&conf, conf.params.prefab_station_shipyard.as_str());
-    let obj_id = Loader::add_object(world, &new_obj);
+    let obj_id = Loader::add_by_prefab_code(world, params.prefab_station_shipyard.as_str())
+        .expect("fail to add shipyard");
     loader::set_orbit_random_body(world, obj_id, rng.next_u64());
 
-    // add factory
-    let new_obj =
-        loader::new_station_from_prefab(&conf, conf.params.prefab_station_factory.as_str());
-    let obj_id = Loader::add_object(world, &new_obj);
+    let obj_id = Loader::add_by_prefab_code(world, params.prefab_station_factory.as_str())
+        .expect("fail to add factory");
     loader::set_orbit_random_body(world, obj_id, rng.next_u64());
 
-    // add power generation
-    let new_obj = loader::new_station_from_prefab(&conf, conf.params.prefab_station_solar.as_str());
-    let obj_id = Loader::add_object(world, &new_obj);
+    let obj_id = Loader::add_by_prefab_code(world, params.prefab_station_solar.as_str())
+        .expect("fail to add solar");
     loader::set_orbit_random_body(world, obj_id, rng.next_u64());
 }
 
@@ -393,12 +390,12 @@ mod test {
             size: 3,
             seed: 0,
             fleets: 3,
-            universe_cfg: cfg.system_generator.clone(),
+            universe_cfg: cfg.system_generator.clone().unwrap(),
             initial_condition: InitialCondition::Random,
             prefabs: cfg.prefabs.clone(),
         };
 
-        let mut game = Game::new(cfg);
+        let mut game = Game::new();
         load_random(&mut game, &rcfg);
     }
 }

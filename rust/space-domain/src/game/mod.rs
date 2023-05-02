@@ -22,6 +22,7 @@ use crate::game::order::Orders;
 use crate::game::sectors::Sectors;
 use crate::game::shipyard::Shipyard;
 use crate::game::station::Stations;
+use crate::game::wares::Wares;
 
 pub mod actions;
 pub mod astrobody;
@@ -41,6 +42,7 @@ pub mod navigations;
 pub mod new_obj;
 pub mod objects;
 pub mod order;
+pub mod prefab;
 pub mod save;
 pub mod sceneries;
 pub mod scenery_random;
@@ -71,7 +73,7 @@ pub trait RequireInitializer {
 }
 
 impl Game {
-    pub fn new(conf: Conf) -> Self {
+    pub fn new() -> Self {
         let thread_pool: Arc<rayon_core::ThreadPool> = Arc::new(
             rayon_core::ThreadPoolBuilder::new()
                 .build()
@@ -106,8 +108,6 @@ impl Game {
 
         let mut world = init_ctx.world;
         dispatcher.setup(&mut world);
-
-        world.insert(conf);
 
         Game {
             total_time: TotalTime(0.0),

@@ -64,9 +64,9 @@ pub struct WaresByCode {
 
 impl WaresByCode {
     pub fn new(world: &World) -> Self {
-        let mut map = Default::default();
+        let mut map: HashMap<String, Entity> = Default::default();
         for (e, code) in list_wares(world) {
-            map.iter(code.to_string(), e);
+            map.insert(code, e);
         }
         Self { map }
     }
@@ -80,14 +80,14 @@ pub fn list_wares_by_code(world: &World) -> WaresByCode {
     WaresByCode::new(world)
 }
 
-pub fn list_wares(world: &World) -> Vec<(Entity, &str)> {
+pub fn list_wares(world: &World) -> Vec<(Entity, String)> {
     (
         &world.entities(),
         &world.read_storage::<Ware>(),
         &world.read_storage::<Code>(),
     )
         .join()
-        .map(|(e, _, c)| (e, c.code.as_str()))
+        .map(|(e, _, c)| (e, c.code.clone()))
         .collect()
 }
 

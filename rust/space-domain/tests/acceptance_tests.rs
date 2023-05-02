@@ -3,6 +3,7 @@ extern crate space_domain;
 use space_domain::game::commands::Command;
 use space_domain::game::loader::Loader;
 
+use space_domain::game::conf::Conf;
 use space_domain::game::sceneries;
 use space_domain::game::Game;
 use space_domain::utils::DeltaTime;

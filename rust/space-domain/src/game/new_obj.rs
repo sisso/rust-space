@@ -19,7 +19,7 @@ pub struct NewObjOrbit {
     pub angle: Rad,
 }
 
-#[derive(Debug, Clone, Component, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Component, Default)]
 pub struct NewObj {
     pub speed: Option<Speed>,
     pub cargo_size: Volume,

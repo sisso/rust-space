@@ -81,8 +81,9 @@ impl SpaceGame {
                 size: size,
                 seed: 0,
                 fleets: fleets,
-                universe_cfg: cfg.system_generator,
+                universe_cfg: cfg.system_generator.unwrap(),
                 initial_condition: scenery_random::InitialCondition::Minimal,
+                prefabs: cfg.prefabs,
             },
         );
 
