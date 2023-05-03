@@ -1,6 +1,6 @@
-use commons::math::{Rad, P2};
-use serde::{Deserialize, Serialize};
 use specs::prelude::*;
+
+use commons::math::{Rad, P2};
 
 use crate::game::commands::Command;
 use crate::game::extractables::Extractable;

@@ -1,28 +1,25 @@
-use specs::prelude::*;
 use std::borrow::BorrowMut;
 use std::sync::Arc;
 
-use crate::game::locations::Locations;
-use crate::utils::*;
-
-use self::new_obj::NewObj;
-
-use self::save::{Load, Save};
+use specs::prelude::*;
 
 use crate::game::actions::Actions;
 use crate::game::astrobody::AstroBodies;
 use crate::game::commands::Commands;
-use crate::game::conf::Conf;
-
 use crate::game::factory::Factory;
 use crate::game::fleets::Fleet;
 use crate::game::loader::Loader;
+use crate::game::locations::Locations;
 use crate::game::navigations::Navigations;
 use crate::game::order::Orders;
 use crate::game::sectors::Sectors;
 use crate::game::shipyard::Shipyard;
 use crate::game::station::Stations;
 use crate::game::wares::Wares;
+use crate::utils::*;
+
+use self::new_obj::NewObj;
+use self::save::{Load, Save};
 
 pub mod actions;
 pub mod astrobody;
@@ -91,6 +88,7 @@ impl Game {
         // initializations
         init_ctx.world.register::<label::Label>();
         init_ctx.world.register::<code::Code>();
+        init_ctx.world.register::<prefab::Prefab>();
         Sectors::init(&mut init_ctx);
         Locations::init(&mut init_ctx);
         Actions::init(&mut init_ctx);

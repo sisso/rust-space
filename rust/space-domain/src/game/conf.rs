@@ -1,5 +1,5 @@
-use crate::game::wares::WareId;
 use serde::{Deserialize, Serialize};
+
 use space_galaxy::system_generator::UniverseCfg;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

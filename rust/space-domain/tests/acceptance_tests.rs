@@ -1,10 +1,10 @@
 extern crate space_domain;
 
 use space_domain::game::commands::Command;
-use space_domain::game::loader::Loader;
 
-use space_domain::game::conf::Conf;
+use space_domain::game;
 use space_domain::game::sceneries;
+use space_domain::game::scenery_random::{InitialCondition, RandomMapCfg};
 use space_domain::game::Game;
 use space_domain::utils::DeltaTime;
 use specs::WorldExt;
@@ -37,4 +37,27 @@ fn test_game_should_mine_and_deliver_cargo_to_station() {
     }
 
     panic!("we never produce any ship");
+}
+
+#[test]
+fn test_load_random_scenery() {
+    let mut game = Game::new();
+
+    let path = "../data/game.conf";
+    let content = std::fs::read_to_string(path).expect("fail to read config file");
+    let cfg = game::conf::load_str(&content).unwrap();
+
+    game::loader::load_prefabs(&mut game.world, &cfg.prefabs);
+
+    game::scenery_random::load_random(
+        &mut game,
+        &RandomMapCfg {
+            size: 2,
+            seed: 0,
+            fleets: 2,
+            universe_cfg: cfg.system_generator.unwrap(),
+            initial_condition: InitialCondition::Minimal,
+            params: cfg.params,
+        },
+    );
 }

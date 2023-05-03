@@ -26,8 +26,8 @@ use space_domain::game::sectors::{Jump, Sector};
 use space_domain::game::shipyard::Shipyard;
 use space_domain::game::station::Station;
 use space_domain::game::wares::{Cargo, Ware, WareId};
-use space_domain::game::Game;
 use space_domain::game::{events, scenery_random};
+use space_domain::game::{loader, Game};
 use space_domain::utils::TotalTime;
 
 pub mod models;
@@ -75,6 +75,7 @@ impl SpaceGame {
             .expect("fail to read config file");
 
         let mut game = Game::new();
+        loader::load_prefabs(&mut game.world, &cfg.prefabs);
         scenery_random::load_random(
             &mut game,
             &scenery_random::RandomMapCfg {
@@ -83,7 +84,7 @@ impl SpaceGame {
                 fleets: fleets,
                 universe_cfg: cfg.system_generator.unwrap(),
                 initial_condition: scenery_random::InitialCondition::Minimal,
-                prefabs: cfg.prefabs,
+                params: cfg.params,
             },
         );
 
@@ -173,8 +174,13 @@ impl SpaceGame {
         )
             .join()
         {
-            let ls = Locations::resolve_space_position_from(&locations, l)
-                .expect("fail to find location");
+            let ls = match Locations::resolve_space_position_from(&locations, l) {
+                Some(l) => l,
+                None => {
+                    log::warn!("fail to resolve position for {:?}", e);
+                    continue;
+                }
+            };
 
             let kind = ObjKind {
                 fleet: true,

@@ -1,13 +1,14 @@
-use commons;
-use commons::math::{self, P2};
+use std::collections::HashMap;
+
 use rand::prelude::*;
 use specs::prelude::*;
-use std::collections::HashMap;
+
+use commons;
+use commons::math::{self, P2};
 
 use crate::game::astrobody::{AstroBodies, AstroBody, AstroBodyKind, OrbitalPos};
 use crate::game::code::Code;
 use crate::game::commands::Command;
-use crate::game::conf::Conf;
 use crate::game::dock::HasDock;
 use crate::game::events::{Event, EventKind, Events};
 use crate::game::extractables::Extractable;
@@ -312,9 +313,13 @@ impl Loader {
         entity
     }
 
+    pub fn new_by_prefab_code(world: &mut World, code: &str) -> Option<NewObj> {
+        prefab::find_prefab_by_code(world, code).map(|p| p.obj)
+    }
+
     pub fn add_by_prefab_code(world: &mut World, code: &str) -> Option<ObjId> {
-        let prefab = prefab::find_prefab_by_code(world, code)?;
-        Some(Self::add_object(world, &prefab.obj))
+        let new_obj = Self::new_by_prefab_code(world, code)?;
+        Some(Self::add_object(world, &new_obj))
     }
 }
 
