@@ -384,7 +384,9 @@ mod test {
             .filter(None, log::LevelFilter::Debug)
             .try_init();
 
-        let cfg = conf::load_str("../data/game.conf").expect("fail to read config file");
+        let path = "../data/game.conf";
+        let file = std::fs::read_to_string(path).expect("fail to read config file");
+        let cfg = conf::load_str(&file).expect("fail to read config file");
 
         let rcfg = RandomMapCfg {
             size: 3,

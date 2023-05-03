@@ -411,6 +411,7 @@ mod test {
 
     use specs::prelude::*;
 
+    use crate::game::label::Label;
     use std::time::Instant;
 
     #[test]
@@ -456,6 +457,7 @@ mod test {
         world.register::<Sector>();
         world.register::<Location>();
         world.register::<Jump>();
+        world.register::<Label>();
         world.insert(Events::default());
 
         // [2021-11-13T12:45:56Z WARN  space_domain::game::sectors] create plan find_path 2.761989ms

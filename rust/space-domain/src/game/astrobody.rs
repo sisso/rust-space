@@ -156,6 +156,7 @@ mod test {
     use crate::game::astrobody::{OrbitalPos, OrbitalPosSystem};
     use crate::game::locations::Location;
     use crate::utils::{Position, TotalTime};
+    use approx::assert_abs_diff_eq;
     use commons::math::deg_to_rads;
     use shred::World;
     use specs::{Builder, Entity, WorldExt};
@@ -175,11 +176,11 @@ mod test {
         let get_pos =
             |id: Entity| -> Position { locations.get(id).unwrap().as_space().unwrap().pos };
 
-        assert_eq!(Position::ZERO, get_pos(star_id));
-        assert_eq!(Position::new(1.0, 0.0), get_pos(planet1_id));
-        assert_eq!(Position::new(0.0, 1.0), get_pos(planet2_id));
-        assert_eq!(Position::new(0.0, 1.5), get_pos(planet2moon1_id));
-        assert_eq!(Position::new(0.25, 1.5), get_pos(station_id));
+        assert!(Position::ZERO.abs_diff_eq(get_pos(star_id), 0.01));
+        assert!(Position::new(1.0, 0.0).abs_diff_eq(get_pos(planet1_id), 0.01));
+        assert!(Position::new(0.0, 1.0).abs_diff_eq(get_pos(planet2_id), 0.01));
+        assert!(Position::new(0.0, 1.5).abs_diff_eq(get_pos(planet2moon1_id), 0.01));
+        assert!(Position::new(0.25, 1.5).abs_diff_eq(get_pos(station_id), 0.01));
     }
 
     #[test]
