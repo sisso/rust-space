@@ -87,7 +87,7 @@ impl Game {
 
         // initializations
         init_ctx.world.register::<label::Label>();
-        init_ctx.world.register::<code::Code>();
+        init_ctx.world.register::<code::HasCode>();
         init_ctx.world.register::<prefab::Prefab>();
         Sectors::init(&mut init_ctx);
         Locations::init(&mut init_ctx);

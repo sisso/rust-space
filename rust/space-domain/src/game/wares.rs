@@ -1,4 +1,4 @@
-use crate::game::code::Code;
+use crate::game::code::HasCode;
 use crate::game::GameInitContext;
 use specs::prelude::*;
 use std::collections::HashMap;
@@ -50,7 +50,7 @@ pub fn find_ware_by_code(world: &World, code: &str) -> Option<Entity> {
     (
         &world.entities(),
         &world.read_storage::<Ware>(),
-        &world.read_storage::<Code>(),
+        &world.read_storage::<HasCode>(),
     )
         .join()
         .find(|(_, _, c)| c.code.eq_ignore_ascii_case(code))
@@ -83,7 +83,7 @@ pub fn list_wares(world: &World) -> Vec<(Entity, String)> {
     (
         &world.entities(),
         &world.read_storage::<Ware>(),
-        &world.read_storage::<Code>(),
+        &world.read_storage::<HasCode>(),
     )
         .join()
         .map(|(e, _, c)| (e, c.code.clone()))

@@ -7,7 +7,7 @@ use commons;
 use commons::math::{self, P2};
 
 use crate::game::astrobody::{AstroBodies, AstroBody, AstroBodyKind, OrbitalPos};
-use crate::game::code::Code;
+use crate::game::code::HasCode;
 use crate::game::commands::Command;
 use crate::game::dock::HasDock;
 use crate::game::events::{Event, EventKind, Events};
@@ -18,13 +18,13 @@ use crate::game::label::Label;
 use crate::game::locations::{Location, Moveable};
 use crate::game::new_obj::NewObj;
 use crate::game::objects::ObjId;
-use crate::game::order::{Order, Orders};
+use crate::game::order::Orders;
 use crate::game::prefab::Prefab;
 use crate::game::sectors::{Jump, JumpId, Sector, SectorId};
-use crate::game::shipyard::Shipyard;
+use crate::game::shipyard::{Blueprint, Shipyard};
 use crate::game::station::Station;
 use crate::game::wares::{Cargo, Ware, WareAmount, WareId, WaresByCode};
-use crate::game::{conf, prefab, wares};
+use crate::game::{conf, prefab, shipyard, wares};
 use crate::specs_extras::*;
 use crate::utils::{DeltaTime, Speed, V2};
 
@@ -51,17 +51,21 @@ impl Loader {
         Loader::add_object(world, &asteroid)
     }
 
-    pub fn add_shipyard(world: &mut World, sector_id: SectorId, pos: V2, ware_id: WareId) -> ObjId {
-        Loader::add_object(
-            world,
-            &NewObj::new()
-                .with_label("shipyard".to_string())
-                .with_cargo(1000)
-                .at_position(sector_id, pos)
-                .with_station()
-                .with_shipyard(Shipyard::new(WareAmount::new(ware_id, 50), DeltaTime(5.0)))
-                .has_dock(),
-        )
+    pub fn add_shipyard(
+        world: &mut World,
+        sector_id: SectorId,
+        pos: V2,
+        blueprints: Vec<shipyard::Blueprint>,
+    ) -> ObjId {
+        let new_obj = NewObj::new()
+            .with_label("shipyard".to_string())
+            .with_cargo(1000)
+            .at_position(sector_id, pos)
+            .with_station()
+            .with_shipyard(Shipyard { blueprints })
+            .has_dock();
+
+        Loader::add_object(world, &new_obj)
     }
 
     pub fn add_factory(world: &mut World, sector_id: SectorId, pos: V2, receipt: Receipt) -> ObjId {
@@ -187,7 +191,7 @@ impl Loader {
     pub fn add_object(world: &mut World, new_obj: &NewObj) -> ObjId {
         let mut builder = world.create_entity();
 
-        let mut orders = vec![];
+        let mut orders = Orders::default();
 
         if new_obj.can_dock && new_obj.speed.is_none() {
             panic!(
@@ -197,7 +201,7 @@ impl Loader {
         }
 
         if let Some(code) = new_obj.code.as_ref() {
-            builder.set(Code {
+            builder.set(HasCode {
                 code: code.to_string(),
             })
         }
@@ -251,14 +255,15 @@ impl Loader {
 
         for shipyard in &new_obj.shipyard {
             builder.set(shipyard.clone());
-            orders.push(Order::WareRequest {
-                wares_id: vec![shipyard.input.get_ware_id()],
-            });
+            for bp in &shipyard.blueprints {
+                for input in &bp.input {
+                    orders.add_request(input.ware_id);
+                }
+            }
         }
 
         if new_obj.cargo_size > 0 {
             let mut cargo = Cargo::new(new_obj.cargo_size);
-            // TODO: shipyards?
             for factory in &new_obj.factory {
                 factory.setup_cargo(&mut cargo);
             }
@@ -267,16 +272,18 @@ impl Loader {
 
         for factory in &new_obj.factory {
             builder.set(factory.clone());
-            orders.push(Order::WareRequest {
-                wares_id: factory.production.request_wares_id(),
-            });
-            orders.push(Order::WareProvide {
-                wares_id: factory.production.provide_wares_id(),
-            });
+            for wa in factory.production.input {
+                orders.add_request(wa.ware_id);
+            }
+            for wa in factory.production.output {
+                orders.add_provider(wa.ware_id);
+            }
         }
 
+        // TODO: do we really need to setup orders on creation? Why the system do not update that
+        //       on next run?
         if !orders.is_empty() {
-            builder.set(Orders(orders));
+            builder.set(orders);
         }
 
         if let Some(_) = new_obj.star {
@@ -433,6 +440,25 @@ pub fn load_prefab_station(world: &mut World, prefabs: &conf::Prefabs) {
         );
     }
 
+    // generate blueprints
+    let mut blueprints: HashMap<String, Blueprint> = Default::default();
+    for bp in &prefabs.blueprints {
+        blueprints.insert(
+            bp.code.clone(),
+            Blueprint {
+                label: bp.label.clone(),
+                input: bp
+                    .input
+                    .iter()
+                    .map(|rw| into_wareamount(&wares_by_code, rw.ware.as_str(), rw.amount))
+                    .collect(),
+                output: bp.output.clone(),
+                time: bp.time.into(),
+            },
+        );
+    }
+
+    // create stations prefabs
     for station in &prefabs.stations {
         let mut obj = NewObj::new()
             .with_label(station.label.clone())
@@ -441,14 +467,17 @@ pub fn load_prefab_station(world: &mut World, prefabs: &conf::Prefabs) {
             .has_dock();
 
         if let Some(shipyard) = &station.shipyard {
+            let mut shipyard_bp = vec![];
+
+            for blueprint_code in &shipyard.blueprints {
+                let blueprint = blueprints
+                    .get(blueprint_code)
+                    .unwrap_or_else(|| panic!("blueprint code {} not found", blueprint_code));
+                shipyard_bp.push(blueprint.clone());
+            }
+
             obj = obj.with_shipyard(Shipyard {
-                input: into_wareamount(
-                    &wares_by_code,
-                    shipyard.consumes_ware.as_str(),
-                    shipyard.consumes_amount,
-                ),
-                production_time: DeltaTime(shipyard.time),
-                current_production: None,
+                blueprints: shipyard_bp,
             });
         }
 
@@ -466,7 +495,7 @@ pub fn load_prefab_station(world: &mut World, prefabs: &conf::Prefabs) {
 
         world
             .create_entity()
-            .with(Code {
+            .with(HasCode {
                 code: station.code.clone(),
             })
             .with(Prefab { obj })
@@ -483,7 +512,7 @@ pub fn load_prefab_fleets(world: &mut World, prefabs: &conf::Prefabs) {
 
         world
             .create_entity()
-            .with(Code {
+            .with(HasCode {
                 code: fleet.code.clone(),
             })
             .with(Prefab { obj })

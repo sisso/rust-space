@@ -1,27 +1,24 @@
 use rand::RngCore;
 use specs::prelude::*;
 
+use crate::game::code::Code;
 use crate::game::commands::Command;
 use crate::game::new_obj::NewObj;
 use crate::game::wares::{Cargo, WareAmount};
 use crate::game::{GameInitContext, RequireInitializer};
 use crate::utils::{DeltaTime, Speed, TotalTime};
 
-#[derive(Debug, Clone, Component)]
-pub struct Shipyard {
-    pub input: WareAmount,
-    pub production_time: DeltaTime,
-    pub current_production: Option<TotalTime>,
+#[derive(Debug, Clone)]
+pub struct Blueprint {
+    pub label: String,
+    pub input: Vec<WareAmount>,
+    pub output: Code,
+    pub time: DeltaTime,
 }
 
-impl Shipyard {
-    pub fn new(input: WareAmount, production_time: DeltaTime) -> Self {
-        Shipyard {
-            input,
-            production_time,
-            current_production: None,
-        }
-    }
+#[derive(Debug, Clone, Component)]
+pub struct Shipyard {
+    pub blueprints: Vec<Blueprint>,
 }
 
 impl RequireInitializer for Shipyard {

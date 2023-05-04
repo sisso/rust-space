@@ -1,93 +1,52 @@
-use crate::game::wares::WareId;
-use crate::game::{GameInitContext, RequireInitializer};
+use std::collections::HashSet;
+
 use specs::prelude::*;
 
-#[derive(Debug, Clone)]
-pub enum Order {
-    WareProvide { wares_id: Vec<WareId> },
+use crate::game::conf::Ware;
+use crate::game::wares::WareId;
+use crate::game::{GameInitContext, RequireInitializer};
 
-    WareRequest { wares_id: Vec<WareId> },
+#[derive(Debug, Clone, Component, Default)]
+pub struct Orders {
+    provided: HashSet<WareId>,
+    requested: HashSet<WareId>,
 }
-
-impl Order {
-    pub fn add_wares_request(&self, buffer: &mut Vec<WareId>) {
-        match self {
-            Order::WareRequest { wares_id } => buffer.extend(wares_id.iter()),
-            _ => {}
-        }
-    }
-
-    pub fn add_wares_provide(&self, mut buffer: Vec<WareId>) -> Vec<WareId> {
-        match self {
-            Order::WareProvide { wares_id } => buffer.extend(wares_id),
-            _ => {}
-        }
-        buffer
-    }
-
-    pub fn is_provide(&self) -> bool {
-        match self {
-            Order::WareProvide { .. } => true,
-            _ => false,
-        }
-    }
-
-    pub fn request_any(&self, wares: &Vec<WareId>) -> Vec<WareId> {
-        match self {
-            Order::WareRequest { wares_id } => wares_id
-                .iter()
-                .filter(|ware_id| wares.contains(ware_id))
-                .copied()
-                .collect(),
-            _ => Vec::new(),
-        }
-    }
-
-    pub fn is_request_any(&self, wares: &Vec<WareId>) -> bool {
-        match self {
-            Order::WareRequest { wares_id } => {
-                wares_id.iter().any(|ware_id| wares.contains(ware_id))
-            }
-            _ => false,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Component)]
-pub struct Orders(pub Vec<Order>);
 
 impl Orders {
-    pub fn new(order: Order) -> Orders {
-        Orders(vec![order])
+    pub fn is_empty(&self) -> bool {
+        self.requested.is_empty() && self.provided.is_empty()
     }
 
     pub fn wares_requests(&self) -> Vec<WareId> {
-        let mut requests = vec![];
-        for order in &self.0 {
-            order.add_wares_request(&mut requests);
-        }
-        requests
+        self.requested.iter().cloned().collect()
     }
 
     pub fn wares_provider(&self) -> Vec<WareId> {
-        self.0
-            .iter()
-            .fold(vec![], |acc, i| i.add_wares_provide(acc))
+        self.provided.iter().cloned().collect()
     }
 
     pub fn is_provide(&self) -> bool {
-        self.0.iter().any(|order| order.is_provide())
+        !self.provided.is_empty()
     }
 
     pub fn request_any(&self, wares: &Vec<WareId>) -> Vec<WareId> {
-        self.wares_requests()
-            .into_iter()
-            .filter(|ware_id| wares.contains(ware_id))
+        wares
+            .iter()
+            .copied()
+            .filter(|ware_id| self.requested.contains(ware_id))
             .collect()
     }
 
     pub fn is_request_any(&self, wares: &Vec<WareId>) -> bool {
-        self.0.iter().any(|order| order.is_request_any(wares))
+        !self.request_any(wares).is_empty()
+    }
+
+    pub fn add_request(&mut self, ware_id: WareId) {
+        self.requested.insert(ware_id);
+    }
+
+    pub fn add_provider(&mut self, ware_id: WareId) {
+        self.provided.insert(ware_id);
     }
 }
 
