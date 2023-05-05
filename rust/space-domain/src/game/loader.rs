@@ -62,7 +62,7 @@ impl Loader {
             .with_cargo(1000)
             .at_position(sector_id, pos)
             .with_station()
-            .with_shipyard(Shipyard { blueprints })
+            .with_shipyard(Shipyard::new(blueprints))
             .has_dock();
 
         Loader::add_object(world, &new_obj)
@@ -85,7 +85,9 @@ impl Loader {
     pub fn add_ship_miner(world: &mut World, docked_at: ObjId, speed: f32, label: String) -> ObjId {
         Loader::add_object(
             world,
-            &Loader::new_ship(docked_at, speed, label).with_command(Command::mine()),
+            &Loader::new_ship(speed, label)
+                .at_dock(docked_at)
+                .with_command(Command::mine()),
         )
     }
 
@@ -97,20 +99,31 @@ impl Loader {
     ) -> ObjId {
         Loader::add_object(
             world,
-            &Loader::new_ship(docked_at, speed, label).with_command(Command::trade()),
+            &Loader::new_ship(speed, label)
+                .at_dock(docked_at)
+                .with_command(Command::trade()),
         )
     }
 
-    pub fn new_ship(docked_at: ObjId, speed: f32, label: String) -> NewObj {
+    pub fn new_ship(speed: f32, label: String) -> NewObj {
         NewObj::new()
             .with_cargo(20)
             .with_speed(Speed(speed))
-            .at_dock(docked_at)
             .can_dock()
             .with_label(label)
             .with_fleet()
-            .with_command(Command::mine())
     }
+
+    // pub fn new_ship2(docked_at: ObjId, speed: f32, label: String) -> NewObj {
+    //     NewObj::new()
+    //         .with_cargo(20)
+    //         .with_speed(Speed(speed))
+    //         .at_dock(docked_at)
+    //         .can_dock()
+    //         .with_label(label)
+    //         .with_fleet()
+    //         .with_command(Command::mine())
+    // }
 
     pub fn add_sector(world: &mut World, pos: V2, name: String) -> ObjId {
         Loader::add_object(world, &NewObj::new().with_sector(pos).with_label(name))
@@ -320,6 +333,14 @@ impl Loader {
         entity
     }
 
+    pub fn add_prefab(world: &mut World, code: &str, new_obj: NewObj) -> Entity {
+        world
+            .create_entity()
+            .with(Prefab { obj: new_obj })
+            .with(HasCode::from_str(code))
+            .build()
+    }
+
     pub fn new_by_prefab_code(world: &mut World, code: &str) -> Option<NewObj> {
         prefab::find_prefab_by_code(world, code).map(|p| p.obj)
     }
@@ -476,9 +497,7 @@ pub fn load_prefab_station(world: &mut World, prefabs: &conf::Prefabs) {
                 shipyard_bp.push(blueprint.clone());
             }
 
-            obj = obj.with_shipyard(Shipyard {
-                blueprints: shipyard_bp,
-            });
+            obj = obj.with_shipyard(Shipyard::new(shipyard_bp));
         }
 
         if let Some(factory) = &station.factory {

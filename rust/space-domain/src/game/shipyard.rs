@@ -1,11 +1,13 @@
-use rand::RngCore;
+use rand::{Rng, RngCore};
 use specs::prelude::*;
+use std::fs::read;
 
-use crate::game::code::Code;
+use crate::game::code::{Code, HasCode};
 use crate::game::commands::Command;
 use crate::game::new_obj::NewObj;
+use crate::game::prefab::Prefab;
 use crate::game::wares::{Cargo, WareAmount};
-use crate::game::{GameInitContext, RequireInitializer};
+use crate::game::{prefab, GameInitContext, RequireInitializer};
 use crate::utils::{DeltaTime, Speed, TotalTime};
 
 #[derive(Debug, Clone)]
@@ -16,9 +18,25 @@ pub struct Blueprint {
     pub time: DeltaTime,
 }
 
+#[derive(Debug, Clone)]
+struct ShipyardProduction {
+    complete_at: TotalTime,
+    blueprint_index: usize,
+}
+
 #[derive(Debug, Clone, Component)]
 pub struct Shipyard {
     pub blueprints: Vec<Blueprint>,
+    current_production: Option<ShipyardProduction>,
+}
+
+impl Shipyard {
+    pub fn new(blueprints: Vec<Blueprint>) -> Self {
+        Self {
+            blueprints,
+            current_production: None,
+        }
+    }
 }
 
 impl RequireInitializer for Shipyard {
@@ -38,54 +56,65 @@ impl<'a> System<'a> for ShipyardSystem {
         WriteStorage<'a, Cargo>,
         WriteStorage<'a, Shipyard>,
         WriteStorage<'a, NewObj>,
+        ReadStorage<'a, HasCode>,
+        ReadStorage<'a, Prefab>,
     );
 
-    fn run(&mut self, data: Self::SystemData) {
+    fn run(
+        &mut self,
+        (total_time, entities, mut cargos, mut shipyards, mut new_objects, codes, prefabs): Self::SystemData,
+    ) {
         log::trace!("running");
 
-        let (total_time, entities, mut cargos, mut shipyards, mut new_objects) = data;
-
-        let mut to_add = vec![];
+        let mut produced_fleets = vec![];
 
         for (entity, cargo, shipyard) in (&*entities, &mut cargos, &mut shipyards).join() {
-            match shipyard.current_production {
-                Some(time) if total_time.is_after(time) => {
+            if shipyard.blueprints.len() == 0 {
+                continue;
+            }
+
+            match &shipyard.current_production {
+                Some(sp) if total_time.is_after(sp.complete_at) => {
+                    let index = sp.blueprint_index;
                     shipyard.current_production = None;
 
-                    let command = if rand::thread_rng().next_u32() % 2 == 0 {
-                        Command::mine()
+                    let produced_code = shipyard.blueprints[index].output.as_str();
+                    if let Some(new_obj) =
+                        prefab::find_new_obj_by_code(&entities, &codes, &prefabs, produced_code)
+                    {
+                        produced_fleets.push(new_obj);
+                        log::debug!("{:?} complete production, scheduling new object", entity);
                     } else {
-                        Command::trade()
-                    };
-
-                    let new_obj = NewObj::new()
-                        .with_ai()
-                        .with_command(command)
-                        .with_cargo(100)
-                        .with_speed(Speed(2.0))
-                        .at_dock(entity);
-
-                    to_add.push(new_obj);
-
-                    log::debug!("{:?} complete production, scheduling new object", entity);
+                        log::warn!(
+                            "{:?} fail to produce fleet, prefab {:?} not found",
+                            entity,
+                            produced_code
+                        );
+                    }
                 }
                 Some(_) => {
                     // still producing
                 }
                 None => {
-                    let ware_id = shipyard.input.get_ware_id();
-                    let amount = shipyard.input.get_amount();
+                    // chose one random blueprint to produce and check if have enough resources
+                    let index = rand::thread_rng().gen_range(0..shipyard.blueprints.len());
+                    let ware_id = shipyard.blueprints[index].input.get_ware_id();
+                    let amount = shipyard.blueprints[index].input.get_amount();
 
                     if cargo.get_amount(ware_id) >= amount {
                         cargo.remove(ware_id, amount).unwrap();
 
-                        let ready_time = total_time.add(shipyard.production_time);
-                        shipyard.current_production = Some(ready_time);
+                        let complete_time = total_time.add(shipyard.production_time);
+                        shipyard.current_production = Some(ShipyardProduction {
+                            complete_at: complete_time,
+                            blueprint_index: index,
+                        });
 
                         log::debug!(
-                            "{:?} staring production, will be ready at {:?}",
+                            "{:?} staring production of bluprint {:?} will be complete at {:?}",
                             entity,
-                            ready_time,
+                            shipyard.bluprints[index].label,
+                            complete_time,
                         );
                     }
                 }
@@ -93,7 +122,7 @@ impl<'a> System<'a> for ShipyardSystem {
         }
 
         // let new_objects = &mut new_objects;
-        for obj in to_add {
+        for obj in produced_fleets {
             entities.build_entity().with(obj, &mut new_objects).build();
         }
     }
@@ -101,8 +130,10 @@ impl<'a> System<'a> for ShipyardSystem {
 
 #[cfg(test)]
 mod test {
+    use crate::game::code::CodeRef;
+    use crate::game::loader::Loader;
     use crate::game::locations::Location;
-    use crate::game::wares::{Volume, WareId};
+    use crate::game::wares::{Volume, Ware, WareId};
     use crate::test::test_system;
 
     use super::*;
@@ -178,6 +209,25 @@ mod test {
         assert_eq!(current_production, expected.map(|i| i.as_u64()));
     }
 
+    fn load_fleets_prefab(
+        world: &mut World,
+        ware_id: WareId,
+        ware_amount: u32,
+        time: f32,
+        code: &CodeRef,
+        command: Command,
+    ) -> Blueprint {
+        let new_obj = Loader::new_ship(2.0, code.to_string()).with_command(command);
+        Loader::add_prefab(world, code, new_obj);
+
+        Blueprint {
+            label: format!("Produce {code}"),
+            input: vec![WareAmount::new(ware_id, ware_amount)],
+            output: code.to_string(),
+            time: time.into(),
+        }
+    }
+
     /// returns the world and shipyard entity
     fn scenery(
         total_time: f64,
@@ -187,6 +237,15 @@ mod test {
         test_system(ShipyardSystem, move |world| {
             let ware_id = world.create_entity().build();
 
+            let blueprint = load_fleets_prefab(
+                world,
+                ware_id,
+                REQUIRE_CARGO,
+                PRODUCTION_TIME,
+                "ware",
+                Command::mine(),
+            );
+
             let mut cargo = Cargo::new(1000);
             if cargo_amount > 0 {
                 cargo.add(ware_id, cargo_amount).unwrap();
@@ -194,10 +253,7 @@ mod test {
 
             world.insert(TotalTime(total_time));
 
-            let mut shipyard = Shipyard::new(
-                WareAmount::new(ware_id, REQUIRE_CARGO),
-                DeltaTime(PRODUCTION_TIME),
-            );
+            let mut shipyard = Shipyard::new(vec![blueprint]);
             shipyard.current_production = current_production.map(|i| TotalTime(i));
 
             let entity = world.create_entity().with(cargo).with(shipyard).build();
