@@ -13,24 +13,27 @@ use specs::{Builder, WorldExt};
 fn load_fleets_prefabs(world: &mut World) -> Vec<Blueprint> {
     let new_obj = Loader::new_ship(2.0, "Trade fleet".to_string()).with_command(Command::trade());
     let trade_code = "trade_fleet";
-    Loader::add_prefab(world, trade_code, new_obj);
+    let trade_fleet_prefab_id = Loader::add_prefab(world, trade_code, new_obj);
 
     let new_obj = Loader::new_ship(2.0, "Mine fleet".to_string()).with_command(Command::mine());
     let mine_code = "mine_fleet";
-    Loader::add_prefab(world, mine_code, new_obj);
+    let mine_fleet_prefab_id = Loader::add_prefab(world, mine_code, new_obj);
 
     let ware_id =
         wares::find_ware_by_code(world, "components").expect("fail to find components ware");
 
-    vec!["trade_code", "mine_code"]
-        .iter()
-        .map(|code| Blueprint {
-            label: format!("Produce {code}"),
-            input: vec![WareAmount::new(ware_id, 50)],
-            output: code.to_string(),
-            time: 5.0.into(),
-        })
-        .collect()
+    vec![
+        ("trade_code", trade_fleet_prefab_id),
+        ("mine_code", mine_fleet_prefab_id),
+    ]
+    .iter()
+    .map(|(code, prefab_id)| Blueprint {
+        label: format!("Produce {code}"),
+        input: vec![WareAmount::new(ware_id, 50)],
+        output: *prefab_id,
+        time: 5.0.into(),
+    })
+    .collect()
 }
 
 /// Basic scenery used for testing and samples

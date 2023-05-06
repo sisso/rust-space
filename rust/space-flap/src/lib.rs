@@ -21,7 +21,7 @@ use space_domain::game::loader::Loader;
 use space_domain::game::locations::{Location, LocationSpace, Locations};
 use space_domain::game::navigations::{Navigation, NavigationMoveTo};
 use space_domain::game::objects::ObjId;
-use space_domain::game::order::{Order, Orders};
+use space_domain::game::order::Orders;
 use space_domain::game::sectors::{Jump, Sector};
 use space_domain::game::shipyard::Shipyard;
 use space_domain::game::station::Station;

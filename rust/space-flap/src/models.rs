@@ -341,7 +341,7 @@ pub struct ObjShipyard {
 
 impl ObjShipyard {
     pub fn is_producing(&self) -> bool {
-        self.shipyard.current_production.is_some()
+        self.shipyard.is_producing()
     }
 }
 

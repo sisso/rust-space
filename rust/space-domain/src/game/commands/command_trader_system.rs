@@ -364,7 +364,7 @@ mod test {
     use crate::game::locations::EntityPerSectorIndex;
     use crate::game::navigations::Navigation;
     use crate::game::objects::ObjId;
-    use crate::game::order::{Order, Orders};
+    use crate::game::order::Orders;
     use crate::game::sectors::SectorId;
     use crate::game::wares::{Cargo, Volume, WareId};
     use crate::test::test_system;
@@ -392,7 +392,7 @@ mod test {
         sector_id: SectorId,
     }
 
-    fn add_station(world: &mut World, sector_id: SectorId, orders: Vec<Order>) -> ObjId {
+    fn add_station(world: &mut World, sector_id: SectorId, orders: Orders) -> ObjId {
         world
             .create_entity()
             .with(Location::Space {
@@ -400,7 +400,7 @@ mod test {
                 sector_id,
             })
             .with(HasDock)
-            .with(Orders(orders))
+            .with(orders)
             .with(Cargo::new(STATION_CARGO))
             .build()
     }
@@ -429,17 +429,13 @@ mod test {
         let producer_station_id = add_station(
             world,
             sector_id,
-            vec![Order::WareProvide {
-                wares_id: vec![ware0_id, ware1_id],
-            }],
+            Orders::from_provided(&[ware0_id, ware1_id]),
         );
 
         let consumer_station_id = add_station(
             world,
             sector_id,
-            vec![Order::WareRequest {
-                wares_id: vec![ware0_id, ware1_id],
-            }],
+            Orders::from_requested(&[ware0_id, ware1_id]),
         );
 
         let trader_id = add_trader(world, sector_id);
@@ -886,9 +882,7 @@ mod test {
                 let station_2 = add_station(
                     world,
                     scenery.sector_id,
-                    vec![Order::WareProvide {
-                        wares_id: vec![scenery.ware0_id],
-                    }],
+                    Orders::from_provided(&[scenery.ware0_id]),
                 );
                 add_cargo(world, station_2, scenery.ware0_id, STATION_CARGO);
 

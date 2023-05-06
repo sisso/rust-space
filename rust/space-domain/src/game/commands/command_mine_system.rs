@@ -243,7 +243,6 @@ fn search_mine_target(
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::game::order::Order;
 
     use crate::game::sectors::test_scenery::SectorScenery;
     use crate::game::wares::WareId;
@@ -292,6 +291,9 @@ mod test {
             ware_id,
         );
 
+        let mut orders = Orders::default();
+        orders.add_request(ware_id);
+
         let station = world
             .create_entity()
             .with(Location::Space {
@@ -300,9 +302,7 @@ mod test {
             })
             .with(HasDock)
             .with(Cargo::new(1000))
-            .with(Orders::new(Order::WareRequest {
-                wares_id: vec![ware_id],
-            }))
+            .with(orders)
             .build();
 
         let miner = create_miner(world, Location::Dock { docked_id: station });

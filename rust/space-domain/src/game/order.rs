@@ -13,6 +13,20 @@ pub struct Orders {
 }
 
 impl Orders {
+    pub fn from_provided(provided: &[WareId]) -> Self {
+        Orders {
+            provided: provided.iter().copied().collect(),
+            requested: Default::default(),
+        }
+    }
+
+    pub fn from_requested(requested: &[WareId]) -> Self {
+        Orders {
+            provided: Default::default(),
+            requested: requested.iter().copied().collect(),
+        }
+    }
+
     pub fn is_empty(&self) -> bool {
         self.requested.is_empty() && self.provided.is_empty()
     }

@@ -75,6 +75,12 @@ impl WaresByCode {
     }
 }
 
+impl From<HashMap<String, Entity>> for WaresByCode {
+    fn from(value: HashMap<String, Entity>) -> Self {
+        Self { map: value }
+    }
+}
+
 pub fn list_wares_by_code(world: &World) -> WaresByCode {
     WaresByCode::new(world)
 }

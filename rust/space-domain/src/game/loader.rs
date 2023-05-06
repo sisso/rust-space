@@ -7,7 +7,7 @@ use commons;
 use commons::math::{self, P2};
 
 use crate::game::astrobody::{AstroBodies, AstroBody, AstroBodyKind, OrbitalPos};
-use crate::game::code::HasCode;
+use crate::game::code::{Code, HasCode};
 use crate::game::commands::Command;
 use crate::game::dock::HasDock;
 use crate::game::events::{Event, EventKind, Events};
@@ -285,10 +285,10 @@ impl Loader {
 
         for factory in &new_obj.factory {
             builder.set(factory.clone());
-            for wa in factory.production.input {
+            for wa in &factory.production.input {
                 orders.add_request(wa.ware_id);
             }
-            for wa in factory.production.output {
+            for wa in &factory.production.output {
                 orders.add_provider(wa.ware_id);
             }
         }
@@ -398,28 +398,6 @@ pub fn set_orbit_random_body(world: &mut World, obj_id: ObjId, seed: u64) {
     AstroBodies::set_orbit(world, obj_id, candidates[selected].0, radius, angle);
 }
 
-pub fn load_prefabs(world: &mut World, prefabs: &conf::Prefabs) {
-    for ware in &prefabs.wares {
-        Loader::add_ware(world, ware.code.clone(), ware.label.clone());
-    }
-
-    load_prefab_station(world, prefabs);
-    load_prefab_fleets(world, prefabs);
-}
-
-// pub fn load_station_prefab_by_code(world: &mut World, code: &str) -> Option<Entity> {
-//     // let prefab = prefab::find_prefab_by_code(world, &game_params.prefab_station_shipyard)?;
-//
-//     let conf = world.read_resource::<Conf>();
-//     let entity = conf
-//         .prefabs
-//         .stations
-//         .iter()
-//         .find(|station| station.code.as_str() == code)
-//         .map(|station| load_station_prefab(world, station));
-//     entity
-// }
-
 // pub fn load_station_prefab(world: &mut World, station: &conf::Station) -> Option<Entity> {}
 fn into_wareamount(wares_by_code: &WaresByCode, code: &str, amount: u32) -> WareAmount {
     let ware_id = wares_by_code
@@ -431,12 +409,14 @@ fn into_wareamount(wares_by_code: &WaresByCode, code: &str, amount: u32) -> Ware
     }
 }
 
-pub fn load_prefab_station(world: &mut World, prefabs: &conf::Prefabs) {
+pub fn load_prefabs(world: &mut World, prefabs: &conf::Prefabs) {
     // generate wares and collect index
+    let mut wares_by_code: HashMap<Code, WareId> = Default::default();
     for ware in &prefabs.wares {
-        Loader::add_ware(world, ware.code.clone(), ware.label.clone());
+        let ware_id = Loader::add_ware(world, ware.code.clone(), ware.label.clone());
+        wares_by_code.insert(ware.code.clone(), ware_id);
     }
-    let wares_by_code = wares::list_wares_by_code(world);
+    let wares_by_code = wares_by_code.into();
 
     // generate receipts
     let mut receipts: HashMap<String, Receipt> = Default::default();
@@ -461,9 +441,26 @@ pub fn load_prefab_station(world: &mut World, prefabs: &conf::Prefabs) {
         );
     }
 
+    // load fleets prefabs
+    let mut fleets_prefabs_by_code = HashMap::new();
+
+    for fleet in &prefabs.fleets {
+        let mut obj = NewObj::new()
+            .with_cargo(fleet.storage)
+            .with_speed(Speed(fleet.speed))
+            .with_label(fleet.label.clone());
+
+        let prefab_id = Loader::add_prefab(world, fleet.code.as_str(), obj);
+        fleets_prefabs_by_code.insert(fleet.code.clone(), prefab_id);
+    }
+
     // generate blueprints
     let mut blueprints: HashMap<String, Blueprint> = Default::default();
     for bp in &prefabs.blueprints {
+        let prefab_id = fleets_prefabs_by_code
+            .get(bp.output.as_str())
+            .expect("fail to find fleet prefab by code");
+
         blueprints.insert(
             bp.code.clone(),
             Blueprint {
@@ -473,7 +470,7 @@ pub fn load_prefab_station(world: &mut World, prefabs: &conf::Prefabs) {
                     .iter()
                     .map(|rw| into_wareamount(&wares_by_code, rw.ware.as_str(), rw.amount))
                     .collect(),
-                output: bp.output.clone(),
+                output: *prefab_id,
                 time: bp.time.into(),
             },
         );
@@ -516,23 +513,6 @@ pub fn load_prefab_station(world: &mut World, prefabs: &conf::Prefabs) {
             .create_entity()
             .with(HasCode {
                 code: station.code.clone(),
-            })
-            .with(Prefab { obj })
-            .build();
-    }
-}
-
-pub fn load_prefab_fleets(world: &mut World, prefabs: &conf::Prefabs) {
-    for fleet in &prefabs.fleets {
-        let mut obj = NewObj::new()
-            .with_cargo(fleet.storage)
-            .with_speed(Speed(fleet.speed))
-            .with_label(fleet.label.clone());
-
-        world
-            .create_entity()
-            .with(HasCode {
-                code: fleet.code.clone(),
             })
             .with(Prefab { obj })
             .build();
