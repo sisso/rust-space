@@ -4,7 +4,7 @@ use rand::prelude::*;
 use specs::prelude::*;
 
 use commons;
-use commons::math::{self, P2};
+use commons::math::{self, P2, P2I};
 
 use crate::game::astrobody::{AstroBodies, AstroBody, AstroBodyKind, OrbitalPos};
 use crate::game::code::{Code, HasCode};
@@ -125,7 +125,7 @@ impl Loader {
     //         .with_command(Command::mine())
     // }
 
-    pub fn add_sector(world: &mut World, pos: V2, name: String) -> ObjId {
+    pub fn add_sector(world: &mut World, pos: P2I, name: String) -> ObjId {
         Loader::add_object(world, &NewObj::new().with_sector(pos).with_label(name))
     }
 

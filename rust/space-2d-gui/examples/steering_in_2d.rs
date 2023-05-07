@@ -1,8 +1,7 @@
-
 use ggez::conf::WindowMode;
 use ggez::event::{self, EventHandler};
 use ggez::graphics::{Color, StrokeOptions};
-use ggez::{graphics, timer, Context, ContextBuilder, GameResult, GameError};
+use ggez::{graphics, timer, Context, ContextBuilder, GameError, GameResult};
 use nalgebra::{Point2, Rotation2, Vector2};
 use rand::{thread_rng, Rng};
 use specs::prelude::*;
@@ -10,8 +9,6 @@ use specs::{World, WorldExt};
 use specs_derive::Component;
 use std::borrow::{Borrow, BorrowMut};
 use std::ops::Deref;
-
-// TODO: replace cgmath by nalge
 
 type V2 = Vector2<f32>;
 type P2 = Point2<f32>;

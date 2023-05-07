@@ -7,6 +7,7 @@ use crate::game::shipyard::Blueprint;
 use crate::game::wares::WareAmount;
 use crate::game::{sectors, wares, Game};
 use crate::utils::{DeltaTime, V2};
+use commons::math::P2I;
 use shred::World;
 use specs::{Builder, WorldExt};
 
@@ -51,8 +52,8 @@ pub fn load_basic_scenery(game: &mut Game) -> BasicScenery {
     let blueprints = load_fleets_prefabs(world);
 
     // init sectors
-    let sector_0 = Loader::add_sector(world, V2::new(0.0, 0.0), "Sector 0".to_string());
-    let sector_1 = Loader::add_sector(world, V2::new(1.0, 0.0), "Sector 1".to_string());
+    let sector_0 = Loader::add_sector(world, P2I::new(0, 0), "Sector 0".to_string());
+    let sector_1 = Loader::add_sector(world, P2I::new(1, 0), "Sector 1".to_string());
 
     Loader::add_jump(
         world,
@@ -124,8 +125,8 @@ pub fn load_advanced_scenery(world: &mut World) {
     };
 
     // init sectors
-    let sector_0 = Loader::add_sector(world, V2::new(0.0, 0.0), "sector 0".to_string());
-    let sector_1 = Loader::add_sector(world, V2::new(1.0, 0.0), "sector 1".to_string());
+    let sector_0 = Loader::add_sector(world, P2I::new(0, 0), "sector 0".to_string());
+    let sector_1 = Loader::add_sector(world, P2I::new(1, 0), "sector 1".to_string());
 
     Loader::add_jump(
         world,

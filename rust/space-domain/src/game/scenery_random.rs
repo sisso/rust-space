@@ -1,11 +1,10 @@
 use crate::game::astrobody::{AstroBodies, OrbitalPos};
-use crate::game::conf::Params;
 use crate::game::extractables::Extractable;
 use crate::game::loader::Loader;
 use crate::game::sectors::Sector;
 use crate::game::shipyard::Shipyard;
 use crate::game::{conf, loader, sectors, wares, Game};
-use commons::math::V2;
+use commons::math::{P2, P2I, V2, V2I};
 use commons::unwrap_or_continue;
 use rand::prelude::*;
 use shred::World;
@@ -13,16 +12,8 @@ use space_galaxy::system_generator;
 use specs::prelude::*;
 use std::collections::HashSet;
 
-struct SceneryCfg {
-    // ware_ore_id: ObjId,
-    // ware_components_id: ObjId,
-    // ware_energy: ObjId,
-    // receipt_process_ores: Receipt,
-    // receipt_produce_energy: Receipt,
-}
-
 pub enum InitialCondition {
-    Random,
+    Random { station_per_sector_density: f32 },
     Minimal,
 }
 
@@ -40,40 +31,13 @@ pub fn load_random(game: &mut Game, cfg: &RandomMapCfg) {
 
     let world = &mut game.world;
 
-    // add configurations
-    let scenery_cfg = {
-        // // wares and receipts
-        // let receipt_process_ores = Receipt {
-        //     label: "ore processing".to_string(),
-        //     input: vec![
-        //         WareAmount::new(ware_ore_id, 20),
-        //         WareAmount::new(ware_energy, 10),
-        //     ],
-        //     output: vec![WareAmount::new(ware_components_id, 10)],
-        //     time: DeltaTime(1.0),
-        // };
-        // let receipt_produce_energy = Receipt {
-        //     label: "solar power".to_string(),
-        //     input: vec![],
-        //     output: vec![WareAmount::new(ware_energy, 10)],
-        //     time: DeltaTime(5.0),
-        // };
-
-        SceneryCfg {
-            // ware_ore_id,
-            // ware_components_id,
-            // ware_energy,
-            // receipt_process_ores,
-            // receipt_produce_energy,
-        }
-    };
-
     // create sectors
     generate_sectors(world, cfg.size, rng.gen());
-    add_bodies_to_sectors(world, rng.gen(), &cfg.universe_cfg, &scenery_cfg);
-    add_asteroid_fields_to_sectors(world, rng.gen(), &scenery_cfg);
+    add_bodies_to_sectors(world, rng.gen(), &cfg.universe_cfg);
     match cfg.initial_condition {
-        InitialCondition::Random { .. } => add_stations_random(world, rng.gen(), &scenery_cfg),
+        InitialCondition::Random {
+            station_per_sector_density,
+        } => add_stations_random(world, rng.gen(), &cfg.params, station_per_sector_density),
         InitialCondition::Minimal => add_stations_minimal(world, rng.gen(), &cfg.params),
     }
 
@@ -121,7 +85,7 @@ pub fn generate_sectors(world: &mut World, size: usize, seed: u64) {
 
     // add sectors
     for s in &galaxy.sectors.list {
-        let pos = V2::new(s.coords.x as f32, s.coords.y as f32);
+        let pos = P2I::new(s.coords.x, s.coords.y);
         let sector_id =
             Loader::add_sector(world, pos, format!("sector {} {}", s.coords.x, s.coords.y));
         sectors_by_index.push((sector_id, pos));
@@ -154,7 +118,6 @@ fn add_bodies_to_sectors(
     world: &mut World,
     seed: u64,
     universe_cfg: &system_generator::UniverseCfg,
-    _scenery_cfg: &SceneryCfg,
 ) {
     let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
 
@@ -249,114 +212,64 @@ fn sector_pos<R: rand::Rng>(rng: &mut R) -> V2 {
     )
 }
 
-fn add_stations_random(world: &mut World, seed: u64, scenery: &SceneryCfg) {
-    // let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
-    //
-    // let conf = world.read_resource::<conf::Conf>();
-    //
-    // let sector_kind_empty = 0;
-    // let sector_kind_power = 1;
-    // let sector_kind_factory = 2;
-    // let sector_kind_prob = vec![
-    //     commons::prob::Weighted {
-    //         prob: 1.0,
-    //         value: sector_kind_empty,
-    //     },
-    //     commons::prob::Weighted {
-    //         prob: 1.0,
-    //         value: sector_kind_factory,
-    //     },
-    //     commons::prob::Weighted {
-    //         prob: 1.0,
-    //         value: sector_kind_power,
-    //     },
-    // ];
-    //
-    // let mut sectors_id = vec![];
-    // {
-    //     let entities = world.entities();
-    //     let sectors_repo = world.read_storage::<Sector>();
-    //     for (sector_id, _) in (&entities, &sectors_repo).join() {
-    //         sectors_id.push(sector_id);
-    //     }
-    // }
-    //
-    // // adding shipyard
-    // {
-    //     let new_obj =
-    //         loader::new_station_from_prefab(&conf, conf.params.prefab_station_shipyard.as_str());
-    //     let obj_id = Loader::add_object(world, &new_obj);
-    //     loader::set_orbit_random_body(world, obj_id, rng.next_u64());
-    // }
-    //
-    // let mut required_kinds = [false, false];
-    // while required_kinds.iter().any(|i| !*i) {
-    //     for &sector_id in &sectors_id {
-    //         let kind = commons::prob::select_weighted(&mut rng, &sector_kind_prob);
-    //
-    //         log::info!("creating {:?} on sector {:?}", kind, sector_id);
-    //
-    //         match kind {
-    //             Some(i) if *i == sector_kind_factory => {
-    //                 required_kinds[0] = true;
-    //
-    //                 let new_obj = loader::new_station_from_prefab(
-    //                     &conf,
-    //                     conf.params.prefab_station_factory.as_str(),
-    //                 );
-    //                 let obj_id = Loader::add_object(world, &new_obj);
-    //                 loader::set_orbit_random_body(world, obj_id, rng.next_u64());
-    //             }
-    //             Some(i) if *i == sector_kind_power => {
-    //                 required_kinds[1] = true;
-    //
-    //                 let new_obj = loader::new_station_from_prefab(
-    //                     &conf,
-    //                     conf.params.prefab_station_solar.as_str(),
-    //                 );
-    //                 let obj_id = Loader::add_object(world, &new_obj);
-    //                 loader::set_orbit_random_body(world, obj_id, rng.next_u64());
-    //             }
-    //             _ => {
-    //                 log::warn!("unknown weight {:?}", kind);
-    //             }
-    //         }
-    //     }
-    // }
-    //
-    // AstroBodies::update_orbits(world);
-    todo!("not implemented")
-}
+fn add_stations_random(
+    world: &mut World,
+    seed: u64,
+    params: &conf::Params,
+    station_per_sector_density: f32,
+) {
+    let rng: &mut StdRng = &mut SeedableRng::seed_from_u64(seed);
 
-fn add_asteroid_fields_to_sectors(world: &mut World, seed: u64, scenery: &SceneryCfg) {
-    let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
+    // add minimal requirements
+    add_stations_minimal(world, rng.next_u64(), params);
 
-    // we only execute if world generation has no asteroid
-    if !world.read_storage::<Extractable>().is_empty() {
-        return;
+    // compute number of stations to add
+    let sectors_list = sectors::list(world);
+    let total_stations: f32 = station_per_sector_density * sectors_list.len() as f32;
+    let total_solar = (total_stations / 3.0) as i32;
+    let total_factory = (total_stations / 3.0) as i32;
+    let total_shipyard = (total_stations / 10.0) as i32;
+
+    let shipyard_new_obj =
+        Loader::new_by_prefab_code(world, params.prefab_station_shipyard.as_str())
+            .expect("fail to new shipyard");
+    let factory_new_obj = Loader::new_by_prefab_code(world, params.prefab_station_factory.as_str())
+        .expect("fail to new factory");
+    let solar_new_obj = Loader::new_by_prefab_code(world, params.prefab_station_solar.as_str())
+        .expect("fail to new solar");
+
+    for (mut new_obj, count) in [
+        (solar_new_obj, total_solar),
+        (factory_new_obj, total_factory),
+        (shipyard_new_obj, total_shipyard),
+    ] {
+        for _ in 0..count {
+            // choose a sector
+            let sector_id = commons::prob::select(rng, &sectors_list)
+                .copied()
+                .expect("empty list of sectors");
+
+            // create obj in a random orbit
+            new_obj = new_obj.at_position(sector_id, P2::ZERO);
+            let obj_id = Loader::add_object(world, &new_obj);
+
+            loader::set_orbit_random_body(world, obj_id, rng.next_u64());
+        }
     }
 
-    // let sectors = list_sectors(&world);
-    // let sector_id = *commons::prob::select_array(&mut rng, sectors.as_slice());
-    //
-    // let obj_id = Loader::add_object(
-    //     world,
-    //     &Loader::new_asteroid(sector_id)
-    //         .extractable(Extractable {
-    //             ware_id: scenery.ware_ore_id,
-    //         })
-    //         .with_label("ore asteroid".to_string()),
-    // );
-    // loader::set_orbit_random_body(world, obj_id, rng.next_u64());
+    AstroBodies::update_orbits(world);
 }
 
-fn add_stations_minimal(world: &mut World, seed: u64, params: &Params) {
+fn add_stations_minimal(world: &mut World, seed: u64, params: &conf::Params) {
     let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
 
-    let (sector_id, _) = (&world.entities(), &world.read_storage::<Sector>())
-        .join()
-        .next()
-        .expect("no sector found");
+    // get first sector
+    let sector_id = sectors::get_sector_by_coords(
+        &world.entities(),
+        &world.read_storage::<Sector>(),
+        V2I::new(0, 0),
+    )
+    .expect("no sector found");
 
     // add shipyard
     let new_obj = Loader::new_by_prefab_code(world, params.prefab_station_shipyard.as_str())
@@ -365,12 +278,14 @@ fn add_stations_minimal(world: &mut World, seed: u64, params: &Params) {
     let obj_id = Loader::add_object(world, &new_obj);
     loader::set_orbit_random_body(world, obj_id, rng.next_u64());
 
+    // factory
     let new_obj = Loader::new_by_prefab_code(world, params.prefab_station_factory.as_str())
         .expect("fail to new factory")
         .at_position(sector_id, V2::ZERO);
     let obj_id = Loader::add_object(world, &new_obj);
     loader::set_orbit_random_body(world, obj_id, rng.next_u64());
 
+    // solar
     let new_obj = Loader::new_by_prefab_code(world, params.prefab_station_solar.as_str())
         .expect("fail to new solar")
         .at_position(sector_id, V2::ZERO);
@@ -401,7 +316,9 @@ mod test {
             seed: 0,
             fleets: 3,
             universe_cfg: cfg.system_generator.clone().unwrap(),
-            initial_condition: InitialCondition::Random,
+            initial_condition: InitialCondition::Random {
+                station_per_sector_density: 1.0,
+            },
             params: cfg.params,
         };
 

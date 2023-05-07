@@ -235,7 +235,8 @@ mod test {
                     sector_id: sector_0,
                     pos: Position::new(1.5, 0.5),
                 },
-            );
+            )
+            .unwrap();
         }
 
         // run twice

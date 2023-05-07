@@ -231,3 +231,13 @@ pub fn rad_to_deg(rad: Rad) -> Deg {
     // rad * (std::f32::consts::PI * 180.0)
     rad.to_degrees()
 }
+
+pub trait IntoP2Ext {
+    fn as_p2(self: &Self) -> P2;
+}
+
+impl IntoP2Ext for P2I {
+    fn as_p2(self: &Self) -> P2 {
+        P2::new(self.x as f32, self.y as f32)
+    }
+}

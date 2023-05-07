@@ -3,7 +3,7 @@ use specs::prelude::*;
 use specs_derive::*;
 use std::borrow::{Borrow, BorrowMut};
 
-use commons::math::P2;
+use commons::math::{IntoP2Ext, P2, P2I, V2I};
 use std::time::Instant;
 
 use crate::game::locations::Location;
@@ -28,12 +28,12 @@ pub struct JumpCache {
 
 #[derive(Clone, Debug, Component)]
 pub struct Sector {
-    pub coords: P2,
+    pub coords: P2I,
     pub jumps_cache: Option<Vec<JumpCache>>,
 }
 
 impl Sector {
-    pub fn new(coords: P2) -> Self {
+    pub fn new(coords: P2I) -> Self {
         Sector {
             coords,
             jumps_cache: None,
@@ -119,15 +119,15 @@ pub mod test_scenery {
 
         let sector_0 = world
             .create_entity()
-            .with(Sector::new(V2::new(0.0, 0.0)))
+            .with(Sector::new(P2I::new(0, 0)))
             .build();
         let sector_1 = world
             .create_entity()
-            .with(Sector::new(V2::new(1.0, 0.0)))
+            .with(Sector::new(P2I::new(1, 0)))
             .build();
         let sector_2 = world
             .create_entity()
-            .with(Sector::new(V2::new(2.0, 0.0)))
+            .with(Sector::new(P2I::new(2, 0)))
             .build();
         let jump_0_to_1_pos = V2::new(0.0, 1.0);
         let jump_1_to_0_pos = V2::new(1.0, 0.0);
@@ -237,7 +237,7 @@ pub fn find_path_raw<'a>(
     }
 
     let mut count = 0;
-    let to_coords = sectors.get(to).unwrap().coords;
+    let to_coords = sectors.get(to).unwrap().coords.as_p2();
 
     let path: Vec<SectorId> = {
         if algorithm == 0 {
@@ -255,7 +255,7 @@ pub fn find_path_raw<'a>(
                     successors
                 },
                 |current| {
-                    let current_coords = sectors.get(*current).unwrap().coords;
+                    let current_coords = sectors.get(*current).unwrap().coords.as_p2();
                     (to_coords - current_coords).length_squared() as u32 / 1000u32
                 },
                 |current| *current == to,
@@ -277,8 +277,8 @@ pub fn find_path_raw<'a>(
                 },
                 |current| {
                     let current_coords = sectors.get(*current).unwrap().coords;
-                    (pathfinding::prelude::absdiff(current_coords.x, to_coords.x)
-                        + pathfinding::prelude::absdiff(current_coords.y, to_coords.y))
+                    (pathfinding::prelude::absdiff(current_coords.x as f32, to_coords.x)
+                        + pathfinding::prelude::absdiff(current_coords.y as f32, to_coords.y))
                         as u32
                 },
                 |current| *current == to,
@@ -300,8 +300,8 @@ pub fn find_path_raw<'a>(
                 },
                 |current| {
                     let current_coords = sectors.get(*current).unwrap().coords;
-                    (pathfinding::prelude::absdiff(current_coords.x, to_coords.x)
-                        + pathfinding::prelude::absdiff(current_coords.y, to_coords.y))
+                    (pathfinding::prelude::absdiff(current_coords.x as f32, to_coords.x)
+                        + pathfinding::prelude::absdiff(current_coords.y as f32, to_coords.y))
                         as u32
                 },
                 |current| *current == to,
@@ -376,16 +376,16 @@ pub fn find_path_raw<'a>(
 pub fn get_sector_by_coords<'a>(
     entities: &Entities<'a>,
     sectors: &ReadStorage<'a, Sector>,
-    coords: &V2,
+    coords: P2I,
 ) -> Option<Entity> {
     for (e, s) in (entities, sectors).join() {
         log::warn!(
             "s {:?} is equal to {:?} = {:?}",
             s,
             coords,
-            s.coords.eq(coords)
+            s.coords.eq(&coords)
         );
-        if s.coords.eq(coords) {
+        if s.coords.eq(&coords) {
             return Some(e);
         }
     }
@@ -412,6 +412,7 @@ mod test {
     use specs::prelude::*;
 
     use crate::game::label::Label;
+    use commons::math::P2I;
     use std::time::Instant;
 
     #[test]
@@ -464,8 +465,8 @@ mod test {
         // number of edges 87, number of query nodes 1864,
         // from V2 { x: 12.0, y: 7.0 } to V2 { x: 31.0, y: 45.0 }
         let size = 100;
-        let p1 = V2::new(12.0, 7.0);
-        let p2 = V2::new(31.0, 45.0);
+        let p1 = P2I::new(12, 7);
+        let p2 = P2I::new(31, 45);
 
         crate::game::scenery_random::generate_sectors(&mut world, size, 13801247937784236795);
 
@@ -474,8 +475,8 @@ mod test {
         let jumps = &world.read_storage::<Jump>();
         let locations = &world.read_storage::<Location>();
 
-        let from = super::get_sector_by_coords(entities, sectors, &p1).unwrap();
-        let to = super::get_sector_by_coords(entities, sectors, &p2).unwrap();
+        let from = super::get_sector_by_coords(entities, sectors, p1).unwrap();
+        let to = super::get_sector_by_coords(entities, sectors, p2).unwrap();
 
         let mut times = vec![];
         for alg in vec![0, 1, 2, 3] {

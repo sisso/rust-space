@@ -1,6 +1,6 @@
 use specs::prelude::*;
 
-use commons::math::{Rad, P2};
+use commons::math::{Rad, P2, P2I};
 
 use crate::game::commands::Command;
 use crate::game::conf::Blueprint;
@@ -31,7 +31,7 @@ pub struct NewObj {
     pub has_dock: bool,
     pub ai: bool,
     pub station: bool,
-    pub sector: Option<P2>,
+    pub sector: Option<P2I>,
     pub jump_to: Option<(SectorId, P2)>,
     pub command: Option<Command>,
     pub shipyard: Option<Shipyard>,
@@ -116,7 +116,7 @@ impl NewObj {
         self
     }
 
-    pub fn with_sector(mut self, pos: P2) -> Self {
+    pub fn with_sector(mut self, pos: P2I) -> Self {
         self.sector = Some(pos);
         self
     }
