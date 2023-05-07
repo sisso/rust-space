@@ -24,7 +24,7 @@ use crate::game::sectors::{Jump, JumpId, Sector, SectorId};
 use crate::game::shipyard::{Blueprint, Shipyard};
 use crate::game::station::Station;
 use crate::game::wares::{Cargo, Ware, WareAmount, WareId, WaresByCode};
-use crate::game::{conf, prefab, shipyard, wares};
+use crate::game::{conf, prefab, shipyard};
 use crate::specs_extras::*;
 use crate::utils::{DeltaTime, Speed, V2};
 
@@ -448,7 +448,8 @@ pub fn load_prefabs(world: &mut World, prefabs: &conf::Prefabs) {
         let mut obj = NewObj::new()
             .with_cargo(fleet.storage)
             .with_speed(Speed(fleet.speed))
-            .with_label(fleet.label.clone());
+            .with_label(fleet.label.clone())
+            .with_ai();
 
         let prefab_id = Loader::add_prefab(world, fleet.code.as_str(), obj);
         fleets_prefabs_by_code.insert(fleet.code.clone(), prefab_id);
@@ -517,9 +518,4 @@ pub fn load_prefabs(world: &mut World, prefabs: &conf::Prefabs) {
             .with(Prefab { obj })
             .build();
     }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
 }

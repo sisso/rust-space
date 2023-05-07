@@ -1,15 +1,13 @@
-use crate::game::code::HasCode;
 use crate::game::commands::Command;
 use crate::game::factory::Receipt;
-use crate::game::loader::{load_prefabs, BasicScenery, Loader};
-use crate::game::prefab::Prefab;
+use crate::game::loader::{BasicScenery, Loader};
 use crate::game::shipyard::Blueprint;
 use crate::game::wares::WareAmount;
 use crate::game::{sectors, wares, Game};
 use crate::utils::{DeltaTime, V2};
 use commons::math::P2I;
 use shred::World;
-use specs::{Builder, WorldExt};
+use specs::WorldExt;
 
 fn load_fleets_prefabs(world: &mut World) -> Vec<Blueprint> {
     let new_obj = Loader::new_ship(2.0, "Trade fleet".to_string()).with_command(Command::trade());

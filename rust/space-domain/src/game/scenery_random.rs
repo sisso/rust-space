@@ -296,7 +296,6 @@ fn add_stations_minimal(world: &mut World, seed: u64, params: &conf::Params) {
 #[cfg(test)]
 mod test {
     use super::*;
-    use std::path::PathBuf;
 
     #[test]
     pub fn test_random_scenery() {

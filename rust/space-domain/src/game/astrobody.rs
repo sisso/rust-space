@@ -156,7 +156,6 @@ mod test {
     use crate::game::astrobody::{OrbitalPos, OrbitalPosSystem};
     use crate::game::locations::Location;
     use crate::utils::{Position, TotalTime};
-    use approx::assert_abs_diff_eq;
     use commons::math::deg_to_rads;
     use shred::World;
     use specs::{Builder, Entity, WorldExt};

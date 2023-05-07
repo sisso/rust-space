@@ -2,7 +2,6 @@ use std::collections::HashSet;
 
 use specs::prelude::*;
 
-use crate::game::conf::Ware;
 use crate::game::wares::WareId;
 use crate::game::{GameInitContext, RequireInitializer};
 

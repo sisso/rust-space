@@ -3,7 +3,6 @@ use specs::prelude::*;
 use commons::math::{Rad, P2, P2I};
 
 use crate::game::commands::Command;
-use crate::game::conf::Blueprint;
 use crate::game::extractables::Extractable;
 use crate::game::factory::Factory;
 use crate::game::locations::*;
