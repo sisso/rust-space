@@ -3,7 +3,7 @@ foreign_class!(
         self_type SectorData;
         private constructor = empty;
         fn SectorData::get_id(&self) -> u64;
-        fn SectorData::get_coords(&self) -> (f32, f32);
+        fn SectorData::get_coords(&self) -> (i32, i32);
         fn SectorData::get_label(&self) -> &str;
     }
 );

@@ -264,7 +264,7 @@ impl ObjCargo {
 #[derive(Clone, Debug)]
 pub struct SectorData {
     pub(crate) id: Id,
-    pub(crate) coords: (f32, f32),
+    pub(crate) coords: (i32, i32),
     pub(crate) label: String,
 }
 
@@ -272,7 +272,7 @@ impl SectorData {
     pub fn get_id(&self) -> Id {
         self.id
     }
-    pub fn get_coords(&self) -> (f32, f32) {
+    pub fn get_coords(&self) -> (i32, i32) {
         self.coords.clone()
     }
 
