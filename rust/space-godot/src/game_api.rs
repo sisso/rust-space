@@ -26,16 +26,21 @@ impl GameApi {
     //     node.get_node_as::<GameApi>("/root/GameApi")
     // }
 
-    pub fn on_click_sector(&mut self, sector_id: Id) {
-        let runtime = self.runtime.as_mut().expect("runtime not initialized");
-        runtime.change_sector(sector_id);
-    }
+    // pub fn on_click_sector(&mut self, sector_id: Id) {
+    //     let runtime = self.runtime.as_mut().expect("runtime not initialized");
+    //     runtime.change_sector(sector_id);
+    // }
 
-    pub fn on_selected_entity(&mut self, id: Option<Id>) {
-        godot_print!("on selected on sector {:?}", id);
-        let runtime = self.runtime.as_mut().expect("runtime not initialized");
-        runtime.on_selected_entity(id);
-    }
+    // pub fn on_click_fleet(&mut self, fleet_id: Id) {
+    //     let runtime = self.runtime.as_mut().expect("runtime not initialized");
+    //     runtime.on_selected_entity(Some(fleet_id));
+    // }
+
+    // pub fn on_selected_entity(&mut self, id: Option<Id>) {
+    //     godot_print!("on selected on sector {:?}", id);
+    //     let runtime = self.runtime.as_mut().expect("runtime not initialized");
+    //     runtime.on_selected_entity(id);
+    // }
 }
 
 #[godot_api]

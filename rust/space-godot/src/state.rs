@@ -4,7 +4,7 @@ use space_flap::{Id, SpaceGame, WareData};
 pub enum StateScreen {
     Sector(Id),
     Galaxy,
-    Fleet(Id),
+    Obj(Id),
 }
 
 #[derive(PartialEq, Debug, Copy, Clone)]
@@ -17,7 +17,6 @@ pub struct State {
     pub game: SpaceGame,
     pub screen: StateScreen,
     pub wares: Vec<WareData>,
-    pub selected_object: Option<Id>,
     pub time_speed: TimeSpeed,
 }
 
@@ -55,7 +54,6 @@ impl State {
             game,
             screen: StateScreen::Sector(sector_id),
             time_speed: TimeSpeed::Normal,
-            selected_object: None,
             wares,
         };
 

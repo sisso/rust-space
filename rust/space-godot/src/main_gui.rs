@@ -12,6 +12,7 @@ pub struct MainGui {
     buttons_sectors: Vec<Id>,
     buttons_fleets: Vec<Id>,
     selected_sector: Option<Id>,
+    selected_fleet: Option<Id>,
 }
 
 pub struct LabeledId {
@@ -35,11 +36,33 @@ impl MainGui {
 
     #[func]
     pub fn on_click_fleet(&mut self) {
-        godot_print!("on click fleet received");
+        if let Some(fleet_id) = self.get_clicked_fleet() {
+            self.selected_fleet = Some(fleet_id);
+        }
     }
 
-    pub fn get_selected_sector_id(&self) -> Option<Id> {
-        self.selected_sector
+    pub fn get_clicked_fleet(&mut self) -> Option<Id> {
+        let container = self.get_fleets_container();
+        let children = container.get_children(false);
+        for (i, node) in children.iter_shared().enumerate() {
+            if let Some(button) = node.try_cast::<Button>() {
+                if button.is_pressed() {
+                    return self.buttons_fleets.get(i).copied();
+                }
+            }
+        }
+
+        None
+    }
+
+    pub fn take_selected_sector_id(&mut self) -> Option<Id> {
+        // godot_print!("take selected sector {:?}", self.selected_sector);
+        self.selected_sector.take()
+    }
+
+    pub fn take_selected_fleet_id(&mut self) -> Option<Id> {
+        // godot_print!("take selected sector {:?}", self.selected_fleet);
+        self.selected_fleet.take()
     }
 
     pub fn get_clicked_sector(&self) -> Option<Id> {
@@ -85,8 +108,8 @@ impl MainGui {
         grid
     }
 
-    pub fn show_fleets(&self, fleets: Vec<LabeledId>) {
-        let mut grid = self.get_fleets_group();
+    pub fn show_fleets(&mut self, fleets: Vec<LabeledId>) {
+        let mut grid = self.get_fleets_container();
         crate::utils::clear(grid.share());
         grid.set_columns(1);
 
@@ -99,10 +122,11 @@ impl MainGui {
                 0,
             );
             grid.add_child(button.upcast(), false, InternalMode::INTERNAL_MODE_DISABLED);
+            self.buttons_fleets.push(fleet.id);
         }
     }
 
-    fn get_fleets_group(&self) -> Gd<GridContainer> {
+    fn get_fleets_container(&self) -> Gd<GridContainer> {
         let grid = self
             .base
             .get_node_as::<GridContainer>("TabContainer/Main/FleetsGridContainer");
@@ -139,6 +163,7 @@ impl Node2DVirtual for MainGui {
             buttons_sectors: vec![],
             buttons_fleets: vec![],
             selected_sector: None,
+            selected_fleet: None,
         }
     }
 

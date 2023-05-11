@@ -25,17 +25,33 @@ impl Runtime {
 
     pub fn tick(&mut self, delta_seconds: f64) {
         self.state.game.update(delta_seconds as f32);
-        let selected_id = self.sector_view.bind().get_selected_id();
-        self.on_selected_entity(selected_id);
-        let selected_sector_id = self.gui.bind().get_selected_sector_id();
-        if let Some(sector_id) = selected_sector_id {
-            self.change_sector(sector_id);
-        }
-        self.refresh_sector_view();
-    }
+        let sector_selected_id = self.sector_view.bind().get_selected_id();
+        let selected_sector_id = self.gui.bind_mut().take_selected_sector_id();
+        let selected_fleet_id = self.gui.bind_mut().take_selected_fleet_id();
 
-    pub fn change_sector(&mut self, sector_id: Id) {
-        self.state.screen = StateScreen::Sector(sector_id);
+        match (selected_sector_id, sector_selected_id, selected_fleet_id) {
+            (Some(sector_id), _, _) => {
+                // when click on sector, clear any selected element and move to the sector
+                // clear selcted element
+                // TODO: can we move this to on_selected_entity?
+                self.sector_view.bind_mut().set_selected(None);
+                self.state.screen = StateScreen::Sector(sector_id);
+            }
+
+            (None, _, Some(fleet_id)) => {
+                // when click on a fleet, start to follow that fleet
+                // TODO: set fleet on sector
+                self.sector_view.bind_mut().set_selected(None);
+                self.state.screen = StateScreen::Obj(fleet_id);
+            }
+            (None, Some(id), None) => {
+                // when has on a obj in the sector already selected
+                self.state.screen = StateScreen::Obj(id);
+            }
+            (_, _, _) => {}
+        }
+
+        self.refresh_sector_view();
     }
 
     pub fn refresh_sector_view(&mut self) {
@@ -44,6 +60,24 @@ impl Runtime {
                 self.sector_view
                     .bind_mut()
                     .refresh(generate_sectorview_updates(&self.state, *sector_id));
+                self.gui
+                    .bind_mut()
+                    .show_selected_object(main_gui::Description::None);
+            }
+            StateScreen::Obj(id) => {
+                let sector_id = self
+                    .state
+                    .game
+                    .get_obj_coords(*id)
+                    .map(|coords| coords.get_sector_id());
+
+                if let Some(sector_id) = sector_id {
+                    self.sector_view
+                        .bind_mut()
+                        .refresh(generate_sectorview_updates(&self.state, sector_id));
+                }
+                let desc = self.describe_obj(*id);
+                self.gui.bind_mut().show_selected_object(desc);
             }
             _ => {
                 todo!("not implemented")
@@ -77,18 +111,18 @@ impl Runtime {
         self.sector_view.bind_mut().recenter();
     }
 
-    pub fn on_selected_entity(&mut self, id: Option<Id>) {
-        self.state.selected_object = id;
-
-        if let Some(id) = self.state.selected_object {
-            let uidesc = self.describe_obj(id);
-            self.gui.bind_mut().show_selected_object(uidesc);
-        } else {
-            self.gui
-                .bind_mut()
-                .show_selected_object(main_gui::Description::None);
-        }
-    }
+    // pub fn on_selected_entity(&mut self, id: Option<Id>) {
+    //     self.state.selected_object = id;
+    //
+    //     if let Some(id) = self.state.selected_object {
+    //         let uidesc = self.describe_obj(id);
+    //         self.gui.bind_mut().show_selected_object(uidesc);
+    //     } else {
+    //         self.gui
+    //             .bind_mut()
+    //             .show_selected_object(main_gui::Description::None);
+    //     }
+    // }
 
     pub fn describe_obj(&self, id: Id) -> main_gui::Description {
         let dt = self.state.game.get_obj(id);
