@@ -5,6 +5,7 @@ use specs::prelude::*;
 
 use crate::game::actions::Actions;
 use crate::game::astrobody::AstroBodies;
+use crate::game::building_site::{BuildingSite, BuildingSystem};
 use crate::game::commands::Commands;
 use crate::game::factory::Factory;
 use crate::game::fleets::Fleet;
@@ -23,6 +24,8 @@ use self::save::{Load, Save};
 
 pub mod actions;
 pub mod astrobody;
+pub mod blueprint;
+pub mod building_site;
 pub mod code;
 pub mod commands;
 pub mod conf;
@@ -89,6 +92,7 @@ impl Game {
         init_ctx.world.register::<label::Label>();
         init_ctx.world.register::<code::HasCode>();
         init_ctx.world.register::<prefab::Prefab>();
+        init_ctx.world.register::<BuildingSite>();
         Sectors::init(&mut init_ctx);
         Locations::init(&mut init_ctx);
         Actions::init(&mut init_ctx);
@@ -101,6 +105,7 @@ impl Game {
         Fleet::init(&mut init_ctx);
         AstroBodies::init(&mut init_ctx);
         Wares::init(&mut init_ctx);
+        init_ctx.dispatcher.add(BuildingSystem, "buildings", &[]);
 
         let mut dispatcher = init_ctx.dispatcher.build();
 

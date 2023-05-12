@@ -175,6 +175,16 @@ impl Cargo {
         Ok(())
     }
 
+    pub fn has_all(&mut self, wares: &Vec<WareAmount>) -> bool {
+        for w in wares {
+            if self.get_amount(w.ware_id) < w.amount {
+                return false;
+            }
+        }
+
+        true
+    }
+
     /// remove all wares or none
     pub fn remove_all(&mut self, wares: &Vec<WareAmount>) -> Result<(), ()> {
         for w in wares {

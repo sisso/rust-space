@@ -196,3 +196,7 @@ fn test_v2_eq() {
     let equals = p1.abs_diff_eq(p2, f32::EPSILON);
     assert!(equals);
 }
+
+pub fn enable_logs(level: log::LevelFilter) {
+    _ = env_logger::builder().filter(None, level).try_init();
+}

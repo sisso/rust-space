@@ -1,5 +1,6 @@
 use specs::prelude::*;
 
+use crate::game::building_site::BuildingSite;
 use commons::math::{Rad, P2, P2I};
 
 use crate::game::commands::Command;
@@ -43,6 +44,7 @@ pub struct NewObj {
     pub planet: Option<()>,
     pub asteroid: Option<()>,
     pub orbit: Option<NewObjOrbit>,
+    pub building_site: Option<BuildingSite>,
 }
 
 impl NewObj {
@@ -92,6 +94,11 @@ impl NewObj {
 
     pub fn with_station(mut self) -> Self {
         self.station = true;
+        self
+    }
+
+    pub fn with_building_site(mut self, bs: BuildingSite) -> Self {
+        self.building_site = Some(bs);
         self
     }
 

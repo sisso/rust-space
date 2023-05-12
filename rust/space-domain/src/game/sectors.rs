@@ -3,7 +3,7 @@ use specs::prelude::*;
 use specs_derive::*;
 use std::borrow::{Borrow, BorrowMut};
 
-use commons::math::{IntoP2Ext, P2, P2I, V2I};
+use commons::math::{IntoP2Ext, P2, P2I};
 use std::time::Instant;
 
 use crate::game::locations::Location;

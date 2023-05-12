@@ -1,13 +1,13 @@
+use crate::game::blueprint::Blueprint;
 use crate::game::commands::Command;
 use crate::game::factory::Receipt;
 use crate::game::loader::{BasicScenery, Loader};
-use crate::game::shipyard::Blueprint;
 use crate::game::wares::WareAmount;
 use crate::game::{sectors, wares, Game};
 use crate::utils::{DeltaTime, V2};
 use commons::math::P2I;
 use shred::World;
-use specs::WorldExt;
+use specs::{Entity, WorldExt};
 
 fn load_fleets_prefabs(world: &mut World) -> Vec<Blueprint> {
     let new_obj = Loader::new_ship(2.0, "Trade fleet".to_string()).with_command(Command::trade());
@@ -35,9 +35,48 @@ fn load_fleets_prefabs(world: &mut World) -> Vec<Blueprint> {
     .collect()
 }
 
+pub struct MinimumScenery {
+    pub ware_ore_id: Entity,
+    pub asteroid_id: Entity,
+    pub sector_0: Entity,
+}
+
+/// Minimum scenery, a sector
+///
+/// Is defined as a simple:
+/// - ore ware
+/// - 1 sector,
+/// - asteroid (ore)
+pub fn load_minimum_scenery(game: &mut Game) -> MinimumScenery {
+    let world = &mut game.world;
+
+    // init wares
+    let ware_ore_id = Loader::add_ware(world, "ore".to_string(), "Ore".to_string());
+
+    // init sectors
+    let sector_0 = Loader::add_sector(world, P2I::new(0, 0), "Sector 0".to_string());
+    sectors::update_sectors_index(world);
+
+    // init objects
+    let asteroid_id = Loader::add_asteroid(world, sector_0, V2::new(-2.0, 3.0), ware_ore_id);
+
+    // return scenery
+    MinimumScenery {
+        ware_ore_id,
+        asteroid_id,
+        sector_0,
+    }
+}
+
 /// Basic scenery used for testing and samples
 ///
-/// Is defined as a simple 2 sector, one miner ship, a station and asteroid
+/// Is defined as a simple:
+/// - 2 sector,
+/// - miner ship
+/// - trade ship
+/// - factory (ore -> components)
+/// - shipyard
+/// - asteroid (ore)
 pub fn load_basic_scenery(game: &mut Game) -> BasicScenery {
     let world = &mut game.world;
 
@@ -45,6 +84,14 @@ pub fn load_basic_scenery(game: &mut Game) -> BasicScenery {
     let ware_ore_id = Loader::add_ware(world, "ore".to_string(), "Ore".to_string());
     let ware_components_id =
         Loader::add_ware(world, "components".to_string(), "Components".to_string());
+
+    // receipts
+    let ore_processing_receipt = Receipt {
+        label: "ore processing".to_string(),
+        input: vec![WareAmount::new(ware_ore_id, 20)],
+        output: vec![WareAmount::new(ware_components_id, 10)],
+        time: DeltaTime(1.0),
+    };
 
     // init prefabs
     let blueprints = load_fleets_prefabs(world);
@@ -64,17 +111,8 @@ pub fn load_basic_scenery(game: &mut Game) -> BasicScenery {
 
     // init objects
     let asteroid_id = Loader::add_asteroid(world, sector_1, V2::new(-2.0, 3.0), ware_ore_id);
-    let component_factory_id = Loader::add_factory(
-        world,
-        sector_0,
-        V2::new(3.0, -1.0),
-        Receipt {
-            label: "ore processing".to_string(),
-            input: vec![WareAmount::new(ware_ore_id, 20)],
-            output: vec![WareAmount::new(ware_components_id, 10)],
-            time: DeltaTime(1.0),
-        },
-    );
+    let component_factory_id =
+        Loader::add_factory(world, sector_0, V2::new(3.0, -1.0), ore_processing_receipt);
 
     let shipyard_id = Loader::add_shipyard(world, sector_0, V2::new(1.0, -3.0), blueprints);
     let miner_id = Loader::add_ship_miner(world, shipyard_id, 2.0, "miner".to_string());
@@ -94,7 +132,16 @@ pub fn load_basic_scenery(game: &mut Game) -> BasicScenery {
     }
 }
 
-/// Advanced scenery
+/// Advanced scenery used for testing and samples
+///
+/// Is defined as a simple:
+/// - 2 sector,
+/// - miner ship
+/// - trade ship
+/// - solar station (energy)
+/// - factory (ore + energy -> components)
+/// - shipyard
+/// - 3x asteroid (ore)
 pub fn load_advanced_scenery(world: &mut World) {
     // init wares
     let ware_ore_id = Loader::add_ware(world, "ore".to_string(), "Ore".to_string());

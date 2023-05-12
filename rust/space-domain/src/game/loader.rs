@@ -7,6 +7,8 @@ use commons;
 use commons::math::{self, P2, P2I};
 
 use crate::game::astrobody::{AstroBodies, AstroBody, AstroBodyKind, OrbitalPos};
+use crate::game::blueprint::Blueprint;
+use crate::game::building_site::BuildingSite;
 use crate::game::code::{Code, HasCode};
 use crate::game::commands::Command;
 use crate::game::dock::HasDock;
@@ -19,12 +21,12 @@ use crate::game::locations::{Location, Moveable};
 use crate::game::new_obj::NewObj;
 use crate::game::objects::ObjId;
 use crate::game::order::Orders;
-use crate::game::prefab::Prefab;
+use crate::game::prefab::{Prefab, PrefabId};
 use crate::game::sectors::{Jump, JumpId, Sector, SectorId};
-use crate::game::shipyard::{Blueprint, Shipyard};
+use crate::game::shipyard::Shipyard;
 use crate::game::station::Station;
 use crate::game::wares::{Cargo, Ware, WareAmount, WareId, WaresByCode};
-use crate::game::{conf, prefab, shipyard};
+use crate::game::{conf, prefab};
 use crate::specs_extras::*;
 use crate::utils::{DeltaTime, Speed, V2};
 
@@ -55,15 +57,13 @@ impl Loader {
         world: &mut World,
         sector_id: SectorId,
         pos: V2,
-        blueprints: Vec<shipyard::Blueprint>,
+        blueprints: Vec<Blueprint>,
     ) -> ObjId {
-        let new_obj = NewObj::new()
-            .with_label("shipyard".to_string())
-            .with_cargo(1000)
+        let new_obj = Self::new_station()
             .at_position(sector_id, pos)
-            .with_station()
-            .with_shipyard(Shipyard::new(blueprints))
-            .has_dock();
+            .with_label("shipyard".to_string())
+            .with_cargo(500)
+            .with_shipyard(Shipyard::new(blueprints));
 
         Loader::add_object(world, &new_obj)
     }
@@ -72,14 +72,19 @@ impl Loader {
         Loader::add_object(world, &Self::new_factory(sector_id, pos, receipt))
     }
 
-    pub fn new_factory(sector_id: SectorId, pos: V2, receipt: Receipt) -> NewObj {
+    pub fn new_station() -> NewObj {
         NewObj::new()
-            .with_label(format!("factory {}", receipt.label))
+            .with_label("station".to_string())
             .with_cargo(100)
-            .at_position(sector_id, pos)
             .with_station()
-            .with_factory(Factory::new(receipt))
             .has_dock()
+    }
+
+    pub fn new_factory(sector_id: SectorId, pos: V2, receipt: Receipt) -> NewObj {
+        Loader::new_station()
+            .at_position(sector_id, pos)
+            .with_label(format!("factory {}", receipt.label))
+            .with_factory(Factory::new(receipt))
     }
 
     pub fn add_ship_miner(world: &mut World, docked_at: ObjId, speed: f32, label: String) -> ObjId {
@@ -293,12 +298,6 @@ impl Loader {
             }
         }
 
-        // TODO: do we really need to setup orders on creation? Why the system do not update that
-        //       on next run?
-        if !orders.is_empty() {
-            builder.set(orders);
-        }
-
         if let Some(_) = new_obj.star {
             builder.set(AstroBody {
                 kind: AstroBodyKind::Star,
@@ -321,6 +320,19 @@ impl Loader {
 
         if new_obj.ware {
             builder.set(Ware {});
+        }
+
+        if let Some(building_site) = &new_obj.building_site {
+            builder.set(building_site.clone());
+            for ware_id in &building_site.input {
+                orders.add_request(ware_id.ware_id);
+            }
+        }
+
+        // TODO: do we really need to setup orders on creation? Why the system do not update that
+        //       on next run?
+        if !orders.is_empty() {
+            builder.set(orders);
         }
 
         let entity = builder.build();
@@ -348,6 +360,14 @@ impl Loader {
     pub fn add_by_prefab_code(world: &mut World, code: &str) -> Option<ObjId> {
         let new_obj = Self::new_by_prefab_code(world, code)?;
         Some(Self::add_object(world, &new_obj))
+    }
+
+    pub fn new_station_building_site(prefab_id: PrefabId, input: Vec<WareAmount>) -> NewObj {
+        Self::new_station()
+            .with_label("building_site".to_string())
+            .with_cargo(100)
+            .with_building_site(BuildingSite { prefab_id, input })
+            .has_dock()
     }
 }
 

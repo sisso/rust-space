@@ -1,22 +1,12 @@
-use rand::{Rng, RngCore};
+use rand::Rng;
 use specs::prelude::*;
-use std::fs::read;
 
-use crate::game::code::{Code, HasCode};
-use crate::game::commands::Command;
+use crate::game::blueprint::Blueprint;
 use crate::game::new_obj::NewObj;
-use crate::game::prefab::{Prefab, PrefabId};
+use crate::game::prefab::Prefab;
 use crate::game::wares::{Cargo, WareAmount};
 use crate::game::{prefab, GameInitContext, RequireInitializer};
 use crate::utils::{DeltaTime, Speed, TotalTime};
-
-#[derive(Debug, Clone)]
-pub struct Blueprint {
-    pub label: String,
-    pub input: Vec<WareAmount>,
-    pub output: PrefabId,
-    pub time: DeltaTime,
-}
 
 #[derive(Debug, Clone)]
 struct ShipyardProduction {
