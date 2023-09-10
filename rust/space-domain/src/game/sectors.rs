@@ -407,7 +407,6 @@ mod test {
     use crate::game::locations::Location;
 
     use crate::game::sectors::{Jump, PathLeg, Sector, SectorId};
-    use crate::utils::V2;
 
     use specs::prelude::*;
 

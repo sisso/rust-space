@@ -98,7 +98,7 @@ fn test_load_random_scenery() {
 
 fn tick_eventually(game: &mut Game, expected_check: fn(game: &mut Game) -> bool) {
     let delta = DeltaTime(0.5);
-    for tick in 0..300 {
+    for _tick in 0..300 {
         game.tick(delta);
         if expected_check(game) {
             return;

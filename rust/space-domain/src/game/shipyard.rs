@@ -144,7 +144,7 @@ mod test {
     use crate::game::commands::Command;
     use crate::game::loader::Loader;
     use crate::game::locations::Location;
-    use crate::game::wares::{Volume, Ware, WareId};
+    use crate::game::wares::{Volume, Ware, WareAmount, WareId};
     use crate::test::test_system;
 
     use super::*;

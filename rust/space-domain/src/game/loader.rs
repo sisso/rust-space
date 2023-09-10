@@ -475,6 +475,7 @@ pub fn load_prefabs(world: &mut World, prefabs: &conf::Prefabs) {
         fleets_prefabs_by_code.insert(fleet.code.clone(), prefab_id);
     }
 
+    // TODO: blueprint are not working
     // generate blueprints
     let mut blueprints: HashMap<String, Blueprint> = Default::default();
     for bp in &prefabs.blueprints {

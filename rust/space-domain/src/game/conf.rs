@@ -93,5 +93,4 @@ pub struct Params {
     pub prefab_station_solar: Code,
     pub prefab_ship_trade: FleetCode,
     pub prefab_ship_miner: FleetCode,
-    pub player_blueprints: Vec<Code>,
 }

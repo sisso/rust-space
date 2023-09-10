@@ -361,7 +361,7 @@ impl WareData {
 }
 
 pub struct EventData {
-    pub event: events::Event,
+    pub(crate) event: events::Event,
 }
 
 impl EventData {
