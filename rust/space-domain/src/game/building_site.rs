@@ -3,6 +3,12 @@ use crate::game::prefab::{Prefab, PrefabId};
 use crate::game::wares::{Cargo, WareAmount};
 use specs::prelude::*;
 
+/// place in space where some prefab is building, once all input resources are there, the prefab is
+/// created and the building site removed.
+///
+/// it should create income order
+///
+/// expected components: Cargo, Location
 #[derive(Clone, Debug, Component)]
 pub struct BuildingSite {
     pub prefab_id: PrefabId,
@@ -21,6 +27,8 @@ impl<'a> System<'a> for BuildingSystem {
         Read<'a, LazyUpdate>,
     );
 
+    /// check if all required wares in building site is in place, if so, create the new prafabe in
+    /// same location and destroy teh building site.
     fn run(
         &mut self,
         (entities, locations, buildings, mut cargos, prefabs, lazy): Self::SystemData,

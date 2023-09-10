@@ -1,6 +1,7 @@
 use specs::prelude::*;
 
 use crate::game::building_site::BuildingSite;
+use crate::game::production_cost::ProductionCost;
 use commons::math::{Rad, P2, P2I};
 
 use crate::game::commands::Command;
@@ -10,7 +11,8 @@ use crate::game::locations::*;
 use crate::game::objects::ObjId;
 use crate::game::sectors::*;
 use crate::game::shipyard::Shipyard;
-use crate::game::wares::Volume;
+use crate::game::wares::{Volume, WareAmount};
+use crate::game::work::WorkUnit;
 use crate::utils::*;
 
 #[derive(Debug, Clone, Component)]
@@ -45,6 +47,7 @@ pub struct NewObj {
     pub asteroid: Option<()>,
     pub orbit: Option<NewObjOrbit>,
     pub building_site: Option<BuildingSite>,
+    pub production_cost: Option<ProductionCost>,
 }
 
 impl NewObj {
@@ -173,6 +176,11 @@ impl NewObj {
             distance,
             angle,
         });
+        self
+    }
+
+    pub fn with_production_cost(mut self, work: WorkUnit, cost: Vec<WareAmount>) -> Self {
+        self.production_cost = Some(ProductionCost { work, cost });
         self
     }
 }

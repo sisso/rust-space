@@ -51,6 +51,12 @@ pub struct Receipt {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProductionCost {
+    pub cost: Vec<ReceiptWare>,
+    pub work: f32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Blueprint {
     pub code: BlueprintCode,
     pub label: Label,
@@ -65,6 +71,7 @@ pub struct Fleet {
     pub label: Label,
     pub speed: f32,
     pub storage: u32,
+    pub production_cost: Option<ProductionCost>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -74,6 +81,7 @@ pub struct Station {
     pub storage: f32,
     pub shipyard: Option<Shipyard>,
     pub factory: Option<Factory>,
+    pub production_cost: Option<ProductionCost>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

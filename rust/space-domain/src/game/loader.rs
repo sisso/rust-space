@@ -329,6 +329,10 @@ impl Loader {
             }
         }
 
+        if let Some(production_cost) = &new_obj.production_cost {
+            builder.set(production_cost.clone());
+        }
+
         // TODO: do we really need to setup orders on creation? Why the system do not update that
         //       on next run?
         if !orders.is_empty() {

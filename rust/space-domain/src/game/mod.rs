@@ -43,6 +43,7 @@ pub mod new_obj;
 pub mod objects;
 pub mod order;
 pub mod prefab;
+pub mod production_cost;
 pub mod save;
 pub mod sceneries;
 pub mod scenery_random;
@@ -51,6 +52,7 @@ pub mod ship;
 pub mod shipyard;
 pub mod station;
 pub mod wares;
+pub mod work;
 
 pub const FRAME_TIME: std::time::Duration = std::time::Duration::from_millis(17);
 pub const SYSTEM_TIMEOUT: std::time::Duration = std::time::Duration::from_millis(1);
