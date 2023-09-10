@@ -3,6 +3,10 @@ use specs::prelude::*;
 pub type Code = String;
 pub type CodeRef = str;
 
+/// Is a user friendly ID used to reference objects from files and user input.
+///
+/// It is "unique" but no constraint is enforced
+// TODO: enforce uniqueness
 #[derive(Component)]
 pub struct HasCode {
     pub code: Code,

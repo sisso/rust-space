@@ -7,7 +7,6 @@ use commons;
 use commons::math::{self, P2, P2I};
 
 use crate::game::astrobody::{AstroBodies, AstroBody, AstroBodyKind, OrbitalPos};
-use crate::game::blueprint::Blueprint;
 use crate::game::building_site::BuildingSite;
 use crate::game::code::{Code, HasCode};
 use crate::game::commands::Command;
@@ -53,17 +52,12 @@ impl Loader {
         Loader::add_object(world, &asteroid)
     }
 
-    pub fn add_shipyard(
-        world: &mut World,
-        sector_id: SectorId,
-        pos: V2,
-        blueprints: Vec<Blueprint>,
-    ) -> ObjId {
+    pub fn add_shipyard(world: &mut World, sector_id: SectorId, pos: V2) -> ObjId {
         let new_obj = Self::new_station()
             .at_position(sector_id, pos)
             .with_label("shipyard".to_string())
             .with_cargo(500)
-            .with_shipyard(Shipyard::new(blueprints));
+            .with_shipyard(Shipyard::new());
 
         Loader::add_object(world, &new_obj)
     }
@@ -273,11 +267,6 @@ impl Loader {
 
         for shipyard in &new_obj.shipyard {
             builder.set(shipyard.clone());
-            for bp in &shipyard.blueprints {
-                for input in &bp.input {
-                    orders.add_request(input.ware_id);
-                }
-            }
         }
 
         if new_obj.cargo_size > 0 {
@@ -440,7 +429,7 @@ pub fn load_prefabs(world: &mut World, prefabs: &conf::Prefabs) {
         let ware_id = Loader::add_ware(world, ware.code.clone(), ware.label.clone());
         wares_by_code.insert(ware.code.clone(), ware_id);
     }
-    let wares_by_code = wares_by_code.into();
+    let wares_by_code = WaresByCode::from(wares_by_code);
 
     // generate receipts
     let mut receipts: HashMap<String, Receipt> = Default::default();
@@ -469,7 +458,7 @@ pub fn load_prefabs(world: &mut World, prefabs: &conf::Prefabs) {
     let mut fleets_prefabs_by_code = HashMap::new();
 
     for fleet in &prefabs.fleets {
-        let mut obj = NewObj::new()
+        let obj = NewObj::new()
             .with_cargo(fleet.storage)
             .with_speed(Speed(fleet.speed))
             .with_label(fleet.label.clone())
@@ -477,29 +466,6 @@ pub fn load_prefabs(world: &mut World, prefabs: &conf::Prefabs) {
 
         let prefab_id = Loader::add_prefab(world, fleet.code.as_str(), obj);
         fleets_prefabs_by_code.insert(fleet.code.clone(), prefab_id);
-    }
-
-    // TODO: blueprint are not working
-    // generate blueprints
-    let mut blueprints: HashMap<String, Blueprint> = Default::default();
-    for bp in &prefabs.blueprints {
-        let prefab_id = fleets_prefabs_by_code
-            .get(bp.output.as_str())
-            .expect("fail to find fleet prefab by code");
-
-        blueprints.insert(
-            bp.code.clone(),
-            Blueprint {
-                label: bp.label.clone(),
-                input: bp
-                    .input
-                    .iter()
-                    .map(|rw| into_wareamount(&wares_by_code, rw.ware.as_str(), rw.amount))
-                    .collect(),
-                output: *prefab_id,
-                time: bp.time.into(),
-            },
-        );
     }
 
     // create stations prefabs
@@ -510,17 +476,10 @@ pub fn load_prefabs(world: &mut World, prefabs: &conf::Prefabs) {
             .with_cargo(station.storage as u32)
             .has_dock();
 
-        if let Some(shipyard) = &station.shipyard {
-            let mut shipyard_bp = vec![];
-
-            for blueprint_code in &shipyard.blueprints {
-                let blueprint = blueprints
-                    .get(blueprint_code)
-                    .unwrap_or_else(|| panic!("blueprint code {} not found", blueprint_code));
-                shipyard_bp.push(blueprint.clone());
-            }
-
-            obj = obj.with_shipyard(Shipyard::new(shipyard_bp));
+        if let Some(data) = &station.shipyard {
+            let mut shipyard = Shipyard::new();
+            shipyard.production = data.production;
+            obj = obj.with_shipyard(shipyard);
         }
 
         if let Some(factory) = &station.factory {

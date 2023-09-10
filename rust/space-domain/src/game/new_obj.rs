@@ -31,6 +31,7 @@ pub struct NewObj {
     pub can_dock: bool,
     pub fleet: bool,
     pub has_dock: bool,
+    // TODO: What is the purpose of this if fleets already have commands? loader do not use it
     pub ai: bool,
     pub station: bool,
     pub sector: Option<P2I>,

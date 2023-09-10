@@ -86,7 +86,7 @@ pub struct Station {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Shipyard {
-    pub blueprints: Vec<BlueprintCode>,
+    pub production: f32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

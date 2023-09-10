@@ -1,4 +1,3 @@
-use crate::game::blueprint::Blueprint;
 use crate::game::commands::Command;
 use crate::game::factory::Receipt;
 use crate::game::loader::{BasicScenery, Loader};
@@ -9,30 +8,20 @@ use commons::math::P2I;
 use shred::World;
 use specs::Entity;
 
-fn load_fleets_prefabs(world: &mut World) -> Vec<Blueprint> {
-    let new_obj = Loader::new_ship(2.0, "Trade fleet".to_string()).with_command(Command::trade());
-    let trade_code = "trade_fleet";
-    let trade_fleet_prefab_id = Loader::add_prefab(world, trade_code, new_obj);
-
-    let new_obj = Loader::new_ship(2.0, "Mine fleet".to_string()).with_command(Command::mine());
-    let mine_code = "mine_fleet";
-    let mine_fleet_prefab_id = Loader::add_prefab(world, mine_code, new_obj);
-
+fn load_fleets_prefabs(world: &mut World) {
     let ware_id =
         wares::find_ware_by_code(world, "components").expect("fail to find components ware");
 
-    vec![
-        ("trade_code", trade_fleet_prefab_id),
-        ("mine_code", mine_fleet_prefab_id),
-    ]
-    .iter()
-    .map(|(code, prefab_id)| Blueprint {
-        label: format!("Produce {code}"),
-        input: vec![WareAmount::new(ware_id, 50)],
-        output: *prefab_id,
-        time: 5.0.into(),
-    })
-    .collect()
+    let new_obj = Loader::new_ship(2.0, "Trade fleet".to_string())
+        .with_command(Command::trade())
+        .with_production_cost(5.0, vec![WareAmount::new(ware_id, 50)]);
+    Loader::add_prefab(world, "trade_fleet", new_obj);
+
+    let new_obj = Loader::new_ship(2.0, "Mine fleet".to_string())
+        .with_command(Command::mine())
+        .with_production_cost(5.0, vec![WareAmount::new(ware_id, 50)]);
+
+    Loader::add_prefab(world, "mine_fleet", new_obj);
 }
 
 pub struct MinimumScenery {
@@ -93,9 +82,6 @@ pub fn load_basic_scenery(game: &mut Game) -> BasicScenery {
         time: DeltaTime(1.0),
     };
 
-    // init prefabs
-    let blueprints = load_fleets_prefabs(world);
-
     // init sectors
     let sector_0 = Loader::add_sector(world, P2I::new(0, 0), "Sector 0".to_string());
     let sector_1 = Loader::add_sector(world, P2I::new(1, 0), "Sector 1".to_string());
@@ -114,7 +100,7 @@ pub fn load_basic_scenery(game: &mut Game) -> BasicScenery {
     let component_factory_id =
         Loader::add_factory(world, sector_0, V2::new(3.0, -1.0), ore_processing_receipt);
 
-    let shipyard_id = Loader::add_shipyard(world, sector_0, V2::new(1.0, -3.0), blueprints);
+    let shipyard_id = Loader::add_shipyard(world, sector_0, V2::new(1.0, -3.0));
     let miner_id = Loader::add_ship_miner(world, shipyard_id, 2.0, "miner".to_string());
     let trader_id = Loader::add_ship_trader(world, component_factory_id, 2.0, "trader".to_string());
 
@@ -150,7 +136,7 @@ pub fn load_advanced_scenery(world: &mut World) {
     let ware_energy = Loader::add_ware(world, "energy".to_string(), "Energy".to_string());
 
     // init prefabs
-    let blueprints = load_fleets_prefabs(world);
+    load_fleets_prefabs(world);
 
     // receipts
     let receipt_process_ores = Receipt {
@@ -193,7 +179,7 @@ pub fn load_advanced_scenery(world: &mut World) {
     let _energy_factory_id =
         Loader::add_factory(world, sector_0, V2::new(-0.5, 1.5), receipt_produce_energy);
 
-    let shipyard_id = Loader::add_shipyard(world, sector_0, V2::new(1.0, -3.0), blueprints);
+    let shipyard_id = Loader::add_shipyard(world, sector_0, V2::new(1.0, -3.0));
     Loader::add_ship_miner(world, shipyard_id, 2.0, "miner".to_string());
     Loader::add_ship_trader(world, component_factory_id, 2.0, "trader".to_string());
 }
