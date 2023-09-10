@@ -5,12 +5,13 @@
 [node name="TabContainer" type="TabContainer" parent="."]
 anchors_preset = 9
 anchor_bottom = 1.0
-offset_right = 166.0
+offset_right = 193.0
 offset_bottom = 648.0
 grow_vertical = 2
 size_flags_vertical = 3
 
 [node name="Main" type="VBoxContainer" parent="TabContainer"]
+visible = false
 layout_mode = 2
 
 [node name="Label3" type="Label" parent="TabContainer/Main"]
@@ -54,6 +55,28 @@ bbcode_enabled = true
 text = "None"
 fit_content = true
 
-[node name="Details" type="VBoxContainer" parent="TabContainer"]
-visible = false
+[node name="Construction" type="VBoxContainer" parent="TabContainer"]
 layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/Construction"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="TabContainer/Construction/VBoxContainer"]
+layout_mode = 2
+text = "Building new station:"
+horizontal_alignment = 1
+
+[node name="Label2" type="Label" parent="TabContainer/Construction/VBoxContainer"]
+layout_mode = 2
+text = "Blueprint:"
+
+[node name="ItemList" type="ItemList" parent="TabContainer/Construction/VBoxContainer"]
+layout_mode = 2
+auto_height = true
+item_count = 2
+item_0/text = "sample 1"
+item_1/text = "sample 2"
+
+[node name="Button" type="Button" parent="TabContainer/Construction/VBoxContainer"]
+layout_mode = 2
+text = "Plot"

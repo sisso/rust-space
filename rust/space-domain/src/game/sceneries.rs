@@ -7,7 +7,7 @@ use crate::game::{sectors, wares, Game};
 use crate::utils::{DeltaTime, V2};
 use commons::math::P2I;
 use shred::World;
-use specs::{Entity, WorldExt};
+use specs::Entity;
 
 fn load_fleets_prefabs(world: &mut World) -> Vec<Blueprint> {
     let new_obj = Loader::new_ship(2.0, "Trade fleet".to_string()).with_command(Command::trade());

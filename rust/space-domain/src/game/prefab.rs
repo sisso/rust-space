@@ -6,6 +6,8 @@ use specs::prelude::*;
 
 pub type PrefabId = ObjId;
 
+/// Define a NewObj that can easily be builder by the engine when a new object would need to be
+/// created
 #[derive(Debug, Clone, Component)]
 pub struct Prefab {
     pub obj: NewObj,

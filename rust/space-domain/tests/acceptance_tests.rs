@@ -6,7 +6,7 @@ use commons::math::P2;
 use space_domain::game;
 use space_domain::game::building_site::BuildingSite;
 use space_domain::game::label::Label;
-use space_domain::game::loader::{BasicScenery, Loader};
+use space_domain::game::loader::Loader;
 use space_domain::game::sceneries;
 use space_domain::game::scenery_random::{InitialCondition, RandomMapCfg};
 use space_domain::game::station::Station;
@@ -28,7 +28,7 @@ fn test_game_should_mine_and_deliver_cargo_to_station_until_produce_a_new_ship()
     });
 }
 #[test]
-fn test_construction_yard_should_be_build_by_traders_delivering_components() {
+fn test_construction_yard_should_be_build_by_miners_delivering_components() {
     let mut game = Game::new();
     let bs = sceneries::load_minimum_scenery(&mut game);
 

@@ -85,7 +85,7 @@ impl NodeVirtual for GameApi {
             return;
         }
 
-        let runtime = self.runtime.as_mut().expect("runtime not intiialized");
+        let runtime = self.runtime.as_mut().expect("runtime not initialized");
         runtime.tick(delta);
     }
 }

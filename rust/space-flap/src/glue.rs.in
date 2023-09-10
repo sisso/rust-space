@@ -1,4 +1,21 @@
 foreign_class!(
+    class SpaceGame {
+        self_type SpaceGame;
+        constructor SpaceGame::new(rgs: Vec<String>) -> SpaceGame;
+        fn SpaceGame::get_sectors(&self) -> Vec<SectorData>;
+        fn SpaceGame::list_jumps(&self) -> Vec<JumpData>;
+        fn SpaceGame::get_jump(&self, id: u64) -> Option<JumpData>;
+        fn SpaceGame::get_fleets(&self) -> Vec<ObjData>;
+        fn SpaceGame::get_obj(&self, id: u64) -> Option<ObjData>;
+        fn SpaceGame::get_obj_coords(&self, id: u64) -> Option<ObjCoords>;
+        fn SpaceGame::update(&mut self, delta: f32);
+        fn SpaceGame::take_events(&mut self) -> Vec<EventData>;
+        fn SpaceGame::list_wares(&self) -> Vec<WareData>;
+        fn SpaceGame::list_blueprints(&self) -> Vec<BlueprintData>;
+    }
+);
+
+foreign_class!(
     class SectorData {
         self_type SectorData;
         private constructor = empty;
@@ -133,18 +150,11 @@ foreign_class!(
 );
 
 foreign_class!(
-    class SpaceGame {
-        self_type SpaceGame;
-        constructor SpaceGame::new(rgs: Vec<String>) -> SpaceGame;
-        fn SpaceGame::get_sectors(&self) -> Vec<SectorData>;
-        fn SpaceGame::list_jumps(&self) -> Vec<JumpData>;
-        fn SpaceGame::get_jump(&self, id: u64) -> Option<JumpData>;
-        fn SpaceGame::get_fleets(&self) -> Vec<ObjData>;
-        fn SpaceGame::get_obj(&self, id: u64) -> Option<ObjData>;
-        fn SpaceGame::get_obj_coords(&self, id: u64) -> Option<ObjCoords>;
-        fn SpaceGame::update(&mut self, delta: f32);
-        fn SpaceGame::take_events(&mut self) -> Vec<EventData>;
-        fn SpaceGame::list_wares(&self) -> Vec<WareData>;
+    class BlueprintData {
+        self_type BlueprintData;
+        private constructor = empty;
+        fn BlueprintData::get_label(&self) -> &str;
+        fn BlueprintData::get_id(&self) -> u64;
     }
 );
 

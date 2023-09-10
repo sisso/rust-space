@@ -13,6 +13,8 @@ use commons::math::P2;
 pub use models::*;
 use space_domain::game::actions::{Action, ActionActive, Actions};
 use space_domain::game::astrobody::{AstroBodies, AstroBody, AstroBodyKind, OrbitalPos};
+use space_domain::game::blueprint::Blueprint;
+use space_domain::game::conf::BlueprintCode;
 use space_domain::game::extractables::Extractable;
 use space_domain::game::factory::Factory;
 use space_domain::game::fleets::Fleet;
@@ -29,8 +31,10 @@ use space_domain::game::wares::{Cargo, Ware, WareId};
 use space_domain::game::{events, scenery_random};
 use space_domain::game::{loader, Game};
 use space_domain::utils::TotalTime;
+use utils::*;
 
 pub mod models;
+mod utils;
 
 // EOF models
 
@@ -334,72 +338,22 @@ impl SpaceGame {
             })
             .collect()
     }
-}
 
-pub struct EventData {
-    event: events::Event,
-}
+    pub fn list_blueprints(&self) -> Vec<BlueprintData> {
+        let game = self.game.borrow();
+        let entities = game.world.entities();
+        let labels = game.world.read_storage::<Label>();
+        // let blueprints = game.world.read_storage::<Blueprint>();
 
-impl EventData {
-    pub fn get_id(&self) -> Id {
-        encode_entity(self.event.id)
-    }
+        // (&entities, &labels, &blueprints)
+        //     .join()
+        //     .map(|(e, l, b)| WareData {
+        //         id: encode_entity(e),
+        //         label: l.label.clone(),
+        //     })
+        //     .collect()
 
-    pub fn get_kind(&self) -> EventKind {
-        match self.event.kind {
-            events::EventKind::Add => EventKind::Add,
-            events::EventKind::Move => EventKind::Move,
-            events::EventKind::Jump => EventKind::Jump,
-            events::EventKind::Dock => EventKind::Dock,
-            events::EventKind::Undock => EventKind::Undock,
-        }
-    }
-}
-
-// real encoding of a entity
-fn proper_encode_entity(entity: Entity) -> u64 {
-    let high: u32 = entity.id();
-    let low: i32 = entity.gen().id();
-
-    let encoded: u64 = (high as u64) << 32 | (low as u64);
-    return encoded;
-}
-
-// real decoding of a entity
-fn proper_decode_entity(value: u64) -> (u32, i32) {
-    let high = (value >> 32) as u32;
-    let low = (value & 0xffffffff) as i32;
-    (high, low)
-}
-
-// pretty but broken encode of entity
-fn encode_entity(entity: Entity) -> u64 {
-    let high = entity.gen().id() as u64 * 1_000_000;
-    let low = entity.id() as u64;
-    return high + low;
-}
-
-// pretty but broken decode of entity
-fn decode_entity(value: u64) -> (u32, i32) {
-    let high = value / 1_000_000;
-    let low = value % 1_000_000;
-    (low as u32, high as i32)
-}
-
-fn decode_entity_and_get(g: &Game, id: Id) -> Option<Entity> {
-    let (eid, egen) = decode_entity(id);
-    let entities = g.world.entities();
-    let e = entities.entity(eid);
-    if egen == e.gen().id() {
-        Some(e)
-    } else {
-        log::warn!(
-            "get_obj for {}/{} fail, entity has gen {}",
-            eid,
-            egen,
-            e.gen().id()
-        );
-        return None;
+        vec![]
     }
 }
 

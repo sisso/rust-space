@@ -4,9 +4,9 @@ use specs::prelude::*;
 use crate::game::blueprint::Blueprint;
 use crate::game::new_obj::NewObj;
 use crate::game::prefab::Prefab;
-use crate::game::wares::{Cargo, WareAmount};
+use crate::game::wares::Cargo;
 use crate::game::{prefab, GameInitContext, RequireInitializer};
-use crate::utils::{DeltaTime, Speed, TotalTime};
+use crate::utils::TotalTime;
 
 #[derive(Debug, Clone)]
 struct ShipyardProduction {
@@ -121,7 +121,7 @@ impl<'a> System<'a> for ShipyardSystem {
                         });
 
                         log::debug!(
-                            "{:?} staring production of bluprint {:?} will be complete at {:?}",
+                            "{:?} staring production of bluerint {:?} will be complete at {:?}",
                             entity,
                             shipyard.blueprints[index].label,
                             complete_time,
@@ -140,7 +140,8 @@ impl<'a> System<'a> for ShipyardSystem {
 
 #[cfg(test)]
 mod test {
-    use crate::game::code::CodeRef;
+    use crate::game::code::{CodeRef, HasCode};
+    use crate::game::commands::Command;
     use crate::game::loader::Loader;
     use crate::game::locations::Location;
     use crate::game::wares::{Volume, Ware, WareId};

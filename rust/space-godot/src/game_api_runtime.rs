@@ -24,7 +24,7 @@ impl Runtime {
     }
 
     pub fn tick(&mut self, delta_seconds: f64) {
-        self.state.game.update(delta_seconds as f32);
+        // process inputs
         let sector_selected_id = self.sector_view.bind().get_selected_id();
         let selected_sector_id = self.gui.bind_mut().take_selected_sector_id();
         let selected_fleet_id = self.gui.bind_mut().take_selected_fleet_id();
@@ -51,6 +51,10 @@ impl Runtime {
             (_, _, _) => {}
         }
 
+        // update game
+        self.state.game.update(delta_seconds as f32);
+
+        // update view
         self.refresh_sector_view();
     }
 

@@ -12,7 +12,7 @@ use space_domain::game::navigations::NavigationMoveTo;
 use space_domain::game::sectors::Jump;
 use space_domain::game::shipyard::Shipyard;
 use space_domain::game::wares::Cargo;
-use space_domain::game::Game;
+use space_domain::game::{events, Game};
 
 use super::{decode_entity, encode_entity};
 
@@ -352,6 +352,41 @@ pub struct WareData {
 }
 
 impl WareData {
+    pub fn get_id(&self) -> Id {
+        self.id
+    }
+    pub fn get_label(&self) -> &str {
+        self.label.as_str()
+    }
+}
+
+pub struct EventData {
+    pub event: events::Event,
+}
+
+impl EventData {
+    pub fn get_id(&self) -> Id {
+        encode_entity(self.event.id)
+    }
+
+    pub fn get_kind(&self) -> EventKind {
+        match self.event.kind {
+            events::EventKind::Add => EventKind::Add,
+            events::EventKind::Move => EventKind::Move,
+            events::EventKind::Jump => EventKind::Jump,
+            events::EventKind::Dock => EventKind::Dock,
+            events::EventKind::Undock => EventKind::Undock,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct BlueprintData {
+    pub(crate) id: Id,
+    pub(crate) label: String,
+}
+
+impl BlueprintData {
     pub fn get_id(&self) -> Id {
         self.id
     }
