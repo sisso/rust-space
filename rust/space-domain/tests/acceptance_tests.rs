@@ -3,6 +3,7 @@ extern crate space_domain;
 use space_domain::game::commands::Command;
 
 use commons::math::P2;
+use log::LevelFilter;
 use space_domain::game;
 use space_domain::game::building_site::BuildingSite;
 use space_domain::game::label::Label;
@@ -18,7 +19,10 @@ use specs::WorldExt;
 use std::borrow::Borrow;
 
 #[test]
-fn test_game_should_mine_and_deliver_cargo_to_station_until_produce_a_new_ship() {
+fn test_game_should_mine_and_deliver_cargo_to_shipyard_until_produce_a_new_ship() {
+    env_logger::builder()
+        .filter_level(LevelFilter::Debug)
+        .init();
     let mut game = Game::new();
     let _ = sceneries::load_basic_scenery(&mut game);
 
@@ -27,6 +31,7 @@ fn test_game_should_mine_and_deliver_cargo_to_station_until_produce_a_new_ship()
         total_commands > 2
     });
 }
+
 #[test]
 fn test_construction_yard_should_be_build_by_miners_delivering_components() {
     let mut game = Game::new();

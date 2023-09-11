@@ -13,7 +13,6 @@ use commons::math::P2;
 pub use models::*;
 use space_domain::game::actions::{Action, ActionActive, Actions};
 use space_domain::game::astrobody::{AstroBodies, AstroBody, AstroBodyKind, OrbitalPos};
-use space_domain::game::blueprint::Blueprint;
 use space_domain::game::conf::BlueprintCode;
 use space_domain::game::extractables::Extractable;
 use space_domain::game::factory::Factory;

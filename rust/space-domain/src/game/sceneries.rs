@@ -82,6 +82,9 @@ pub fn load_basic_scenery(game: &mut Game) -> BasicScenery {
         time: DeltaTime(1.0),
     };
 
+    // init prefabs
+    load_fleets_prefabs(world);
+
     // init sectors
     let sector_0 = Loader::add_sector(world, P2I::new(0, 0), "Sector 0".to_string());
     let sector_1 = Loader::add_sector(world, P2I::new(1, 0), "Sector 1".to_string());

@@ -24,7 +24,6 @@ pub fn load_str(buffer: &str) -> Result<Conf, String> {
 pub struct Prefabs {
     pub wares: Vec<Ware>,
     pub receipts: Vec<Receipt>,
-    pub blueprints: Vec<Blueprint>,
     pub fleets: Vec<Fleet>,
     pub stations: Vec<Station>,
 }
@@ -54,15 +53,10 @@ pub struct Receipt {
 pub struct ProductionCost {
     pub cost: Vec<ReceiptWare>,
     pub work: f32,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Blueprint {
-    pub code: BlueprintCode,
-    pub label: Label,
-    pub input: Vec<ReceiptWare>,
-    pub output: FleetCode,
-    pub time: f32,
+    #[serde(default)]
+    pub by_shipyard: bool,
+    #[serde(default)]
+    pub by_building_site: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

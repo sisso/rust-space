@@ -46,6 +46,16 @@ impl From<(WareId, Volume)> for WareAmount {
     }
 }
 
+pub trait VecWareAmount {
+    fn get_wares_id(&self) -> Vec<WareId>;
+}
+
+impl VecWareAmount for Vec<WareAmount> {
+    fn get_wares_id(&self) -> Vec<WareId> {
+        self.iter().map(|wa| wa.ware_id).collect()
+    }
+}
+
 pub fn find_ware_by_code(world: &World, code: &str) -> Option<Entity> {
     (
         &world.entities(),

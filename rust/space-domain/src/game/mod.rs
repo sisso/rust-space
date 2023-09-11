@@ -24,7 +24,6 @@ use self::save::{Load, Save};
 
 pub mod actions;
 pub mod astrobody;
-pub mod blueprint;
 pub mod building_site;
 pub mod code;
 pub mod commands;

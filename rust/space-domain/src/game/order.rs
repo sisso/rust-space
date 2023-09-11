@@ -5,7 +5,7 @@ use specs::prelude::*;
 use crate::game::wares::WareId;
 use crate::game::{GameInitContext, RequireInitializer};
 
-#[derive(Debug, Clone, Component, Default)]
+#[derive(Debug, Clone, Component, Default, PartialEq)]
 pub struct Orders {
     provided: HashSet<WareId>,
     requested: HashSet<WareId>,
@@ -42,7 +42,11 @@ impl Orders {
         !self.provided.is_empty()
     }
 
-    pub fn request_any(&self, wares: &Vec<WareId>) -> Vec<WareId> {
+    pub fn is_requesting(&self) -> bool {
+        !self.requested.is_empty()
+    }
+
+    pub fn request_any(&self, wares: &[WareId]) -> Vec<WareId> {
         wares
             .iter()
             .copied()
@@ -50,7 +54,11 @@ impl Orders {
             .collect()
     }
 
-    pub fn is_request_any(&self, wares: &Vec<WareId>) -> bool {
+    pub fn is_request_exactly(&self, wares: &[WareId]) -> bool {
+        self.request_any(wares).len() == wares.len()
+    }
+
+    pub fn is_request_any(&self, wares: &[WareId]) -> bool {
         !self.request_any(wares).is_empty()
     }
 
