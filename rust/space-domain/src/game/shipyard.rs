@@ -108,14 +108,11 @@ impl<'a> System<'a> for ShipyardSystem {
                     if let Some(mut new_obj) = prefab::get_by_id(&prefabs, prefab_id) {
                         // put into shipyard
                         new_obj = new_obj.at_dock(shipyard_id);
+                        log::debug!("{:?} complete production of {:?}", shipyard_id, new_obj);
                         produced_fleets.push(new_obj);
-                        log::debug!(
-                            "{:?} complete production, scheduling new object",
-                            shipyard_id
-                        );
                     } else {
                         log::warn!(
-                            "{:?} fail to produce fleet, prefab id {:?} not found",
+                            "{:?} fail to produce fleet, prefab id {:?} not found, ignoring production",
                             shipyard_id,
                             prefab_id
                         );
