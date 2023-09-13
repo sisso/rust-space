@@ -11,7 +11,6 @@ grow_vertical = 2
 size_flags_vertical = 3
 
 [node name="Main" type="VBoxContainer" parent="TabContainer"]
-visible = false
 layout_mode = 2
 
 [node name="Label3" type="Label" parent="TabContainer/Main"]
@@ -56,6 +55,7 @@ text = "None"
 fit_content = true
 
 [node name="Construction" type="VBoxContainer" parent="TabContainer"]
+visible = false
 layout_mode = 2
 
 [node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/Construction"]

@@ -381,12 +381,12 @@ impl EventData {
 }
 
 #[derive(Debug)]
-pub struct BlueprintData {
+pub struct PrefabData {
     pub(crate) id: Id,
     pub(crate) label: String,
 }
 
-impl BlueprintData {
+impl PrefabData {
     pub fn get_id(&self) -> Id {
         self.id
     }

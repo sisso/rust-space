@@ -64,8 +64,6 @@ pub struct ShipyardSystem;
 
 /// automatically produce one of available fleets at random, once all resources are in place, create
 /// a new fleet and start the process
-///
-///
 impl<'a> System<'a> for ShipyardSystem {
     type SystemData = (
         Read<'a, DeltaTime>,
@@ -84,7 +82,10 @@ impl<'a> System<'a> for ShipyardSystem {
         log::trace!("running");
 
         // collect all prefabs as candidates for random production
-        let prefabs_candidates: Vec<_> = (&entities, &prefabs).join().collect();
+        let prefabs_candidates: Vec<_> = (&entities, &prefabs)
+            .join()
+            .filter(|(_, p)| p.shipyard)
+            .collect();
 
         let mut produced_fleets = vec![];
         let mut orders_updates = vec![];
@@ -410,16 +411,10 @@ mod test {
                 .with_command(Command::mine())
                 .with_production_cost(TOTAL_WORK, vec![WareAmount::new(ware_id, REQUIRE_CARGO)])
                 .with_ai();
-            let prefab_id = Loader::add_prefab(world, "fleet", new_obj);
+            let prefab_id = Loader::add_prefab(world, "fleet", new_obj, true, false);
 
-            // let blueprint = load_fleets_prefab(
-            //     world,
-            //     ware_id,
-            //     REQUIRE_CARGO,
-            //     PRODUCTION_TIME,
-            //     "ware",
-            //     Command::mine(),
-            // );
+            // create station prefab to check we never building it by mistake
+            Loader::add_prefab(world, "station", Loader::new_station(), false, true);
 
             assert!(station_current_cargo_amount < 1000);
             let mut cargo = Cargo::new(1000);

@@ -11,7 +11,7 @@ foreign_class!(
         fn SpaceGame::update(&mut self, delta: f32);
         fn SpaceGame::take_events(&mut self) -> Vec<EventData>;
         fn SpaceGame::list_wares(&self) -> Vec<WareData>;
-        fn SpaceGame::list_blueprints(&self) -> Vec<BlueprintData>;
+        fn SpaceGame::list_building_sites_prefabs(&self) -> Vec<PrefabData>;
     }
 );
 
@@ -150,11 +150,11 @@ foreign_class!(
 );
 
 foreign_class!(
-    class BlueprintData {
-        self_type BlueprintData;
+    class PrefabData {
+        self_type PrefabData;
         private constructor = empty;
-        fn BlueprintData::get_label(&self) -> &str;
-        fn BlueprintData::get_id(&self) -> u64;
+        fn PrefabData::get_label(&self) -> &str;
+        fn PrefabData::get_id(&self) -> u64;
     }
 );
 

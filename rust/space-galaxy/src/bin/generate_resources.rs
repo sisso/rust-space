@@ -1,9 +1,6 @@
-use log::debug;
 use rand::prelude::*;
+use space_galaxy::terrain_generator;
 use space_galaxy::terrain_generator::ResCfg;
-use space_galaxy::{galaxy_generator, system_generator, terrain_generator};
-use std::cmp::max;
-use std::path::{Path, PathBuf};
 
 fn main() {
     env_logger::builder()

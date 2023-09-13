@@ -23,6 +23,7 @@ use space_domain::game::locations::{Location, LocationSpace, Locations};
 use space_domain::game::navigations::{Navigation, NavigationMoveTo};
 use space_domain::game::objects::ObjId;
 use space_domain::game::order::Orders;
+use space_domain::game::prefab::Prefab;
 use space_domain::game::sectors::{Jump, Sector};
 use space_domain::game::shipyard::Shipyard;
 use space_domain::game::station::Station;
@@ -338,23 +339,19 @@ impl SpaceGame {
             .collect()
     }
 
-    pub fn list_blueprints(&self) -> Vec<BlueprintData> {
+    pub fn list_building_sites_prefabs(&self) -> Vec<PrefabData> {
         let game = self.game.borrow();
         let entities = game.world.entities();
         let labels = game.world.read_storage::<Label>();
-        // let blueprints = game.world.read_storage::<Blueprint>();
+        let prefabs = game.world.read_storage::<Prefab>();
 
-        // (&entities, &labels, &blueprints)
-        //     .join()
-        //     .map(|(e, l, b)| WareData {
-        //         id: encode_entity(e),
-        //         label: l.label.clone(),
-        //     })
-        //     .collect()
-        //         code: b.label,
-        //     })
-        //     .collect()
-        vec![]
+        (&entities, &labels, &prefabs)
+            .join()
+            .map(|(e, l, _p)| PrefabData {
+                id: encode_entity(e),
+                label: l.label.clone(),
+            })
+            .collect()
     }
 }
 

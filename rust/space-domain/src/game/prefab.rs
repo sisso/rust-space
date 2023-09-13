@@ -11,6 +11,8 @@ pub type PrefabId = ObjId;
 #[derive(Debug, Clone, Component)]
 pub struct Prefab {
     pub obj: NewObj,
+    pub shipyard: bool,
+    pub build_site: bool,
 }
 
 pub fn find_prefab_by_code(world: &World, code: &str) -> Option<Prefab> {

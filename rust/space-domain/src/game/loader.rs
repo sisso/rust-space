@@ -338,10 +338,20 @@ impl Loader {
         entity
     }
 
-    pub fn add_prefab(world: &mut World, code: &str, new_obj: NewObj) -> Entity {
+    pub fn add_prefab(
+        world: &mut World,
+        code: &str,
+        new_obj: NewObj,
+        shipyard: bool,
+        building_site: bool,
+    ) -> Entity {
         world
             .create_entity()
-            .with(Prefab { obj: new_obj })
+            .with(Prefab {
+                obj: new_obj,
+                shipyard: shipyard,
+                build_site: building_site,
+            })
             .with(HasCode::from_str(code))
             .build()
     }
@@ -422,6 +432,15 @@ fn into_wareamount(wares_by_code: &WaresByCode, code: &str, amount: u32) -> Ware
     }
 }
 
+fn into_wareamount_list(
+    wares_by_code: &WaresByCode,
+    list: &[conf::ReceiptWare],
+) -> Vec<WareAmount> {
+    list.iter()
+        .map(|rw| into_wareamount(&wares_by_code, rw.ware.as_str(), rw.amount))
+        .collect()
+}
+
 pub fn load_prefabs(world: &mut World, prefabs: &conf::Prefabs) {
     // generate wares and collect index
     let mut wares_by_code: HashMap<Code, WareId> = Default::default();
@@ -439,33 +458,29 @@ pub fn load_prefabs(world: &mut World, prefabs: &conf::Prefabs) {
             receipt.code.clone(),
             Receipt {
                 label: receipt.label.clone(),
-                input: receipt
-                    .input
-                    .iter()
-                    .map(|rw| into_wareamount(&wares_by_code, rw.ware.as_str(), rw.amount))
-                    .collect(),
-                output: receipt
-                    .output
-                    .iter()
-                    .map(|rw| into_wareamount(&wares_by_code, rw.ware.as_str(), rw.amount))
-                    .collect(),
+                input: into_wareamount_list(&wares_by_code, &receipt.input),
+                output: into_wareamount_list(&wares_by_code, &receipt.output),
                 time: DeltaTime(receipt.time),
             },
         );
     }
 
     // load fleets prefabs
-    let mut fleets_prefabs_by_code = HashMap::new();
-
     for fleet in &prefabs.fleets {
-        let obj = NewObj::new()
+        let mut obj = NewObj::new()
             .with_cargo(fleet.storage)
             .with_speed(Speed(fleet.speed))
             .with_label(fleet.label.clone())
             .with_ai();
 
-        let prefab_id = Loader::add_prefab(world, fleet.code.as_str(), obj);
-        fleets_prefabs_by_code.insert(fleet.code.clone(), prefab_id);
+        if let Some(prod_cost) = fleet.production_cost.as_ref() {
+            obj = obj.with_production_cost(
+                prod_cost.work,
+                into_wareamount_list(&wares_by_code, &prod_cost.cost),
+            );
+        }
+
+        Loader::add_prefab(world, fleet.code.as_str(), obj, true, false);
     }
 
     // create stations prefabs
@@ -494,12 +509,13 @@ pub fn load_prefabs(world: &mut World, prefabs: &conf::Prefabs) {
             });
         }
 
-        world
-            .create_entity()
-            .with(HasCode {
-                code: station.code.clone(),
-            })
-            .with(Prefab { obj })
-            .build();
+        if let Some(prod_cost) = station.production_cost.as_ref() {
+            obj = obj.with_production_cost(
+                prod_cost.work,
+                into_wareamount_list(&wares_by_code, &prod_cost.cost),
+            );
+        }
+
+        Loader::add_prefab(world, &station.code, obj, false, true);
     }
 }

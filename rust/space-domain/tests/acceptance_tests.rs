@@ -40,7 +40,7 @@ fn test_construction_yard_should_be_build_by_miners_delivering_components() {
     // add stations prefab
     let station_code = "dummy_station";
     let new_obj = Loader::new_station().with_label(station_code.to_string());
-    let station_prefab_id = Loader::add_prefab(&mut game.world, station_code, new_obj);
+    let station_prefab_id = Loader::add_prefab(&mut game.world, station_code, new_obj, false, true);
 
     // add building site
     _ = Loader::add_object(
