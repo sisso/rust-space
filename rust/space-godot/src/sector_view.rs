@@ -1,7 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
 use godot::engine::global::MouseButton;
-use godot::engine::node::InternalMode;
 use godot::engine::{global, Engine};
 use godot::prelude::*;
 
@@ -9,7 +8,6 @@ use commons::math::V2;
 use commons::unwrap_or_return;
 use space_flap::Id;
 
-use crate::game_api::GameApi;
 use crate::graphics::{AstroModel, OrbitModel, SelectedModel};
 use crate::utils;
 use crate::utils::V2Vec;
@@ -76,12 +74,8 @@ impl SectorView {
                         node.set_position(pos.as_vector2());
                     } else {
                         let model = resolve_model_for_kind(id, pos, kind);
-                        self.state.bodies_model.insert(id, model.share());
-                        self.base.add_child(
-                            model.upcast(),
-                            false,
-                            InternalMode::INTERNAL_MODE_DISABLED,
-                        );
+                        self.state.bodies_model.insert(id, model.clone());
+                        self.base.add_child(model.upcast());
                     }
                     current_entities.insert(id);
                 }
@@ -106,11 +100,7 @@ impl SectorView {
                                 crate::utils::color_white(),
                                 parent_pos.as_vector2(),
                             );
-                            self.base.add_child(
-                                model.share().upcast(),
-                                false,
-                                InternalMode::INTERNAL_MODE_DISABLED,
-                            );
+                            self.base.add_child(model.clone().upcast());
                             current_entities.insert(id);
                             model
                         });
@@ -142,12 +132,12 @@ impl SectorView {
             } else {
                 if let Some(mut orbit_model) = self.state.orbits_model.remove(entity) {
                     godot_print!("removing orbit {:?}", entity);
-                    self.base.remove_child(orbit_model.share().upcast());
+                    self.base.remove_child(orbit_model.clone().upcast());
                     orbit_model.queue_free();
                 }
 
                 godot_print!("removing object {:?}", entity);
-                self.base.remove_child(node.share().upcast());
+                self.base.remove_child(node.clone().upcast());
                 node.queue_free();
                 false
             }
@@ -182,7 +172,7 @@ impl SectorView {
 
         // remove parent if exists
         self.state.selected.model.get_parent().map(|mut parent| {
-            let gd = self.state.selected.model.share();
+            let gd = self.state.selected.model.clone();
             parent.remove_child(gd.upcast())
         });
 
@@ -190,15 +180,11 @@ impl SectorView {
         self.state.selected.id = id;
         if let Some(id) = self.state.selected.id {
             let model = unwrap_or_return!(self.state.bodies_model.get(&id));
-            let mut model = model.share();
+            let mut model = model.clone();
 
             self.state.selected.model.show();
 
-            model.add_child(
-                self.state.selected.model.share().upcast(),
-                false,
-                InternalMode::INTERNAL_MODE_DISABLED,
-            );
+            model.add_child(self.state.selected.model.clone().upcast());
         }
     }
 }
@@ -335,7 +321,7 @@ fn new_orbit_model(name: String, radius: f32, color: Color, pos: Vector2) -> Gd<
     {
         let mut model = model.bind_mut();
         model.set_color(color);
-        model.set_name(name.into());
+        model.base.set_name(name.into());
     }
 
     let mut base: Gd<Node2D> = model.upcast();

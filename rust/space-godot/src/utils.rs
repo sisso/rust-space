@@ -7,9 +7,9 @@ where
 {
     let mut container = container.upcast();
 
-    for c in container.get_children(true).iter_shared() {
+    for c in container.get_children().iter_shared() {
         let mut n = c.cast::<Node>();
-        container.remove_child(n.share());
+        container.remove_child(n.clone());
         n.queue_free();
     }
 }

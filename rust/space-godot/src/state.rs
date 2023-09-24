@@ -64,7 +64,6 @@ impl State {
 #[cfg(test)]
 mod test {
     use crate::state::State;
-    use log::LevelFilter::Debug;
 
     #[test]
     fn test1() {

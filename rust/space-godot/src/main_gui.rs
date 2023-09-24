@@ -43,7 +43,7 @@ impl MainGui {
 
     pub fn get_clicked_fleet(&mut self) -> Option<Id> {
         let container = self.get_fleets_container();
-        let children = container.get_children(false);
+        let children = container.get_children();
         for (i, node) in children.iter_shared().enumerate() {
             if let Some(button) = node.try_cast::<Button>() {
                 if button.is_pressed() {
@@ -67,7 +67,7 @@ impl MainGui {
 
     pub fn get_clicked_sector(&self) -> Option<Id> {
         let container = self.get_sectors_container();
-        let children = container.get_children(false);
+        let children = container.get_children();
         for (i, node) in children.iter_shared().enumerate() {
             if let Some(button) = node.try_cast::<Button>() {
                 if button.is_pressed() {
@@ -83,9 +83,9 @@ impl MainGui {
         self.buttons_sectors.clear();
 
         let mut grid = self.get_sectors_container();
-        crate::utils::clear(grid.share());
+        crate::utils::clear(grid.clone());
 
-        let columns = (sectors.len() as f32).sqrt().floor() as i64;
+        let columns = (sectors.len() as f32).sqrt().floor() as i32;
         grid.set_columns(columns);
 
         for le in sectors {
@@ -93,10 +93,9 @@ impl MainGui {
             button.set_text(le.label.into());
             button.connect(
                 "button_down".into(),
-                Callable::from_object_method(self.base.share(), "on_click_sector"),
-                0,
+                Callable::from_object_method(self.base.clone(), "on_click_sector"),
             );
-            grid.add_child(button.upcast(), false, InternalMode::INTERNAL_MODE_DISABLED);
+            grid.add_child(button.upcast());
             self.buttons_sectors.push(le.id);
         }
     }
@@ -110,7 +109,7 @@ impl MainGui {
 
     pub fn show_fleets(&mut self, fleets: Vec<LabeledId>) {
         let mut grid = self.get_fleets_container();
-        crate::utils::clear(grid.share());
+        crate::utils::clear(grid.clone());
         grid.set_columns(1);
 
         for fleet in fleets {
@@ -118,10 +117,9 @@ impl MainGui {
             button.set_text(fleet.label.into());
             button.connect(
                 "button_down".into(),
-                Callable::from_object_method(self.base.share(), "on_click_fleet"),
-                0,
+                Callable::from_object_method(self.base.clone(), "on_click_fleet"),
             );
-            grid.add_child(button.upcast(), false, InternalMode::INTERNAL_MODE_DISABLED);
+            grid.add_child(button.upcast());
             self.buttons_fleets.push(fleet.id);
         }
     }

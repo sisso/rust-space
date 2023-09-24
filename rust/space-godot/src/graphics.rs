@@ -51,7 +51,7 @@ pub struct OrbitModel {
     pub color: Color,
 
     #[base]
-    base: Base<Node2D>,
+    pub base: Base<Node2D>,
 }
 
 #[godot_api]
@@ -86,11 +86,9 @@ impl Node2DVirtual for OrbitModel {
             Vector2::ZERO,
             1.0,
             0.0,
-            (360.0f32.to_radians()) as f64,
+            360.0f32.to_radians(),
             32,
             self.color,
-            -1.0,
-            true,
         );
     }
 }
@@ -135,8 +133,6 @@ impl Node2DVirtual for SelectedModel {
         self.base.draw_rect(
             Rect2::new(Vector2::new(-1.0, -1.0), Vector2::new(2.0, 2.0)),
             self.color,
-            false,
-            0.5,
         );
     }
 }

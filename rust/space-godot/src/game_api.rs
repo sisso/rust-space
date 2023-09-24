@@ -62,10 +62,10 @@ impl NodeVirtual for GameApi {
     fn ready(&mut self) {
         if Engine::singleton().is_editor_hint() {
         } else {
-            let sector_view = self
+            let sector_view = self.base
                 .try_get_node_as("/root/GameApi/SectorView")
                 .expect("SectorView not found");
-            let gui = self
+            let gui = self.base
                 .try_get_node_as("/root/GameApi/MainGui")
                 .expect("MainGui not found");
 
