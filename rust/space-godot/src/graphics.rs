@@ -130,9 +130,12 @@ impl Node2DVirtual for SelectedModel {
     }
 
     fn draw(&mut self) {
-        self.base.draw_rect(
-            Rect2::new(Vector2::new(-1.0, -1.0), Vector2::new(2.0, 2.0)),
-            self.color,
-        );
+        self.base
+            .draw_rect_ex(
+                Rect2::new(Vector2::new(-1.0, -1.0), Vector2::new(2.0, 2.0)),
+                self.color,
+            )
+            .filled(false)
+            .done();
     }
 }
