@@ -347,6 +347,7 @@ impl SpaceGame {
 
         (&entities, &labels, &prefabs)
             .join()
+            .filter(|(_, _, p)| p.build_site)
             .map(|(e, l, _p)| PrefabData {
                 id: encode_entity(e),
                 label: l.label.clone(),

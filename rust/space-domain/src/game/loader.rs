@@ -341,6 +341,7 @@ impl Loader {
     pub fn add_prefab(
         world: &mut World,
         code: &str,
+        label: &str,
         new_obj: NewObj,
         shipyard: bool,
         building_site: bool,
@@ -353,6 +354,7 @@ impl Loader {
                 build_site: building_site,
             })
             .with(HasCode::from_str(code))
+            .with(Label::from(label))
             .build()
     }
 
@@ -480,7 +482,7 @@ pub fn load_prefabs(world: &mut World, prefabs: &conf::Prefabs) {
             );
         }
 
-        Loader::add_prefab(world, fleet.code.as_str(), obj, true, false);
+        Loader::add_prefab(world, &fleet.code, &fleet.label, obj, true, false);
     }
 
     // create stations prefabs
@@ -516,6 +518,6 @@ pub fn load_prefabs(world: &mut World, prefabs: &conf::Prefabs) {
             );
         }
 
-        Loader::add_prefab(world, &station.code, obj, false, true);
+        Loader::add_prefab(world, &station.code, &station.label, obj, false, true);
     }
 }

@@ -1,6 +1,6 @@
-use crate::game_api::GameApi;
-use godot::engine::node::InternalMode;
-use godot::engine::{Button, Engine, GridContainer, RichTextLabel, TabContainer};
+use godot::engine::{
+    Button, Engine, GridContainer, ItemList, RichTextLabel, Texture2D, VBoxContainer,
+};
 use godot::prelude::*;
 use space_flap::Id;
 
@@ -124,11 +124,25 @@ impl MainGui {
         }
     }
 
+    pub fn show_buildings(&mut self, builgins: Vec<LabeledId>) {
+        let mut list = self.get_buildings_container();
+        list.clear();
+        for building in builgins {
+            // hack https://github.com/godot-rust/gdext/issues/391
+            // list.add_item(building.label.into())
+            let idx = list.add_icon_item(Texture2D::new());
+            list.set_item_text(idx, building.label.into());
+        }
+    }
+
     fn get_fleets_container(&self) -> Gd<GridContainer> {
-        let grid = self
-            .base
-            .get_node_as::<GridContainer>("TabContainer/Main/FleetsGridContainer");
-        grid
+        self.base
+            .get_node_as::<GridContainer>("TabContainer/Main/FleetsGridContainer")
+    }
+
+    fn get_buildings_container(&self) -> Gd<ItemList> {
+        self.base
+            .get_node_as::<ItemList>("TabContainer/Construction/VBoxContainer/ItemList")
     }
 
     pub fn show_selected_object(&mut self, desc: Description) {

@@ -106,9 +106,20 @@ impl Runtime {
             })
         }
 
+        godot_print!("listing buildings:");
+        let mut buildings = vec![];
+        for pf in self.state.game.list_building_sites_prefabs() {
+            godot_print!("- {:?}", pf.get_label());
+            buildings.push(LabeledId {
+                id: pf.get_id(),
+                label: format!("BS {}", pf.get_label()),
+            })
+        }
+
         let mut gui = self.gui.bind_mut();
         gui.show_sectors(sectors);
         gui.show_fleets(fleets);
+        gui.show_buildings(buildings);
     }
 
     pub fn recenter(&mut self) {

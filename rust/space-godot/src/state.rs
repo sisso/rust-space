@@ -1,4 +1,4 @@
-use space_flap::{Id, SpaceGame, WareData};
+use space_flap::{Id, PrefabData, SpaceGame, WareData};
 
 #[derive(Copy, Clone, Debug)]
 pub enum StateScreen {

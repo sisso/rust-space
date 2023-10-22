@@ -15,13 +15,13 @@ fn load_fleets_prefabs(world: &mut World) {
     let new_obj = Loader::new_ship(2.0, "Trade fleet".to_string())
         .with_command(Command::trade())
         .with_production_cost(5.0, vec![WareAmount::new(ware_id, 50)]);
-    Loader::add_prefab(world, "trade_fleet", new_obj, true, false);
+    Loader::add_prefab(world, "trade_fleet", "Trade Fleet", new_obj, true, false);
 
     let new_obj = Loader::new_ship(2.0, "Mine fleet".to_string())
         .with_command(Command::mine())
         .with_production_cost(5.0, vec![WareAmount::new(ware_id, 50)]);
 
-    Loader::add_prefab(world, "mine_fleet", new_obj, true, false);
+    Loader::add_prefab(world, "mine_fleet", "Mine fleet", new_obj, true, false);
 }
 
 pub struct MinimumScenery {
