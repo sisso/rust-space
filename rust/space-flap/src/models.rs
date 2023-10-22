@@ -360,6 +360,7 @@ impl WareData {
     }
 }
 
+#[derive(Debug)]
 pub struct EventData {
     pub(crate) event: events::Event,
 }

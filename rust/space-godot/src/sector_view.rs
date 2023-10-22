@@ -34,6 +34,7 @@ pub struct SectorView {
     base: Base<Node2D>,
 }
 
+#[derive(Debug)]
 pub struct ObjKind {
     pub fleet: bool,
     pub jump: bool,
@@ -43,6 +44,7 @@ pub struct ObjKind {
     pub astro_star: bool,
 }
 
+#[derive(Debug)]
 pub enum Update {
     Obj {
         id: Id,
@@ -57,17 +59,23 @@ pub enum Update {
     },
 }
 
+#[derive(Debug, Default)]
+pub struct RefreshParams {
+    pub updates: Vec<Update>,
+    pub building_plot: bool,
+}
+
 #[godot_api]
 impl SectorView {
     pub fn get_selected_id(&self) -> Option<Id> {
         self.state.selected.id
     }
 
-    pub fn refresh(&mut self, updates: Vec<Update>) {
+    pub fn refresh(&mut self, params: RefreshParams) {
         let mut current_entities = HashSet::new();
 
         // add and update entities
-        for update in updates {
+        for update in params.updates {
             match update {
                 Update::Obj { id, pos, kind } => {
                     if let Some(node) = self.state.bodies_model.get_mut(&id) {
@@ -131,12 +139,12 @@ impl SectorView {
                 true
             } else {
                 if let Some(mut orbit_model) = self.state.orbits_model.remove(entity) {
-                    godot_print!("removing orbit {:?}", entity);
+                    // godot_print!("removing orbit {:?}", entity);
                     self.base.remove_child(orbit_model.clone().upcast());
                     orbit_model.queue_free();
                 }
 
-                godot_print!("removing object {:?}", entity);
+                // godot_print!("removing object {:?}", entity);
                 self.base.remove_child(node.clone().upcast());
                 node.queue_free();
                 false

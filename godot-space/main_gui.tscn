@@ -80,3 +80,7 @@ item_1/text = "sample 2"
 [node name="PlotButton" type="Button" parent="TabContainer/Construction/VBoxContainer"]
 layout_mode = 2
 text = "Plot"
+
+[node name="PlotDescriptionRichTextLabel" type="RichTextLabel" parent="TabContainer/Construction/VBoxContainer"]
+layout_mode = 2
+fit_content = true

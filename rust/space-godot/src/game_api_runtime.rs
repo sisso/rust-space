@@ -1,9 +1,9 @@
-use godot::log::godot_print;
+use godot::log::{godot_print, godot_warn};
 use godot::obj::Gd;
 
-use space_flap::{Id, JumpData, ObjAction, ObjActionKind, ObjCargo, ObjData, ObjDesc, WareData};
+use space_flap::{Id, ObjAction, ObjActionKind, ObjCargo, ObjData, ObjDesc, WareData};
 
-use crate::main_gui::{LabeledId, MainGui};
+use crate::main_gui::{Description, LabeledId, MainGui};
 use crate::sector_view::SectorView;
 use crate::state::{State, StateScreen};
 use crate::{main_gui, sector_view};
@@ -26,34 +26,30 @@ impl Runtime {
     pub fn tick(&mut self, delta_seconds: f64) {
         // process inputs
         let sector_selected_id = self.sector_view.bind().get_selected_id();
-        let selected_sector_id = self.gui.bind_mut().take_selected_sector_id();
-        let selected_fleet_id = self.gui.bind_mut().take_selected_fleet_id();
-        let selected_building_id = self.gui.bind_mut().take_selected_building_site();
+        let clicked_sector_id = self.gui.bind_mut().take_selected_sector_id();
+        let clicked_fleet_id = self.gui.bind_mut().take_selected_fleet_id();
+        let clicked_plot_id = self.gui.bind_mut().take_selected_building_site();
 
-        match (selected_sector_id, sector_selected_id, selected_fleet_id) {
-            (Some(sector_id), _, _) => {
-                // when click on sector, clear any selected element and move to the sector
-                // clear selcted element
-                // TODO: can we move this to on_selected_entity?
-                self.sector_view.bind_mut().set_selected(None);
-                self.state.screen = StateScreen::Sector(sector_id);
-            }
+        if let Some(sector_id) = clicked_sector_id {
+            // when click on sector, clear any selected element and move to the sector
+            // clear selected element
+            self.sector_view.bind_mut().set_selected(None);
+            self.state.screen = StateScreen::Sector(sector_id);
+        } else if let Some(fleet_id) = clicked_fleet_id {
+            // when click on a fleet, start to follow that fleet
+            self.sector_view.bind_mut().set_selected(None);
+            self.state.screen = StateScreen::Obj(fleet_id);
+        } else if let Some(id) = clicked_plot_id {
+            let current_sector_id = self.state.get_current_sector_id();
 
-            (None, _, Some(fleet_id)) => {
-                // when click on a fleet, start to follow that fleet
-                // TODO: set fleet on sector
-                self.sector_view.bind_mut().set_selected(None);
-                self.state.screen = StateScreen::Obj(fleet_id);
+            self.sector_view.bind_mut().set_selected(None);
+            self.state.screen = StateScreen::SectorPlot {
+                sector_id: current_sector_id,
+                plot_id: id,
             }
-            (None, Some(id), None) => {
-                // when has on a obj in the sector already selected
-                self.state.screen = StateScreen::Obj(id);
-            }
-            (_, _, _) => {}
-        }
-
-        if let Some(id) = selected_building_id {
-            godot_print!("clicked on building site {:?}", id);
+        } else if let Some(id) = sector_selected_id {
+            // when has on a obj in the sector already selected
+            self.state.screen = StateScreen::Obj(id);
         }
 
         // update game
@@ -61,6 +57,13 @@ impl Runtime {
 
         // update view
         self.refresh_sector_view();
+
+        // take events and check if new we have changes on sector | fleets | prefabs list and do a
+        // full ui refresh
+        // let events = self.state.game.take_events();
+        // self.refresh_gui();
+        // or else, do only realtime ui updates
+        self.tick_refresh_gui();
     }
 
     pub fn refresh_sector_view(&mut self) {
@@ -88,13 +91,32 @@ impl Runtime {
                 let desc = self.describe_obj(*id);
                 self.gui.bind_mut().show_selected_object(desc);
             }
-            _ => {
-                todo!("not implemented")
+
+            StateScreen::SectorPlot { sector_id, plot_id } => {
+                self.sector_view
+                    .bind_mut()
+                    .refresh(generate_sectorview_updates(&self.state, *sector_id));
+                self.gui
+                    .bind_mut()
+                    .show_selected_object(main_gui::Description::None);
             }
         }
     }
 
-    pub fn update_gui(&mut self) {
+    pub fn tick_refresh_gui(&mut self) {
+        let describe_plot = if let Some(plot_id) = self.gui.bind().get_plot_item_selected() {
+            godot_print!("on selected plot id {:?}", plot_id);
+            self.describe_plot(plot_id)
+        } else {
+            godot_print!("no plot selected????");
+            Description::None
+        };
+
+        let mut gui = self.gui.bind_mut();
+        gui.show_selected_plot_desc(describe_plot);
+    }
+
+    pub fn full_refresh_gui(&mut self) {
         let mut sectors = vec![];
         for sector in self.state.game.get_sectors() {
             sectors.push(LabeledId {
@@ -111,7 +133,6 @@ impl Runtime {
             })
         }
 
-        godot_print!("listing buildings:");
         let mut buildings = vec![];
         for pf in self.state.game.list_building_sites_prefabs() {
             godot_print!("- {:?}", pf.get_label());
@@ -124,7 +145,7 @@ impl Runtime {
         let mut gui = self.gui.bind_mut();
         gui.show_sectors(sectors);
         gui.show_fleets(fleets);
-        gui.show_buildings(buildings);
+        gui.show_buildings_sites(buildings);
     }
 
     pub fn recenter(&mut self) {
@@ -154,6 +175,21 @@ impl Runtime {
             .and_then(|jump| self.state.game.get_obj_desc(jump.get_to_sector_id()))
             .map(|target_desc| target_desc.get_label().to_string());
         describe_obj(&self.state.wares, dt, ds, jump_target)
+    }
+
+    pub fn describe_plot(&self, id: Id) -> main_gui::Description {
+        let ds = self.state.game.get_obj_desc(id);
+        if ds.is_none() {
+            godot_warn!("description for plot {:?} not found", id);
+            return Description::None;
+        }
+
+        let ds = ds.unwrap();
+
+        Description::Obj {
+            title: ds.get_label().into(),
+            desc: "Building plot".to_string(),
+        }
     }
 }
 
@@ -257,7 +293,7 @@ fn get_kind_str(data: &ObjData) -> &str {
     }
 }
 
-pub fn generate_sectorview_updates(state: &State, sector_id: Id) -> Vec<sector_view::Update> {
+pub fn generate_sectorview_updates(state: &State, sector_id: Id) -> sector_view::RefreshParams {
     let mut updates = vec![];
 
     let list = state
@@ -290,5 +326,7 @@ pub fn generate_sectorview_updates(state: &State, sector_id: Id) -> Vec<sector_v
         }
     }
 
-    updates
+    let mut params = sector_view::RefreshParams::default();
+    params.updates = updates;
+    params
 }

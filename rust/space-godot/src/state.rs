@@ -3,9 +3,11 @@ use space_flap::{Id, PrefabData, SpaceGame, WareData};
 #[derive(Copy, Clone, Debug)]
 pub enum StateScreen {
     Sector(Id),
-    Galaxy,
+    SectorPlot { sector_id: Id, plot_id: Id },
     Obj(Id),
 }
+
+impl StateScreen {}
 
 #[derive(PartialEq, Debug, Copy, Clone)]
 pub enum TimeSpeed {
@@ -58,6 +60,21 @@ impl State {
         };
 
         state
+    }
+
+    pub fn get_current_sector_id(&self) -> Id {
+        match &self.screen {
+            StateScreen::Sector(sector_id) => *sector_id,
+            StateScreen::Obj(id) => {
+                let sector_id = self
+                    .game
+                    .get_obj_coords(*id)
+                    .map(|coords| coords.get_sector_id());
+
+                return sector_id.expect("selected object has no sector_id");
+            }
+            StateScreen::SectorPlot { sector_id, .. } => *sector_id,
+        }
     }
 }
 

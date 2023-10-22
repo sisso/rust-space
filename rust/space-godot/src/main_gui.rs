@@ -46,11 +46,16 @@ impl MainGui {
 
     #[func]
     pub fn on_click_plot(&mut self) {
-        let mut list = self.get_buildings_container();
+        self.selected_building_site = self.get_plot_item_selected();
+    }
+
+    pub fn get_plot_item_selected(&self) -> Option<Id> {
+        let mut list = self.get_plot_list();
         let idx_list = list.get_selected_items();
-        self.selected_building_site = None;
-        for idx in idx_list.as_slice() {
-            self.selected_building_site = self.building_sites.get(*idx as usize).cloned();
+        if idx_list.len() == 0 {
+            None
+        } else {
+            self.building_sites.get(idx_list.get(0) as usize).cloned()
         }
     }
 
@@ -141,9 +146,32 @@ impl MainGui {
         }
     }
 
-    pub fn show_buildings(&mut self, buildings: Vec<LabeledId>) {
-        let mut list = self.get_buildings_container();
-        let selected_idx = list.get_index();
+    pub fn show_selected_plot_desc(&mut self, desc: Description) {
+        let mut rich_text = self.base.get_node_as::<RichTextLabel>(
+            "TabContainer/Construction/VBoxContainer/PlotDescriptionRichTextLabel",
+        );
+
+        let text = match desc {
+            Description::None => "none".to_string(),
+            Description::Obj { mut title, desc } => {
+                title.push('\n');
+                title.push_str(&desc);
+                title
+            }
+        };
+        rich_text.set_text(text.into());
+    }
+
+    pub fn show_buildings_sites(&mut self, buildings: Vec<LabeledId>) {
+        let mut list = self.get_plot_list();
+        let selected_idx = {
+            let select_items = list.get_selected_items();
+            if select_items.len() == 0 {
+                0
+            } else {
+                select_items.get(0)
+            }
+        };
         list.clear();
         self.building_sites.clear();
         let list_len = buildings.len();
@@ -166,7 +194,7 @@ impl MainGui {
             .get_node_as::<GridContainer>("TabContainer/Main/FleetsGridContainer")
     }
 
-    fn get_buildings_container(&self) -> Gd<ItemList> {
+    fn get_plot_list(&self) -> Gd<ItemList> {
         self.base
             .get_node_as::<ItemList>("TabContainer/Construction/VBoxContainer/PlotItemList")
     }
@@ -218,8 +246,8 @@ impl Node2DVirtual for MainGui {
         if Engine::singleton().is_editor_hint() {
         } else {
             // register handlers
-            let mut btn = self.get_plot_button();
-            btn.connect(
+            let mut plot_button = self.get_plot_button();
+            plot_button.connect(
                 "button_down".into(),
                 Callable::from_object_method(self.base.clone(), "on_click_plot"),
             );
