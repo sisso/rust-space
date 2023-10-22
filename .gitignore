@@ -2,4 +2,4 @@
 **/*.rs.bk
 .idea
 *.swp
-local
+rust/space-flap/generated_dotnet/*
