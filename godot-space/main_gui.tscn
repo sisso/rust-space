@@ -70,13 +70,13 @@ horizontal_alignment = 1
 layout_mode = 2
 text = "Blueprint:"
 
-[node name="ItemList" type="ItemList" parent="TabContainer/Construction/VBoxContainer"]
+[node name="PlotItemList" type="ItemList" parent="TabContainer/Construction/VBoxContainer"]
 layout_mode = 2
 auto_height = true
 item_count = 2
 item_0/text = "sample 1"
 item_1/text = "sample 2"
 
-[node name="Button" type="Button" parent="TabContainer/Construction/VBoxContainer"]
+[node name="PlotButton" type="Button" parent="TabContainer/Construction/VBoxContainer"]
 layout_mode = 2
 text = "Plot"

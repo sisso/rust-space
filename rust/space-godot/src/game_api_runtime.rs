@@ -28,6 +28,7 @@ impl Runtime {
         let sector_selected_id = self.sector_view.bind().get_selected_id();
         let selected_sector_id = self.gui.bind_mut().take_selected_sector_id();
         let selected_fleet_id = self.gui.bind_mut().take_selected_fleet_id();
+        let selected_building_id = self.gui.bind_mut().take_selected_building_site();
 
         match (selected_sector_id, sector_selected_id, selected_fleet_id) {
             (Some(sector_id), _, _) => {
@@ -49,6 +50,10 @@ impl Runtime {
                 self.state.screen = StateScreen::Obj(id);
             }
             (_, _, _) => {}
+        }
+
+        if let Some(id) = selected_building_id {
+            godot_print!("clicked on building site {:?}", id);
         }
 
         // update game
