@@ -33,22 +33,28 @@ impl Runtime {
         if let Some(sector_id) = clicked_sector_id {
             // when click on sector, clear any selected element and move to the sector
             // clear selected element
-            self.sector_view.bind_mut().set_selected(None);
+            self.sector_view
+                .bind_mut()
+                .set_state(sector_view::SectorViewState::None);
             self.state.screen = StateScreen::Sector(sector_id);
         } else if let Some(fleet_id) = clicked_fleet_id {
             // when click on a fleet, start to follow that fleet
 
             // sometimes fleet is docked, we didn't handle it properly (I think)
-            self.sector_view.bind_mut().set_selected(None);
+            self.sector_view
+                .bind_mut()
+                .set_state(sector_view::SectorViewState::None);
             self.state.screen = StateScreen::Obj(fleet_id);
         } else if let Some(id) = clicked_plot_id {
             let current_sector_id = self.state.get_current_sector_id();
 
-            self.sector_view.bind_mut().set_selected(None);
             self.state.screen = StateScreen::SectorPlot {
                 sector_id: current_sector_id,
                 plot_id: id,
-            }
+            };
+            self.sector_view
+                .bind_mut()
+                .set_state(sector_view::SectorViewState::Plotting);
         } else if let Some(id) = sector_selected_id {
             // when has on a obj in the sector already selected
             self.state.screen = StateScreen::Obj(id);
@@ -96,7 +102,6 @@ impl Runtime {
 
             StateScreen::SectorPlot { sector_id, plot_id } => {
                 let mut params = generate_sectorview_updates(&self.state, *sector_id);
-                params.building_plot = true;
 
                 self.sector_view.bind_mut().refresh(params);
 

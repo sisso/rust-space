@@ -14,24 +14,41 @@ use crate::utils::V2Vec;
 
 const MODEL_SCALE: f32 = 0.1;
 
-#[derive(Debug)]
-struct SelectedObject {
-    model: Gd<Node2D>,
-    id: Option<Id>,
+pub enum SectorViewState {
+    None,
+    Selected(Id),
+    Plotting,
 }
 
-#[derive(Debug)]
-struct ShowSectorState {
-    bodies_model: HashMap<Id, Gd<Node2D>>,
-    orbits_model: HashMap<Id, Gd<Node2D>>,
-    selected: SelectedObject,
-    plotting: Option<Gd<SelectedModel>>,
+impl SectorViewState {
+    pub fn is_none(&self) -> bool {
+        match self {
+            SectorViewState::None => true,
+            _ => false,
+        }
+    }
+    pub fn is_plot(&self) -> bool {
+        match self {
+            SectorViewState::Plotting => true,
+            _ => false,
+        }
+    }
+    pub fn is_selected(&self) -> bool {
+        match self {
+            SectorViewState::Selected(_) => true,
+            _ => false,
+        }
+    }
 }
 
 #[derive(GodotClass)]
 #[class(base = Node2D)]
 pub struct SectorView {
-    state: ShowSectorState,
+    state: SectorViewState,
+    bodies_model: HashMap<Id, Gd<Node2D>>,
+    orbits_model: HashMap<Id, Gd<Node2D>>,
+    selected_model: Gd<SelectedModel>,
+    build_plot_model: Gd<SelectedModel>,
 
     #[base]
     base: Base<Node2D>,
@@ -65,41 +82,31 @@ pub enum Update {
 #[derive(Debug, Default)]
 pub struct RefreshParams {
     pub updates: Vec<Update>,
-    pub building_plot: bool,
 }
 
 #[godot_api]
 impl SectorView {
     pub fn get_selected_id(&self) -> Option<Id> {
-        self.state.selected.id
+        match self.state {
+            SectorViewState::Selected(id) => Some(id),
+            _ => None,
+        }
     }
 
     pub fn refresh(&mut self, params: RefreshParams) {
         let mut current_entities = HashSet::new();
 
-        if self.state.plotting.is_none() && params.building_plot {
-            let mut plot_model = new_select_model("plot cursor", utils::color_bright_blue(), true);
-            self.base.add_child(plot_model.clone().upcast());
-            self.state.plotting = Some(plot_model);
-        } else if self.state.plotting.is_some() && !params.building_plot {
-            if let Some(plot_model) = self.state.plotting.take() {
-                self.base.remove_child(plot_model.clone().upcast());
-                let mut node: Gd<Node2D> = plot_model.upcast();
-                node.queue_free();
-            }
-        }
-
         // add and update entities
         for update in params.updates {
             match update {
                 Update::Obj { id, pos, kind } => {
-                    if let Some(node) = self.state.bodies_model.get_mut(&id) {
+                    if let Some(node) = self.bodies_model.get_mut(&id) {
                         // update existing object
                         node.set_position(pos.as_vector2());
                     } else {
                         // add model for new object
                         let model = resolve_model_for_kind(id, pos, kind);
-                        self.state.bodies_model.insert(id, model.clone());
+                        self.bodies_model.insert(id, model.clone());
                         self.base.add_child(model.upcast());
                     }
                     current_entities.insert(id);
@@ -111,8 +118,7 @@ impl SectorView {
                     parent_pos,
                     radius,
                 } => {
-                    self.state
-                        .orbits_model
+                    self.orbits_model
                         .entry(id)
                         .and_modify(|model| {
                             model.set_scale(Vector2::ONE * radius);
@@ -140,22 +146,19 @@ impl SectorView {
     fn remove_missing(&mut self, current_entities: HashSet<Id>) {
         // remove selected before the object get removed
         let will_remove_selected = self
-            .state
-            .selected
-            .id
-            .as_ref()
-            .map(|id| !current_entities.contains(id))
+            .get_selected_id()
+            .map(|id| !current_entities.contains(&id))
             .unwrap_or(false);
 
         if will_remove_selected {
             self.set_selected(None);
         }
 
-        self.state.bodies_model.retain(|entity, node| {
+        self.bodies_model.retain(|entity, node| {
             if current_entities.contains(entity) {
                 true
             } else {
-                if let Some(mut orbit_model) = self.state.orbits_model.remove(entity) {
+                if let Some(mut orbit_model) = self.orbits_model.remove(entity) {
                     // godot_print!("removing orbit {:?}", entity);
                     self.base.remove_child(orbit_model.clone().upcast());
                     orbit_model.queue_free();
@@ -177,7 +180,7 @@ impl SectorView {
     pub fn find_nearest(&self, local_pos: Vector2, min_distance: f32) -> Option<Id> {
         let mut nid = None;
         let mut dist = min_distance;
-        for (id, gd) in &self.state.bodies_model {
+        for (id, gd) in &self.bodies_model {
             let ipos = gd.get_position();
             let idist = ipos.distance_squared_to(local_pos);
             if idist < dist {
@@ -189,54 +192,93 @@ impl SectorView {
         nid
     }
 
-    pub fn set_selected(&mut self, id: Option<Id>) {
+    pub fn set_state(&mut self, new_state: SectorViewState) {
+        match &new_state {
+            SectorViewState::None => {
+                self.set_build_plot(false);
+                self.set_selected(None);
+            }
+            SectorViewState::Selected(id) => {
+                self.set_build_plot(false);
+                self.set_selected(Some(*id));
+            }
+            SectorViewState::Plotting => {
+                self.set_build_plot(true);
+                self.set_selected(None);
+            }
+        }
+
+        self.state = new_state;
+    }
+
+    fn set_selected(&mut self, id: Option<Id>) {
         // do nothing if is still same object
-        if id == self.state.selected.id {
+        if id == self.get_selected_id() {
             return;
         }
 
-        // remove parent if exists
-        self.state.selected.model.get_parent().map(|mut parent| {
-            let gd = self.state.selected.model.clone();
+        // detach the selected from previous parent
+        self.selected_model.get_parent().map(|mut parent| {
+            let gd = self.selected_model.clone();
             parent.remove_child(gd.upcast())
         });
 
-        // update selection
-        self.state.selected.id = id;
-        if let Some(id) = self.state.selected.id {
-            let model = unwrap_or_return!(self.state.bodies_model.get(&id));
-            let mut model = model.clone();
+        if let Some(id) = id {
+            // update selection
 
-            self.state.selected.model.show();
+            // attach the it as child of new parent, if exists
+            if let Some(target_model) = self.bodies_model.get(&id) {
+                target_model
+                    .clone()
+                    .add_child(self.selected_model.clone().upcast());
+                self.selected_model.show();
+                self.state = SectorViewState::Selected(id);
+            } else {
+                godot_warn!("selected object {:?} has no model, ignoring", id);
+                self.selected_model.hide();
+            }
+        } else {
+            // if none object was provided, hide it
+            self.selected_model.hide();
+            self.state = SectorViewState::None;
+        }
+    }
 
-            model.add_child(self.state.selected.model.clone().upcast());
+    fn set_build_plot(&mut self, enabled: bool) {
+        if enabled {
+            if !self.build_plot_model.is_visible() {
+                self.build_plot_model.show();
+            }
+        } else {
+            if self.build_plot_model.is_visible() {
+                self.build_plot_model.hide();
+            }
         }
     }
 }
 
 #[godot_api]
 impl Node2DVirtual for SectorView {
-    fn init(base: Base<Node2D>) -> Self {
+    fn init(mut base: Base<Node2D>) -> Self {
         if Engine::singleton().is_editor_hint() {
         } else {
         }
 
-        let mut selected_model_base = new_select_model("selected", utils::color_cyan(), false);
-        selected_model_base.hide();
+        let mut selected_model = new_select_model("selected", utils::color_cyan(), false);
+        selected_model.hide();
 
-        let state = ShowSectorState {
-            bodies_model: Default::default(),
-            orbits_model: Default::default(),
-            selected: SelectedObject {
-                model: selected_model_base.upcast(),
-                id: None,
-            },
-            plotting: None,
-        };
+        let mut build_plot_model =
+            new_select_model("plot cursor", utils::color_bright_blue(), true);
+        build_plot_model.hide();
+        base.add_child(build_plot_model.clone().upcast());
 
         Self {
-            state: state,
-            base: base,
+            state: SectorViewState::None,
+            bodies_model: Default::default(),
+            orbits_model: Default::default(),
+            selected_model,
+            build_plot_model,
+            base,
         }
     }
 
@@ -280,14 +322,24 @@ impl Node2DVirtual for SectorView {
                 .apply_scale(Vector2::new(1.0 + scale_speed, 1.0 + scale_speed));
         }
 
-        if input.is_mouse_button_pressed(MouseButton::MOUSE_BUTTON_LEFT) {
-            let nearest = self.find_nearest(mouse_local_pos, 1.0);
-            self.set_selected(nearest);
-        }
+        match &self.state {
+            SectorViewState::Plotting { .. } => {
+                self.build_plot_model.set_position(mouse_local_pos);
 
-        self.state.plotting.as_mut().map(|plot_model| {
-            plot_model.set_position(mouse_local_pos);
-        });
+                if input.is_mouse_button_pressed(MouseButton::MOUSE_BUTTON_RIGHT) {
+                    self.set_state(SectorViewState::None);
+                }
+            }
+            _ => {
+                if input.is_mouse_button_pressed(MouseButton::MOUSE_BUTTON_LEFT) {
+                    let new_state = self
+                        .find_nearest(mouse_local_pos, 1.0)
+                        .map(|id| SectorViewState::Selected(id))
+                        .unwrap_or(SectorViewState::None);
+                    self.set_state(new_state);
+                }
+            }
+        }
     }
 }
 
