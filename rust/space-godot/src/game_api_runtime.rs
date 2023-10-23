@@ -37,6 +37,8 @@ impl Runtime {
             self.state.screen = StateScreen::Sector(sector_id);
         } else if let Some(fleet_id) = clicked_fleet_id {
             // when click on a fleet, start to follow that fleet
+
+            // sometimes fleet is docked, we didn't handle it properly (I think)
             self.sector_view.bind_mut().set_selected(None);
             self.state.screen = StateScreen::Obj(fleet_id);
         } else if let Some(id) = clicked_plot_id {
@@ -93,20 +95,23 @@ impl Runtime {
             }
 
             StateScreen::SectorPlot { sector_id, plot_id } => {
-                self.sector_view
-                    .bind_mut()
-                    .refresh(generate_sectorview_updates(&self.state, *sector_id));
-                self.gui
-                    .bind_mut()
-                    .show_selected_object(main_gui::Description::None);
+                let mut params = generate_sectorview_updates(&self.state, *sector_id);
+                params.building_plot = true;
+
+                self.sector_view.bind_mut().refresh(params);
+
+                let describe_plot = describe_plot(&self.state.game, *plot_id);
+
+                let mut gui = self.gui.bind_mut();
+                gui.show_selected_plot_desc(describe_plot);
+                gui.show_selected_object(main_gui::Description::None);
             }
         }
     }
 
     pub fn tick_refresh_gui(&mut self) {
         let describe_plot = if let Some(plot_id) = self.gui.bind().get_plot_item_selected() {
-            godot_print!("on selected plot id {:?}", plot_id);
-            self.describe_plot(plot_id)
+            describe_plot(&self.state.game, plot_id)
         } else {
             godot_print!("no plot selected????");
             Description::None
@@ -176,20 +181,20 @@ impl Runtime {
             .map(|target_desc| target_desc.get_label().to_string());
         describe_obj(&self.state.wares, dt, ds, jump_target)
     }
+}
 
-    pub fn describe_plot(&self, id: Id) -> main_gui::Description {
-        let ds = self.state.game.get_obj_desc(id);
-        if ds.is_none() {
-            godot_warn!("description for plot {:?} not found", id);
-            return Description::None;
-        }
+pub fn describe_plot(game: &space_flap::SpaceGame, id: Id) -> main_gui::Description {
+    let ds = game.get_obj_desc(id);
+    if ds.is_none() {
+        godot_warn!("description for plot {:?} not found", id);
+        return Description::None;
+    }
 
-        let ds = ds.unwrap();
+    let ds = ds.unwrap();
 
-        Description::Obj {
-            title: ds.get_label().into(),
-            desc: "Building plot".to_string(),
-        }
+    Description::Obj {
+        title: ds.get_label().into(),
+        desc: "Building plot".to_string(),
     }
 }
 

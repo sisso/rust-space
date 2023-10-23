@@ -12,6 +12,8 @@ use crate::graphics::{AstroModel, OrbitModel, SelectedModel};
 use crate::utils;
 use crate::utils::V2Vec;
 
+const MODEL_SCALE: f32 = 0.1;
+
 #[derive(Debug)]
 struct SelectedObject {
     model: Gd<Node2D>,
@@ -23,6 +25,7 @@ struct ShowSectorState {
     bodies_model: HashMap<Id, Gd<Node2D>>,
     orbits_model: HashMap<Id, Gd<Node2D>>,
     selected: SelectedObject,
+    plotting: Option<Gd<SelectedModel>>,
 }
 
 #[derive(GodotClass)]
@@ -74,13 +77,27 @@ impl SectorView {
     pub fn refresh(&mut self, params: RefreshParams) {
         let mut current_entities = HashSet::new();
 
+        if self.state.plotting.is_none() && params.building_plot {
+            let mut plot_model = new_select_model("plot cursor", utils::color_bright_blue(), true);
+            self.base.add_child(plot_model.clone().upcast());
+            self.state.plotting = Some(plot_model);
+        } else if self.state.plotting.is_some() && !params.building_plot {
+            if let Some(plot_model) = self.state.plotting.take() {
+                self.base.remove_child(plot_model.clone().upcast());
+                let mut node: Gd<Node2D> = plot_model.upcast();
+                node.queue_free();
+            }
+        }
+
         // add and update entities
         for update in params.updates {
             match update {
                 Update::Obj { id, pos, kind } => {
                     if let Some(node) = self.state.bodies_model.get_mut(&id) {
+                        // update existing object
                         node.set_position(pos.as_vector2());
                     } else {
+                        // add model for new object
                         let model = resolve_model_for_kind(id, pos, kind);
                         self.state.bodies_model.insert(id, model.clone());
                         self.base.add_child(model.upcast());
@@ -204,22 +221,17 @@ impl Node2DVirtual for SectorView {
         } else {
         }
 
-        let mut selected_model = SelectedModel::new_alloc();
-        selected_model
-            .bind_mut()
-            .set_color(utils::color_bright_cyan());
-
-        let mut selected_model_base: Gd<Node2D> = selected_model.upcast();
-        selected_model_base.set_name("selected".into());
+        let mut selected_model_base = new_select_model("selected", utils::color_cyan(), false);
         selected_model_base.hide();
 
         let state = ShowSectorState {
             bodies_model: Default::default(),
             orbits_model: Default::default(),
             selected: SelectedObject {
-                model: selected_model_base,
+                model: selected_model_base.upcast(),
                 id: None,
             },
+            plotting: None,
         };
 
         Self {
@@ -238,6 +250,8 @@ impl Node2DVirtual for SectorView {
         if Engine::singleton().is_editor_hint() {
             return;
         }
+
+        let mouse_local_pos = self.get_local_mouse_pos();
 
         // TODO: fix change relative to current screen scale
         let speed = 100.0 * delta as f32;
@@ -267,12 +281,37 @@ impl Node2DVirtual for SectorView {
         }
 
         if input.is_mouse_button_pressed(MouseButton::MOUSE_BUTTON_LEFT) {
-            let pos = self.base.get_global_mouse_position();
-            let local_pos = self.base.to_local(pos);
-            let nearest = self.find_nearest(local_pos, 1.0);
+            let nearest = self.find_nearest(mouse_local_pos, 1.0);
             self.set_selected(nearest);
         }
+
+        self.state.plotting.as_mut().map(|plot_model| {
+            plot_model.set_position(mouse_local_pos);
+        });
     }
+}
+
+impl SectorView {
+    fn get_local_mouse_pos(&self) -> Vector2 {
+        let mouse_pos = self.base.get_global_mouse_position();
+        let mouse_local_pos = self.base.to_local(mouse_pos);
+        mouse_local_pos
+    }
+}
+
+/// when default_scale should be false when object will be child of an already scaled object
+fn new_select_model(name: &str, color: Color, default_scale: bool) -> Gd<SelectedModel> {
+    let mut model = SelectedModel::new_alloc();
+    model.bind_mut().set_color(color);
+
+    let mut base: Gd<Node2D> = model.clone().upcast();
+    base.set_name(name.into());
+
+    if default_scale {
+        base.set_scale(Vector2::ONE * MODEL_SCALE);
+    }
+
+    model
 }
 
 fn resolve_model_for_kind(id: Id, pos: V2, kind: ObjKind) -> Gd<Node2D> {
@@ -307,15 +346,12 @@ fn resolve_model_for_kind(id: Id, pos: V2, kind: ObjKind) -> Gd<Node2D> {
 }
 
 fn new_model(name: String, pos: Vector2, color: Color) -> Gd<Node2D> {
-    let scale = 0.1;
-    let scale_v = Vector2::new(scale, scale);
-
     let mut model = AstroModel::new_alloc();
     model.bind_mut().set_color(color);
 
     let mut base: Gd<Node2D> = model.upcast();
     base.set_name(name.into());
-    base.set_scale(scale_v);
+    base.set_scale(Vector2::ONE * MODEL_SCALE);
     base.set_position(pos);
 
     base
