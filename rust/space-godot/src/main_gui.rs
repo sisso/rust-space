@@ -1,6 +1,6 @@
 use env_logger::builder;
 use godot::engine::{
-    Button, Engine, GridContainer, ItemList, RichTextLabel, Texture2D, VBoxContainer,
+    Button, Engine, GridContainer, ItemList, RichTextLabel, TabContainer, Texture2D, VBoxContainer,
 };
 use godot::prelude::*;
 use space_flap::Id;
@@ -47,6 +47,16 @@ impl MainGui {
     #[func]
     pub fn on_click_plot(&mut self) {
         self.selected_building_site = self.get_plot_item_selected();
+    }
+
+    #[func]
+    pub fn on_mouse_entered(&mut self) {
+        godot_print!("on entered");
+    }
+
+    #[func]
+    pub fn on_mouse_exited(&mut self) {
+        godot_print!("on exit");
     }
 
     pub fn get_plot_item_selected(&self) -> Option<Id> {
@@ -138,7 +148,7 @@ impl MainGui {
             let mut button = Button::new_alloc();
             button.set_text(fleet.label.into());
             button.connect(
-                "button_down".into(),
+                "pressed".into(),
                 Callable::from_object_method(self.base.clone(), "on_click_fleet"),
             );
             grid.add_child(button.upcast());
@@ -204,6 +214,10 @@ impl MainGui {
             .get_node_as::<Button>("TabContainer/Construction/VBoxContainer/PlotButton")
     }
 
+    fn get_main_container(&self) -> Gd<TabContainer> {
+        self.base.get_node_as::<TabContainer>("TabContainer")
+    }
+
     pub fn show_selected_object(&mut self, desc: Description) {
         // update rich text
         let mut rich_text = self
@@ -248,8 +262,18 @@ impl Node2DVirtual for MainGui {
             // register handlers
             let mut plot_button = self.get_plot_button();
             plot_button.connect(
-                "button_down".into(),
+                "pressed".into(),
                 Callable::from_object_method(self.base.clone(), "on_click_plot"),
+            );
+
+            let mut tab_container = self.get_main_container();
+            tab_container.connect(
+                "mouse_entered".into(),
+                Callable::from_object_method(self.base.clone(), "on_mouse_entered"),
+            );
+            tab_container.connect(
+                "mouse_exited".into(),
+                Callable::from_object_method(self.base.clone(), "on_mouse_exited"),
             );
         }
     }
