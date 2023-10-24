@@ -1,5 +1,6 @@
 [gd_scene format=3 uid="uid://ddr02an8jihyo"]
 
 [node name="SectorView" type="SectorView"]
+scale = Vector2(0.969527, 1.26027)
 
 [node name="objects" type="Node2D" parent="."]

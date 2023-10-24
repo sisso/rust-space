@@ -50,14 +50,10 @@ impl MainGui {
     }
 
     #[func]
-    pub fn on_mouse_entered(&mut self) {
-        godot_print!("on entered");
-    }
+    pub fn on_mouse_entered(&mut self) {}
 
     #[func]
-    pub fn on_mouse_exited(&mut self) {
-        godot_print!("on exit");
-    }
+    pub fn on_mouse_exited(&mut self) {}
 
     pub fn get_plot_item_selected(&self) -> Option<Id> {
         let mut list = self.get_plot_list();

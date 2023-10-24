@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use godot::engine::global::MouseButton;
-use godot::engine::{global, Engine, InputEvent, InputEventMouseButton};
+use godot::engine::{global, Control, ControlVirtual, Engine, InputEvent, InputEventMouseButton};
 use godot::prelude::*;
 
 use commons::math::V2;
@@ -42,17 +42,17 @@ impl SectorViewState {
 }
 
 #[derive(GodotClass)]
-#[class(base = Node2D)]
+#[class(base = Control)]
 pub struct SectorView {
     state: SectorViewState,
     bodies_model: HashMap<Id, Gd<Node2D>>,
     orbits_model: HashMap<Id, Gd<Node2D>>,
-    selected_model: Gd<SelectedModel>,
-    build_plot_model: Gd<SelectedModel>,
+    selected_model: Option<Gd<SelectedModel>>,
+    build_plot_model: Option<Gd<SelectedModel>>,
+    objects: Option<Gd<Node2D>>,
 
     #[base]
-    base: Base<Node2D>,
-    // building_plot_position: Option<Vector2>,
+    base: Base<Control>,
 }
 
 #[derive(Debug)]
@@ -109,7 +109,7 @@ impl SectorView {
                         // add model for new object
                         let model = resolve_model_for_kind(id, pos, kind);
                         self.bodies_model.insert(id, model.clone());
-                        self.base.add_child(model.upcast());
+                        self.objects.as_mut().unwrap().add_child(model.upcast());
                     }
                     current_entities.insert(id);
                 }
@@ -130,10 +130,13 @@ impl SectorView {
                             let model = new_orbit_model(
                                 format!("orbit of {:?}", id),
                                 radius,
-                                crate::utils::color_white(),
+                                utils::color_white(),
                                 parent_pos.as_vector2(),
                             );
-                            self.base.add_child(model.clone().upcast());
+                            self.objects
+                                .as_mut()
+                                .unwrap()
+                                .add_child(model.clone().upcast());
                             current_entities.insert(id);
                             model
                         });
@@ -157,30 +160,49 @@ impl SectorView {
 
         let input = Input::singleton();
         if input.is_key_pressed(global::Key::KEY_W) {
-            self.base.translate(Vector2::new(0.0, speed));
+            self.objects
+                .as_mut()
+                .unwrap()
+                .translate(Vector2::new(0.0, speed));
         }
         if input.is_key_pressed(global::Key::KEY_S) {
-            self.base.translate(Vector2::new(0.0, -speed));
+            self.objects
+                .as_mut()
+                .unwrap()
+                .translate(Vector2::new(0.0, -speed));
         }
         if input.is_key_pressed(global::Key::KEY_A) {
-            self.base.translate(Vector2::new(speed, 0.0));
+            self.objects
+                .as_mut()
+                .unwrap()
+                .translate(Vector2::new(speed, 0.0));
         }
         if input.is_key_pressed(global::Key::KEY_D) {
-            self.base.translate(Vector2::new(-speed, 0.0));
+            self.objects
+                .as_mut()
+                .unwrap()
+                .translate(Vector2::new(-speed, 0.0));
         }
 
         if input.is_key_pressed(global::Key::KEY_Q) {
-            self.base
+            self.objects
+                .as_mut()
+                .unwrap()
                 .apply_scale(Vector2::new(1.0 - scale_speed, 1.0 - scale_speed));
         }
         if input.is_key_pressed(global::Key::KEY_E) {
-            self.base
+            self.objects
+                .as_mut()
+                .unwrap()
                 .apply_scale(Vector2::new(1.0 + scale_speed, 1.0 + scale_speed));
         }
 
         match &self.state {
             SectorViewState::Plotting { .. } => {
-                self.build_plot_model.set_position(mouse_local_pos);
+                self.build_plot_model
+                    .as_mut()
+                    .unwrap()
+                    .set_position(mouse_local_pos);
 
                 if input.is_mouse_button_pressed(MouseButton::MOUSE_BUTTON_LEFT) {
                     godot_print!("set building plot pos {:?}", mouse_local_pos);
@@ -228,12 +250,18 @@ impl SectorView {
             } else {
                 if let Some(mut orbit_model) = self.orbits_model.remove(entity) {
                     // godot_print!("removing orbit {:?}", entity);
-                    self.base.remove_child(orbit_model.clone().upcast());
+                    self.objects
+                        .as_mut()
+                        .unwrap()
+                        .remove_child(orbit_model.clone().upcast());
                     orbit_model.queue_free();
                 }
 
                 // godot_print!("removing object {:?}", entity);
-                self.base.remove_child(node.clone().upcast());
+                self.objects
+                    .as_mut()
+                    .unwrap()
+                    .remove_child(node.clone().upcast());
                 node.queue_free();
                 false
             }
@@ -241,8 +269,14 @@ impl SectorView {
     }
 
     pub fn recenter(&mut self) {
-        self.base.set_position(Vector2::new(600.0, 350.0));
-        self.base.set_scale(Vector2::new(50.0, 50.0))
+        self.objects
+            .as_mut()
+            .unwrap()
+            .set_position(Vector2::new(600.0, 350.0));
+        self.objects
+            .as_mut()
+            .unwrap()
+            .set_scale(Vector2::new(50.0, 50.0))
     }
 
     pub fn find_nearest(&self, local_pos: Vector2, min_distance: f32) -> Option<Id> {
@@ -288,10 +322,14 @@ impl SectorView {
         }
 
         // detach the selected from previous parent
-        self.selected_model.get_parent().map(|mut parent| {
-            let gd = self.selected_model.clone();
-            parent.remove_child(gd.upcast())
-        });
+        self.selected_model
+            .as_mut()
+            .unwrap()
+            .get_parent()
+            .map(|mut parent| {
+                let gd = self.selected_model.as_mut().unwrap().clone();
+                parent.remove_child(gd.upcast())
+            });
 
         if let Some(id) = id {
             // update selection
@@ -300,39 +338,57 @@ impl SectorView {
             if let Some(target_model) = self.bodies_model.get(&id) {
                 target_model
                     .clone()
-                    .add_child(self.selected_model.clone().upcast());
-                self.selected_model.show();
+                    .add_child(self.selected_model.as_mut().unwrap().clone().upcast());
+                self.selected_model.as_mut().unwrap().show();
                 self.state = SectorViewState::Selected(id);
             } else {
                 godot_warn!("selected object {:?} has no model, ignoring", id);
-                self.selected_model.hide();
+                self.selected_model.as_mut().unwrap().hide();
             }
         } else {
             // if none object was provided, hide it
-            self.selected_model.hide();
+            self.selected_model.as_mut().unwrap().hide();
             self.state = SectorViewState::None;
         }
     }
 
     fn set_build_plot(&mut self, enabled: bool) {
         if enabled {
-            if !self.build_plot_model.is_visible() {
-                self.build_plot_model.show();
+            if !self.build_plot_model.as_mut().unwrap().is_visible() {
+                self.build_plot_model.as_mut().unwrap().show();
             }
         } else {
-            if self.build_plot_model.is_visible() {
-                self.build_plot_model.hide();
+            if self.build_plot_model.as_mut().unwrap().is_visible() {
+                self.build_plot_model.as_mut().unwrap().hide();
             }
         }
     }
 }
 
 #[godot_api]
-impl Node2DVirtual for SectorView {
-    fn init(mut base: Base<Node2D>) -> Self {
+impl ControlVirtual for SectorView {
+    fn init(mut base: Base<Control>) -> Self {
         if Engine::singleton().is_editor_hint() {
         } else {
         }
+
+        Self {
+            state: SectorViewState::None,
+            bodies_model: Default::default(),
+            orbits_model: Default::default(),
+            selected_model: None,
+            build_plot_model: None,
+            objects: None,
+            base,
+        }
+    }
+
+    fn ready(&mut self) {
+        if Engine::singleton().is_editor_hint() {
+            return;
+        }
+
+        let mut objects = self.base.get_node_as::<Node2D>("objects");
 
         let mut selected_model = new_select_model("selected", utils::color_cyan(), false);
         selected_model.hide();
@@ -340,22 +396,11 @@ impl Node2DVirtual for SectorView {
         let mut build_plot_model =
             new_select_model("plot cursor", utils::color_bright_blue(), true);
         build_plot_model.hide();
-        base.add_child(build_plot_model.clone().upcast());
+        objects.add_child(build_plot_model.clone().upcast());
 
-        Self {
-            state: SectorViewState::None,
-            bodies_model: Default::default(),
-            orbits_model: Default::default(),
-            selected_model,
-            build_plot_model,
-            base,
-        }
-    }
-
-    fn ready(&mut self) {
-        if Engine::singleton().is_editor_hint() {
-        } else {
-        }
+        self.objects = Some(objects);
+        self.build_plot_model = Some(build_plot_model);
+        self.selected_model = Some(selected_model);
     }
 
     fn process(&mut self, delta: f64) {
@@ -376,8 +421,8 @@ impl Node2DVirtual for SectorView {
 
 impl SectorView {
     fn get_local_mouse_pos(&self) -> Vector2 {
-        let mouse_pos = self.base.get_global_mouse_position();
-        let mouse_local_pos = self.base.to_local(mouse_pos);
+        let mouse_pos = self.objects.as_ref().unwrap().get_global_mouse_position();
+        let mouse_local_pos = self.objects.as_ref().unwrap().to_local(mouse_pos);
         mouse_local_pos
     }
 }
