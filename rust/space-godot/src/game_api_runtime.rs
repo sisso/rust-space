@@ -201,7 +201,26 @@ impl Runtime {
             .get_jump(id)
             .and_then(|jump| self.state.game.get_obj_desc(jump.get_to_sector_id()))
             .map(|target_desc| target_desc.get_label().to_string());
-        describe_obj(&self.state.wares, dt, ds, jump_target)
+
+        let docked_fleets = ds
+            .as_ref()
+            .map(|desc| desc.get_docked_fleets())
+            .map(|docked_fleets_id| {
+                docked_fleets_id
+                    .into_iter()
+                    .map(|id| {
+                        self.state
+                            .game
+                            .get_obj_desc(id)
+                            .expect("docked obj not found")
+                            .get_label()
+                            .to_string()
+                    })
+                    .collect()
+            })
+            .unwrap_or(vec![]);
+
+        describe_obj(&self.state.wares, dt, ds, jump_target, docked_fleets)
     }
 }
 
@@ -225,6 +244,7 @@ fn describe_obj(
     data: Option<ObjData>,
     desc: Option<ObjDesc>,
     jump_target_sector: Option<String>,
+    docked_fleets: Vec<String>,
 ) -> main_gui::Description {
     match (data, desc) {
         (Some(data), Some(desc)) => {
@@ -252,6 +272,14 @@ fn describe_obj(
             if let Some(target_sector) = jump_target_sector {
                 buffer.push(format!("jump to {}", target_sector));
             }
+
+            if docked_fleets.len() > 0 {
+                buffer.push("docked:".to_string());
+                for fleet in docked_fleets {
+                    buffer.push(format!("- {}", fleet));
+                }
+            }
+
             main_gui::Description::Obj {
                 title: desc.get_label().to_string(),
                 desc: buffer.join("\n"),

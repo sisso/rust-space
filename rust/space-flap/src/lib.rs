@@ -14,6 +14,7 @@ pub use models::*;
 use space_domain::game::actions::{Action, ActionActive, Actions};
 use space_domain::game::astrobody::{AstroBodies, AstroBody, AstroBodyKind, OrbitalPos};
 use space_domain::game::conf::BlueprintCode;
+use space_domain::game::dock::Docking;
 use space_domain::game::extractables::Extractable;
 use space_domain::game::factory::Factory;
 use space_domain::game::fleets::Fleet;
@@ -285,6 +286,19 @@ impl SpaceGame {
         let entities = g.world.entities();
         let e = decode_entity_and_get(&g, id)?;
 
+        let docked_fleets = g
+            .world
+            .read_storage::<Docking>()
+            .get(e)
+            .map(|has_dock| {
+                has_dock
+                    .docked
+                    .iter()
+                    .map(|id| encode_entity(*id))
+                    .collect()
+            })
+            .unwrap_or(vec![]);
+
         let desc = ObjDesc {
             id: id,
             label: g
@@ -307,6 +321,7 @@ impl SpaceGame {
             cargo: g.world.read_storage::<Cargo>().get(e).cloned(),
             factory: g.world.read_storage::<Factory>().get(e).cloned(),
             shipyard: g.world.read_storage::<Shipyard>().get(e).cloned(),
+            docked_fleets,
         };
 
         Some(desc)

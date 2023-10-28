@@ -17,7 +17,7 @@ use shred::{Read, ResourceId, SystemData, World};
 use specs::prelude::*;
 
 use super::*;
-use crate::game::dock::HasDock;
+use crate::game::dock::Docking;
 use crate::game::extractables::Extractable;
 use crate::game::locations::{EntityPerSectorIndex, Location};
 use crate::game::navigations::{NavRequest, Navigation};
@@ -39,7 +39,7 @@ pub struct CommandMineData<'a> {
     action_extract: ReadStorage<'a, ActionExtract>,
     action_request: WriteStorage<'a, ActionRequest>,
     extractable: ReadStorage<'a, Extractable>,
-    docks: ReadStorage<'a, HasDock>,
+    docks: ReadStorage<'a, Docking>,
     orders: ReadStorage<'a, Orders>,
 }
 
@@ -300,7 +300,7 @@ mod test {
                 pos: V2::new(0.0, 0.0),
                 sector_id: sector_scenery.sector_0,
             })
-            .with(HasDock)
+            .with(Docking::default())
             .with(Cargo::new(1000))
             .with(orders)
             .build();

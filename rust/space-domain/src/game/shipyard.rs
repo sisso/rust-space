@@ -219,6 +219,8 @@ impl<'a> System<'a> for ShipyardSystem {
 mod test {
     use crate::game::code::HasCode;
     use crate::game::commands::Command;
+    use crate::game::dock::Docking;
+    use crate::game::label::Label;
     use crate::game::loader::Loader;
     use crate::game::locations::Location;
     use crate::game::order::Orders;
@@ -405,16 +407,25 @@ mod test {
     ) -> (World, (Entity, WareId, PrefabId)) {
         test_system(ShipyardSystem, move |world| {
             world.register::<HasCode>();
+            world.register::<Label>();
+            world.register::<Docking>();
 
             let ware_id = world.create_entity().build();
             let new_obj = Loader::new_ship(2.0, "fleet".to_string())
                 .with_command(Command::mine())
                 .with_production_cost(TOTAL_WORK, vec![WareAmount::new(ware_id, REQUIRE_CARGO)])
                 .with_ai();
-            let prefab_id = Loader::add_prefab(world, "fleet", new_obj, true, false);
+            let prefab_id = Loader::add_prefab(world, "fleet", "fleet", new_obj, true, false);
 
             // create station prefab to check we never building it by mistake
-            Loader::add_prefab(world, "station", Loader::new_station(), false, true);
+            Loader::add_prefab(
+                world,
+                "station",
+                "station",
+                Loader::new_station(),
+                false,
+                true,
+            );
 
             assert!(station_current_cargo_amount < 1000);
             let mut cargo = Cargo::new(1000);
@@ -432,7 +443,12 @@ mod test {
                     prefab_id: prefab_id,
                 });
 
-            let shipyard_entity = world.create_entity().with(cargo).with(shipyard).build();
+            let shipyard_entity = world
+                .create_entity()
+                .with(cargo)
+                .with(shipyard)
+                .with(Docking::default())
+                .build();
 
             (shipyard_entity, ware_id, prefab_id)
         })

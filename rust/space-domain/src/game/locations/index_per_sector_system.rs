@@ -1,5 +1,5 @@
 use super::*;
-use crate::game::dock::HasDock;
+use crate::game::dock::Docking;
 use crate::game::extractables::Extractable;
 use shred::{ResourceId, SystemData, World, Write};
 use specs::prelude::*;
@@ -18,7 +18,7 @@ pub struct IndexPerSectorData<'a> {
     index: Write<'a, EntityPerSectorIndex>,
     locations: ReadStorage<'a, Location>,
     extractables: ReadStorage<'a, Extractable>,
-    stations: ReadStorage<'a, HasDock>,
+    stations: ReadStorage<'a, Docking>,
 }
 
 impl<'a> System<'a> for IndexPerSectorSystem {

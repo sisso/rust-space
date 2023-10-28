@@ -30,7 +30,7 @@ pub struct NewObj {
     pub location: Option<Location>,
     pub can_dock: bool,
     pub fleet: bool,
-    pub has_dock: bool,
+    pub docking: bool,
     // TODO: What is the purpose of this if fleets already have commands? loader do not use it
     pub ai: bool,
     pub station: bool,
@@ -81,8 +81,8 @@ impl NewObj {
         self
     }
 
-    pub fn has_dock(mut self) -> Self {
-        self.has_dock = true;
+    pub fn with_docking(mut self) -> Self {
+        self.docking = true;
         self
     }
 

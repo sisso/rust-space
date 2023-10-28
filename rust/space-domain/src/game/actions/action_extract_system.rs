@@ -12,7 +12,7 @@ pub struct ActionExtractSystem;
 pub struct ActionExtractData<'a> {
     entities: Entities<'a>,
     delta_time: Read<'a, DeltaTime>,
-    extractables: ReadStorage<'a, Extractable>,
+    _extractables: ReadStorage<'a, Extractable>,
     cargo: WriteStorage<'a, Cargo>,
     action_active: WriteStorage<'a, ActionActive>,
     action_extract: WriteStorage<'a, ActionExtract>,

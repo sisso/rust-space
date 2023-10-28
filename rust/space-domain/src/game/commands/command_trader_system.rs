@@ -1,5 +1,5 @@
 use crate::game::commands::{Command, TradeState};
-use crate::game::dock::HasDock;
+use crate::game::dock::Docking;
 use crate::game::locations::{EntityPerSectorIndex, Location, Locations};
 use crate::game::navigations::{NavRequest, Navigation};
 use crate::game::objects::ObjId;
@@ -25,7 +25,7 @@ pub struct CommandTradeData<'a> {
     sector_index: Read<'a, EntityPerSectorIndex>,
     cargos: WriteStorage<'a, Cargo>,
     navigation: ReadStorage<'a, Navigation>,
-    docks: ReadStorage<'a, HasDock>,
+    docks: ReadStorage<'a, Docking>,
     orders: ReadStorage<'a, Orders>,
 }
 
@@ -360,7 +360,7 @@ mod test {
     use super::*;
 
     use crate::game::commands::Command;
-    use crate::game::dock::HasDock;
+    use crate::game::dock::Docking;
     use crate::game::locations::EntityPerSectorIndex;
     use crate::game::navigations::Navigation;
     use crate::game::objects::ObjId;
@@ -399,7 +399,7 @@ mod test {
                 pos: P2::ZERO,
                 sector_id,
             })
-            .with(HasDock)
+            .with(Docking::default())
             .with(orders)
             .with(Cargo::new(STATION_CARGO))
             .build()

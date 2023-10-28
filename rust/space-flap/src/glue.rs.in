@@ -88,6 +88,7 @@ foreign_class!(
         fn ObjDesc::get_cargo(&self) -> Option<ObjCargo>;
         fn ObjDesc::get_shipyard(&self) -> Option<ObjShipyard>;
         fn ObjDesc::get_factory(&self) -> Option<ObjFactory>;
+        fn ObjDesc::get_docked_fleets(&self) -> Vec<u64>;
     }
 );
 

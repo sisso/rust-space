@@ -10,7 +10,7 @@ use crate::game::astrobody::{AstroBodies, AstroBody, AstroBodyKind, OrbitalPos};
 use crate::game::building_site::BuildingSite;
 use crate::game::code::{Code, HasCode};
 use crate::game::commands::Command;
-use crate::game::dock::HasDock;
+use crate::game::dock::Docking;
 use crate::game::events::{Event, EventKind, Events};
 use crate::game::extractables::Extractable;
 use crate::game::factory::{Factory, Receipt};
@@ -71,7 +71,7 @@ impl Loader {
             .with_label("station".to_string())
             .with_cargo(100)
             .with_station()
-            .has_dock()
+            .with_docking()
     }
 
     pub fn new_factory(sector_id: SectorId, pos: V2, receipt: Receipt) -> NewObj {
@@ -224,8 +224,8 @@ impl Loader {
             })
         }
 
-        if new_obj.has_dock {
-            builder.set(HasDock);
+        if new_obj.docking {
+            builder.set(Docking::default());
         }
 
         for location in &new_obj.location {
@@ -378,7 +378,7 @@ impl Loader {
             .with_label("building_site".to_string())
             .with_cargo(100)
             .with_building_site(BuildingSite { prefab_id, input })
-            .has_dock()
+            .with_docking()
     }
 }
 
@@ -497,7 +497,7 @@ pub fn load_prefabs(world: &mut World, prefabs: &conf::Prefabs) {
             .with_label(station.label.clone())
             .with_station()
             .with_cargo(station.storage as u32)
-            .has_dock();
+            .with_docking();
 
         if let Some(data) = &station.shipyard {
             let mut shipyard = Shipyard::new();

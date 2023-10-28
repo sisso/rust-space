@@ -1,5 +1,7 @@
 use specs::prelude::*;
 
 /// Other objects can dock in this object
-#[derive(Debug, Copy, Clone, Component)]
-pub struct HasDock;
+#[derive(Debug, Clone, Component, Default)]
+pub struct Docking {
+    pub docked: Vec<Entity>,
+}

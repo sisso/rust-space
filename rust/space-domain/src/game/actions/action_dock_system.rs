@@ -5,6 +5,7 @@ use super::*;
 
 use crate::game::events::{Event, EventKind, Events};
 
+use crate::game::dock::Docking;
 use std::borrow::BorrowMut;
 
 pub struct DockSystem;
@@ -15,6 +16,7 @@ pub struct DockData<'a> {
     actions: WriteStorage<'a, ActionActive>,
     actions_dock: WriteStorage<'a, ActionDock>,
     locations: WriteStorage<'a, Location>,
+    docking: WriteStorage<'a, Docking>,
     events: Write<'a, Events>,
 }
 
@@ -33,12 +35,21 @@ impl<'a> System<'a> for DockSystem {
             };
 
             log::debug!("{:?} docked at {:?}", entity, target_id);
+
+            // update entity location
             processed.push((
                 entity,
                 Location::Dock {
                     docked_id: target_id,
                 },
             ));
+
+            // update docked list
+            data.docking
+                .get_mut(target_id)
+                .expect("docked station has no docking component")
+                .docked
+                .push(entity);
         }
 
         let events = &mut data.events;
@@ -58,13 +69,14 @@ impl<'a> System<'a> for DockSystem {
 mod test {
     use super::super::*;
     use super::*;
+    use crate::game::dock::Docking;
 
     use crate::test::test_system;
     use crate::utils::Position;
 
     #[test]
     fn test_dock_system_should_dock() {
-        let (world, (entity, station)) = test_system(DockSystem, |world| {
+        let (world, (entity, station_id)) = test_system(DockSystem, |world| {
             let station_position = Position::ZERO;
 
             let sector_0 = world.create_entity().build();
@@ -75,6 +87,7 @@ mod test {
                     pos: station_position,
                     sector_id: sector_0,
                 })
+                .with(Docking::default())
                 .build();
 
             let entity = world
@@ -90,12 +103,22 @@ mod test {
             (entity, station)
         });
 
+        // check
         assert!(world.read_storage::<ActionActive>().get(entity).is_none());
         assert!(world.read_storage::<ActionDock>().get(entity).is_none());
         let storage = world.read_storage::<Location>();
         match storage.get(entity) {
-            Some(Location::Dock { docked_id }) => assert_eq!(*docked_id, station),
+            Some(Location::Dock { docked_id }) => assert_eq!(*docked_id, station_id),
             _ => panic!(),
         }
+
+        // check if docked object contain the new obj
+        let station_has_dock = world
+            .read_storage::<Docking>()
+            .get(station_id)
+            .unwrap()
+            .clone();
+        assert_eq!(1, station_has_dock.docked.len());
+        assert_eq!(entity, station_has_dock.docked[0]);
     }
 }

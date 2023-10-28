@@ -198,6 +198,7 @@ pub struct ObjDesc {
     pub(crate) cargo: Option<Cargo>,
     pub(crate) factory: Option<Factory>,
     pub(crate) shipyard: Option<Shipyard>,
+    pub(crate) docked_fleets: Vec<Id>,
 }
 
 impl ObjDesc {
@@ -237,6 +238,10 @@ impl ObjDesc {
         self.shipyard.as_ref().map(|shipyard| ObjShipyard {
             shipyard: shipyard.clone(),
         })
+    }
+
+    pub fn get_docked_fleets(&self) -> Vec<u64> {
+        self.docked_fleets.clone()
     }
 }
 
