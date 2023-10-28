@@ -13,7 +13,7 @@ use crate::utils::V2Vec;
 
 const MODEL_SCALE: f32 = 0.1;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum SectorViewState {
     None,
     Selected(Id),
@@ -272,7 +272,7 @@ impl SectorView {
         self.objects
             .as_mut()
             .unwrap()
-            .set_position(Vector2::new(600.0, 350.0));
+            .set_position(Vector2::new(500.0, 350.0));
         self.objects
             .as_mut()
             .unwrap()
@@ -295,7 +295,9 @@ impl SectorView {
     }
 
     pub fn set_state(&mut self, new_state: SectorViewState) {
-        godot_print!("setting state {:?} to {:?}", self.state, new_state);
+        if self.state == new_state {
+            return;
+        }
 
         match &new_state {
             SectorViewState::None => {
