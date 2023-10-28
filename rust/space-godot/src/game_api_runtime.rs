@@ -67,6 +67,18 @@ impl Runtime {
                         .bind_mut()
                         .set_state(sector_view::SectorViewState::None);
                     self.state.screen = StateScreen::Sector(sector_id);
+
+                    let id = self
+                        .state
+                        .game
+                        .new_building_plot(plot_id, sector_id, pos.x, pos.y);
+                    godot_print!(
+                        "added building plot {:?} at {:?}/{:?}: {:?}",
+                        plot_id,
+                        sector_id,
+                        pos,
+                        id
+                    );
                 }
                 _ => {
                     godot_warn!("plot position selected by game_api is not on building plot state");
@@ -163,7 +175,7 @@ impl Runtime {
 
         let mut buildings = vec![];
         for pf in self.state.game.list_building_sites_prefabs() {
-            godot_print!("- {:?}", pf.get_label());
+            godot_print!("- {:?} {:?}", pf.get_id(), pf.get_label());
             buildings.push(LabeledId {
                 id: pf.get_id(),
                 label: format!("BS {}", pf.get_label()),
@@ -179,19 +191,6 @@ impl Runtime {
     pub fn recenter(&mut self) {
         self.sector_view.bind_mut().recenter();
     }
-
-    // pub fn on_selected_entity(&mut self, id: Option<Id>) {
-    //     self.state.selected_object = id;
-    //
-    //     if let Some(id) = self.state.selected_object {
-    //         let uidesc = self.describe_obj(id);
-    //         self.gui.bind_mut().show_selected_object(uidesc);
-    //     } else {
-    //         self.gui
-    //             .bind_mut()
-    //             .show_selected_object(main_gui::Description::None);
-    //     }
-    // }
 
     pub fn describe_obj(&self, id: Id) -> main_gui::Description {
         let dt = self.state.game.get_obj(id);

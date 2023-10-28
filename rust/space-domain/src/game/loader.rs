@@ -346,7 +346,9 @@ impl Loader {
         shipyard: bool,
         building_site: bool,
     ) -> Entity {
-        world
+        let new_obj_str = format!("{:?}", new_obj);
+
+        let entity = world
             .create_entity()
             .with(Prefab {
                 obj: new_obj,
@@ -355,7 +357,11 @@ impl Loader {
             })
             .with(HasCode::from_str(code))
             .with(Label::from(label))
-            .build()
+            .build();
+
+        log::debug!("add_prefab {:?} from {}", entity, new_obj_str);
+
+        entity
     }
 
     pub fn new_by_prefab_code(world: &mut World, code: &str) -> Option<NewObj> {

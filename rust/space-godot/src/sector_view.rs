@@ -385,59 +385,12 @@ impl ControlVirtual for SectorView {
     fn gui_input(&mut self, event: Gd<InputEvent>) {
         let maybe_mouse_down: Option<Gd<InputEventMouseButton>> = event.clone().try_cast();
         if let Some(mouse_down) = maybe_mouse_down {
-            // godot_print!(
-            //     "sectorview receive input {:?} at {:?} with {:?}",
-            //     mouse_down,
-            //     self.to_local(mouse_down.get_position()),
-            //     mouse_down.get_button_index()
-            // );
-
-            match &self.state {
-                SectorViewState::Plotting { .. }
-                    if mouse_down.get_button_index() == MouseButton::MOUSE_BUTTON_LEFT =>
-                {
-                    let global_mouse_pos = self.to_local(mouse_down.get_global_position());
-                    godot_print!("set building plot pos {:?}", global_mouse_pos);
-                    self.frame_build_plot = Some(global_mouse_pos);
-                }
-                SectorViewState::Plotting { .. }
-                    if mouse_down.get_button_index() == MouseButton::MOUSE_BUTTON_RIGHT =>
-                {
-                    godot_print!("canceling building plot");
-                    self.set_state(SectorViewState::None);
-                }
-                _ if mouse_down.get_button_index() == MouseButton::MOUSE_BUTTON_LEFT => {
-                    let nearest_id =
-                        self.find_nearest(self.to_local(mouse_down.get_global_position()), 1.0);
-
-                    if let Some(id) = nearest_id {
-                        self.frame_selected_id = Some(id);
-
-                        let new_state = SectorViewState::Selected(id);
-                        self.set_state(new_state);
-                    } else {
-                        self.set_state(SectorViewState::None);
-                    }
-                }
-                _ => {}
-            }
-
-            return;
+            self.handle_mouse_down(mouse_down);
         }
 
         let maybe_mouse_move: Option<Gd<InputEventMouseMotion>> = event.try_cast();
         if let Some(mouse_move) = maybe_mouse_move {
-            match &self.state {
-                SectorViewState::Plotting { .. } => {
-                    let local_mouse_pos = self.to_local(mouse_move.get_global_position());
-                    self.build_plot_model
-                        .as_mut()
-                        .unwrap()
-                        .set_position(local_mouse_pos);
-                }
-                _ => {}
-            }
-            return;
+            self.handle_mouse_move(mouse_move);
         }
     }
 }
@@ -451,6 +404,44 @@ impl SectorView {
     fn get_local_mouse_pos(&self) -> Vector2 {
         let mouse_pos = self.objects.as_ref().unwrap().get_global_mouse_position();
         self.to_local(mouse_pos)
+    }
+
+    fn handle_mouse_down(&mut self, mouse_down: Gd<InputEventMouseButton>) {
+        let local_mouse_pos = self.to_local(mouse_down.get_global_position());
+        let is_left_button = mouse_down.get_button_index() == MouseButton::MOUSE_BUTTON_LEFT;
+        let is_right_button = mouse_down.get_button_index() == MouseButton::MOUSE_BUTTON_RIGHT;
+        match &self.state {
+            SectorViewState::Plotting { .. } if is_left_button => {
+                self.frame_build_plot = Some(local_mouse_pos);
+            }
+            SectorViewState::Plotting { .. } if is_right_button => {
+                self.set_state(SectorViewState::None);
+            }
+            _ if is_left_button => {
+                let nearest_id = self.find_nearest(local_mouse_pos, 1.0);
+                if let Some(id) = nearest_id {
+                    self.frame_selected_id = Some(id);
+                    let new_state = SectorViewState::Selected(id);
+                    self.set_state(new_state);
+                } else {
+                    self.set_state(SectorViewState::None);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn handle_mouse_move(&mut self, mouse_move: Gd<InputEventMouseMotion>) {
+        match &self.state {
+            SectorViewState::Plotting { .. } => {
+                let local_mouse_pos = self.to_local(mouse_move.get_global_position());
+                self.build_plot_model
+                    .as_mut()
+                    .unwrap()
+                    .set_position(local_mouse_pos);
+            }
+            _ => {}
+        }
     }
 }
 

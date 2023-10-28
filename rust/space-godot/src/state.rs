@@ -30,7 +30,7 @@ impl State {
             // .filter(Some("space_flap"), log::LevelFilter::Warn)
             // .filter(Some("space_domain"), log::LevelFilter::Warn)
             // .filter(Some("space_domain::conf"), log::LevelFilter::Debug)
-            // .filter(Some("space_domain::game::loader"), log::LevelFilter::Warn)
+            .filter(Some("space_domain::game::loader"), log::LevelFilter::Trace)
             .try_init()
             .or_else(|err| {
                 log::warn!("fail to initialize log {err:?}");

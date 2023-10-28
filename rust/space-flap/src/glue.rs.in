@@ -12,6 +12,7 @@ foreign_class!(
         fn SpaceGame::take_events(&mut self) -> Vec<EventData>;
         fn SpaceGame::list_wares(&self) -> Vec<WareData>;
         fn SpaceGame::list_building_sites_prefabs(&self) -> Vec<PrefabData>;
+        fn SpaceGame::new_building_plot(&self, plot_id: u64, sector_id: u64, pos_x: f32, pos_y: f32) -> u64;
     }
 );
 

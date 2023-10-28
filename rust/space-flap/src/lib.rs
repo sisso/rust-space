@@ -24,6 +24,7 @@ use space_domain::game::navigations::{Navigation, NavigationMoveTo};
 use space_domain::game::objects::ObjId;
 use space_domain::game::order::Orders;
 use space_domain::game::prefab::Prefab;
+use space_domain::game::production_cost::ProductionCost;
 use space_domain::game::sectors::{Jump, Sector};
 use space_domain::game::shipyard::Shipyard;
 use space_domain::game::station::Station;
@@ -353,6 +354,28 @@ impl SpaceGame {
                 label: l.label.clone(),
             })
             .collect()
+    }
+
+    pub fn new_building_plot(&self, plot_id: u64, sector_id: u64, pos_x: f32, pos_y: f32) -> u64 {
+        let mut game = self.game.borrow_mut();
+        let plot_id = dbg!(decode_entity_and_get(&game, plot_id).unwrap());
+        let sector_id = decode_entity_and_get(&game, sector_id).unwrap();
+
+        let prod_cost = game
+            .world
+            .read_storage::<Prefab>()
+            .get(plot_id)
+            .expect("prefab not found")
+            .obj
+            .production_cost
+            .as_ref()
+            .map(|pc| pc.cost.clone())
+            .unwrap_or(vec![]);
+
+        let new_obj = Loader::new_station_building_site(plot_id, prod_cost)
+            .at_position(sector_id, P2::new(pos_x, pos_y));
+        let obj_id = Loader::add_object(&mut game.world, &new_obj);
+        encode_entity(obj_id)
     }
 }
 
