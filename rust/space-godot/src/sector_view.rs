@@ -1,7 +1,10 @@
 use std::collections::{HashMap, HashSet};
 
 use godot::engine::global::MouseButton;
-use godot::engine::{global, Control, ControlVirtual, Engine, InputEvent, InputEventMouseButton};
+use godot::engine::{
+    global, Control, ControlVirtual, Engine, InputEvent, InputEventMouseButton,
+    InputEventMouseMotion,
+};
 use godot::prelude::*;
 
 use commons::math::V2;
@@ -50,6 +53,8 @@ pub struct SectorView {
     selected_model: Option<Gd<SelectedModel>>,
     build_plot_model: Option<Gd<SelectedModel>>,
     objects: Option<Gd<Node2D>>,
+    frame_selected_id: Option<Id>,
+    frame_build_plot: Option<Vector2>,
 
     #[base]
     base: Base<Control>,
@@ -80,12 +85,6 @@ pub enum Update {
     },
 }
 
-#[derive(Default, Debug)]
-pub struct ProcessInputResult {
-    pub selected_id: Option<Id>,
-    pub build_plot: Option<Vector2>,
-}
-
 #[godot_api]
 impl SectorView {
     pub fn get_selected_id(&self) -> Option<Id> {
@@ -93,6 +92,14 @@ impl SectorView {
             SectorViewState::Selected(id) => Some(id),
             _ => None,
         }
+    }
+
+    pub fn take_selected_id(&mut self) -> Option<Id> {
+        self.frame_selected_id.take()
+    }
+
+    pub fn take_build_plot(&mut self) -> Option<Vector2> {
+        self.frame_build_plot.take()
     }
 
     pub fn refresh(&mut self, updates: Vec<Update>) {
@@ -148,12 +155,7 @@ impl SectorView {
         self.remove_missing(current_entities);
     }
 
-    pub fn process_input(&mut self, delta_seconds: f64) -> ProcessInputResult {
-        let mut res = ProcessInputResult::default();
-
-        // process inputs
-        let mouse_local_pos = self.get_local_mouse_pos();
-
+    fn process_input(&mut self, delta_seconds: f64) {
         // TODO: fix change relative to current screen scale
         let speed = 100.0 * delta_seconds as f32;
         let scale_speed = 0.02f32;
@@ -196,41 +198,6 @@ impl SectorView {
                 .unwrap()
                 .apply_scale(Vector2::new(1.0 + scale_speed, 1.0 + scale_speed));
         }
-
-        match &self.state {
-            SectorViewState::Plotting { .. } => {
-                self.build_plot_model
-                    .as_mut()
-                    .unwrap()
-                    .set_position(mouse_local_pos);
-
-                if input.is_mouse_button_pressed(MouseButton::MOUSE_BUTTON_LEFT) {
-                    godot_print!("set building plot pos {:?}", mouse_local_pos);
-                    res.build_plot = Some(mouse_local_pos);
-                }
-
-                if input.is_mouse_button_pressed(MouseButton::MOUSE_BUTTON_RIGHT) {
-                    godot_print!("canceling building plot");
-                    self.set_state(SectorViewState::None);
-                }
-            }
-            _ => {
-                if input.is_mouse_button_pressed(MouseButton::MOUSE_BUTTON_LEFT) {
-                    let nearest_id = self.find_nearest(mouse_local_pos, 1.0);
-
-                    if let Some(id) = nearest_id {
-                        res.selected_id = Some(id);
-
-                        let new_state = SectorViewState::Selected(id);
-                        self.set_state(new_state);
-                    } else {
-                        self.set_state(SectorViewState::None);
-                    }
-                }
-            }
-        }
-
-        res
     }
 
     fn remove_missing(&mut self, current_entities: HashSet<Id>) {
@@ -381,6 +348,8 @@ impl ControlVirtual for SectorView {
             selected_model: None,
             build_plot_model: None,
             objects: None,
+            frame_build_plot: None,
+            frame_selected_id: None,
             base,
         }
     }
@@ -409,23 +378,79 @@ impl ControlVirtual for SectorView {
         if Engine::singleton().is_editor_hint() {
             return;
         }
+
+        self.process_input(delta);
     }
 
-    fn unhandled_input(&mut self, event: Gd<InputEvent>) {
-        // let maybe_mouse_down: Option<Gd<InputEventMouseButton>> = event.clone().try_cast();
-        // if let Some(md_event) = maybe_mouse_down {
-        //     godot_print!("receive unhandled_input mouse down {:?}", event);
-        // } else {
-        //     godot_print!("receive unhandled_input {:?}", event);
-        // }
+    fn gui_input(&mut self, event: Gd<InputEvent>) {
+        let maybe_mouse_down: Option<Gd<InputEventMouseButton>> = event.clone().try_cast();
+        if let Some(mouse_down) = maybe_mouse_down {
+            // godot_print!(
+            //     "sectorview receive input {:?} at {:?} with {:?}",
+            //     mouse_down,
+            //     self.to_local(mouse_down.get_position()),
+            //     mouse_down.get_button_index()
+            // );
+
+            match &self.state {
+                SectorViewState::Plotting { .. }
+                    if mouse_down.get_button_index() == MouseButton::MOUSE_BUTTON_LEFT =>
+                {
+                    let global_mouse_pos = self.to_local(mouse_down.get_global_position());
+                    godot_print!("set building plot pos {:?}", global_mouse_pos);
+                    self.frame_build_plot = Some(global_mouse_pos);
+                }
+                SectorViewState::Plotting { .. }
+                    if mouse_down.get_button_index() == MouseButton::MOUSE_BUTTON_RIGHT =>
+                {
+                    godot_print!("canceling building plot");
+                    self.set_state(SectorViewState::None);
+                }
+                _ if mouse_down.get_button_index() == MouseButton::MOUSE_BUTTON_LEFT => {
+                    let nearest_id =
+                        self.find_nearest(self.to_local(mouse_down.get_global_position()), 1.0);
+
+                    if let Some(id) = nearest_id {
+                        self.frame_selected_id = Some(id);
+
+                        let new_state = SectorViewState::Selected(id);
+                        self.set_state(new_state);
+                    } else {
+                        self.set_state(SectorViewState::None);
+                    }
+                }
+                _ => {}
+            }
+
+            return;
+        }
+
+        let maybe_mouse_move: Option<Gd<InputEventMouseMotion>> = event.try_cast();
+        if let Some(mouse_move) = maybe_mouse_move {
+            match &self.state {
+                SectorViewState::Plotting { .. } => {
+                    let local_mouse_pos = self.to_local(mouse_move.get_global_position());
+                    self.build_plot_model
+                        .as_mut()
+                        .unwrap()
+                        .set_position(local_mouse_pos);
+                }
+                _ => {}
+            }
+            return;
+        }
     }
 }
 
 impl SectorView {
+    fn to_local(&self, global_pos: Vector2) -> Vector2 {
+        let mouse_local_pos = self.objects.as_ref().unwrap().to_local(global_pos);
+        mouse_local_pos
+    }
+
     fn get_local_mouse_pos(&self) -> Vector2 {
         let mouse_pos = self.objects.as_ref().unwrap().get_global_mouse_position();
-        let mouse_local_pos = self.objects.as_ref().unwrap().to_local(mouse_pos);
-        mouse_local_pos
+        self.to_local(mouse_pos)
     }
 }
 

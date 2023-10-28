@@ -24,11 +24,9 @@ impl Runtime {
     }
 
     pub fn tick(&mut self, delta_seconds: f64) {
-        let sector_view_result = self.sector_view.bind_mut().process_input(delta_seconds);
-
         // process inputs
-        let sector_selected_id = sector_view_result.selected_id;
-        let building_plot_position = sector_view_result.build_plot;
+        let sector_selected_id = self.sector_view.bind_mut().take_selected_id();
+        let building_plot_position = self.sector_view.bind_mut().take_build_plot();
         let clicked_sector_id = self.gui.bind_mut().take_selected_sector_id();
         let clicked_fleet_id = self.gui.bind_mut().take_selected_fleet_id();
         let clicked_to_build_plot_id = self.gui.bind_mut().take_selected_building_site();
