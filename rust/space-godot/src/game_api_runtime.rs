@@ -169,7 +169,14 @@ impl Runtime {
         for fleet in self.state.game.get_fleets() {
             fleets.push(LabeledId {
                 id: fleet.get_id(),
-                label: format!("Fleet {}", fleet.get_id()),
+                label: format!(
+                    "{} ({})",
+                    self.state
+                        .game
+                        .get_label(fleet.get_id())
+                        .expect("fleet has no label"),
+                    fleet.get_id()
+                ),
             })
         }
 
@@ -211,10 +218,8 @@ impl Runtime {
                     .map(|id| {
                         self.state
                             .game
-                            .get_obj_desc(id)
-                            .expect("docked obj not found")
-                            .get_label()
-                            .to_string()
+                            .get_label(id)
+                            .expect("docked obj has no label")
                     })
                     .collect()
             })

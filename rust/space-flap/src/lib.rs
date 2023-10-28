@@ -161,6 +161,15 @@ impl SpaceGame {
         })
     }
 
+    pub fn get_label(&self, id: Id) -> Option<String> {
+        self.game
+            .borrow()
+            .world
+            .read_storage::<Label>()
+            .get(decode_entity_and_get(&self.game.borrow(), id)?)
+            .map(|l| l.label.clone())
+    }
+
     pub fn get_fleets(&self) -> Vec<ObjData> {
         let g = self.game.borrow();
 

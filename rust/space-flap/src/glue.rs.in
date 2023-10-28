@@ -8,6 +8,7 @@ foreign_class!(
         fn SpaceGame::get_fleets(&self) -> Vec<ObjData>;
         fn SpaceGame::get_obj(&self, id: u64) -> Option<ObjData>;
         fn SpaceGame::get_obj_coords(&self, id: u64) -> Option<ObjCoords>;
+        fn SpaceGame::get_label(&self, id: u64) -> Option<String>;
         fn SpaceGame::update(&mut self, delta: f32);
         fn SpaceGame::take_events(&mut self) -> Vec<EventData>;
         fn SpaceGame::list_wares(&self) -> Vec<WareData>;

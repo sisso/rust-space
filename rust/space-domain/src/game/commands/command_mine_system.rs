@@ -39,7 +39,7 @@ pub struct CommandMineData<'a> {
     action_extract: ReadStorage<'a, ActionExtract>,
     action_request: WriteStorage<'a, ActionRequest>,
     extractable: ReadStorage<'a, Extractable>,
-    docks: ReadStorage<'a, Docking>,
+    _docks: ReadStorage<'a, Docking>,
     orders: ReadStorage<'a, Orders>,
 }
 
