@@ -15,6 +15,7 @@ use std::collections::HashSet;
 pub enum InitialCondition {
     Random { station_per_sector_density: f32 },
     Minimal,
+    MinimalStations,
 }
 
 pub struct RandomMapCfg {
@@ -38,13 +39,15 @@ pub fn load_random(game: &mut Game, cfg: &RandomMapCfg) {
         InitialCondition::Random {
             station_per_sector_density,
         } => add_stations_random(world, rng.gen(), &cfg.params, station_per_sector_density),
-        InitialCondition::Minimal => add_stations_minimal(world, rng.gen(), &cfg.params),
+        InitialCondition::Minimal => add_mothership(world, rng.gen(), &cfg.params),
+        InitialCondition::MinimalStations => add_stations_minimal(world, rng.gen(), &cfg.params),
     }
 
     // add ships
     {
         let mut shipyards = vec![];
 
+        // find shipyards
         {
             let entities = world.entities();
             let shipyard_storage = world.read_storage::<Shipyard>();
@@ -258,6 +261,25 @@ fn add_stations_random(
     }
 
     AstroBodies::update_orbits(world);
+}
+
+fn add_mothership(world: &mut World, seed: u64, params: &conf::Params) {
+    let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
+
+    // get first sector
+    let sector_id = sectors::get_sector_by_coords(
+        &world.entities(),
+        &world.read_storage::<Sector>(),
+        V2I::new(0, 0),
+    )
+    .expect("no sector found");
+
+    // add shipyard
+    let new_obj = Loader::new_by_prefab_code(world, params.prefab_mothership.as_str())
+        .expect("fail to create mothership")
+        .at_position(sector_id, V2::ZERO);
+    let obj_id = Loader::add_object(world, &new_obj);
+    loader::set_orbit_random_body(world, obj_id, rng.next_u64());
 }
 
 fn add_stations_minimal(world: &mut World, seed: u64, params: &conf::Params) {

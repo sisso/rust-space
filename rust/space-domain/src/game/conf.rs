@@ -90,6 +90,7 @@ pub struct Factory {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Params {
+    pub prefab_mothership: Code,
     pub prefab_station_shipyard: Code,
     pub prefab_station_factory: Code,
     pub prefab_station_solar: Code,

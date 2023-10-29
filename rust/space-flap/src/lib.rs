@@ -48,6 +48,7 @@ impl SpaceGame {
     pub fn new(args: Vec<String>) -> Self {
         let mut size = 4;
         let mut fleets = 10;
+        let mut stations = 4;
 
         for mut pair in &args.iter().chunks(2) {
             let k = pair.next().unwrap();

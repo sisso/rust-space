@@ -205,6 +205,8 @@ impl Loader {
 
         let mut orders = Orders::default();
 
+        let mut update_docking: Option<ObjId> = None;
+
         if new_obj.can_dock && new_obj.speed.is_none() {
             panic!(
                 "fatal {:?}: entity that can dock should be moveable",
@@ -230,6 +232,13 @@ impl Loader {
 
         for location in &new_obj.location {
             builder.set(location.clone());
+
+            match location {
+                Location::Dock { docked_id } => {
+                    update_docking = Some(*docked_id);
+                }
+                _ => {}
+            }
         }
 
         for speed in &new_obj.speed {
@@ -329,6 +338,15 @@ impl Loader {
         }
 
         let entity = builder.build();
+
+        for docked_id in update_docking {
+            world
+                .write_storage::<Docking>()
+                .get_mut(docked_id)
+                .unwrap()
+                .docked
+                .push(entity);
+        }
 
         log::debug!("add_object {:?} from {:?}", entity, new_obj);
 
