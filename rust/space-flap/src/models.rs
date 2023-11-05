@@ -353,12 +353,12 @@ impl ObjShipyard {
         self.shipyard.get_producing().map(|id| encode_entity(id))
     }
 
-    pub fn get_production_order_str(&self) -> String {
+    pub fn get_order(&self) -> Option<Id> {
         match self.shipyard.order {
-            ProductionOrder::None => "no order".to_string(),
-            ProductionOrder::Next(id) => format!("order to produce {:?}", id),
-            ProductionOrder::Random => "random produce order".to_string(),
-            ProductionOrder::RandomSelected(id) => format!("order random producing {:?}", id),
+            ProductionOrder::None => None,
+            ProductionOrder::Next(id) => Some(encode_entity(id)),
+            ProductionOrder::Random => None,
+            ProductionOrder::RandomSelected(id) => Some(encode_entity(id)),
         }
     }
 }

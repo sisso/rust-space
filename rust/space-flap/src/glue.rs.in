@@ -178,6 +178,6 @@ foreign_class!(
         private constructor = empty;
         fn ObjShipyard::is_producing(&self) -> bool;
         fn ObjShipyard::get_producing_prefab_id(&self) -> Option<u64>;
-        fn ObjShipyard::get_production_order_str(&self) -> String;
+        fn ObjShipyard::get_order(&self) -> Option<u64>;
     }
 );

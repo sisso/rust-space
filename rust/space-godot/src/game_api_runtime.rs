@@ -256,8 +256,14 @@ impl Runtime {
         if let Some(shipyard) = desc.get_shipyard() {
             let prefabs = self.state.game.list_building_shipyard_prefabs();
 
-            let current_order = shipyard.get_production_order_str();
-            buffer.push(current_order);
+            if let Some(prefab_id) = shipyard.get_order() {
+                let prefab = prefabs
+                    .iter()
+                    .find(|prefab_data| prefab_data.get_id() == prefab_id)
+                    .expect("order prefab not found");
+
+                buffer.push(format!("current order: {:?}", prefab.get_label()));
+            }
 
             if let Some(prefab_id) = shipyard.get_producing_prefab_id() {
                 let prefab = prefabs
