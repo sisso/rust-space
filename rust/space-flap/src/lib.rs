@@ -30,7 +30,7 @@ use space_domain::game::sectors::{Jump, Sector};
 use space_domain::game::shipyard::Shipyard;
 use space_domain::game::station::Station;
 use space_domain::game::wares::{Cargo, Ware, WareId};
-use space_domain::game::{events, scenery_random};
+use space_domain::game::{events, scenery_random, shipyard};
 use space_domain::game::{loader, Game};
 use space_domain::utils::TotalTime;
 use utils::*;
@@ -427,6 +427,32 @@ impl SpaceGame {
             .at_position(sector_id, P2::new(pos_x, pos_y));
         let obj_id = Loader::add_object(&mut game.world, &new_obj);
         encode_entity(obj_id)
+    }
+
+    pub fn add_shipyard_building_order(&mut self, obj_id: u64, prefab_id: u64) -> bool {
+        let prefab_id = decode_entity_and_get(&self.game.borrow(), prefab_id).unwrap();
+        let obj_id = decode_entity_and_get(&self.game.borrow(), obj_id).unwrap();
+
+        let mut game = self.game.borrow_mut();
+
+        let mut shipyards = game.world.write_storage::<Shipyard>();
+        let prefabs = game.world.read_storage::<Prefab>();
+
+        let prefab = prefabs.get(prefab_id).unwrap();
+        assert!(prefab.shipyard);
+
+        let mut shipyard = shipyards.get_mut(obj_id).unwrap();
+
+        if !shipyard.order.is_none() {
+            log::debug!("{:?} is already producing, ignoring new order", obj_id);
+            return false;
+        }
+
+        shipyard.order = shipyard::ProductionOrder::Next(prefab_id);
+
+        log::debug!("{:?} set production order to {:?}", obj_id, prefab_id);
+
+        true
     }
 }
 

@@ -114,7 +114,7 @@ impl<'a> System<'a> for CommandMineSystem {
                                 target_id
                             }
                             None => {
-                                log::warn!("{:?} can not find a cargo for deliver", entity);
+                                // log::debug!("{:?} can not find a cargo for deliver", entity);
                                 continue;
                             }
                         }

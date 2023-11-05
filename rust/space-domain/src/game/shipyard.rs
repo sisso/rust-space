@@ -21,7 +21,7 @@ struct ShipyardProduction {
 /// Configure a shipyard what to produce
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ProductionOrder {
-    /// nothing should be producee
+    /// nothing should be produce
     None,
     /// manual set to build this
     Next(PrefabId),
@@ -29,6 +29,15 @@ pub enum ProductionOrder {
     Random,
     /// random select next prefab
     RandomSelected(PrefabId),
+}
+
+impl ProductionOrder {
+    pub fn is_none(&self) -> bool {
+        match self {
+            ProductionOrder::None => true,
+            _ => false,
+        }
+    }
 }
 
 /// shipyard are attached to stations and can building ships
@@ -43,7 +52,7 @@ impl Shipyard {
     pub fn new() -> Self {
         Self {
             production: 1.0,
-            order: ProductionOrder::Random,
+            order: ProductionOrder::None,
             current_production: None,
         }
     }

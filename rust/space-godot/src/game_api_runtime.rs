@@ -49,12 +49,12 @@ impl Runtime {
                 .bind_mut()
                 .set_state(sector_view::SectorViewState::None);
             self.state.screen = StateScreen::Obj(fleet_id);
-        } else if let Some(id) = clicked_selected_action {
-            godot_print!("clicked on selected action {:?}", id);
+        } else if let Some(prefab_id) = clicked_selected_action {
+            let r = self.set_shipyard_production(prefab_id);
+            godot_print!("set shipyard prefab_id {:?}: {:?}", prefab_id, r);
         } else if let Some(id) = clicked_to_build_plot_id {
             // user want to build a plot
             let current_sector_id = self.state.get_current_sector_id();
-
             self.state.screen = StateScreen::SectorPlot {
                 sector_id: current_sector_id,
                 plot_id: id,
@@ -203,8 +203,8 @@ impl Runtime {
     }
 
     pub fn describe_obj(&self, id: Id) -> Description {
-        let dt = self.state.game.get_obj(id);
-        let ds = self.state.game.get_obj_desc(id);
+        let data = self.state.game.get_obj(id);
+        let desc = self.state.game.get_obj_desc(id);
         let jump_target = self
             .state
             .game
@@ -212,7 +212,7 @@ impl Runtime {
             .and_then(|jump| self.state.game.get_obj_desc(jump.get_to_sector_id()))
             .map(|target_desc| target_desc.get_label().to_string());
 
-        let docked_fleets = ds
+        let docked_fleets = desc
             .as_ref()
             .map(|desc| desc.get_docked_fleets())
             .map(|docked_fleets_id| {
@@ -230,59 +230,86 @@ impl Runtime {
 
         let mut actions = vec![];
 
-        match (dt, ds) {
-            (Some(data), Some(desc)) => {
-                let kind = get_kind_str(&data);
-                let mut buffer = vec![format!("{} {:?}", kind, data.get_id())];
-                if let Some(action) = desc.get_action() {
-                    buffer.push(get_action_string(action));
-                }
-                if let Some(target_id) = desc.get_nav_move_to_target() {
-                    buffer.push(format!("target id: {:?}", target_id));
-                }
-                if let Some(cargo) = desc.get_cargo() {
-                    buffer.extend(get_cargo_str(&self.state.wares, cargo));
-                }
-                if let Some(factory) = desc.get_factory() {
-                    if factory.is_producing() {
-                        buffer.push("producing".to_string());
-                    }
-                }
-                if let Some(shipyard) = desc.get_shipyard() {
-                    let prefabs = self.state.game.list_building_shipyard_prefabs();
-
-                    if let Some(prefab_id) = shipyard.get_producing_prefab_id() {
-                        let prefab = prefabs
-                            .iter()
-                            .find(|prefab_data| prefab_data.get_id() == prefab_id)
-                            .expect("producing prefab not found");
-                        buffer.push(format!("producing {}", prefab.get_label()));
-                    }
-
-                    actions.extend(prefabs.into_iter().map(|prefab| LabeledId {
-                        id: prefab.get_id(),
-                        label: prefab.get_label().to_string(),
-                    }));
-                }
-                if let Some(target_sector) = jump_target {
-                    buffer.push(format!("jump to {}", target_sector));
-                }
-
-                if docked_fleets.len() > 0 {
-                    buffer.push("docked:".to_string());
-                    for fleet in docked_fleets {
-                        buffer.push(format!("- {}", fleet));
-                    }
-                }
-
-                Description::Obj {
-                    title: desc.get_label().to_string(),
-                    desc: buffer.join("\n"),
-                    actions,
-                }
-            }
-            _ => Description::None,
+        if data.is_none() || desc.is_none() {
+            return Description::None;
         }
+
+        let data = data.unwrap();
+        let desc = desc.unwrap();
+
+        let kind = get_kind_str(&data);
+        let mut buffer = vec![format!("{} {:?}", kind, data.get_id())];
+        if let Some(action) = desc.get_action() {
+            buffer.push(get_action_string(action));
+        }
+        if let Some(target_id) = desc.get_nav_move_to_target() {
+            buffer.push(format!("target id: {:?}", target_id));
+        }
+        if let Some(cargo) = desc.get_cargo() {
+            buffer.extend(get_cargo_str(&self.state.wares, cargo));
+        }
+        if let Some(factory) = desc.get_factory() {
+            if factory.is_producing() {
+                buffer.push("producing".to_string());
+            }
+        }
+        if let Some(shipyard) = desc.get_shipyard() {
+            let prefabs = self.state.game.list_building_shipyard_prefabs();
+
+            let current_order = shipyard.get_production_order_str();
+            buffer.push(current_order);
+
+            if let Some(prefab_id) = shipyard.get_producing_prefab_id() {
+                let prefab = prefabs
+                    .iter()
+                    .find(|prefab_data| prefab_data.get_id() == prefab_id)
+                    .expect("producing prefab not found");
+                buffer.push(format!("producing {}", prefab.get_label()));
+            }
+
+            actions.extend(prefabs.into_iter().map(|prefab| LabeledId {
+                id: prefab.get_id(),
+                label: prefab.get_label().to_string(),
+            }));
+        }
+        if let Some(target_sector) = jump_target {
+            buffer.push(format!("jump to {}", target_sector));
+        }
+
+        if docked_fleets.len() > 0 {
+            buffer.push("docked:".to_string());
+            for fleet in docked_fleets {
+                buffer.push(format!("- {}", fleet));
+            }
+        }
+
+        Description::Obj {
+            title: desc.get_label().to_string(),
+            desc: buffer.join("\n"),
+            actions,
+        }
+    }
+
+    fn set_shipyard_production(&mut self, prefab_id: Id) -> Option<()> {
+        // double check selected entity is a shipyard
+        godot_print!("get state screen");
+        let obj_id = match &self.state.screen {
+            StateScreen::Obj(id) => *id,
+            _ => return None,
+        };
+        godot_print!("get obj desc");
+        let dsc = self.state.game.get_obj_desc(obj_id)?;
+        godot_print!("get obj desc shipyard");
+        let _ = dsc.get_shipyard()?;
+
+        // add order
+        godot_print!("adding order");
+        let added = self
+            .state
+            .game
+            .add_shipyard_building_order(obj_id, prefab_id);
+        godot_print!("order result {:?}", added);
+        Some(())
     }
 }
 

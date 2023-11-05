@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::fmt::format;
 use std::rc::Rc;
 
 use specs::prelude::*;
@@ -10,7 +11,7 @@ use space_domain::game::factory::Factory;
 use space_domain::game::locations::{Location, LocationSpace, Locations};
 use space_domain::game::navigations::NavigationMoveTo;
 use space_domain::game::sectors::Jump;
-use space_domain::game::shipyard::Shipyard;
+use space_domain::game::shipyard::{ProductionOrder, Shipyard};
 use space_domain::game::wares::Cargo;
 use space_domain::game::{events, Game};
 
@@ -350,6 +351,15 @@ impl ObjShipyard {
     }
     pub fn get_producing_prefab_id(&self) -> Option<u64> {
         self.shipyard.get_producing().map(|id| encode_entity(id))
+    }
+
+    pub fn get_production_order_str(&self) -> String {
+        match self.shipyard.order {
+            ProductionOrder::None => "no order".to_string(),
+            ProductionOrder::Next(id) => format!("order to produce {:?}", id),
+            ProductionOrder::Random => "random produce order".to_string(),
+            ProductionOrder::RandomSelected(id) => format!("order random producing {:?}", id),
+        }
     }
 }
 
