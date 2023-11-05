@@ -14,6 +14,7 @@ foreign_class!(
         fn SpaceGame::list_wares(&self) -> Vec<WareData>;
         fn SpaceGame::list_building_sites_prefabs(&self) -> Vec<PrefabData>;
         fn SpaceGame::new_building_plot(&self, plot_id: u64, sector_id: u64, pos_x: f32, pos_y: f32) -> u64;
+        fn SpaceGame::list_building_shipyard_prefabs(&self) -> Vec<PrefabData>;
     }
 );
 
@@ -175,5 +176,6 @@ foreign_class!(
         self_type ObjShipyard;
         private constructor = empty;
         fn ObjShipyard::is_producing(&self) -> bool;
+        fn ObjShipyard::get_producing_prefab_id(&self) -> Option<u64>;
     }
 );

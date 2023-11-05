@@ -348,6 +348,9 @@ impl ObjShipyard {
     pub fn is_producing(&self) -> bool {
         self.shipyard.is_producing()
     }
+    pub fn get_producing_prefab_id(&self) -> Option<u64> {
+        self.shipyard.get_producing().map(|id| encode_entity(id))
+    }
 }
 
 #[derive(Debug)]

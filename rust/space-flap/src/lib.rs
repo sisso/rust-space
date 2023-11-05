@@ -49,6 +49,7 @@ impl SpaceGame {
         let mut size = 4;
         let mut fleets = 10;
         let mut stations = 4;
+        let mut seed = 0;
 
         for mut pair in &args.iter().chunks(2) {
             let k = pair.next().unwrap();
@@ -73,6 +74,15 @@ impl SpaceGame {
                         log::warn!("invalid argument {}={}", k, v);
                     }
                 },
+                "--seed" => match v.parse::<u64>() {
+                    Ok(v) => {
+                        log::info!("set seed to {}", v);
+                        seed = v
+                    }
+                    Err(e) => {
+                        log::warn!("invalid argument {}={}", k, v);
+                    }
+                },
                 _ => log::warn!("unknown argument {}={}", k, v),
             }
         }
@@ -87,7 +97,7 @@ impl SpaceGame {
             &mut game,
             &scenery_random::RandomMapCfg {
                 size: size,
-                seed: 0,
+                seed: seed,
                 fleets: fleets,
                 universe_cfg: cfg.system_generator.unwrap(),
                 initial_condition: scenery_random::InitialCondition::Minimal,
@@ -374,6 +384,22 @@ impl SpaceGame {
         (&entities, &labels, &prefabs)
             .join()
             .filter(|(_, _, p)| p.build_site)
+            .map(|(e, l, _p)| PrefabData {
+                id: encode_entity(e),
+                label: l.label.clone(),
+            })
+            .collect()
+    }
+
+    pub fn list_building_shipyard_prefabs(&self) -> Vec<PrefabData> {
+        let game = self.game.borrow();
+        let entities = game.world.entities();
+        let labels = game.world.read_storage::<Label>();
+        let prefabs = game.world.read_storage::<Prefab>();
+
+        (&entities, &labels, &prefabs)
+            .join()
+            .filter(|(_, _, p)| p.shipyard)
             .map(|(e, l, _p)| PrefabData {
                 id: encode_entity(e),
                 label: l.label.clone(),

@@ -3,7 +3,7 @@ use crate::game::extractables::Extractable;
 use crate::game::loader::Loader;
 use crate::game::sectors::Sector;
 use crate::game::shipyard::Shipyard;
-use crate::game::{conf, loader, sectors, wares, Game};
+use crate::game::{conf, loader, sectors, shipyard, wares, Game};
 use commons::math::{P2, P2I, V2, V2I};
 use commons::unwrap_or_continue;
 use rand::prelude::*;
@@ -254,6 +254,11 @@ fn add_stations_random(
 
             // create obj in a random orbit
             new_obj = new_obj.at_position(sector_id, P2::ZERO);
+
+            new_obj.shipyard.as_mut().map(|shipyard| {
+                shipyard.order = shipyard::ProductionOrder::Random;
+            });
+
             let obj_id = Loader::add_object(world, &new_obj);
 
             loader::set_orbit_random_body(world, obj_id, rng.next_u64());

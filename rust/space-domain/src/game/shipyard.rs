@@ -2,6 +2,7 @@ use rand::Rng;
 use specs::prelude::*;
 
 use crate::game::new_obj::NewObj;
+use crate::game::objects::ObjId;
 use crate::game::order::Orders;
 use crate::game::prefab::{Prefab, PrefabId};
 use crate::game::wares::{Cargo, VecWareAmount};
@@ -49,6 +50,10 @@ impl Shipyard {
 
     pub fn is_producing(&self) -> bool {
         self.current_production.is_some()
+    }
+
+    pub fn get_producing(&self) -> Option<PrefabId> {
+        self.current_production.as_ref().map(|i| i.prefab_id)
     }
 }
 

@@ -289,6 +289,7 @@ impl Loader {
         for factory in &new_obj.factory {
             builder.set(factory.clone());
             for wa in &factory.production.input {
+                log::info!("adding request order for ware {:?}", wa);
                 orders.add_request(wa.ware_id);
             }
             for wa in &factory.production.output {
@@ -331,9 +332,9 @@ impl Loader {
             builder.set(production_cost.clone());
         }
 
-        // TODO: do we really need to setup orders on creation? Why the system do not update that
-        //       on next run?
+        // TODO: move order management to the system
         if !orders.is_empty() {
+            log::debug!("{:?} setting order of {:?}", builder.entity, orders);
             builder.set(orders);
         }
 

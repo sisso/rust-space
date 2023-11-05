@@ -5,7 +5,7 @@
 [node name="TabContainer" type="TabContainer" parent="."]
 anchors_preset = 9
 anchor_bottom = 1.0
-offset_right = 193.0
+offset_right = 271.0
 offset_bottom = 648.0
 grow_vertical = 2
 size_flags_vertical = 3
@@ -54,6 +54,9 @@ bbcode_enabled = true
 text = "None"
 fit_content = true
 
+[node name="SelectedActions" type="VBoxContainer" parent="TabContainer/Main"]
+layout_mode = 2
+
 [node name="Construction" type="VBoxContainer" parent="TabContainer"]
 visible = false
 layout_mode = 2
@@ -84,3 +87,19 @@ text = "Plot"
 [node name="PlotDescriptionRichTextLabel" type="RichTextLabel" parent="TabContainer/Construction/VBoxContainer"]
 layout_mode = 2
 fit_content = true
+
+[node name="Console" type="VBoxContainer" parent="TabContainer"]
+visible = false
+layout_mode = 2
+
+[node name="Output" type="TextEdit" parent="TabContainer/Console"]
+custom_minimum_size = Vector2(0, 550)
+layout_mode = 2
+text = "this
+is a multi l
+line text"
+editable = false
+
+[node name="Input" type="TextEdit" parent="TabContainer/Console"]
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2

@@ -9,8 +9,6 @@
 
 [node name="SectorView" parent="." instance=ExtResource("2_e32bs")]
 custom_minimum_size = Vector2(301.45, 100)
-offset_left = 195.0
+offset_left = 271.0
 offset_right = 0.0
 offset_bottom = 0.0
-grow_horizontal = 1
-grow_vertical = 1

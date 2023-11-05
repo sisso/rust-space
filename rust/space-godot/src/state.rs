@@ -42,6 +42,8 @@ impl State {
             "2".to_string(),
             "--fleets".to_string(),
             "0".to_string(),
+            "--seed".to_string(),
+            "1".to_string(),
         ]);
 
         let sector_id = game
