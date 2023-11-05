@@ -10,7 +10,7 @@ use space_domain::game::actions::Action;
 use space_domain::game::factory::Factory;
 use space_domain::game::locations::{Location, LocationSpace, Locations};
 use space_domain::game::navigations::NavigationMoveTo;
-use space_domain::game::order::Orders;
+use space_domain::game::order::TradeOrders;
 use space_domain::game::sectors::Jump;
 use space_domain::game::shipyard::{ProductionOrder, Shipyard};
 use space_domain::game::wares::Cargo;

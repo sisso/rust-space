@@ -19,7 +19,7 @@ use crate::game::label::Label;
 use crate::game::locations::{Location, Moveable};
 use crate::game::new_obj::NewObj;
 use crate::game::objects::ObjId;
-use crate::game::order::Orders;
+use crate::game::order::{TradeOrders, TRADE_ORDER_ID_BUILDING_SITE, TRADE_ORDER_ID_FACTORY};
 use crate::game::prefab::{Prefab, PrefabId};
 use crate::game::sectors::{Jump, JumpId, Sector, SectorId};
 use crate::game::shipyard::Shipyard;
@@ -203,7 +203,7 @@ impl Loader {
     pub fn add_object(world: &mut World, new_obj: &NewObj) -> ObjId {
         let mut builder = world.create_entity();
 
-        let mut orders = Orders::default();
+        let mut orders = TradeOrders::default();
 
         let mut update_docking: Option<ObjId> = None;
 
@@ -290,10 +290,10 @@ impl Loader {
             builder.set(factory.clone());
             for wa in &factory.production.input {
                 log::info!("adding request order for ware {:?}", wa);
-                orders.add_request(wa.ware_id);
+                orders.add_request(TRADE_ORDER_ID_FACTORY, wa.ware_id);
             }
             for wa in &factory.production.output {
-                orders.add_provider(wa.ware_id);
+                orders.add_provider(TRADE_ORDER_ID_FACTORY, wa.ware_id);
             }
         }
 
@@ -324,7 +324,7 @@ impl Loader {
         if let Some(building_site) = &new_obj.building_site {
             builder.set(building_site.clone());
             for ware_id in &building_site.input {
-                orders.add_request(ware_id.ware_id);
+                orders.add_request(TRADE_ORDER_ID_BUILDING_SITE, ware_id.ware_id);
             }
         }
 

@@ -23,7 +23,7 @@ use space_domain::game::loader::Loader;
 use space_domain::game::locations::{Location, LocationSpace, Locations};
 use space_domain::game::navigations::{Navigation, NavigationMoveTo};
 use space_domain::game::objects::ObjId;
-use space_domain::game::order::Orders;
+use space_domain::game::order::TradeOrders;
 use space_domain::game::prefab::Prefab;
 use space_domain::game::production_cost::ProductionCost;
 use space_domain::game::sectors::{Jump, Sector};
@@ -189,7 +189,7 @@ impl SpaceGame {
         let stations = g.world.read_storage::<Station>();
         let jumps = g.world.read_storage::<Jump>();
         let fleets = g.world.read_storage::<Fleet>();
-        let orders = g.world.read_storage::<Orders>();
+        let orders = g.world.read_storage::<TradeOrders>();
 
         let mut r = vec![];
         for (e, flt, st, j, l, o) in (
@@ -294,7 +294,7 @@ impl SpaceGame {
             }
         });
 
-        let orders = g.world.read_storage::<Orders>();
+        let orders = g.world.read_storage::<TradeOrders>();
         let trade_orders = orders
             .get(e)
             .map(|o| new_trader_orders(o))
@@ -468,7 +468,7 @@ impl SpaceGame {
     }
 }
 
-fn new_trader_orders(o: &Orders) -> Vec<ObjTradeOrder> {
+fn new_trader_orders(o: &TradeOrders) -> Vec<ObjTradeOrder> {
     let mut trade_orders = vec![];
     trade_orders.extend(o.wares_requests().iter().map(|ware_id| {
         let ware_id = encode_entity(*ware_id);

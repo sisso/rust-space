@@ -2,8 +2,7 @@ use rand::Rng;
 use specs::prelude::*;
 
 use crate::game::new_obj::NewObj;
-use crate::game::objects::ObjId;
-use crate::game::order::Orders;
+use crate::game::order::{TradeOrders, TRADE_ORDER_ID_SHIPYARD};
 use crate::game::prefab::{Prefab, PrefabId};
 use crate::game::wares::{Cargo, VecWareAmount};
 use crate::game::work::WorkUnit;
@@ -86,7 +85,7 @@ impl<'a> System<'a> for ShipyardSystem {
         WriteStorage<'a, Shipyard>,
         WriteStorage<'a, NewObj>,
         ReadStorage<'a, Prefab>,
-        WriteStorage<'a, Orders>,
+        WriteStorage<'a, TradeOrders>,
     );
 
     fn run(
@@ -196,7 +195,8 @@ impl<'a> System<'a> for ShipyardSystem {
                     );
                 } else {
                     let requested_wares = production_cost.cost.get_wares_id();
-                    let order = Orders::from_requested(&requested_wares);
+                    let order =
+                        TradeOrders::from_requested(TRADE_ORDER_ID_SHIPYARD, &requested_wares);
                     let dirty = orders
                         .map(|current_order| current_order != &order)
                         .unwrap_or(true);
@@ -208,6 +208,8 @@ impl<'a> System<'a> for ShipyardSystem {
         }
 
         // update request orders
+        // TODO: should not override already existing orders, current is in conflict with
+        //       factory on same entity
         for (shipyard_id, order_change) in orders_updates {
             if let Some(order) = order_change {
                 log::debug!("{:?} adding request order {:?}", shipyard_id, order);
@@ -237,7 +239,7 @@ mod test {
     use crate::game::label::Label;
     use crate::game::loader::Loader;
     use crate::game::locations::Location;
-    use crate::game::order::Orders;
+    use crate::game::order::TradeOrders;
     use crate::game::wares::{Volume, WareAmount, WareId};
     use crate::test::test_system;
     use crate::utils::DeltaTime;
@@ -399,7 +401,7 @@ mod test {
 
     fn assert_buy_order(world: &World, shipyard_id: Entity) {
         let orders = world
-            .read_storage::<Orders>()
+            .read_storage::<TradeOrders>()
             .get(shipyard_id)
             .expect("orders not found for shipyard")
             .clone();
@@ -408,7 +410,10 @@ mod test {
     }
 
     fn assert_not_buy_order(world: &World, shipyard_id: Entity) {
-        let do_not_exists = world.read_storage::<Orders>().get(shipyard_id).is_none();
+        let do_not_exists = world
+            .read_storage::<TradeOrders>()
+            .get(shipyard_id)
+            .is_none();
         assert!(do_not_exists);
     }
 

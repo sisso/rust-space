@@ -3,7 +3,7 @@ use crate::game::dock::Docking;
 use crate::game::locations::{EntityPerSectorIndex, Location, Locations};
 use crate::game::navigations::{NavRequest, Navigation};
 use crate::game::objects::ObjId;
-use crate::game::order::Orders;
+use crate::game::order::TradeOrders;
 
 use crate::game::wares::{Cargo, Cargos, WareId};
 use crate::utils;
@@ -26,7 +26,7 @@ pub struct CommandTradeData<'a> {
     cargos: WriteStorage<'a, Cargo>,
     navigation: ReadStorage<'a, Navigation>,
     docks: ReadStorage<'a, Docking>,
-    orders: ReadStorage<'a, Orders>,
+    orders: ReadStorage<'a, TradeOrders>,
 }
 
 impl<'a> System<'a> for CommandTradeSystem {
@@ -364,7 +364,7 @@ mod test {
     use crate::game::locations::EntityPerSectorIndex;
     use crate::game::navigations::Navigation;
     use crate::game::objects::ObjId;
-    use crate::game::order::Orders;
+    use crate::game::order::TradeOrders;
     use crate::game::sectors::SectorId;
     use crate::game::wares::{Cargo, Volume, WareId};
     use crate::test::test_system;
@@ -392,7 +392,7 @@ mod test {
         sector_id: SectorId,
     }
 
-    fn add_station(world: &mut World, sector_id: SectorId, orders: Orders) -> ObjId {
+    fn add_station(world: &mut World, sector_id: SectorId, orders: TradeOrders) -> ObjId {
         world
             .create_entity()
             .with(Location::Space {
@@ -429,13 +429,13 @@ mod test {
         let producer_station_id = add_station(
             world,
             sector_id,
-            Orders::from_provided(&[ware0_id, ware1_id]),
+            TradeOrders::from_provided(&[ware0_id, ware1_id]),
         );
 
         let consumer_station_id = add_station(
             world,
             sector_id,
-            Orders::from_requested(&[ware0_id, ware1_id]),
+            TradeOrders::from_requested(&[ware0_id, ware1_id]),
         );
 
         let trader_id = add_trader(world, sector_id);
@@ -882,7 +882,7 @@ mod test {
                 let station_2 = add_station(
                     world,
                     scenery.sector_id,
-                    Orders::from_provided(&[scenery.ware0_id]),
+                    TradeOrders::from_provided(&[scenery.ware0_id]),
                 );
                 add_cargo(world, station_2, scenery.ware0_id, STATION_CARGO);
 

@@ -21,7 +21,7 @@ use crate::game::dock::Docking;
 use crate::game::extractables::Extractable;
 use crate::game::locations::{EntityPerSectorIndex, Location};
 use crate::game::navigations::{NavRequest, Navigation};
-use crate::game::order::Orders;
+use crate::game::order::TradeOrders;
 use crate::game::wares::{Cargo, WareId};
 use std::borrow::BorrowMut;
 
@@ -40,7 +40,7 @@ pub struct CommandMineData<'a> {
     action_request: WriteStorage<'a, ActionRequest>,
     extractable: ReadStorage<'a, Extractable>,
     _docks: ReadStorage<'a, Docking>,
-    orders: ReadStorage<'a, Orders>,
+    orders: ReadStorage<'a, TradeOrders>,
 }
 
 impl<'a> System<'a> for CommandMineSystem {
@@ -291,7 +291,7 @@ mod test {
             ware_id,
         );
 
-        let mut orders = Orders::default();
+        let mut orders = TradeOrders::default();
         orders.add_request(ware_id);
 
         let station = world
@@ -329,7 +329,7 @@ mod test {
 
     fn remove_station_ware_order(world: &mut World, scenery: &SceneryResult) {
         world
-            .write_storage::<Orders>()
+            .write_storage::<TradeOrders>()
             .borrow_mut()
             .remove(scenery.station)
             .unwrap();

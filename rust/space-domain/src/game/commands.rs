@@ -1,11 +1,8 @@
-use std::collections::{HashMap};
+use std::collections::HashMap;
 
 use specs::prelude::*;
 
-
-use crate::game::locations::{
-    EntityPerSectorIndex, Locations, INDEX_SECTOR_SYSTEM,
-};
+use crate::game::locations::{EntityPerSectorIndex, Locations, INDEX_SECTOR_SYSTEM};
 use crate::game::wares::{Cargos, WareId};
 use crate::utils::*;
 
@@ -15,10 +12,9 @@ use super::objects::*;
 use super::sectors::*;
 
 use crate::game::commands::command_trader_system::CommandTradeSystem;
-use crate::game::order::Orders;
+use crate::game::order::TradeOrders;
 use crate::game::{GameInitContext, RequireInitializer};
 use command_mine_system::*;
-
 
 pub mod command_mine_system;
 pub mod command_trader_system;
@@ -102,7 +98,7 @@ impl Commands {}
 pub fn search_orders_target(
     sectors_index: &EntityPerSectorIndex,
     sector_id: SectorId,
-    orders: &ReadStorage<Orders>,
+    orders: &ReadStorage<TradeOrders>,
     wares_filter: Option<&Vec<WareId>>,
     already_targeting: Vec<ObjId>,
     to_pickup: bool,
