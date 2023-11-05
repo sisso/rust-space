@@ -10,6 +10,7 @@ use space_domain::game::actions::Action;
 use space_domain::game::factory::Factory;
 use space_domain::game::locations::{Location, LocationSpace, Locations};
 use space_domain::game::navigations::NavigationMoveTo;
+use space_domain::game::order::Orders;
 use space_domain::game::sectors::Jump;
 use space_domain::game::shipyard::{ProductionOrder, Shipyard};
 use space_domain::game::wares::Cargo;
@@ -84,6 +85,7 @@ pub struct ObjData {
     pub(crate) docked: Option<Entity>,
     pub(crate) kind: ObjKind,
     pub(crate) orbit: Option<ObjOrbitData>,
+    pub(crate) trade_orders: Vec<ObjTradeOrder>,
 }
 
 impl ObjData {
@@ -141,6 +143,10 @@ impl ObjData {
 
     pub fn is_shipyard(&self) -> bool {
         self.kind.shipyard
+    }
+
+    pub fn get_trade_orders(&self) -> Vec<ObjTradeOrder> {
+        self.trade_orders.clone()
     }
 }
 
@@ -411,5 +417,24 @@ impl PrefabData {
     }
     pub fn get_label(&self) -> &str {
         self.label.as_str()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ObjTradeOrder {
+    pub(crate) request: bool,
+    pub(crate) provide: bool,
+    pub(crate) ware_id: Id,
+}
+
+impl ObjTradeOrder {
+    pub fn is_request(&self) -> bool {
+        self.request
+    }
+    pub fn is_provide(&self) -> bool {
+        self.provide
+    }
+    pub fn get_ware(&self) -> Id {
+        self.ware_id
     }
 }

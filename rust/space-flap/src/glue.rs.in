@@ -69,6 +69,7 @@ foreign_class!(
         fn ObjData::get_coords(&self) -> (f32, f32);
         fn ObjData::get_docked_id(&self) -> Option<u64>;
         fn ObjData::get_orbit(&self) -> Option<ObjOrbitData>;
+        fn ObjData::get_trade_orders(&self) -> Vec<ObjTradeOrder>;
         fn ObjData::is_docked(&self) -> bool;
         fn ObjData::is_fleet(&self) -> bool;
         fn ObjData::is_station(&self) -> bool;
@@ -179,5 +180,15 @@ foreign_class!(
         fn ObjShipyard::is_producing(&self) -> bool;
         fn ObjShipyard::get_producing_prefab_id(&self) -> Option<u64>;
         fn ObjShipyard::get_order(&self) -> Option<u64>;
+    }
+);
+
+foreign_class!(
+    class ObjTradeOrder {
+        self_type ObjTradeOrder;
+        private constructor = empty;
+        fn ObjTradeOrder::is_request(&self) -> bool;
+        fn ObjTradeOrder::is_provide(&self) -> bool;
+        fn ObjTradeOrder::get_ware(&self) -> u64;
     }
 );

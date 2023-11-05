@@ -289,6 +289,21 @@ impl Runtime {
             }
         }
 
+        let orders = data.get_trade_orders();
+        if !orders.is_empty() {
+            buffer.push("trade orders:".to_string());
+            for order in orders {
+                let order_kind = if order.is_provide() {
+                    "provide"
+                } else {
+                    "request"
+                };
+
+                let ware_name = get_ware_label(&self.state.wares, order.get_ware());
+                buffer.push(format!("{}: {}", order_kind, ware_name));
+            }
+        }
+
         Description::Obj {
             title: desc.get_label().to_string(),
             desc: buffer.join("\n"),

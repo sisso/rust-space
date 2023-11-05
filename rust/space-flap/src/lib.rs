@@ -189,14 +189,16 @@ impl SpaceGame {
         let stations = g.world.read_storage::<Station>();
         let jumps = g.world.read_storage::<Jump>();
         let fleets = g.world.read_storage::<Fleet>();
+        let orders = g.world.read_storage::<Orders>();
 
         let mut r = vec![];
-        for (e, flt, st, j, l) in (
+        for (e, flt, st, j, l, o) in (
             &entities,
             &fleets,
             (&stations).maybe(),
             (&jumps).maybe(),
             &locations,
+            &orders,
         )
             .join()
         {
@@ -219,6 +221,8 @@ impl SpaceGame {
                 shipyard: false,
             };
 
+            let trade_orders = new_trader_orders(o);
+
             r.push(ObjData {
                 id: e,
                 coords: ls.pos,
@@ -226,6 +230,7 @@ impl SpaceGame {
                 docked: l.as_docked(),
                 kind: kind,
                 orbit: None,
+                trade_orders: trade_orders,
             });
         }
         r
@@ -289,6 +294,12 @@ impl SpaceGame {
             }
         });
 
+        let orders = g.world.read_storage::<Orders>();
+        let trade_orders = orders
+            .get(e)
+            .map(|o| new_trader_orders(o))
+            .unwrap_or_default();
+
         let obj = ObjData {
             id: e,
             coords: ls.pos,
@@ -296,6 +307,7 @@ impl SpaceGame {
             docked: loc.as_docked(),
             kind: kind,
             orbit: orbit_data,
+            trade_orders,
         };
 
         Some(obj)
@@ -454,6 +466,27 @@ impl SpaceGame {
 
         true
     }
+}
+
+fn new_trader_orders(o: &Orders) -> Vec<ObjTradeOrder> {
+    let mut trade_orders = vec![];
+    trade_orders.extend(o.wares_requests().iter().map(|ware_id| {
+        let ware_id = encode_entity(*ware_id);
+        ObjTradeOrder {
+            request: true,
+            provide: false,
+            ware_id,
+        }
+    }));
+    trade_orders.extend(o.wares_provider().iter().map(|ware_id| {
+        let ware_id = encode_entity(*ware_id);
+        ObjTradeOrder {
+            request: false,
+            provide: true,
+            ware_id,
+        }
+    }));
+    trade_orders
 }
 
 include!(concat!(env!("OUT_DIR"), "/glue.rs"));
