@@ -170,3 +170,16 @@ impl Game {
         }
     }
 }
+
+pub fn dump(world: &World) {
+    let labels = world.read_storage::<label::Label>();
+    let entities = world.entities();
+
+    for (e, l) in (&entities, labels.maybe()).join() {
+        log::debug!(
+            "{} {}",
+            e.id(),
+            l.map(|l| l.label.as_str()).unwrap_or("unknown")
+        )
+    }
+}

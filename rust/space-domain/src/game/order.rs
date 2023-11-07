@@ -1,6 +1,4 @@
-use std::collections::{HashMap, HashSet};
-use std::fmt::Formatter;
-
+use itertools::Itertools;
 use specs::prelude::*;
 
 use crate::game::wares::WareId;
@@ -16,101 +14,68 @@ pub const TRADE_ORDER_ID_BUILDING_SITE: TradeOrderId = TradeOrderId(3);
 
 #[derive(Clone, Debug, Component, Default, PartialEq)]
 pub struct TradeOrders {
-    orders_by_id: Vec<(TradeOrderId, TradeOrdersEntry)>,
-}
-
-// impl std::fmt::Debug for TradeOrders {
-//     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-//         let mut l = f.debug_list();
-//         for (id, orders) in self.orders_by_id {
-//             l.entry((id, orders));
-//         }
-//         l.finish()
-//     }
-// }
-//
-
-#[derive(Debug, Clone, PartialEq)]
-struct TradeOrdersEntry {
-    provided: HashSet<WareId>,
-    requested: HashSet<WareId>,
+    provided: Vec<(TradeOrderId, WareId)>,
+    requested: Vec<(TradeOrderId, WareId)>,
 }
 
 impl TradeOrders {
-    pub fn from_provided(id: TradeOrderId, provided: &[WareId]) -> Self {
-        let entry = TradeOrdersEntry {
-            provided: provided.iter().copied().collect(),
-            requested: Default::default(),
-        };
-
+    pub fn from_provided(order_id: TradeOrderId, provided: &[WareId]) -> Self {
         TradeOrders {
-            orders_by_id: vec![(id, entry)],
+            provided: provided
+                .iter()
+                .copied()
+                .map(|ware_id| (order_id, ware_id))
+                .collect(),
+            requested: vec![],
         }
     }
 
-    pub fn from_requested(id: TradeOrderId, requested: &[WareId]) -> Self {
-        let entry = TradeOrdersEntry {
-            provided: Default::default(),
-            requested: requested.iter().copied().collect(),
-        };
-
+    pub fn from_requested(order_id: TradeOrderId, requested: &[WareId]) -> Self {
         TradeOrders {
-            orders_by_id: vec![(id, entry)],
+            requested: requested
+                .iter()
+                .copied()
+                .map(|ware_id| (order_id, ware_id))
+                .collect(),
+            provided: vec![],
         }
     }
 
     pub fn is_empty(&self) -> bool {
-        for (_, v) in self.orders_by_id {
-            if !v.provided.is_empty() || !v.requested.is_empty() {
-                return false;
-            }
-        }
-        true
+        self.provided.is_empty() && self.requested.is_empty()
     }
 
     pub fn wares_requests(&self) -> Vec<WareId> {
-        self.orders_by_id
-            .iter()
-            .flat_map(|(_, entry)| entry.requested.iter())
-            .cloned()
-            .collect()
+        let wares: Vec<WareId> = self.requested.iter().map(|(_, ware_id)| *ware_id).collect();
+        wares.into_iter().unique().collect()
     }
 
     pub fn wares_provider(&self) -> Vec<WareId> {
-        self.orders_by_id
-            .iter()
-            .flat_map(|(_, entry)| entry.provided.iter())
-            .cloned()
-            .collect()
+        let wares: Vec<WareId> = self.provided.iter().map(|(_, ware_id)| *ware_id).collect();
+        wares.into_iter().unique().collect()
     }
 
     pub fn is_provide(&self) -> bool {
-        for (_, v) in self.orders_by_id {
-            if !v.provided.is_empty() {
-                return true;
-            }
-        }
-        false
+        !self.provided.is_empty()
     }
 
     pub fn is_requesting(&self) -> bool {
-        for (_, v) in self.orders_by_id {
-            if !v.requested.is_empty() {
-                return true;
-            }
-        }
-        false
+        !self.requested.is_empty()
     }
 
-    pub fn is_requesting_ware(&self, wares: WareId) -> bool {
-        for (_, e) in &self.orders_by_id {}
+    pub fn is_requesting_ware(&self, ware_id: WareId) -> bool {
+        self.requested.iter().find(|i| i.1 == ware_id).is_some()
+    }
+
+    pub fn is_providing_ware(&self, ware_id: WareId) -> bool {
+        self.provided.iter().find(|i| i.1 == ware_id).is_some()
     }
 
     pub fn request_any(&self, wares: &[WareId]) -> Vec<WareId> {
         wares
             .iter()
             .copied()
-            .filter(|ware_id| self.requested.contains(ware_id))
+            .filter(|ware_id| self.is_requesting_ware(*ware_id))
             .collect()
     }
 
@@ -122,20 +87,53 @@ impl TradeOrders {
         !self.request_any(wares).is_empty()
     }
 
-    pub fn add_request(&mut self, id: TradeOrderId, ware_id: WareId) {
-        self.requested.insert(ware_id);
+    pub fn add_request(&mut self, order_id: TradeOrderId, ware_id: WareId) {
+        if self
+            .requested
+            .iter()
+            .find(|(i_order_id, i_ware_id)| order_id == *i_order_id && *i_ware_id == ware_id)
+            .is_some()
+        {
+            return;
+        }
+
+        self.requested.push((order_id, ware_id));
+
+        log::debug!("trade order updated by add_request {:?}", self);
     }
 
-    pub fn add_provider(&mut self, id: TradeOrderId, ware_id: WareId) {
-        self.provided.insert(ware_id);
+    pub fn add_provider(&mut self, order_id: TradeOrderId, ware_id: WareId) {
+        if self
+            .provided
+            .iter()
+            .find(|(i_order_id, i_ware_id)| order_id == *i_order_id && *i_ware_id == ware_id)
+            .is_some()
+        {
+            return;
+        }
+
+        self.provided.push((order_id, ware_id));
+        log::debug!("trade order updated by add_provide {:?}", self);
     }
 
-    pub fn remove_request(&mut self, id: TradeOrderId, ware_id: WareId) {
-        todo!()
+    pub fn remove_request(&mut self, order_id: TradeOrderId, ware_id: WareId) {
+        self.provided
+            .retain(|(i_order_id, i_ware_id)| order_id != *i_order_id || *i_ware_id == ware_id);
+        log::debug!("trade order updated by remove_request {:?}", self);
     }
 
-    pub fn remove_provider(&mut self, id: TradeOrderId, ware_id: WareId) {
-        todo!()
+    pub fn remove_provider(&mut self, order_id: TradeOrderId, ware_id: WareId) {
+        self.provided
+            .retain(|(i_order_id, i_ware_id)| order_id != *i_order_id || *i_ware_id == ware_id);
+        log::debug!("trade order updated by remove_provide{:?}", self);
+    }
+
+    pub fn remove_by_id(&mut self, order_id: TradeOrderId) {
+        self.provided
+            .retain(|(i_order_id, _)| *i_order_id == order_id);
+        self.provided
+            .retain(|(i_order_id, _)| *i_order_id == order_id);
+        log::debug!("trade order updated by remove_by_id {:?}", self);
     }
 }
 

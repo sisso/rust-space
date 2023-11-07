@@ -455,12 +455,12 @@ impl SpaceGame {
 
         let mut shipyard = shipyards.get_mut(obj_id).unwrap();
 
-        if !shipyard.order.is_none() {
+        if !shipyard.get_production_order().is_none() {
             log::debug!("{:?} is already producing, ignoring new order", obj_id);
             return false;
         }
 
-        shipyard.order = shipyard::ProductionOrder::Next(prefab_id);
+        shipyard.set_production_order(shipyard::ProductionOrder::Next(prefab_id));
 
         log::debug!("{:?} set production order to {:?}", obj_id, prefab_id);
 

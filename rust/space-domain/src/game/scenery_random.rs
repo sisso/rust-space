@@ -256,7 +256,7 @@ fn add_stations_random(
             new_obj = new_obj.at_position(sector_id, P2::ZERO);
 
             new_obj.shipyard.as_mut().map(|shipyard| {
-                shipyard.order = shipyard::ProductionOrder::Random;
+                shipyard.set_production_order(shipyard::ProductionOrder::Random);
             });
 
             let obj_id = Loader::add_object(world, &new_obj);

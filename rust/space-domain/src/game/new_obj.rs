@@ -11,7 +11,7 @@ use crate::game::locations::*;
 use crate::game::objects::ObjId;
 use crate::game::sectors::*;
 use crate::game::shipyard::Shipyard;
-use crate::game::wares::{Volume, WareAmount};
+use crate::game::wares::{Cargo, Volume, WareAmount};
 use crate::game::work::WorkUnit;
 use crate::utils::*;
 
@@ -26,6 +26,7 @@ pub struct NewObjOrbit {
 pub struct NewObj {
     pub speed: Option<Speed>,
     pub cargo_size: Volume,
+    pub cargo: Option<Cargo>,
     pub extractable: Option<Extractable>,
     pub location: Option<Location>,
     pub can_dock: bool,
@@ -56,8 +57,13 @@ impl NewObj {
         Default::default()
     }
 
-    pub fn with_cargo(mut self, cargo: Volume) -> Self {
-        self.cargo_size = cargo;
+    pub fn with_cargo_size(mut self, cargo_size: Volume) -> Self {
+        self.cargo_size = cargo_size;
+        self
+    }
+
+    pub fn with_cargo(mut self, cargo: Cargo) -> Self {
+        self.cargo = Some(cargo);
         self
     }
 

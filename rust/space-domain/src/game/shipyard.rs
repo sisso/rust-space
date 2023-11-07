@@ -1,5 +1,6 @@
 use rand::Rng;
 use specs::prelude::*;
+use std::ops::Not;
 
 use crate::game::new_obj::NewObj;
 use crate::game::order::{TradeOrders, TRADE_ORDER_ID_SHIPYARD};
@@ -43,17 +44,28 @@ impl ProductionOrder {
 #[derive(Debug, Clone, Component)]
 pub struct Shipyard {
     pub production: WorkUnit,
-    pub order: ProductionOrder,
+    production_order: ProductionOrder,
     current_production: Option<ShipyardProduction>,
+    dirt_trade_order: bool,
 }
 
 impl Shipyard {
     pub fn new() -> Self {
         Self {
             production: 1.0,
-            order: ProductionOrder::None,
+            production_order: ProductionOrder::None,
             current_production: None,
+            dirt_trade_order: false,
         }
+    }
+
+    pub fn set_production_order(&mut self, production_order: ProductionOrder) {
+        self.production_order = production_order;
+        self.dirt_trade_order = true;
+    }
+
+    pub fn get_production_order(&self) -> ProductionOrder {
+        self.production_order
     }
 
     pub fn is_producing(&self) -> bool {
@@ -101,10 +113,15 @@ impl<'a> System<'a> for ShipyardSystem {
             .collect();
 
         let mut produced_fleets = vec![];
-        let mut orders_updates = vec![];
+        // let mut orders_updates = vec![];
 
-        for (shipyard_id, cargo, shipyard, orders) in
-            (&*entities, &mut cargos, &mut shipyards, orders.maybe()).join()
+        // assert all shipyards have trade orders
+        for (id, _, _) in (&entities, &shipyards, orders.not()).join() {
+            panic!("shipyard {:?} do not have trade orders", id);
+        }
+
+        for (shipyard_id, cargo, shipyard, trade_order) in
+            (&*entities, &mut cargos, &mut shipyards, &mut orders).join()
         {
             if let Some(sp) = &mut shipyard.current_production {
                 // update progress
@@ -133,7 +150,7 @@ impl<'a> System<'a> for ShipyardSystem {
                     }
                 }
             } else {
-                let (prefab_id, clean_on_build) = match shipyard.order {
+                let (prefab_id, clean_on_build) = match shipyard.production_order {
                     ProductionOrder::None => continue,
                     ProductionOrder::Next(prefab_id) => (prefab_id, true),
                     ProductionOrder::Random => {
@@ -176,53 +193,49 @@ impl<'a> System<'a> for ShipyardSystem {
 
                     // update next order
                     if clean_on_build {
-                        shipyard.order = ProductionOrder::None;
+                        shipyard.production_order = ProductionOrder::None;
                     } else {
-                        shipyard.order = ProductionOrder::Random;
+                        shipyard.production_order = ProductionOrder::Random;
                     }
 
                     // remove requesting orders
-                    if orders.is_some() {
-                        orders_updates.push((shipyard_id, None));
-                    }
+                    trade_order.remove_by_id(TRADE_ORDER_ID_SHIPYARD);
 
                     log::debug!(
                         "{:?} staring production of prefab {:?}, expected to be complete at {:?}, next order is {:?}",
                         shipyard_id,
                         prefab_id,
                         production_cost.work / shipyard.production,
-                        shipyard.order,
+                        shipyard.production_order,
                     );
-                } else {
+                } else if shipyard.dirt_trade_order {
+                    // update trade orders
+                    shipyard.dirt_trade_order = false;
+                    trade_order.remove_by_id(TRADE_ORDER_ID_SHIPYARD);
                     let requested_wares = production_cost.cost.get_wares_id();
-                    let order =
-                        TradeOrders::from_requested(TRADE_ORDER_ID_SHIPYARD, &requested_wares);
-                    let dirty = orders
-                        .map(|current_order| current_order != &order)
-                        .unwrap_or(true);
-                    if dirty {
-                        orders_updates.push((shipyard_id, Some(order)));
+                    for ware_id in requested_wares {
+                        trade_order.add_request(TRADE_ORDER_ID_SHIPYARD, ware_id);
                     }
                 }
             }
         }
 
-        // update request orders
-        // TODO: should not override already existing orders, current is in conflict with
-        //       factory on same entity
-        for (shipyard_id, order_change) in orders_updates {
-            if let Some(order) = order_change {
-                log::debug!("{:?} adding request order {:?}", shipyard_id, order);
-                orders
-                    .insert(shipyard_id, order)
-                    .expect("fail to add request order to shipyard");
-            } else {
-                log::debug!("{:?} removing request order", shipyard_id);
-                orders
-                    .remove(shipyard_id)
-                    .expect("fail to remove request order for shipyard");
-            }
-        }
+        // // update request orders
+        // // TODO: should not override already existing orders, current is in conflict with
+        // //       factory on same entity
+        // for (shipyard_id, order_change) in orders_updates {
+        //     if let Some(order) = order_change {
+        //         log::debug!("{:?} adding request order {:?}", shipyard_id, order);
+        //         orders
+        //             .insert(shipyard_id, order)
+        //             .expect("fail to add request order to shipyard");
+        //     } else {
+        //         log::debug!("{:?} removing request order", shipyard_id);
+        //         orders
+        //             .remove(shipyard_id)
+        //             .expect("fail to remove request order for shipyard");
+        //     }
+        // }
 
         // create new objects
         for obj in produced_fleets {
@@ -233,6 +246,7 @@ impl<'a> System<'a> for ShipyardSystem {
 
 #[cfg(test)]
 mod test {
+    use crate::game;
     use crate::game::code::HasCode;
     use crate::game::commands::Command;
     use crate::game::dock::Docking;
@@ -241,7 +255,7 @@ mod test {
     use crate::game::locations::Location;
     use crate::game::order::TradeOrders;
     use crate::game::wares::{Volume, WareAmount, WareId};
-    use crate::test::test_system;
+    use crate::test::{init_log, test_system};
     use crate::utils::DeltaTime;
 
     use super::*;
@@ -255,10 +269,12 @@ mod test {
 
     #[test]
     fn test_shipyard_system_should_not_start_production_without_enough_cargo() {
+        init_log();
         let (world, (shipyard_id, ware_id, prefab_id)) =
             scenery(NOT_ENOUGH_TIME, NOT_ENOUGH_CARGO, None, |prefab_id| {
                 ProductionOrder::Next(prefab_id)
             });
+        game::dump(&world);
         assert_shipyard_cargo(&world, shipyard_id, ware_id, NOT_ENOUGH_CARGO);
         assert_shipyard_production(&world, shipyard_id, None);
         assert_shipyard_selected(&world, shipyard_id, ProductionOrder::Next(prefab_id));
@@ -395,7 +411,11 @@ mod test {
     }
 
     fn assert_shipyard_selected(world: &World, entity: Entity, expected_selected: ProductionOrder) {
-        let current_production = world.read_storage::<Shipyard>().get(entity).unwrap().order;
+        let current_production = world
+            .read_storage::<Shipyard>()
+            .get(entity)
+            .unwrap()
+            .production_order;
         assert_eq!(expected_selected, current_production);
     }
 
@@ -410,11 +430,12 @@ mod test {
     }
 
     fn assert_not_buy_order(world: &World, shipyard_id: Entity) {
-        let do_not_exists = world
+        let trade_orders = world
             .read_storage::<TradeOrders>()
             .get(shipyard_id)
-            .is_none();
-        assert!(do_not_exists);
+            .expect("fail to find shipyard trade orders")
+            .is_empty();
+        assert!(trade_orders, "trade orders are not empty");
     }
 
     /// returns the world and shipyard entity
@@ -429,7 +450,7 @@ mod test {
             world.register::<Label>();
             world.register::<Docking>();
 
-            let ware_id = world.create_entity().build();
+            let ware_id = world.create_entity().with(Label::from("ore")).build();
             let new_obj = Loader::new_ship(2.0, "fleet".to_string())
                 .with_command(Command::mine())
                 .with_production_cost(TOTAL_WORK, vec![WareAmount::new(ware_id, REQUIRE_CARGO)])
@@ -455,21 +476,25 @@ mod test {
             world.insert(system_update_delta_time);
 
             let mut shipyard = Shipyard::new();
-            shipyard.order = next_order(prefab_id);
+            shipyard.production_order = next_order(prefab_id);
             shipyard.current_production =
                 current_production.map(|pending_work| ShipyardProduction {
                     pending_work: pending_work,
                     prefab_id: prefab_id,
                 });
+            shipyard.dirt_trade_order = true;
 
-            let shipyard_entity = world
+            let shipyard_id = world
                 .create_entity()
+                .with(Label::from("shipyard"))
                 .with(cargo)
-                .with(shipyard)
+                .with(shipyard.clone())
                 .with(Docking::default())
+                .with(TradeOrders::default())
                 .build();
+            log::trace!("creating shipyard {:?} {:?}", shipyard_id, shipyard);
 
-            (shipyard_entity, ware_id, prefab_id)
+            (shipyard_id, ware_id, prefab_id)
         })
     }
 }

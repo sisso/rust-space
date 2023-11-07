@@ -360,7 +360,7 @@ impl ObjShipyard {
     }
 
     pub fn get_order(&self) -> Option<Id> {
-        match self.shipyard.order {
+        match self.shipyard.get_production_order() {
             ProductionOrder::None => None,
             ProductionOrder::Next(id) => Some(encode_entity(id)),
             ProductionOrder::Random => None,

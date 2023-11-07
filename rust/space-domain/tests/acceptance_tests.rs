@@ -10,6 +10,7 @@ use space_domain::game::label::Label;
 use space_domain::game::loader::Loader;
 use space_domain::game::sceneries;
 use space_domain::game::scenery_random::{InitialCondition, RandomMapCfg};
+use space_domain::game::shipyard::{ProductionOrder, Shipyard};
 use space_domain::game::station::Station;
 use space_domain::game::wares::WareAmount;
 use space_domain::game::Game;
@@ -20,11 +21,13 @@ use std::borrow::Borrow;
 
 #[test]
 fn test_game_should_mine_and_deliver_cargo_to_shipyard_until_produce_a_new_ship() {
-    env_logger::builder()
-        .filter_level(LevelFilter::Debug)
-        .init();
     let mut game = Game::new();
-    let _ = sceneries::load_basic_scenery(&mut game);
+    let bs = sceneries::load_basic_scenery(&mut game);
+    game.world
+        .write_storage::<Shipyard>()
+        .get_mut(bs.shipyard_id)
+        .unwrap()
+        .set_production_order(ProductionOrder::Random);
 
     tick_eventually(&mut game, |game| {
         let total_commands = game.world.read_storage::<Command>().borrow().count();

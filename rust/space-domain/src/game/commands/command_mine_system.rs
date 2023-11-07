@@ -243,6 +243,7 @@ fn search_mine_target(
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::game::order::TRADE_ORDER_ID_EXTRACTABLE;
 
     use crate::game::sectors::test_scenery::SectorScenery;
     use crate::game::wares::WareId;
@@ -292,7 +293,7 @@ mod test {
         );
 
         let mut orders = TradeOrders::default();
-        orders.add_request(ware_id);
+        orders.add_request(TRADE_ORDER_ID_EXTRACTABLE, ware_id);
 
         let station = world
             .create_entity()

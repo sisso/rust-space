@@ -56,7 +56,7 @@ impl Loader {
         let new_obj = Self::new_station()
             .at_position(sector_id, pos)
             .with_label("shipyard".to_string())
-            .with_cargo(500)
+            .with_cargo_size(500)
             .with_shipyard(Shipyard::new());
 
         Loader::add_object(world, &new_obj)
@@ -69,7 +69,7 @@ impl Loader {
     pub fn new_station() -> NewObj {
         NewObj::new()
             .with_label("station".to_string())
-            .with_cargo(100)
+            .with_cargo_size(100)
             .with_station()
             .with_docking()
     }
@@ -106,7 +106,7 @@ impl Loader {
 
     pub fn new_ship(speed: f32, label: String) -> NewObj {
         NewObj::new()
-            .with_cargo(20)
+            .with_cargo_size(20)
             .with_speed(Speed(speed))
             .can_dock()
             .with_label(label)
@@ -203,6 +203,7 @@ impl Loader {
     pub fn add_object(world: &mut World, new_obj: &NewObj) -> ObjId {
         let mut builder = world.create_entity();
 
+        let mut force_trade_order_on_empty = false;
         let mut orders = TradeOrders::default();
 
         let mut update_docking: Option<ObjId> = None;
@@ -230,7 +231,7 @@ impl Loader {
             builder.set(Docking::default());
         }
 
-        for location in &new_obj.location {
+        if let Some(location) = &new_obj.location {
             builder.set(location.clone());
 
             match location {
@@ -241,13 +242,13 @@ impl Loader {
             }
         }
 
-        for speed in &new_obj.speed {
+        if let Some(speed) = &new_obj.speed {
             builder.set(Moveable {
                 speed: speed.clone(),
             });
         }
 
-        for extractable in &new_obj.extractable {
+        if let Some(extractable) = &new_obj.extractable {
             builder.set(extractable.clone());
         }
 
@@ -276,11 +277,20 @@ impl Loader {
 
         for shipyard in &new_obj.shipyard {
             builder.set(shipyard.clone());
+            force_trade_order_on_empty = true;
+        }
+
+        if let Some(cargo) = &new_obj.cargo {
+            let mut cargo = cargo.clone();
+            if let Some(factory) = &new_obj.factory {
+                factory.setup_cargo(&mut cargo);
+            }
+            builder.set(cargo);
         }
 
         if new_obj.cargo_size > 0 {
             let mut cargo = Cargo::new(new_obj.cargo_size);
-            for factory in &new_obj.factory {
+            if let Some(factory) = &new_obj.factory {
                 factory.setup_cargo(&mut cargo);
             }
             builder.set(cargo);
@@ -332,15 +342,14 @@ impl Loader {
             builder.set(production_cost.clone());
         }
 
-        // TODO: move order management to the system
-        if !orders.is_empty() {
+        if !orders.is_empty() || force_trade_order_on_empty {
             log::debug!("{:?} setting order of {:?}", builder.entity, orders);
             builder.set(orders);
         }
 
         let entity = builder.build();
 
-        for docked_id in update_docking {
+        if let Some(docked_id) = update_docking {
             world
                 .write_storage::<Docking>()
                 .get_mut(docked_id)
@@ -395,7 +404,7 @@ impl Loader {
     pub fn new_station_building_site(prefab_id: PrefabId, input: Vec<WareAmount>) -> NewObj {
         Self::new_station()
             .with_label("building_site".to_string())
-            .with_cargo(100)
+            .with_cargo_size(100)
             .with_building_site(BuildingSite { prefab_id, input })
             .with_docking()
     }
@@ -495,7 +504,7 @@ pub fn load_prefabs(world: &mut World, prefabs: &conf::Prefabs) {
     // load fleets prefabs
     for fleet in &prefabs.fleets {
         let mut obj = NewObj::new()
-            .with_cargo(fleet.storage)
+            .with_cargo_size(fleet.storage)
             .with_speed(Speed(fleet.speed))
             .with_label(fleet.label.clone())
             .with_ai();
@@ -515,7 +524,7 @@ pub fn load_prefabs(world: &mut World, prefabs: &conf::Prefabs) {
         let mut obj = NewObj::new()
             .with_label(station.label.clone())
             .with_station()
-            .with_cargo(station.storage as u32)
+            .with_cargo_size(station.storage as u32)
             .with_docking();
 
         if let Some(data) = &station.shipyard {

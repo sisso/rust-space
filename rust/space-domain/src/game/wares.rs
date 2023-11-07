@@ -106,7 +106,7 @@ pub fn list_wares(world: &World) -> Vec<(Entity, String)> {
         .collect()
 }
 
-#[derive(Debug, Clone, Component)]
+#[derive(Debug, Clone, Component, Default)]
 pub struct Cargo {
     max_volume: Volume,
     current_volume: Volume,

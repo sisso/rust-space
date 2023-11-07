@@ -364,7 +364,7 @@ mod test {
     use crate::game::locations::EntityPerSectorIndex;
     use crate::game::navigations::Navigation;
     use crate::game::objects::ObjId;
-    use crate::game::order::TradeOrders;
+    use crate::game::order::{TradeOrders, TRADE_ORDER_ID_FACTORY};
     use crate::game::sectors::SectorId;
     use crate::game::wares::{Cargo, Volume, WareId};
     use crate::test::test_system;
@@ -429,13 +429,13 @@ mod test {
         let producer_station_id = add_station(
             world,
             sector_id,
-            TradeOrders::from_provided(&[ware0_id, ware1_id]),
+            TradeOrders::from_provided(TRADE_ORDER_ID_FACTORY, &[ware0_id, ware1_id]),
         );
 
         let consumer_station_id = add_station(
             world,
             sector_id,
-            TradeOrders::from_requested(&[ware0_id, ware1_id]),
+            TradeOrders::from_requested(TRADE_ORDER_ID_FACTORY, &[ware0_id, ware1_id]),
         );
 
         let trader_id = add_trader(world, sector_id);
@@ -882,7 +882,7 @@ mod test {
                 let station_2 = add_station(
                     world,
                     scenery.sector_id,
-                    TradeOrders::from_provided(&[scenery.ware0_id]),
+                    TradeOrders::from_provided(TRADE_ORDER_ID_FACTORY, &[scenery.ware0_id]),
                 );
                 add_cargo(world, station_2, scenery.ware0_id, STATION_CARGO);
 
