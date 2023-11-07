@@ -1,4 +1,4 @@
-use space_flap::{Id, PrefabData, SpaceGame, WareData};
+use space_flap::{Id, SpaceGame, WareData};
 
 #[derive(Copy, Clone, Debug)]
 pub enum StateScreen {
@@ -24,6 +24,8 @@ pub struct State {
 
 impl State {
     pub fn new() -> Self {
+        log::info!("initializing game");
+
         _ = env_logger::builder()
             .filter(None, log::LevelFilter::Info)
             // .filter(Some("world_view"), log::LevelFilter::Warn)

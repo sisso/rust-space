@@ -14,16 +14,6 @@ pub struct AstroModel {
 
 #[godot_api]
 impl AstroModel {
-    #[must_use]
-    pub fn new_alloc() -> Gd<Self> {
-        unsafe {
-            let __class_name = StringName::from("AstroModel");
-            let __object_ptr =
-                sys::interface_fn!(classdb_construct_object)(__class_name.string_sys());
-            Gd::from_obj_sys(__object_ptr)
-        }
-    }
-
     #[func]
     pub fn set_color(&mut self, color: Color) {
         self.color = color;
@@ -59,16 +49,6 @@ impl OrbitModel {
     #[func]
     pub fn set_color(&mut self, color: Color) {
         self.color = color;
-    }
-
-    #[must_use]
-    pub fn new_alloc() -> Gd<Self> {
-        unsafe {
-            let __class_name = StringName::from("OrbitModel");
-            let __object_ptr =
-                sys::interface_fn!(classdb_construct_object)(__class_name.string_sys());
-            Gd::from_obj_sys(__object_ptr)
-        }
     }
 }
 
@@ -107,16 +87,6 @@ impl SelectedModel {
     #[func]
     pub fn set_color(&mut self, color: Color) {
         self.color = color;
-    }
-
-    #[must_use]
-    pub fn new_alloc() -> Gd<Self> {
-        unsafe {
-            let __class_name = StringName::from("SelectedModel");
-            let __object_ptr =
-                sys::interface_fn!(classdb_construct_object)(__class_name.string_sys());
-            Gd::from_obj_sys(__object_ptr)
-        }
     }
 }
 

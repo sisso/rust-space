@@ -447,7 +447,7 @@ impl SectorView {
 
 /// when default_scale should be false when object will be child of an already scaled object
 fn new_select_model(name: &str, color: Color, default_scale: bool) -> Gd<SelectedModel> {
-    let mut model = SelectedModel::new_alloc();
+    let mut model: Gd<SelectedModel> = Gd::new_default();
     model.bind_mut().set_color(color);
 
     let mut base: Gd<Node2D> = model.clone().upcast();
@@ -492,7 +492,7 @@ fn resolve_model_for_kind(id: Id, pos: V2, kind: ObjKind) -> Gd<Node2D> {
 }
 
 fn new_model(name: String, pos: Vector2, color: Color) -> Gd<Node2D> {
-    let mut model = AstroModel::new_alloc();
+    let mut model: Gd<AstroModel> = Gd::new_default();
     model.bind_mut().set_color(color);
 
     let mut base: Gd<Node2D> = model.upcast();
@@ -507,7 +507,7 @@ fn new_orbit_model(name: String, radius: f32, color: Color, pos: Vector2) -> Gd<
     let scale = radius;
     let scale_v = Vector2::new(scale, scale);
 
-    let mut model = OrbitModel::new_alloc();
+    let mut model: Gd<OrbitModel> = Gd::new_default();
     {
         let mut model = model.bind_mut();
         model.set_color(color);
