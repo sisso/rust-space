@@ -1,7 +1,7 @@
 use godot::log::{godot_print, godot_warn};
 use godot::obj::Gd;
 
-use space_flap::{Id, ObjAction, ObjActionKind, ObjCargo, ObjData, ObjDesc, WareData};
+use space_flap::{Id, ObjAction, ObjActionKind, ObjCargo, ObjData, WareData};
 
 use crate::main_gui::{Description, LabeledId, MainGui};
 use crate::sector_view::SectorView;

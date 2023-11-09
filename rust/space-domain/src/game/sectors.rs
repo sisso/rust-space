@@ -1,6 +1,5 @@
-use shred::World;
 use specs::prelude::*;
-use specs_derive::*;
+use specs::World;
 use std::borrow::{Borrow, BorrowMut};
 
 use commons::math::{IntoP2Ext, P2, P2I};

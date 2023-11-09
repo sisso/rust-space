@@ -7,9 +7,9 @@ use crate::game::{conf, loader, sectors, shipyard, wares, Game};
 use commons::math::{P2, P2I, V2, V2I};
 use commons::unwrap_or_continue;
 use rand::prelude::*;
-use shred::World;
 use space_galaxy::system_generator;
 use specs::prelude::*;
+use specs::World;
 use std::collections::HashSet;
 
 pub enum InitialCondition {

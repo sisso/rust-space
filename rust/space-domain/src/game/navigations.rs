@@ -10,8 +10,6 @@ use specs::prelude::*;
 
 use crate::game::locations::Location;
 use commons::math::P2;
-use specs::Entity;
-use specs_derive::*;
 use std::collections::VecDeque;
 
 mod navigation_request_handler_system;

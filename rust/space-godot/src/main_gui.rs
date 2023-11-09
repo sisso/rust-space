@@ -1,8 +1,7 @@
 use crate::utils::clear;
-use env_logger::builder;
 use godot::engine::{
     Button, Container, Engine, GridContainer, ItemList, RichTextLabel, TabContainer, TextEdit,
-    Texture2D, VBoxContainer,
+    Texture2D,
 };
 use godot::prelude::*;
 use space_flap::Id;

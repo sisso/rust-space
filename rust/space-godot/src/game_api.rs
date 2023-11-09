@@ -3,8 +3,6 @@ use godot::engine::{Engine, Node, NodeExt, NodeVirtual};
 use godot::obj::Base;
 use godot::prelude::*;
 
-use space_flap::*;
-
 use crate::game_api_runtime::Runtime;
 use crate::state::State;
 

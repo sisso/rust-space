@@ -1,9 +1,8 @@
 use super::*;
 use crate::game::dock::Docking;
 use crate::game::extractables::Extractable;
-use shred::{ResourceId, SystemData, World, Write};
 use specs::prelude::*;
-
+use specs::{SystemData, Write};
 use std::borrow::BorrowMut;
 
 /// Index entities to provide fast look up like:

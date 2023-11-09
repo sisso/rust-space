@@ -157,7 +157,7 @@ mod test {
     use crate::game::locations::Location;
     use crate::utils::{Position, TotalTime};
     use commons::math::deg_to_rads;
-    use shred::World;
+    use specs::World;
     use specs::{Builder, Entity, WorldExt};
 
     #[test]

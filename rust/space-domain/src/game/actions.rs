@@ -7,6 +7,7 @@ use commons::math::P2;
 /// - execute actions
 ///
 use specs::prelude::*;
+use specs::Component;
 
 use super::objects::ObjId;
 use crate::game::actions::action_dock_system::DockSystem;

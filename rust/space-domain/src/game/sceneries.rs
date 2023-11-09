@@ -5,8 +5,8 @@ use crate::game::wares::WareAmount;
 use crate::game::{sectors, wares, Game};
 use crate::utils::{DeltaTime, V2};
 use commons::math::P2I;
-use shred::World;
 use specs::Entity;
+use specs::World;
 
 fn load_fleets_prefabs(world: &mut World) {
     let ware_id =

@@ -1,4 +1,17 @@
-use shred::{Read, ResourceId, SystemData, World};
+use specs::prelude::*;
+use specs::{Read, SystemData, World};
+
+use super::*;
+use crate::game::dock::Docking;
+use crate::game::extractables::Extractable;
+use crate::game::locations::{EntityPerSectorIndex, Location};
+use crate::game::navigations::{NavRequest, Navigation};
+use crate::game::order::TradeOrders;
+use crate::game::wares::{Cargo, WareId};
+use std::borrow::BorrowMut;
+
+pub struct CommandMineSystem;
+
 ///
 /// System plans:
 ///
@@ -14,19 +27,6 @@ use shred::{Read, ResourceId, SystemData, World};
 /// - deliver cargo
 ///
 ///
-use specs::prelude::*;
-
-use super::*;
-use crate::game::dock::Docking;
-use crate::game::extractables::Extractable;
-use crate::game::locations::{EntityPerSectorIndex, Location};
-use crate::game::navigations::{NavRequest, Navigation};
-use crate::game::order::TradeOrders;
-use crate::game::wares::{Cargo, WareId};
-use std::borrow::BorrowMut;
-
-pub struct CommandMineSystem;
-
 #[derive(SystemData)]
 pub struct CommandMineData<'a> {
     entities: Entities<'a>,
