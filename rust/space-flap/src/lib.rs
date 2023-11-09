@@ -189,16 +189,14 @@ impl SpaceGame {
         let stations = g.world.read_storage::<Station>();
         let jumps = g.world.read_storage::<Jump>();
         let fleets = g.world.read_storage::<Fleet>();
-        let orders = g.world.read_storage::<TradeOrders>();
 
         let mut r = vec![];
-        for (e, flt, st, j, l, o) in (
+        for (e, flt, st, j, l) in (
             &entities,
             &fleets,
             (&stations).maybe(),
             (&jumps).maybe(),
             &locations,
-            &orders,
         )
             .join()
         {
@@ -221,8 +219,6 @@ impl SpaceGame {
                 shipyard: false,
             };
 
-            let trade_orders = new_trader_orders(o);
-
             r.push(ObjData {
                 id: e,
                 coords: ls.pos,
@@ -230,7 +226,7 @@ impl SpaceGame {
                 docked: l.as_docked(),
                 kind: kind,
                 orbit: None,
-                trade_orders: trade_orders,
+                trade_orders: vec![],
             });
         }
         r

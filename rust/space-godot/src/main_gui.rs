@@ -20,11 +20,13 @@ pub struct MainGui {
     selected_action: Option<Id>,
 }
 
+#[derive(Debug, Clone)]
 pub struct LabeledId {
     pub id: Id,
     pub label: String,
 }
 
+#[derive(Debug, Clone)]
 pub enum Description {
     None,
     Obj {

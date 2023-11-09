@@ -1,5 +1,6 @@
 use godot::log::{godot_print, godot_warn};
 use godot::obj::Gd;
+use std::panic::set_hook;
 
 use space_flap::{Id, ObjAction, ObjActionKind, ObjCargo, ObjData, WareData};
 
@@ -313,23 +314,18 @@ impl Runtime {
 
     fn set_shipyard_production(&mut self, prefab_id: Id) -> Option<()> {
         // double check selected entity is a shipyard
-        godot_print!("get state screen");
         let obj_id = match &self.state.screen {
             StateScreen::Obj(id) => *id,
             _ => return None,
         };
-        godot_print!("get obj desc");
         let dsc = self.state.game.get_obj_desc(obj_id)?;
-        godot_print!("get obj desc shipyard");
         let _ = dsc.get_shipyard()?;
 
         // add order
-        godot_print!("adding order");
         let added = self
             .state
             .game
             .add_shipyard_building_order(obj_id, prefab_id);
-        godot_print!("order result {:?}", added);
         Some(())
     }
 }
