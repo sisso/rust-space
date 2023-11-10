@@ -20,6 +20,22 @@ use specs::WorldExt;
 use std::borrow::Borrow;
 
 #[test]
+fn test_game_should_mine_and_deliver_cargo_to_mothership_until_produce_a_new_ship() {
+    let mut game = Game::new();
+    let bs = sceneries::load_basic_scenery(&mut game);
+    game.world
+        .write_storage::<Shipyard>()
+        .get_mut(bs.shipyard_id)
+        .unwrap()
+        .set_production_order(ProductionOrder::Random);
+
+    tick_eventually(&mut game, |game| {
+        let total_commands = game.world.read_storage::<Command>().borrow().count();
+        total_commands > 1
+    });
+}
+
+#[test]
 fn test_game_should_mine_and_deliver_cargo_to_shipyard_until_produce_a_new_ship() {
     let mut game = Game::new();
     let bs = sceneries::load_basic_scenery(&mut game);

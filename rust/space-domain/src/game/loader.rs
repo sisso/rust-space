@@ -62,6 +62,22 @@ impl Loader {
         Loader::add_object(world, &new_obj)
     }
 
+    pub fn add_mothership(
+        world: &mut World,
+        sector_id: SectorId,
+        pos: V2,
+        receipt: Receipt,
+    ) -> ObjId {
+        let new_obj = Self::new_station()
+            .at_position(sector_id, pos)
+            .with_label("mothership")
+            .with_cargo_size(500)
+            .with_shipyard(Shipyard::new())
+            .with_factory(Factory::new(receipt));
+
+        Loader::add_object(world, &new_obj)
+    }
+
     pub fn add_factory(world: &mut World, sector_id: SectorId, pos: V2, receipt: Receipt) -> ObjId {
         Loader::add_object(world, &Self::new_factory(sector_id, pos, receipt))
     }
@@ -128,10 +144,13 @@ impl Loader {
         Loader::add_object(world, &NewObj::new().with_sector(pos).with_label(name))
     }
 
-    pub fn add_ware(world: &mut World, code: String, name: String) -> WareId {
+    pub fn add_ware<T: Into<String>>(world: &mut World, code: T, name: T) -> WareId {
         Loader::add_object(
             world,
-            &NewObj::new().with_ware().with_code(code).with_label(name),
+            &NewObj::new()
+                .with_ware()
+                .with_code(code.into())
+                .with_label(name.into()),
         )
     }
 

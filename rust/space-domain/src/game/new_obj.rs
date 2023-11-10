@@ -162,13 +162,13 @@ impl NewObj {
         self
     }
 
-    pub fn with_code(mut self, code: String) -> Self {
-        self.code = Some(code);
+    pub fn with_code<IntoString: Into<String>>(mut self, code: IntoString) -> Self {
+        self.code = Some(code.into());
         self
     }
 
-    pub fn with_label(mut self, label: String) -> Self {
-        self.label = Some(label);
+    pub fn with_label<IntoString: Into<String>>(mut self, label: IntoString) -> Self {
+        self.label = Some(label.into());
         self
     }
 

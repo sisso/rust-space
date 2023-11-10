@@ -1,6 +1,8 @@
 use crate::game::commands::Command;
 use crate::game::factory::Receipt;
 use crate::game::loader::{BasicScenery, Loader};
+use crate::game::objects::ObjId;
+use crate::game::sectors::SectorId;
 use crate::game::wares::WareAmount;
 use crate::game::{sectors, wares, Game};
 use crate::utils::{DeltaTime, V2};
@@ -8,7 +10,7 @@ use commons::math::P2I;
 use specs::Entity;
 use specs::World;
 
-fn load_fleets_prefabs(world: &mut World) {
+fn load_sceneries_fleets_prefabs(world: &mut World) {
     let ware_id =
         wares::find_ware_by_code(world, "components").expect("fail to find components ware");
 
@@ -83,7 +85,7 @@ pub fn load_basic_scenery(game: &mut Game) -> BasicScenery {
     };
 
     // init prefabs
-    load_fleets_prefabs(world);
+    load_sceneries_fleets_prefabs(world);
 
     // init sectors
     let sector_0 = Loader::add_sector(world, P2I::new(0, 0), "Sector 0".to_string());
@@ -139,7 +141,7 @@ pub fn load_advanced_scenery(world: &mut World) {
     let ware_energy = Loader::add_ware(world, "energy".to_string(), "Energy".to_string());
 
     // init prefabs
-    load_fleets_prefabs(world);
+    load_sceneries_fleets_prefabs(world);
 
     // receipts
     let receipt_process_ores = Receipt {
@@ -185,4 +187,56 @@ pub fn load_advanced_scenery(world: &mut World) {
     let shipyard_id = Loader::add_shipyard(world, sector_0, V2::new(1.0, -3.0));
     Loader::add_ship_miner(world, shipyard_id, 2.0, "miner".to_string());
     Loader::add_ship_trader(world, component_factory_id, 2.0, "trader".to_string());
+}
+
+pub struct MothershipScenery {
+    pub sector_id: SectorId,
+    pub miner_id: ObjId,
+    pub mothership_id: ObjId,
+}
+
+/// Basic scenery with mothership
+///
+/// Is defined as a simple:
+/// - 2 sector,
+/// - miner ship
+/// - mothership (ore -> components) and shipyard
+/// - asteroid (ore)
+pub fn load_basic_mothership_scenery(game: &mut Game) -> MothershipScenery {
+    let world = &mut game.world;
+
+    // init wares
+    let ware_ore_id = Loader::add_ware(world, "ore", "Ore");
+    let ware_components_id = Loader::add_ware(world, "components", "Components");
+
+    // receipts
+    let ore_processing_receipt = Receipt {
+        label: "ore processing".to_string(),
+        input: vec![WareAmount::new(ware_ore_id, 20)],
+        output: vec![WareAmount::new(ware_components_id, 10)],
+        time: DeltaTime(1.0),
+    };
+
+    // init prefabs
+    load_sceneries_fleets_prefabs(world);
+
+    // init sectors
+    let sector_id = Loader::add_sector(world, P2I::new(0, 0), "Sector 0".to_string());
+
+    sectors::update_sectors_index(world);
+
+    // init objects
+    let asteroid_id = Loader::add_asteroid(world, sector_id, V2::new(-2.0, 3.0), ware_ore_id);
+    let component_factory_id =
+        Loader::add_factory(world, sector_id, V2::new(3.0, -1.0), ore_processing_receipt);
+
+    let mothership_id = Loader::add_shipyard(world, sector_id, V2::new(1.0, -3.0));
+    let miner_id = Loader::add_ship_miner(world, mothership_id, 2.0, "miner".to_string());
+
+    // return scenery
+    MothershipScenery {
+        sector_id,
+        miner_id,
+        mothership_id,
+    }
 }
