@@ -3,12 +3,122 @@ use crate::game::factory::Receipt;
 use crate::game::loader::{BasicScenery, Loader};
 use crate::game::objects::ObjId;
 use crate::game::sectors::SectorId;
-use crate::game::wares::WareAmount;
+use crate::game::wares::{WareAmount, WareId};
 use crate::game::{sectors, wares, Game};
 use crate::utils::{DeltaTime, V2};
 use commons::math::P2I;
 use specs::Entity;
 use specs::World;
+
+pub struct SceneryBuilder;
+
+#[derive(Default)]
+pub struct SceneryBuilderInit {
+    tasks: Vec<Box<dyn BuilderTask>>,
+}
+
+#[derive(Default, Debug)]
+pub struct SceneryBuilderResult {
+    pub sectors: Vec<SectorId>,
+    pub wares: Vec<WareId>,
+    pub fleets: Vec<ObjId>,
+    pub stations: Vec<ObjId>,
+    pub asteroids: Vec<ObjId>,
+}
+
+trait BuilderTask {
+    fn apply(&self, game: &mut Game, result: &mut SceneryBuilderResult);
+}
+
+trait BuilderStep {
+    fn get_tasks(&self) -> &Vec<Box<dyn BuilderTask>>;
+}
+
+trait BuilderBuild: BuilderStep {
+    fn build(&self, game: &mut Game) -> SceneryBuilderResult {
+        let mut rs = SceneryBuilderResult::default();
+        for task in self.get_tasks() {
+            task.apply(game, &mut rs);
+        }
+        rs
+    }
+}
+
+impl SceneryBuilder {
+    pub fn new() -> SceneryBuilderInit {
+        SceneryBuilderInit::default()
+    }
+}
+
+impl SceneryBuilderInit {
+    pub fn add_ware<T: Into<String>>(mut self, code: T) -> Self {
+        struct Task {
+            code: String,
+        }
+        impl BuilderTask for Task {
+            fn apply(&self, game: &mut Game, result: &mut SceneryBuilderResult) {
+                let ware_ore_id =
+                    Loader::add_ware(&mut game.world, self.code.clone(), self.code.clone());
+                result.wares.extend(vec![ware_ore_id]);
+            }
+        }
+        self.tasks.push(Box::new(Task { code: code.into() }));
+        self
+    }
+
+    pub fn basic_wares(mut self) -> Self {
+        struct Task {}
+        impl BuilderTask for Task {
+            fn apply(&self, game: &mut Game, result: &mut SceneryBuilderResult) {
+                let ware_ore_id = Loader::add_ware(&mut game.world, "ore", "Ore");
+                let ware_components_id =
+                    Loader::add_ware(&mut game.world, "components", "Components");
+                result.wares.extend(vec![ware_ore_id, ware_components_id]);
+            }
+        }
+        self.tasks.push(Box::new(Task {}));
+        self
+    }
+
+    pub fn builder_single_sector(mut self) -> SceneryBuilderWithSector {
+        struct Task {}
+        impl BuilderTask for Task {
+            fn apply(&self, game: &mut Game, result: &mut SceneryBuilderResult) {
+                let sector_id =
+                    Loader::add_sector(&mut game.world, P2I::new(0, 0), "Sector".to_string());
+                result.sectors = vec![sector_id];
+                sectors::update_sectors_index(&mut game.world);
+            }
+        }
+        self.tasks.push(Box::new(Task {}));
+        SceneryBuilderWithSector { tasks: self.tasks }
+    }
+
+    pub fn builder_two_sectors(mut self) -> SceneryBuilderWithSector {
+        struct Task {}
+        impl BuilderTask for Task {
+            fn apply(&self, game: &mut Game, result: &mut SceneryBuilderResult) {
+                let sector_0 =
+                    Loader::add_sector(&mut game.world, P2I::new(0, 0), "Sector 0".to_string());
+                let sector_1 =
+                    Loader::add_sector(&mut game.world, P2I::new(1, 0), "Sector 1".to_string());
+
+                Loader::add_jump(
+                    &mut game.world,
+                    sector_0,
+                    V2::new(0.5, 0.3),
+                    sector_1,
+                    V2::new(0.0, 0.0),
+                );
+                sectors::update_sectors_index(&mut game.world);
+
+                result.sectors = vec![sector_0, sector_1];
+            }
+        }
+        self.tasks.push(Box::new(Task {}));
+        SceneryBuilderWithSector { tasks: self.tasks }
+    }
+}
 
 fn load_sceneries_fleets_prefabs(world: &mut World) {
     let ware_id =
@@ -26,6 +136,46 @@ fn load_sceneries_fleets_prefabs(world: &mut World) {
     Loader::add_prefab(world, "mine_fleet", "Mine fleet", new_obj, true, false);
 }
 
+#[derive(Default)]
+pub struct SceneryBuilderWithSector {
+    tasks: Vec<Box<dyn BuilderTask>>,
+}
+
+impl BuilderStep for SceneryBuilderWithSector {
+    fn get_tasks(&self) -> &Vec<Box<dyn BuilderTask>> {
+        &self.tasks
+    }
+}
+
+impl BuilderBuild for SceneryBuilderWithSector {}
+
+impl SceneryBuilderWithSector {
+    pub fn add_asteroid(mut self, sector_i: usize, ware_id: usize) -> Self {
+        struct Task {
+            sector_i: usize,
+            ware_i: usize,
+        }
+        impl BuilderTask for Task {
+            fn apply(&self, game: &mut Game, result: &mut SceneryBuilderResult) {
+                let ware_ore_id = result.wares.get(self.ware_i).expect("ware not found");
+                let sector_id = result.sectors.get(self.sector_i).expect("sector not found");
+                let asteroid_id = Loader::add_asteroid(
+                    &mut game.world,
+                    *sector_id,
+                    V2::new(-2.0, 3.0),
+                    *ware_ore_id,
+                );
+                result.asteroids.push(asteroid_id);
+            }
+        }
+        self.tasks.push(Box::new(Task {
+            sector_i,
+            ware_i: ware_id,
+        }));
+        self
+    }
+}
+
 pub struct MinimumScenery {
     pub ware_ore_id: Entity,
     pub asteroid_id: Entity,
@@ -39,23 +189,16 @@ pub struct MinimumScenery {
 /// - 1 sector,
 /// - asteroid (ore)
 pub fn load_minimum_scenery(game: &mut Game) -> MinimumScenery {
-    let world = &mut game.world;
+    let rs = SceneryBuilder::new()
+        .add_ware("ore")
+        .builder_single_sector()
+        .add_asteroid(0, 0)
+        .build(game);
 
-    // init wares
-    let ware_ore_id = Loader::add_ware(world, "ore".to_string(), "Ore".to_string());
-
-    // init sectors
-    let sector_0 = Loader::add_sector(world, P2I::new(0, 0), "Sector 0".to_string());
-    sectors::update_sectors_index(world);
-
-    // init objects
-    let asteroid_id = Loader::add_asteroid(world, sector_0, V2::new(-2.0, 3.0), ware_ore_id);
-
-    // return scenery
     MinimumScenery {
-        ware_ore_id,
-        asteroid_id,
-        sector_0,
+        asteroid_id: rs.asteroids[0],
+        sector_0: rs.sectors[0],
+        ware_ore_id: rs.wares[0],
     }
 }
 
