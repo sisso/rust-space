@@ -6,7 +6,7 @@ use space_flap::{Id, ObjAction, ObjActionKind, ObjCargo, ObjData, WareData};
 
 use crate::main_gui::{Description, LabeledId, MainGui};
 use crate::sector_view::SectorView;
-use crate::state::{State, StateScreen};
+use crate::state::{State, StateScreen, TimeSpeed};
 use crate::{main_gui, sector_view};
 
 pub struct Runtime {
@@ -93,8 +93,13 @@ impl Runtime {
             self.state.screen = StateScreen::Obj(id);
         }
 
+        // update time
+        self.state.time_speed = self.gui.bind_mut().get_scroll_time_and_update_label();
+
         // update game
-        self.state.game.update(delta_seconds as f32);
+        if let Some(game_delta_seconds) = self.state.time_speed.mult(delta_seconds) {
+            self.state.game.update(game_delta_seconds as f32);
+        }
 
         // update view
         self.refresh_sector_view();

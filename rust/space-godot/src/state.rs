@@ -13,6 +13,17 @@ impl StateScreen {}
 pub enum TimeSpeed {
     Pause,
     Normal,
+    Multiplier(f64),
+}
+
+impl TimeSpeed {
+    pub fn mult(&self, seconds: f64) -> Option<f64> {
+        match self {
+            TimeSpeed::Pause => None,
+            TimeSpeed::Normal => Some(seconds),
+            TimeSpeed::Multiplier(m) => Some(seconds * m),
+        }
+    }
 }
 
 pub struct State {

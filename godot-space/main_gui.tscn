@@ -13,7 +13,19 @@ size_flags_vertical = 3
 [node name="Main" type="VBoxContainer" parent="TabContainer"]
 layout_mode = 2
 
-[node name="Label3" type="Label" parent="TabContainer/Main"]
+[node name="TimeLabel" type="Label" parent="TabContainer/Main"]
+layout_mode = 2
+text = "Time: 1.0
+"
+
+[node name="TimeScroll" type="HScrollBar" parent="TabContainer/Main"]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+max_value = 10.0
+step = 1.0
+value = 2.0
+
+[node name="SectorsLabel2" type="Label" parent="TabContainer/Main"]
 layout_mode = 2
 text = "Sectors"
 
@@ -37,7 +49,7 @@ text = "0 0"
 layout_mode = 2
 text = "0 0"
 
-[node name="Label2" type="Label" parent="TabContainer/Main"]
+[node name="FleetsLabel" type="Label" parent="TabContainer/Main"]
 layout_mode = 2
 text = "Fleets"
 

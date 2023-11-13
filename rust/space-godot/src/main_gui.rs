@@ -1,7 +1,8 @@
+use crate::state::TimeSpeed;
 use crate::utils::clear;
 use godot::engine::{
-    Button, Container, Engine, GridContainer, ItemList, RichTextLabel, TabContainer, TextEdit,
-    Texture2D,
+    Button, Container, Engine, GridContainer, ItemList, Label, RichTextLabel, ScrollBar,
+    TabContainer, TextEdit, Texture2D,
 };
 use godot::prelude::*;
 use space_flap::Id;
@@ -118,6 +119,38 @@ impl MainGui {
 
     pub fn take_selected_action(&mut self) -> Option<Id> {
         self.selected_action.take()
+    }
+
+    pub fn get_scroll_time_and_update_label(&mut self) -> TimeSpeed {
+        let value = {
+            let scroll = self
+                .base
+                .get_node_as::<ScrollBar>("TabContainer/Main/TimeScroll");
+
+            scroll.get_value() as i32
+        };
+
+        let mut label = self
+            .base
+            .get_node_as::<Label>("TabContainer/Main/TimeLabel");
+
+        if value == 0 {
+            label.set_text(format!("Time: paused").into());
+            TimeSpeed::Pause
+        } else if value == 2 {
+            label.set_text(format!("Time: normal").into());
+            TimeSpeed::Normal
+        } else {
+            let value = if value == 1 {
+                0.5
+            } else if value > 5 {
+                value as f64 * value as f64
+            } else {
+                value as f64
+            };
+            label.set_text(format!("Time: speed {value:.2}").into());
+            TimeSpeed::Multiplier(value)
+        }
     }
 
     pub fn get_clicked_sector(&self) -> Option<Id> {
