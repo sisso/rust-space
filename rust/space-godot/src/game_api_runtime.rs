@@ -396,10 +396,7 @@ impl Runtime {
         let _ = dsc.get_shipyard()?;
 
         // add order
-        let added = self.game.add_shipyard_building_order(obj_id, prefab_id);
-        if !added {
-            godot_warn!("shipyard production order not assigned");
-        }
+        self.game.set_shipyard_building_order(obj_id, prefab_id);
         Some(())
     }
 }

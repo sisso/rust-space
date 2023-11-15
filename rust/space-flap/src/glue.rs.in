@@ -15,7 +15,7 @@ foreign_class!(
         fn SpaceGame::list_building_sites_prefabs(&self) -> Vec<PrefabData>;
         fn SpaceGame::new_building_plot(&self, plot_id: u64, sector_id: u64, pos_x: f32, pos_y: f32) -> u64;
         fn SpaceGame::list_building_shipyard_prefabs(&self) -> Vec<PrefabData>;
-        fn SpaceGame::add_shipyard_building_order(&mut self, obj_id: u64, prefab_id: u64) -> bool;
+        fn SpaceGame::set_shipyard_building_order(&mut self, obj_id: u64, prefab_id: u64);
     }
 );
 

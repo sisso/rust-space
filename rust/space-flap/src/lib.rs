@@ -437,7 +437,7 @@ impl SpaceGame {
         encode_entity(obj_id)
     }
 
-    pub fn add_shipyard_building_order(&mut self, obj_id: u64, prefab_id: u64) -> bool {
+    pub fn set_shipyard_building_order(&mut self, obj_id: u64, prefab_id: u64) {
         let prefab_id = decode_entity_and_get(&self.game.borrow(), prefab_id).unwrap();
         let obj_id = decode_entity_and_get(&self.game.borrow(), obj_id).unwrap();
 
@@ -450,17 +450,8 @@ impl SpaceGame {
         assert!(prefab.shipyard);
 
         let mut shipyard = shipyards.get_mut(obj_id).unwrap();
-
-        if !shipyard.get_production_order().is_none() {
-            log::debug!("{:?} is already producing, ignoring new order", obj_id);
-            return false;
-        }
-
         shipyard.set_production_order(shipyard::ProductionOrder::Next(prefab_id));
-
         log::debug!("{:?} set production order to {:?}", obj_id, prefab_id);
-
-        true
     }
 }
 
