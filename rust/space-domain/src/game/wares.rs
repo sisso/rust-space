@@ -461,7 +461,6 @@ impl<'a> System<'a> for CargoDistributionDirtySystem {
 mod test {
     use super::*;
 
-    // TODO: how to create entities without a world?
     fn create_wares() -> (WareId, WareId, WareId) {
         let mut world = World::new();
         let ware_0 = world.create_entity().build();

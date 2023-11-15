@@ -4,7 +4,6 @@ use godot::obj::Base;
 use godot::prelude::*;
 
 use crate::game_api_runtime::Runtime;
-use crate::state::State;
 
 #[derive(GodotClass)]
 #[class(base=Node)]
@@ -69,9 +68,7 @@ impl NodeVirtual for GameApi {
                 .try_get_node_as("/root/GameApi/MainGui")
                 .expect("MainGui not found");
 
-            let state = State::new();
-
-            let mut runtime = Runtime::new(state, sector_view, gui);
+            let mut runtime = Runtime::new(sector_view, gui);
             runtime.full_refresh_gui();
             runtime.recenter();
             runtime.refresh_sector_view();

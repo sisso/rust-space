@@ -117,7 +117,7 @@ impl<'a> System<'a> for ActionMoveToSystem {
 mod test {
     use super::super::*;
     use super::*;
-    use crate::test::{assert_v2, init_trace_log, test_system};
+    use crate::test::{assert_v2, test_system};
     use crate::utils::{Position, Speed};
 
     #[test]

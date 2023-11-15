@@ -1,26 +1,104 @@
 use godot::log::{godot_print, godot_warn};
 use godot::obj::Gd;
-use std::panic::set_hook;
 
-use space_flap::{Id, ObjAction, ObjActionKind, ObjCargo, ObjData, WareData};
+use space_flap::{Id, ObjAction, ObjActionKind, ObjCargo, ObjData, SpaceGame, WareData};
 
+use crate::game_api::GameApi;
 use crate::main_gui::{Description, LabeledId, MainGui};
 use crate::sector_view::SectorView;
-use crate::state::{State, StateScreen, TimeSpeed};
 use crate::{main_gui, sector_view};
 
+#[derive(Copy, Clone, Debug)]
+pub enum StateScreen {
+    Sector(Id),
+    SectorPlot { sector_id: Id, plot_id: Id },
+    Obj(Id),
+}
+
+impl StateScreen {}
+
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub enum TimeSpeed {
+    Pause,
+    Normal,
+    Multiplier(f64),
+}
+
+impl TimeSpeed {
+    pub fn mult(&self, seconds: f64) -> Option<f64> {
+        match self {
+            TimeSpeed::Pause => None,
+            TimeSpeed::Normal => Some(seconds),
+            TimeSpeed::Multiplier(m) => Some(seconds * m),
+        }
+    }
+}
+
 pub struct Runtime {
-    state: State,
+    game: SpaceGame,
+    screen: StateScreen,
+    wares: Vec<WareData>,
+    time_speed: TimeSpeed,
     sector_view: Gd<SectorView>,
     gui: Gd<MainGui>,
 }
 
 impl Runtime {
-    pub fn new(state: State, sector_view: Gd<SectorView>, gui: Gd<MainGui>) -> Self {
+    pub fn new(sector_view: Gd<SectorView>, gui: Gd<MainGui>) -> Self {
+        log::info!("initializing game");
+
+        _ = env_logger::builder()
+            .filter(None, log::LevelFilter::Info)
+            // .filter(Some("world_view"), log::LevelFilter::Warn)
+            // .filter(Some("space_flap"), log::LevelFilter::Warn)
+            // .filter(Some("space_domain"), log::LevelFilter::Warn)
+            // .filter(Some("space_domain::conf"), log::LevelFilter::Debug)
+            .filter(Some("space_domain::game::loader"), log::LevelFilter::Trace)
+            .try_init()
+            .or_else(|err| {
+                log::warn!("fail to initialize log {err:?}");
+                Err(err)
+            });
+
+        let mut game = SpaceGame::new(vec![
+            "--size".to_string(),
+            "2".to_string(),
+            "--fleets".to_string(),
+            "0".to_string(),
+            "--seed".to_string(),
+            "1".to_string(),
+        ]);
+
+        let sector_id = game
+            .get_sectors()
+            .get(0)
+            .expect("game has no sector")
+            .get_id();
+
+        let wares = game.list_wares();
+
         Self {
-            state,
+            game,
+            screen: StateScreen::Sector(sector_id),
+            wares,
+            time_speed: TimeSpeed::Pause,
             sector_view,
             gui,
+        }
+    }
+
+    fn get_current_sector_id(&self) -> Id {
+        match &self.screen {
+            StateScreen::Sector(sector_id) => *sector_id,
+            StateScreen::Obj(id) => {
+                let sector_id = self
+                    .game
+                    .get_obj_coords(*id)
+                    .map(|coords| coords.get_sector_id());
+
+                return sector_id.expect("selected object has no sector_id");
+            }
+            StateScreen::SectorPlot { sector_id, .. } => *sector_id,
         }
     }
 
@@ -41,7 +119,7 @@ impl Runtime {
             self.sector_view
                 .bind_mut()
                 .set_state(sector_view::SectorViewState::None);
-            self.state.screen = StateScreen::Sector(sector_id);
+            self.screen = StateScreen::Sector(sector_id);
         } else if let Some(fleet_id) = clicked_fleet_id {
             // when click on a fleet, start to follow that fleet
 
@@ -49,14 +127,14 @@ impl Runtime {
             self.sector_view
                 .bind_mut()
                 .set_state(sector_view::SectorViewState::None);
-            self.state.screen = StateScreen::Obj(fleet_id);
+            self.screen = StateScreen::Obj(fleet_id);
         } else if let Some(prefab_id) = clicked_selected_action {
             let r = self.set_shipyard_production(prefab_id);
             godot_print!("set shipyard prefab_id {:?}: {:?}", prefab_id, r);
         } else if let Some(id) = clicked_to_build_plot_id {
             // user want to build a plot
-            let current_sector_id = self.state.get_current_sector_id();
-            self.state.screen = StateScreen::SectorPlot {
+            let current_sector_id = self.get_current_sector_id();
+            self.screen = StateScreen::SectorPlot {
                 sector_id: current_sector_id,
                 plot_id: id,
             };
@@ -65,15 +143,14 @@ impl Runtime {
                 .set_state(sector_view::SectorViewState::Plotting);
         } else if let Some(pos) = building_plot_position {
             // user select place to plot
-            match self.state.screen {
+            match self.screen {
                 StateScreen::SectorPlot { plot_id, sector_id } => {
                     self.sector_view
                         .bind_mut()
                         .set_state(sector_view::SectorViewState::None);
-                    self.state.screen = StateScreen::Sector(sector_id);
+                    self.screen = StateScreen::Sector(sector_id);
 
                     let id = self
-                        .state
                         .game
                         .new_building_plot(plot_id, sector_id, pos.x, pos.y);
                     godot_print!(
@@ -90,15 +167,15 @@ impl Runtime {
             }
         } else if let Some(id) = sector_selected_id {
             // when has on a obj in the sector already selected
-            self.state.screen = StateScreen::Obj(id);
+            self.screen = StateScreen::Obj(id);
         }
 
         // update time
-        self.state.time_speed = self.gui.bind_mut().get_scroll_time_and_update_label();
+        self.time_speed = self.gui.bind_mut().get_scroll_time_and_update_label();
 
         // update game
-        if let Some(game_delta_seconds) = self.state.time_speed.mult(delta_seconds) {
-            self.state.game.update(game_delta_seconds as f32);
+        if let Some(game_delta_seconds) = self.time_speed.mult(delta_seconds) {
+            self.game.update(game_delta_seconds as f32);
         }
 
         // update view
@@ -113,18 +190,17 @@ impl Runtime {
     }
 
     pub fn refresh_sector_view(&mut self) {
-        match &self.state.screen {
+        match &self.screen {
             StateScreen::Sector(sector_id) => {
                 self.sector_view
                     .bind_mut()
-                    .refresh(generate_sectorview_updates(&self.state, *sector_id));
+                    .refresh(generate_sectorview_updates(&self.game, *sector_id));
                 self.gui
                     .bind_mut()
                     .show_selected_object(main_gui::Description::None);
             }
             StateScreen::Obj(id) => {
                 let sector_id = self
-                    .state
                     .game
                     .get_obj_coords(*id)
                     .map(|coords| coords.get_sector_id());
@@ -132,17 +208,17 @@ impl Runtime {
                 if let Some(sector_id) = sector_id {
                     self.sector_view
                         .bind_mut()
-                        .refresh(generate_sectorview_updates(&self.state, sector_id));
+                        .refresh(generate_sectorview_updates(&self.game, sector_id));
                 }
                 let desc = self.describe_obj(*id);
                 self.gui.bind_mut().show_selected_object(desc);
             }
 
             StateScreen::SectorPlot { sector_id, plot_id } => {
-                let updates = generate_sectorview_updates(&self.state, *sector_id);
+                let updates = generate_sectorview_updates(&self.game, *sector_id);
                 self.sector_view.bind_mut().refresh(updates);
 
-                let describe_plot = describe_plot(&self.state.game, *plot_id);
+                let describe_plot = describe_plot(&self.game, *plot_id);
 
                 let mut gui = self.gui.bind_mut();
                 gui.show_selected_plot_desc(describe_plot);
@@ -154,7 +230,7 @@ impl Runtime {
     /// update gui, it happens every tick
     pub fn refresh_gui(&mut self) {
         let describe_plot = if let Some(plot_id) = self.gui.bind().get_plot_item_selected() {
-            describe_plot(&self.state.game, plot_id)
+            describe_plot(&self.game, plot_id)
         } else {
             godot_print!("no plot selected????");
             Description::None
@@ -167,7 +243,7 @@ impl Runtime {
     /// full refresh gui, should happens when things happens, like new fleet is added / removed
     pub fn full_refresh_gui(&mut self) {
         let mut sectors = vec![];
-        for sector in self.state.game.get_sectors() {
+        for sector in self.game.get_sectors() {
             sectors.push(LabeledId {
                 id: sector.get_id(),
                 label: sector.get_label().to_string(),
@@ -175,13 +251,12 @@ impl Runtime {
         }
 
         let mut fleets = vec![];
-        for fleet in self.state.game.get_fleets() {
+        for fleet in self.game.get_fleets() {
             fleets.push(LabeledId {
                 id: fleet.get_id(),
                 label: format!(
                     "{} ({})",
-                    self.state
-                        .game
+                    self.game
                         .get_label(fleet.get_id())
                         .expect("fleet has no label"),
                     fleet.get_id()
@@ -190,7 +265,7 @@ impl Runtime {
         }
 
         let mut buildings = vec![];
-        for pf in self.state.game.list_building_sites_prefabs() {
+        for pf in self.game.list_building_sites_prefabs() {
             godot_print!("- {:?} {:?}", pf.get_id(), pf.get_label());
             buildings.push(LabeledId {
                 id: pf.get_id(),
@@ -209,13 +284,12 @@ impl Runtime {
     }
 
     pub fn describe_obj(&self, id: Id) -> Description {
-        let data = self.state.game.get_obj(id);
-        let desc = self.state.game.get_obj_desc(id);
+        let data = self.game.get_obj(id);
+        let desc = self.game.get_obj_desc(id);
         let jump_target = self
-            .state
             .game
             .get_jump(id)
-            .and_then(|jump| self.state.game.get_obj_desc(jump.get_to_sector_id()))
+            .and_then(|jump| self.game.get_obj_desc(jump.get_to_sector_id()))
             .map(|target_desc| target_desc.get_label().to_string());
 
         let docked_fleets = desc
@@ -224,12 +298,7 @@ impl Runtime {
             .map(|docked_fleets_id| {
                 docked_fleets_id
                     .into_iter()
-                    .map(|id| {
-                        self.state
-                            .game
-                            .get_label(id)
-                            .expect("docked obj has no label")
-                    })
+                    .map(|id| self.game.get_label(id).expect("docked obj has no label"))
                     .collect()
             })
             .unwrap_or(vec![]);
@@ -252,7 +321,7 @@ impl Runtime {
             buffer.push(format!("target id: {:?}", target_id));
         }
         if let Some(cargo) = desc.get_cargo() {
-            buffer.extend(get_cargo_str(&self.state.wares, cargo));
+            buffer.extend(get_cargo_str(&self.wares, cargo));
         }
         if let Some(factory) = desc.get_factory() {
             if factory.is_producing() {
@@ -260,7 +329,7 @@ impl Runtime {
             }
         }
         if let Some(shipyard) = desc.get_shipyard() {
-            let prefabs = self.state.game.list_building_shipyard_prefabs();
+            let prefabs = self.game.list_building_shipyard_prefabs();
 
             if let Some(prefab_id) = shipyard.get_order() {
                 let prefab = prefabs
@@ -305,7 +374,7 @@ impl Runtime {
                     "request"
                 };
 
-                let ware_name = get_ware_label(&self.state.wares, order.get_ware());
+                let ware_name = get_ware_label(&self.wares, order.get_ware());
                 buffer.push(format!("{}: {}", order_kind, ware_name));
             }
         }
@@ -319,18 +388,18 @@ impl Runtime {
 
     fn set_shipyard_production(&mut self, prefab_id: Id) -> Option<()> {
         // double check selected entity is a shipyard
-        let obj_id = match &self.state.screen {
+        let obj_id = match &self.screen {
             StateScreen::Obj(id) => *id,
             _ => return None,
         };
-        let dsc = self.state.game.get_obj_desc(obj_id)?;
+        let dsc = self.game.get_obj_desc(obj_id)?;
         let _ = dsc.get_shipyard()?;
 
         // add order
-        let added = self
-            .state
-            .game
-            .add_shipyard_building_order(obj_id, prefab_id);
+        let added = self.game.add_shipyard_building_order(obj_id, prefab_id);
+        if !added {
+            godot_warn!("shipyard production order not assigned");
+        }
         Some(())
     }
 }
@@ -410,14 +479,13 @@ fn get_kind_str(data: &ObjData) -> &str {
     }
 }
 
-pub fn generate_sectorview_updates(state: &State, sector_id: Id) -> Vec<sector_view::Update> {
+pub fn generate_sectorview_updates(game: &SpaceGame, sector_id: Id) -> Vec<sector_view::Update> {
     let mut updates = vec![];
 
-    let list = state
-        .game
+    let list = game
         .list_at_sector(sector_id)
         .into_iter()
-        .flat_map(|id| state.game.get_obj(id));
+        .flat_map(|id| game.get_obj(id));
 
     for data in list {
         updates.push(sector_view::Update::Obj {

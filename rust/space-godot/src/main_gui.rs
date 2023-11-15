@@ -1,4 +1,4 @@
-use crate::state::TimeSpeed;
+use crate::game_api_runtime::TimeSpeed;
 use crate::utils::clear;
 use godot::engine::{
     Button, Container, Engine, GridContainer, ItemList, Label, RichTextLabel, ScrollBar,
