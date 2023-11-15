@@ -61,8 +61,8 @@ impl Runtime {
             });
 
         let mut game = SpaceGame::new(vec![
-            "--size".to_string(),
-            "2".to_string(),
+            "--size-xy".to_string(),
+            "2,1".to_string(),
             "--fleets".to_string(),
             "0".to_string(),
             "--seed".to_string(),

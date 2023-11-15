@@ -46,7 +46,7 @@ pub struct SpaceGame {
 
 impl SpaceGame {
     pub fn new(args: Vec<String>) -> Self {
-        let mut size = 4;
+        let mut size: (usize, usize) = (2, 2);
         let mut fleets = 10;
         let mut stations = 4;
         let mut seed = 0;
@@ -58,20 +58,32 @@ impl SpaceGame {
             match k.as_str() {
                 "--size" => match v.parse::<usize>() {
                     Ok(v) => {
-                        log::info!("set size to {}", v);
-                        size = v
+                        log::info!("set size to {},{}", v, v);
+                        size = (v, v);
                     }
                     Err(e) => {
-                        log::warn!("invalid argument {}={}", k, v);
+                        panic!("invalid argument {}={}", k, v);
                     }
                 },
+                "--size-xy" => {
+                    let values = v.split(",").collect::<Vec<_>>();
+                    if values.len() != 2 {
+                        panic!("invalid argument {}={}, size-xy should contain 2 numbers separated by comma ,", k, v)
+                    }
+
+                    let x = values[0].parse::<usize>().expect("invalid argument");
+                    let y = values[1].parse::<usize>().expect("invalid argument");
+
+                    log::info!("set size to {},{}", x, y);
+                    size = (x, y);
+                }
                 "--fleets" => match v.parse::<usize>() {
                     Ok(v) => {
                         log::info!("set fleet to {}", v);
                         fleets = v
                     }
                     Err(e) => {
-                        log::warn!("invalid argument {}={}", k, v);
+                        panic!("invalid argument {}={}", k, v);
                     }
                 },
                 "--seed" => match v.parse::<u64>() {
@@ -80,13 +92,14 @@ impl SpaceGame {
                         seed = v
                     }
                     Err(e) => {
-                        log::warn!("invalid argument {}={}", k, v);
+                        panic!("invalid argument {}={}", k, v);
                     }
                 },
-                _ => log::warn!("unknown argument {}={}", k, v),
+                _ => panic!("unknown argument {}={}", k, v),
             }
         }
 
+        log::debug!("loading configuration file");
         let system_generator_conf = include_str!("../../data/game.conf");
         let cfg = space_domain::game::conf::load_str(system_generator_conf)
             .expect("fail to read config file");
@@ -487,6 +500,14 @@ mod test {
     use space_domain::utils::{MIN_DISTANCE, MIN_DISTANCE_SQR, V2};
 
     use super::*;
+    #[test]
+    fn test_arguments() {
+        env_logger::builder()
+            .filter(None, log::LevelFilter::Trace)
+            .try_init();
+
+        let mut sg = SpaceGame::new(vec!["--size-xy".into(), "2,1".into()]);
+    }
 
     #[test]
     fn test_v2_distance() {

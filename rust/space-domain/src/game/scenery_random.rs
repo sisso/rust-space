@@ -19,7 +19,7 @@ pub enum InitialCondition {
 }
 
 pub struct RandomMapCfg {
-    pub size: usize,
+    pub size: (usize, usize),
     pub seed: u64,
     pub fleets: usize,
     pub universe_cfg: system_generator::UniverseCfg,
@@ -78,12 +78,12 @@ pub fn load_random(game: &mut Game, cfg: &RandomMapCfg) {
     game.reindex_sectors();
 }
 
-pub fn generate_sectors(world: &mut World, size: usize, seed: u64) {
+pub fn generate_sectors(world: &mut World, size: (usize, usize), seed: u64) {
     let mut sectors_by_index = vec![];
 
     let galaxy = space_galaxy::galaxy_generator::Galaxy::new(space_galaxy::galaxy_generator::Cfg {
         seed,
-        size: size as i32,
+        size: (size.0 as i32, size.1 as i32),
     });
 
     // add sectors

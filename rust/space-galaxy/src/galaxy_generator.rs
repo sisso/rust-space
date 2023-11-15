@@ -7,7 +7,7 @@ use std::ops::Sub;
 #[derive(Debug, Clone)]
 pub struct Cfg {
     pub seed: u64,
-    pub size: i32,
+    pub size: (i32, i32),
 }
 
 #[derive(Debug, Clone)]
@@ -44,15 +44,15 @@ impl Galaxy {
     }
 }
 
-fn generate_random_map(size: i32, seed: u64) -> (Grid<Sector>, Vec<Jump>) {
+fn generate_random_map(size: (i32, i32), seed: u64) -> (Grid<Sector>, Vec<Jump>) {
     log::debug!("generating random map with seed {}", seed);
 
     let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
 
     // generate galaxy grid
     let rgcfg = commons::random_grid::RandomGridCfg {
-        width: size as usize,
-        height: size as usize,
+        width: size.0 as usize,
+        height: size.1 as usize,
         portal_prob: 0.5,
         deep_levels: 1,
     };
@@ -73,8 +73,8 @@ fn generate_random_map(size: i32, seed: u64) -> (Grid<Sector>, Vec<Jump>) {
     }
 
     let grid = commons::grid::Grid {
-        width: size,
-        height: size,
+        width: size.0,
+        height: size.1,
         list: sectors,
     };
     // add portals

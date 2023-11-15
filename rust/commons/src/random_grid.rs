@@ -71,7 +71,11 @@ impl LevelGrid {
     }
 
     pub fn get_coords(&self, index: usize) -> (usize, usize) {
-        (index % self.width, index / self.height)
+        if self.height == 1 {
+            (index, 0)
+        } else {
+            (index % self.width, index / self.height)
+        }
     }
 
     pub fn get_coords_slice_i32(&self, index: usize) -> [i32; 2] {
@@ -189,13 +193,10 @@ impl LevelGrid {
                 let index = visit_queue.pop().unwrap();
                 visited.insert(index);
 
-                // eprintln!("current {}", index);
-
                 for other_index in self.neighbors(index) {
                     let valid =
                         !visited.contains(&other_index) && self.is_portal(index, other_index);
                     if valid {
-                        // eprintln!("adding {}", other_index);
                         visit_queue.push(other_index);
                     }
                 }
@@ -311,6 +312,25 @@ mod test {
                 height: 5,
                 portal_prob: 0.5,
                 deep_levels: 3,
+            },
+            &mut rng,
+        );
+
+        for level in grids.levels {
+            let buffer = level.print();
+            println!("{}", buffer.as_str());
+        }
+    }
+
+    #[test]
+    pub fn test_generate_2x1() {
+        let mut rng: StdRng = SeedableRng::seed_from_u64(0);
+        let grids = RandomGrid::new(
+            &RandomGridCfg {
+                width: 2,
+                height: 1,
+                portal_prob: 0.5,
+                deep_levels: 1,
             },
             &mut rng,
         );
