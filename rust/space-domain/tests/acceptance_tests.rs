@@ -14,6 +14,7 @@ use space_domain::game::shipyard::{ProductionOrder, Shipyard};
 use space_domain::game::station::Station;
 use space_domain::game::wares::WareAmount;
 use space_domain::game::Game;
+use space_domain::test::init_trace_log;
 use space_domain::utils::DeltaTime;
 use specs::prelude::*;
 use specs::WorldExt;
@@ -21,13 +22,10 @@ use std::borrow::Borrow;
 
 #[test]
 fn test_game_should_mine_and_deliver_cargo_to_mothership_until_produce_a_new_ship() {
+    init_trace_log();
     let mut game = Game::new();
-    let bs = sceneries::load_basic_scenery(&mut game);
-    game.world
-        .write_storage::<Shipyard>()
-        .get_mut(bs.shipyard_id)
-        .unwrap()
-        .set_production_order(ProductionOrder::Random);
+    _ = sceneries::load_basic_mothership_scenery(&mut game);
+    game.debug_dump();
 
     tick_eventually(&mut game, |game| {
         let total_commands = game.world.read_storage::<Command>().borrow().count();
@@ -37,13 +35,10 @@ fn test_game_should_mine_and_deliver_cargo_to_mothership_until_produce_a_new_shi
 
 #[test]
 fn test_game_should_mine_and_deliver_cargo_to_shipyard_until_produce_a_new_ship() {
+    init_trace_log();
     let mut game = Game::new();
-    let bs = sceneries::load_basic_scenery(&mut game);
-    game.world
-        .write_storage::<Shipyard>()
-        .get_mut(bs.shipyard_id)
-        .unwrap()
-        .set_production_order(ProductionOrder::Random);
+    sceneries::load_basic_scenery(&mut game);
+    game.debug_dump();
 
     tick_eventually(&mut game, |game| {
         let total_commands = game.world.read_storage::<Command>().borrow().count();
@@ -125,6 +120,21 @@ fn test_load_random_scenery() {
             params: cfg.params,
         },
     );
+}
+
+#[test]
+fn test_mining_on_high_speed() {
+    let mut game = Game::new();
+    sceneries::load_basic_scenery(&mut game);
+    let delta = DeltaTime(100.0);
+    for _tick in 0..300 {
+        game.tick(delta);
+        let total_commands = game.world.read_storage::<Command>().borrow().count();
+        if total_commands > 2 {
+            return;
+        }
+    }
+    panic!("fail to create a fleet")
 }
 
 fn tick_eventually(game: &mut Game, expected_check: fn(game: &mut Game) -> bool) {

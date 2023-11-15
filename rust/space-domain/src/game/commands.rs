@@ -12,6 +12,7 @@ use super::objects::*;
 use super::sectors::*;
 
 use crate::game::commands::command_trader_system::CommandTradeSystem;
+use crate::game::dock::Docking;
 use crate::game::order::TradeOrders;
 use crate::game::{GameInitContext, RequireInitializer};
 use command_mine_system::*;
@@ -83,6 +84,8 @@ pub struct Commands;
 
 impl RequireInitializer for Commands {
     fn init(context: &mut GameInitContext) {
+        context.world.register::<Docking>();
+
         context
             .dispatcher
             .add(CommandMineSystem, "command_mine", &[INDEX_SECTOR_SYSTEM]);

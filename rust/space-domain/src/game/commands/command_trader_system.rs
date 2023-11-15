@@ -1,5 +1,4 @@
 use crate::game::commands::{Command, TradeState};
-use crate::game::dock::Docking;
 use crate::game::locations::{EntityPerSectorIndex, Location, Locations};
 use crate::game::navigations::{NavRequest, Navigation};
 use crate::game::objects::ObjId;
@@ -25,7 +24,6 @@ pub struct CommandTradeData<'a> {
     sector_index: Read<'a, EntityPerSectorIndex>,
     cargos: WriteStorage<'a, Cargo>,
     navigation: ReadStorage<'a, Navigation>,
-    docks: ReadStorage<'a, Docking>,
     orders: ReadStorage<'a, TradeOrders>,
 }
 
@@ -212,7 +210,7 @@ impl<'a> System<'a> for CommandTradeSystem {
                     if let Some(cargo) = cargos.get(*target_id) {
                         // check if any ware in cargo can be received by the stations
                         wares_in_cargo.iter().any(|ware_id| {
-                            let amount = cargo.free_volume(*ware_id);
+                            let amount = cargo.free_volume(*ware_id).unwrap_or(0);
                             amount > 0
                         })
                     } else {
@@ -373,8 +371,6 @@ mod test {
     use commons::math::P2;
     use std::borrow::{Borrow, BorrowMut};
 
-    struct SceneryRequest {}
-
     const STATION_CARGO: Volume = 2000;
     const SHIP_CARGO: Volume = 500;
 
@@ -418,6 +414,8 @@ mod test {
     }
 
     fn setup_scenery(world: &mut World) -> SceneryResult {
+        world.register::<Docking>();
+
         world.insert(TotalTime(0.0));
 
         let sector_id = world.create_entity().build();

@@ -1,5 +1,9 @@
 use crate::game::code::HasCode;
+use crate::game::factory::Factory;
+use crate::game::prefab::Prefab;
+use crate::game::shipyard::Shipyard;
 use crate::game::GameInitContext;
+use log;
 use specs::prelude::*;
 use std::collections::HashMap;
 
@@ -17,6 +21,13 @@ pub struct Wares;
 impl Wares {
     pub fn init(ctx: &mut GameInitContext) {
         ctx.world.register::<Ware>();
+        ctx.world.register::<Cargo>();
+        ctx.world.register::<CargoDistributionDirty>();
+        ctx.dispatcher.add(
+            CargoDistributionDirtySystem {},
+            "cargo_distribution_dirty",
+            &[],
+        );
     }
 }
 
@@ -107,6 +118,16 @@ pub fn list_wares(world: &World) -> Vec<(Entity, String)> {
 }
 
 #[derive(Debug, Clone, Component, Default)]
+pub struct CargoDistributionDirty {}
+
+#[derive(Debug, Clone, Copy)]
+pub enum CargoError {
+    NotAllowed,
+    Full,
+    NotEnoughSpace,
+}
+
+#[derive(Debug, Clone, Component, Default)]
 pub struct Cargo {
     max_volume: Volume,
     current_volume: Volume,
@@ -152,9 +173,13 @@ impl Cargo {
         }
     }
 
-    pub fn add(&mut self, ware_id: WareId, amount: Volume) -> Result<(), ()> {
-        if self.free_volume(ware_id) < amount {
-            return Err(());
+    pub fn add(&mut self, ware_id: WareId, amount: Volume) -> Result<(), CargoError> {
+        if amount == 0 {
+            return Ok(());
+        }
+
+        if self.free_volume(ware_id)? < amount {
+            return Err(CargoError::NotEnoughSpace);
         }
 
         match self.wares.iter().position(|i| i.ware_id == ware_id) {
@@ -170,16 +195,16 @@ impl Cargo {
         Ok(())
     }
 
-    /// add all wares or none
-    pub fn add_all(&mut self, wares: &Vec<WareAmount>) -> Result<(), ()> {
+    pub fn add_all_or_none(&mut self, wares: &Vec<WareAmount>) -> Result<(), CargoError> {
         for w in wares {
-            if self.free_volume(w.ware_id) < w.amount {
-                return Err(());
+            if self.free_volume(w.ware_id)? < w.amount {
+                return Err(CargoError::NotEnoughSpace);
             }
         }
 
         for w in wares {
-            self.add(w.ware_id, w.amount).unwrap();
+            self.add(w.ware_id, w.amount)
+                .expect("fail to add cargo after check that was possible");
         }
 
         Ok(())
@@ -195,11 +220,10 @@ impl Cargo {
         true
     }
 
-    /// remove all wares or none
-    pub fn remove_all(&mut self, wares: &Vec<WareAmount>) -> Result<(), ()> {
+    pub fn remove_all_or_none(&mut self, wares: &Vec<WareAmount>) -> Result<(), CargoError> {
         for w in wares {
             if self.get_amount(w.ware_id) < w.amount {
-                return Err(());
+                return Err(CargoError::NotEnoughSpace);
             }
         }
 
@@ -212,8 +236,7 @@ impl Cargo {
 
     /// Add all cargo possible from to.
     pub fn add_to_max(&mut self, ware_id: WareId, amount: Volume) -> Volume {
-        let to_add = amount.min(self.free_volume(ware_id));
-
+        let to_add = amount.min(self.free_volume(ware_id).unwrap_or(0));
         self.add(ware_id, to_add).map(|_i| to_add).unwrap_or(0)
     }
 
@@ -223,16 +246,22 @@ impl Cargo {
         self.wares.clear();
     }
 
-    pub fn free_volume(&self, ware_id: WareId) -> Volume {
-        if self.whitelist.is_empty() {
+    pub fn free_volume(&self, ware_id: WareId) -> Result<Volume, CargoError> {
+        let amount = if self.whitelist.is_empty() {
             self.max_volume - self.current_volume
         } else {
             if !self.whitelist.contains(&ware_id) {
-                return 0;
+                return Err(CargoError::NotAllowed);
             }
 
             let share = self.max_volume / self.whitelist.len() as Volume;
             share - self.get_amount(ware_id)
+        };
+
+        if amount <= 0 {
+            Err(CargoError::Full)
+        } else {
+            Ok(amount)
         }
     }
 
@@ -293,7 +322,7 @@ impl CargoTransfer {
                 }
             }
 
-            let available = tmp_to.free_volume(w.ware_id);
+            let available = tmp_to.free_volume(w.ware_id).unwrap_or(0);
             let amount_to_move = w.amount.min(available);
             if amount_to_move > 0 {
                 tmp_to.add(w.ware_id, amount_to_move).unwrap();
@@ -306,12 +335,12 @@ impl CargoTransfer {
         return change;
     }
 
-    fn apply_move_from(&self, cargo: &mut Cargo) -> Result<(), ()> {
-        cargo.remove_all(&self.moved)
+    fn apply_move_from(&self, cargo: &mut Cargo) -> Result<(), CargoError> {
+        cargo.remove_all_or_none(&self.moved)
     }
 
-    fn apply_move_to(&self, cargo: &mut Cargo) -> Result<(), ()> {
-        cargo.add_all(&self.moved)
+    fn apply_move_to(&self, cargo: &mut Cargo) -> Result<(), CargoError> {
+        cargo.add_all_or_none(&self.moved)
     }
 }
 
@@ -346,11 +375,11 @@ impl Cargos {
         let transfer = CargoTransfer::transfer_impl(cargo_from, cargo_to, wares);
 
         log::trace!(
-            "move wares {:?} from {:?} to {:?}, transfer is {:?}",
-            wares,
+            "move wares from {:?} to {:?}, transfer is {:?}, with filter {:?}",
             cargo_from,
             cargo_to,
             transfer,
+            wares,
         );
 
         let cargo_from = cargos.get_mut(from_id).expect("Entity cargo not found");
@@ -364,6 +393,67 @@ impl Cargos {
             .expect("To add wares to be transfer");
 
         transfer
+    }
+}
+
+pub struct CargoDistributionDirtySystem {}
+
+impl<'a> System<'a> for CargoDistributionDirtySystem {
+    type SystemData = (
+        Entities<'a>,
+        WriteStorage<'a, Cargo>,
+        WriteStorage<'a, CargoDistributionDirty>,
+        ReadStorage<'a, Factory>,
+        ReadStorage<'a, Shipyard>,
+        ReadStorage<'a, Prefab>,
+    );
+
+    fn run(
+        &mut self,
+        (entities, mut cargos, mut cargos_dirty, factories, shipyards, prefabs): Self::SystemData,
+    ) {
+        log::trace!("running CargoDistributionDirtySystem");
+
+        let mut shipyard_caching = None;
+
+        // update cargos giving others component requirements
+        for (e, c, _, f, s) in (
+            &entities,
+            &mut cargos,
+            &cargos_dirty,
+            factories.maybe(),
+            shipyards.maybe(),
+        )
+            .join()
+        {
+            let mut wares = vec![];
+            if let Some(f) = f {
+                wares.extend(f.get_cargos_allocation());
+            }
+            if let Some(_) = s {
+                if shipyard_caching.is_none() {
+                    let prefab_wares: Vec<_> = (&prefabs,)
+                        .join()
+                        .filter(|(p,)| p.shipyard)
+                        .flat_map(|(p,)| {
+                            p.obj
+                                .production_cost
+                                .iter()
+                                .flat_map(|pc| &pc.cost)
+                                .map(|c| c.ware_id)
+                        })
+                        .collect();
+                    shipyard_caching = Some(prefab_wares);
+                }
+                wares.extend(shipyard_caching.as_ref().unwrap().iter());
+            }
+
+            log::debug!("update {e:?} cargo wares to {wares:?}");
+            c.set_whitelist(wares);
+        }
+
+        // remove dirty flag
+        cargos_dirty.clear();
     }
 }
 
@@ -457,8 +547,10 @@ mod test {
         // with invalid ware
         assert!(cargo.add(ware_1, 1).is_err());
         assert_eq!(cargo.add_to_max(ware_1, 1), 0);
-        assert!(cargo.add_all(&vec![WareAmount::new(ware_1, 1)]).is_err());
-        assert_eq!(cargo.free_volume(ware_1), 0);
+        assert!(cargo
+            .add_all_or_none(&vec![WareAmount::new(ware_1, 1)])
+            .is_err());
+        assert_eq!(cargo.free_volume(ware_1).unwrap_or(0), 0);
     }
 
     #[test]
@@ -468,9 +560,11 @@ mod test {
         let mut cargo = Cargo::new(10);
         cargo.set_whitelist(vec![ware_0]);
 
-        assert_eq!(cargo.free_volume(ware_0), 10);
+        assert_eq!(cargo.free_volume(ware_0).unwrap_or(0), 10);
         assert!(cargo.add(ware_0, 2).is_ok());
-        assert!(cargo.add_all(&vec![WareAmount::new(ware_0, 2)]).is_ok());
+        assert!(cargo
+            .add_all_or_none(&vec![WareAmount::new(ware_0, 2)])
+            .is_ok());
         assert_eq!(cargo.get_amount(ware_0), 4);
         assert_eq!(cargo.add_to_max(ware_0, 20), 6);
     }
@@ -483,14 +577,16 @@ mod test {
         cargo.set_whitelist(vec![ware_0, ware_1]);
 
         for ware_id in vec![ware_0, ware_1] {
-            assert_eq!(cargo.free_volume(ware_id), 5);
+            assert_eq!(cargo.free_volume(ware_id).unwrap_or(0), 5);
             assert!(cargo.add(ware_id, 2).is_ok());
-            assert!(cargo.add_all(&vec![WareAmount::new(ware_id, 2)]).is_ok());
+            assert!(cargo
+                .add_all_or_none(&vec![WareAmount::new(ware_id, 2)])
+                .is_ok());
             assert_eq!(cargo.get_amount(ware_id), 4);
-            assert_eq!(cargo.free_volume(ware_id), 1);
+            assert_eq!(cargo.free_volume(ware_id).unwrap_or(0), 1);
             assert_eq!(cargo.add_to_max(ware_id, 20), 1);
             assert_eq!(cargo.get_amount(ware_id), 5);
-            assert_eq!(cargo.free_volume(ware_id), 0);
+            assert_eq!(cargo.free_volume(ware_id).unwrap_or(0), 0);
             assert!(cargo.add(ware_id, 1).is_err());
         }
     }

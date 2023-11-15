@@ -24,7 +24,7 @@ use crate::game::prefab::{Prefab, PrefabId};
 use crate::game::sectors::{Jump, JumpId, Sector, SectorId};
 use crate::game::shipyard::Shipyard;
 use crate::game::station::Station;
-use crate::game::wares::{Cargo, Ware, WareAmount, WareId, WaresByCode};
+use crate::game::wares::{CargoDistributionDirty, Ware, WareAmount, WareId, WaresByCode};
 use crate::game::{conf, prefab};
 use crate::specs_extras::*;
 use crate::utils::{DeltaTime, Speed, V2};
@@ -222,10 +222,13 @@ impl Loader {
     pub fn add_object(world: &mut World, new_obj: &NewObj) -> ObjId {
         let mut builder = world.create_entity();
 
-        let mut force_trade_order_on_empty = false;
-        let mut orders = TradeOrders::default();
-
-        let mut update_docking: Option<ObjId> = None;
+        // assert consistency
+        if new_obj.cargo.is_none() && (new_obj.shipyard.is_some() || new_obj.factory.is_some()) {
+            panic!(
+                "invalid obj, shipyard or factory without cargo: {:?}",
+                new_obj
+            );
+        }
 
         if new_obj.can_dock && new_obj.speed.is_none() {
             panic!(
@@ -233,6 +236,10 @@ impl Loader {
                 new_obj
             );
         }
+
+        // create new obj
+        let mut orders = TradeOrders::default();
+        let mut update_docking: Option<ObjId> = None;
 
         if let Some(code) = new_obj.code.as_ref() {
             builder.set(HasCode {
@@ -296,23 +303,12 @@ impl Loader {
 
         for shipyard in &new_obj.shipyard {
             builder.set(shipyard.clone());
-            force_trade_order_on_empty = true;
         }
 
         if let Some(cargo) = &new_obj.cargo {
-            let mut cargo = cargo.clone();
-            if let Some(factory) = &new_obj.factory {
-                factory.setup_cargo(&mut cargo);
-            }
+            let cargo = cargo.clone();
             builder.set(cargo);
-        }
-
-        if new_obj.cargo_size > 0 {
-            let mut cargo = Cargo::new(new_obj.cargo_size);
-            if let Some(factory) = &new_obj.factory {
-                factory.setup_cargo(&mut cargo);
-            }
-            builder.set(cargo);
+            builder.set(CargoDistributionDirty {});
         }
 
         for factory in &new_obj.factory {
@@ -361,13 +357,14 @@ impl Loader {
             builder.set(production_cost.clone());
         }
 
-        if !orders.is_empty() || force_trade_order_on_empty {
+        if !orders.is_empty() || new_obj.shipyard.is_some() {
             log::debug!("{:?} setting order of {:?}", builder.entity, orders);
             builder.set(orders);
         }
 
         let entity = builder.build();
 
+        // update docked
         if let Some(docked_id) = update_docking {
             world
                 .write_storage::<Docking>()
@@ -376,6 +373,15 @@ impl Loader {
                 .docked
                 .push(entity);
         }
+
+        // // setup cargo
+        // if new_obj.cargo.is_some() {
+        //     Cargo::rearrange_cargo(world, entity);
+        //     // let mut wares_selector = vec![];
+        //     // if let Some(factory) = &new_obj.factory {
+        //     //     factory.setup_cargo(&mut cargo);
+        //     // }
+        // }
 
         log::debug!("add_object {:?} from {:?}", entity, new_obj);
 

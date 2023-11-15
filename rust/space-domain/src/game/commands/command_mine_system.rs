@@ -1,5 +1,4 @@
 use specs::prelude::*;
-use specs::{Read, SystemData, World};
 
 use super::*;
 use crate::game::dock::Docking;
@@ -130,14 +129,14 @@ impl<'a> System<'a> for CommandMineSystem {
 
                     if target_has_space {
                         log::debug!(
-                            "{:?} cargo full, transferring cargo to station {:?}",
+                            "{:?} miner cargo is full, transferring cargo to station {:?}",
                             entity,
                             target_id,
                         );
                         cargo_transfers.push((entity, target_id));
                     } else {
                         log::debug!(
-                            "{:?} cargo full, stations {:?} is full, waiting",
+                            "{:?} miner cargo is full, stations cargo is {:?} is full, waiting",
                             entity,
                             target_id,
                         );
@@ -247,9 +246,7 @@ mod test {
 
     use crate::game::sectors::test_scenery::SectorScenery;
     use crate::game::wares::WareId;
-    use crate::test::{init_log, test_system};
-
-    struct SceneryRequest {}
+    use crate::test::{init_trace_log, test_system};
 
     #[derive(Debug)]
     struct SceneryResult {
@@ -486,7 +483,7 @@ mod test {
 
     #[test]
     fn test_command_mine_should_wait_if_target_station_is_full() {
-        init_log();
+        init_trace_log();
 
         let (world, scenery) = test_system(CommandMineSystem, |world| {
             let scenery = setup_scenery(world);

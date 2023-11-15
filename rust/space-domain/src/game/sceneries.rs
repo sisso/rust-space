@@ -3,12 +3,12 @@ use crate::game::factory::Receipt;
 use crate::game::loader::{BasicScenery, Loader};
 use crate::game::objects::ObjId;
 use crate::game::sectors::SectorId;
+use crate::game::shipyard::{ProductionOrder, Shipyard};
 use crate::game::wares::{WareAmount, WareId};
 use crate::game::{sectors, wares, Game};
 use crate::utils::{DeltaTime, V2};
 use commons::math::P2I;
-use specs::Entity;
-use specs::World;
+use specs::prelude::*;
 
 pub struct SceneryBuilder;
 
@@ -24,17 +24,19 @@ pub struct SceneryBuilderResult {
     pub fleets: Vec<ObjId>,
     pub stations: Vec<ObjId>,
     pub asteroids: Vec<ObjId>,
+    pub prefabs: Vec<ObjId>,
 }
 
-trait BuilderTask {
+pub trait BuilderTask {
     fn apply(&self, game: &mut Game, result: &mut SceneryBuilderResult);
 }
 
-trait BuilderStep {
+pub trait BuilderStep {
     fn get_tasks(&self) -> &Vec<Box<dyn BuilderTask>>;
+    fn add_task(&mut self, task: Box<dyn BuilderTask>);
 }
 
-trait BuilderBuild: BuilderStep {
+pub trait BuilderBuild: BuilderStep {
     fn build(&self, game: &mut Game) -> SceneryBuilderResult {
         let mut rs = SceneryBuilderResult::default();
         for task in self.get_tasks() {
@@ -118,22 +120,40 @@ impl SceneryBuilderInit {
         self.tasks.push(Box::new(Task {}));
         SceneryBuilderWithSector { tasks: self.tasks }
     }
+
+    pub fn add_fleets_prefabs(mut self, ware: &str) -> SceneryBuilderInit {
+        struct Task {
+            ware: String,
+        }
+        impl BuilderTask for Task {
+            fn apply(&self, game: &mut Game, result: &mut SceneryBuilderResult) {
+                let (trader_id, miner_id) =
+                    load_sceneries_fleets_prefabs(&mut game.world, &self.ware);
+                result.prefabs.extend(vec![trader_id, miner_id]);
+            }
+        }
+        self.tasks.push(Box::new(Task {
+            ware: ware.to_string(),
+        }));
+        self
+    }
 }
 
-fn load_sceneries_fleets_prefabs(world: &mut World) {
-    let ware_id =
-        wares::find_ware_by_code(world, "components").expect("fail to find components ware");
+fn load_sceneries_fleets_prefabs(world: &mut World, ware: &str) -> (Entity, Entity) {
+    let ware_id = wares::find_ware_by_code(world, ware).expect("fail to find components ware");
 
     let new_obj = Loader::new_ship(2.0, "Trade fleet".to_string())
         .with_command(Command::trade())
         .with_production_cost(5.0, vec![WareAmount::new(ware_id, 50)]);
-    Loader::add_prefab(world, "trade_fleet", "Trade Fleet", new_obj, true, false);
+    let trade_id = Loader::add_prefab(world, "trade_fleet", "Trade Fleet", new_obj, true, false);
 
     let new_obj = Loader::new_ship(2.0, "Mine fleet".to_string())
         .with_command(Command::mine())
         .with_production_cost(5.0, vec![WareAmount::new(ware_id, 50)]);
 
-    Loader::add_prefab(world, "mine_fleet", "Mine fleet", new_obj, true, false);
+    let miner_id = Loader::add_prefab(world, "mine_fleet", "Mine fleet", new_obj, true, false);
+
+    (trade_id, miner_id)
 }
 
 #[derive(Default)]
@@ -144,6 +164,10 @@ pub struct SceneryBuilderWithSector {
 impl BuilderStep for SceneryBuilderWithSector {
     fn get_tasks(&self) -> &Vec<Box<dyn BuilderTask>> {
         &self.tasks
+    }
+
+    fn add_task(&mut self, task: Box<dyn BuilderTask>) {
+        self.tasks.push(task);
     }
 }
 
@@ -173,6 +197,80 @@ impl SceneryBuilderWithSector {
             ware_i: ware_id,
         }));
         self
+    }
+
+    pub fn new_mothership(self) -> SceneryBuilderMothership<SceneryBuilderWithSector> {
+        SceneryBuilderMothership::new(self)
+    }
+
+    pub fn add_miner(mut self) -> SceneryBuilderWithSector {
+        struct Task {}
+        impl BuilderTask for Task {
+            fn apply(&self, game: &mut Game, result: &mut SceneryBuilderResult) {
+                let station_id = result.stations.get(0).expect("no station found");
+                let fleet_id =
+                    Loader::add_ship_miner(&mut game.world, *station_id, 2.0, "miner".into());
+                result.fleets.push(fleet_id);
+            }
+        }
+        self.tasks.push(Box::new(Task {}));
+        self
+    }
+}
+
+pub struct SceneryBuilderMothership<T: BuilderStep> {
+    previous: T,
+    random_orders: bool,
+}
+
+impl<T: BuilderStep> SceneryBuilderMothership<T> {
+    pub fn new(previous: T) -> Self {
+        Self {
+            previous,
+            random_orders: false,
+        }
+    }
+
+    pub fn with_random_orders(mut self) -> Self {
+        self.random_orders = true;
+        self
+    }
+
+    pub fn build(mut self) -> T {
+        struct Task {
+            random_orders: bool,
+        }
+        impl BuilderTask for Task {
+            fn apply(&self, game: &mut Game, result: &mut SceneryBuilderResult) {
+                let ware_input_id = result.wares.get(0).expect("not ware input found");
+                let ware_output_id = result.wares.get(1).expect("not ware output found");
+
+                let sector_id = result.sectors.get(0).expect("no sector found");
+                let receipt = Receipt {
+                    label: "mothership production".to_string(),
+                    input: vec![WareAmount::new(*ware_input_id, 1)],
+                    output: vec![WareAmount::new(*ware_output_id, 1)],
+                    time: DeltaTime::from(1.0),
+                };
+
+                let mothership_id =
+                    Loader::add_mothership(&mut game.world, *sector_id, V2::new(0.0, 0.0), receipt);
+
+                if self.random_orders {
+                    game.world
+                        .write_storage::<Shipyard>()
+                        .get_mut(mothership_id)
+                        .unwrap()
+                        .set_production_order(ProductionOrder::Random);
+                }
+
+                result.stations.push(mothership_id);
+            }
+        }
+        self.previous.add_task(Box::new(Task {
+            random_orders: self.random_orders,
+        }));
+        self.previous
     }
 }
 
@@ -228,7 +326,7 @@ pub fn load_basic_scenery(game: &mut Game) -> BasicScenery {
     };
 
     // init prefabs
-    load_sceneries_fleets_prefabs(world);
+    load_sceneries_fleets_prefabs(world, "components");
 
     // init sectors
     let sector_0 = Loader::add_sector(world, P2I::new(0, 0), "Sector 0".to_string());
@@ -251,6 +349,13 @@ pub fn load_basic_scenery(game: &mut Game) -> BasicScenery {
     let shipyard_id = Loader::add_shipyard(world, sector_0, V2::new(1.0, -3.0));
     let miner_id = Loader::add_ship_miner(world, shipyard_id, 2.0, "miner".to_string());
     let trader_id = Loader::add_ship_trader(world, component_factory_id, 2.0, "trader".to_string());
+
+    // set shipyard to build random stuff
+    game.world
+        .write_storage::<Shipyard>()
+        .get_mut(shipyard_id)
+        .unwrap()
+        .set_production_order(ProductionOrder::Random);
 
     // return scenery
     BasicScenery {
@@ -284,7 +389,7 @@ pub fn load_advanced_scenery(world: &mut World) {
     let ware_energy = Loader::add_ware(world, "energy".to_string(), "Energy".to_string());
 
     // init prefabs
-    load_sceneries_fleets_prefabs(world);
+    load_sceneries_fleets_prefabs(world, "components");
 
     // receipts
     let receipt_process_ores = Receipt {
@@ -346,40 +451,21 @@ pub struct MothershipScenery {
 /// - mothership (ore -> components) and shipyard
 /// - asteroid (ore)
 pub fn load_basic_mothership_scenery(game: &mut Game) -> MothershipScenery {
-    let world = &mut game.world;
+    let rs = SceneryBuilder::new()
+        .add_ware("ore")
+        .add_ware("components")
+        .add_fleets_prefabs("components")
+        .builder_single_sector()
+        .add_asteroid(0, 0)
+        .new_mothership()
+        .with_random_orders()
+        .build()
+        .add_miner()
+        .build(game);
 
-    // init wares
-    let ware_ore_id = Loader::add_ware(world, "ore", "Ore");
-    let ware_components_id = Loader::add_ware(world, "components", "Components");
-
-    // receipts
-    let ore_processing_receipt = Receipt {
-        label: "ore processing".to_string(),
-        input: vec![WareAmount::new(ware_ore_id, 20)],
-        output: vec![WareAmount::new(ware_components_id, 10)],
-        time: DeltaTime(1.0),
-    };
-
-    // init prefabs
-    load_sceneries_fleets_prefabs(world);
-
-    // init sectors
-    let sector_id = Loader::add_sector(world, P2I::new(0, 0), "Sector 0".to_string());
-
-    sectors::update_sectors_index(world);
-
-    // init objects
-    let asteroid_id = Loader::add_asteroid(world, sector_id, V2::new(-2.0, 3.0), ware_ore_id);
-    let component_factory_id =
-        Loader::add_factory(world, sector_id, V2::new(3.0, -1.0), ore_processing_receipt);
-
-    let mothership_id = Loader::add_shipyard(world, sector_id, V2::new(1.0, -3.0));
-    let miner_id = Loader::add_ship_miner(world, mothership_id, 2.0, "miner".to_string());
-
-    // return scenery
     MothershipScenery {
-        sector_id,
-        miner_id,
-        mothership_id,
+        sector_id: rs.sectors[0],
+        miner_id: rs.fleets[0],
+        mothership_id: rs.stations[0],
     }
 }

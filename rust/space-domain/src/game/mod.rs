@@ -152,7 +152,7 @@ impl Game {
         locations::update_locations_index(&self.world)
     }
 
-    pub fn tick_new_objects_system(&mut self) {
+    fn tick_new_objects_system(&mut self) {
         let mut list = vec![];
 
         for (e, new_obj) in (
@@ -169,17 +169,17 @@ impl Game {
             Loader::add_object(&mut self.world, obj);
         }
     }
-}
 
-pub fn dump(world: &World) {
-    let labels = world.read_storage::<label::Label>();
-    let entities = world.entities();
+    pub fn debug_dump(&self) {
+        let labels = self.world.read_storage::<label::Label>();
+        let entities = self.world.entities();
 
-    for (e, l) in (&entities, labels.maybe()).join() {
-        log::debug!(
-            "{} {}",
-            e.id(),
-            l.map(|l| l.label.as_str()).unwrap_or("unknown")
-        )
+        for (e, l) in (&entities, labels.maybe()).join() {
+            log::debug!(
+                "{} {}",
+                e.id(),
+                l.map(|l| l.label.as_str()).unwrap_or("unknown")
+            )
+        }
     }
 }

@@ -35,10 +35,11 @@ impl Factory {
         }
     }
 
-    pub fn setup_cargo(&self, cargo: &mut Cargo) {
-        let mut wares: Vec<_> = self.production.input.iter().map(|i| i.ware_id).collect();
-        wares.extend(self.production.output.iter().map(|i| i.ware_id));
-        cargo.set_whitelist(wares);
+    pub fn get_cargos_allocation(&self) -> Vec<WareId> {
+        let mut result = Vec::new();
+        result.extend(self.production.input.iter().map(|i| i.ware_id));
+        result.extend(self.production.output.iter().map(|i| i.ware_id));
+        result
     }
 }
 
@@ -69,30 +70,45 @@ impl<'a> System<'a> for FactorySystem {
             match factory.production_time {
                 Some(time) if total_time.is_after(time) => {
                     // production ready
-                    match cargo.add_all(&factory.production.output) {
+                    match cargo.add_all_or_none(&factory.production.output) {
                         Ok(()) => {
                             log::debug!(
-                                "{:?} adding production to cargo: {:?}",
+                                "{:?} factory complete production, adding cargo: {:?}",
                                 entity,
                                 &factory.production.output,
                             );
                             factory.production_time = None;
                         }
-                        _ => {}
+                        Err(err) => {
+                            log::warn!(
+                                "{:?} factory complete production, but fail to add cargo by {:?}",
+                                entity,
+                                err
+                            );
+                        }
                     }
                 }
 
                 Some(_time) => {
                     // producing
+                    log::trace!("{:?} factory producing", entity);
                 }
 
                 None => {
                     // check if have enough cargo to start a new production
-                    match cargo.remove_all(&factory.production.input) {
+                    match cargo.remove_all_or_none(&factory.production.input) {
                         Ok(()) => {
-                            factory.production_time = Some(total_time.add(factory.production.time));
+                            let end_time = total_time.add(factory.production.time);
+                            log::trace!(
+                                "{entity:?} factory start production, ends at {end_time:?}"
+                            );
+                            factory.production_time = Some(end_time);
                         }
-                        _ => {}
+                        Err(err) => {
+                            log::trace!(
+                                "{entity:?} factory fail to remove cargo by {err:?}, skipping"
+                            );
+                        }
                     }
                 }
             }
@@ -164,8 +180,8 @@ mod test {
     }
 
     fn run_factory(
-        ore: Volume,
-        energy: Volume,
+        ore_volume: Volume,
+        energy_volume: Volume,
         total_time: f64,
         production_time: Option<f64>,
         expect_produce_at: Option<f64>,
@@ -189,8 +205,10 @@ mod test {
             };
 
             let mut cargo = Cargo::new(TOTAL_CARGO);
-            cargo.add(ore_id, ore).unwrap();
-            cargo.add(energy_id, energy).unwrap();
+            cargo.add(ore_id, ore_volume).expect("fail to add ore");
+            cargo
+                .add(energy_id, energy_volume)
+                .expect("fail to add energy");
 
             world.insert(TotalTime(total_time));
 

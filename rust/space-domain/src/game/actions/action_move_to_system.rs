@@ -117,7 +117,7 @@ impl<'a> System<'a> for ActionMoveToSystem {
 mod test {
     use super::super::*;
     use super::*;
-    use crate::test::{assert_v2, init_log, test_system};
+    use crate::test::{assert_v2, init_trace_log, test_system};
     use crate::utils::{Position, Speed};
 
     #[test]
@@ -182,8 +182,6 @@ mod test {
 
     #[test]
     fn test_move_to_should_follow_target_until_hit_it() {
-        init_log();
-
         // create world
         let mut world = World::new();
         let mut dispatcher = DispatcherBuilder::new()

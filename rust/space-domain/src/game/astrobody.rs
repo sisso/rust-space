@@ -162,7 +162,7 @@ mod test {
 
     #[test]
     fn test_orbits_system_should_resolve_positions() {
-        crate::test::init_log();
+        crate::test::init_trace_log();
 
         let (world, result) = crate::test::test_system(OrbitalPosSystem, move |world| {
             world.insert(TotalTime(0.0));
@@ -184,7 +184,7 @@ mod test {
 
     #[test]
     fn test_orbits_system_should_move_over_time() {
-        crate::test::init_log();
+        crate::test::init_trace_log();
 
         let (world1, result1) = crate::test::test_system(OrbitalPosSystem, move |world| {
             world.insert(TotalTime(0.0));

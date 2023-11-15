@@ -25,7 +25,6 @@ pub struct NewObjOrbit {
 #[derive(Debug, Clone, Component, Default)]
 pub struct NewObj {
     pub speed: Option<Speed>,
-    pub cargo_size: Volume,
     pub cargo: Option<Cargo>,
     pub extractable: Option<Extractable>,
     pub location: Option<Location>,
@@ -58,7 +57,7 @@ impl NewObj {
     }
 
     pub fn with_cargo_size(mut self, cargo_size: Volume) -> Self {
-        self.cargo_size = cargo_size;
+        self.cargo = Some(Cargo::new(cargo_size));
         self
     }
 

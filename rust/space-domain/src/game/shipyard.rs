@@ -148,10 +148,19 @@ impl<'a> System<'a> for ShipyardSystem {
                             prefab_id
                         );
                     }
+                } else {
+                    log::trace!(
+                        "{:?} producing, still need {:?} work",
+                        shipyard_id,
+                        sp.pending_work
+                    );
                 }
             } else {
                 let (prefab_id, clean_on_build) = match shipyard.production_order {
-                    ProductionOrder::None => continue,
+                    ProductionOrder::None => {
+                        log::trace!("{:?} no producing order, skipping", shipyard_id);
+                        continue;
+                    }
                     ProductionOrder::Next(prefab_id) => (prefab_id, true),
                     ProductionOrder::Random => {
                         let index = rand::thread_rng().gen_range(0..prefabs_candidates.len());
@@ -184,7 +193,7 @@ impl<'a> System<'a> for ShipyardSystem {
                 };
 
                 // check if have enough resources
-                if cargo.remove_all(&production_cost.cost).is_ok() {
+                if cargo.remove_all_or_none(&production_cost.cost).is_ok() {
                     // setup completion
                     shipyard.current_production = Some(ShipyardProduction {
                         pending_work: production_cost.work,
@@ -208,13 +217,26 @@ impl<'a> System<'a> for ShipyardSystem {
                         production_cost.work / shipyard.production,
                         shipyard.production_order,
                     );
-                } else if shipyard.dirt_trade_order {
-                    // update trade orders
-                    shipyard.dirt_trade_order = false;
-                    trade_order.remove_by_id(TRADE_ORDER_ID_SHIPYARD);
-                    let requested_wares = production_cost.cost.get_wares_id();
-                    for ware_id in requested_wares {
-                        trade_order.add_request(TRADE_ORDER_ID_SHIPYARD, ware_id);
+                } else {
+                    log::trace!(
+                        "{:?} can not start production of {:?}, not enough resources",
+                        shipyard_id,
+                        prefab_id
+                    );
+
+                    if shipyard.dirt_trade_order {
+                        // update trade orders
+                        shipyard.dirt_trade_order = false;
+                        trade_order.remove_by_id(TRADE_ORDER_ID_SHIPYARD);
+                        let requested_wares = production_cost.cost.get_wares_id();
+                        log::trace!(
+                            "{:?} updating trading orders to request {:?} ",
+                            shipyard_id,
+                            requested_wares
+                        );
+                        for ware_id in requested_wares {
+                            trade_order.add_request(TRADE_ORDER_ID_SHIPYARD, ware_id);
+                        }
                     }
                 }
             }
@@ -246,7 +268,6 @@ impl<'a> System<'a> for ShipyardSystem {
 
 #[cfg(test)]
 mod test {
-    use crate::game;
     use crate::game::code::HasCode;
     use crate::game::commands::Command;
     use crate::game::dock::Docking;
@@ -255,7 +276,7 @@ mod test {
     use crate::game::locations::Location;
     use crate::game::order::TradeOrders;
     use crate::game::wares::{Volume, WareAmount, WareId};
-    use crate::test::{init_log, test_system};
+    use crate::test::{init_trace_log, test_system};
     use crate::utils::DeltaTime;
 
     use super::*;
@@ -269,12 +290,10 @@ mod test {
 
     #[test]
     fn test_shipyard_system_should_not_start_production_without_enough_cargo() {
-        init_log();
         let (world, (shipyard_id, ware_id, prefab_id)) =
             scenery(NOT_ENOUGH_TIME, NOT_ENOUGH_CARGO, None, |prefab_id| {
                 ProductionOrder::Next(prefab_id)
             });
-        game::dump(&world);
         assert_shipyard_cargo(&world, shipyard_id, ware_id, NOT_ENOUGH_CARGO);
         assert_shipyard_production(&world, shipyard_id, None);
         assert_shipyard_selected(&world, shipyard_id, ProductionOrder::Next(prefab_id));

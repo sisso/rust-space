@@ -1,6 +1,5 @@
 use specs::prelude::*;
-use specs::World;
-use std::borrow::{Borrow, BorrowMut};
+use std::borrow::BorrowMut;
 
 use commons::math::{IntoP2Ext, P2, P2I};
 use std::time::Instant;
@@ -357,7 +356,7 @@ pub fn find_path_raw<'a>(
     let plan_complete = Instant::now();
     let duration = plan_complete - start;
     if duration > std::time::Duration::from_millis(1) {
-        let from_coords = sectors.borrow().get(from).unwrap().coords;
+        let from_coords = sectors.get(from).unwrap().coords;
 
         log::warn!(
             "create plan find_path {:?}, number of edges {}, number of query nodes {}, from {:?} to {:?}",

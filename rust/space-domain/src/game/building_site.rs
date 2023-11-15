@@ -38,7 +38,7 @@ impl<'a> System<'a> for BuildingSystem {
         let complete: Vec<_> = (&entities, &buildings, &mut cargos)
             .join()
             .flat_map(|(e, building, cargo)| {
-                if cargo.remove_all(&building.input).is_ok() {
+                if cargo.remove_all_or_none(&building.input).is_ok() {
                     Some((e, building.prefab_id))
                 } else {
                     None
