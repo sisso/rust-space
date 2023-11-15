@@ -1,16 +1,17 @@
+use crate::space_domain::game::sceneries::BuilderBuild;
 extern crate space_domain;
 
 use space_domain::game::commands::Command;
 
-use commons::math::P2;
-use log::LevelFilter;
+use commons::math::{P2, V2};
 use space_domain::game;
 use space_domain::game::building_site::BuildingSite;
+use space_domain::game::conf::Fleet;
 use space_domain::game::label::Label;
 use space_domain::game::loader::Loader;
 use space_domain::game::sceneries;
+use space_domain::game::sceneries::SceneryBuilder;
 use space_domain::game::scenery_random::{InitialCondition, RandomMapCfg};
-use space_domain::game::shipyard::{ProductionOrder, Shipyard};
 use space_domain::game::station::Station;
 use space_domain::game::wares::WareAmount;
 use space_domain::game::Game;
@@ -112,7 +113,7 @@ fn test_load_random_scenery() {
     game::scenery_random::load_random(
         &mut game,
         &RandomMapCfg {
-            size: 2,
+            size: (2, 2),
             seed: 0,
             fleets: 2,
             universe_cfg: cfg.system_generator.unwrap(),
@@ -123,18 +124,25 @@ fn test_load_random_scenery() {
 }
 
 #[test]
-fn test_mining_on_high_speed() {
+fn test_mining_on_high_speed_with_orbiting_objects() {
+    init_trace_log();
+
     let mut game = Game::new();
-    sceneries::load_basic_scenery(&mut game);
-    let delta = DeltaTime(100.0);
+
+    let rs = sceneries::load_basic_mothership_scenery(&mut game);
+
+    let sun_id = Loader::add_object(&mut game.world, &Loader::new_star(rs.sector_id));
+    Loader::set_orbiting(&mut game.world, rs.asteroid_id, sun_id, 2.0, 0.0, 0.1);
+
+    let delta = DeltaTime(30.0);
     for _tick in 0..300 {
         game.tick(delta);
         let total_commands = game.world.read_storage::<Command>().borrow().count();
-        if total_commands > 2 {
+        if total_commands > 1 {
             return;
         }
     }
-    panic!("fail to create a fleet")
+    panic!("fail to create a fleet on timer end")
 }
 
 fn tick_eventually(game: &mut Game, expected_check: fn(game: &mut Game) -> bool) {

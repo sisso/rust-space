@@ -31,18 +31,6 @@ use crate::utils::{DeltaTime, Speed, V2};
 
 pub struct Loader {}
 
-pub struct BasicScenery {
-    pub asteroid_id: ObjId,
-    pub shipyard_id: ObjId,
-    pub miner_id: ObjId,
-    pub trader_id: ObjId,
-    pub ware_ore_id: WareId,
-    pub ware_components_id: WareId,
-    pub sector_0: SectorId,
-    pub sector_1: SectorId,
-    pub component_factory_id: ObjId,
-}
-
 impl Loader {
     pub fn add_asteroid(world: &mut World, sector_id: SectorId, pos: V2, ware_id: WareId) -> ObjId {
         let asteroid = Self::new_asteroid(sector_id)
@@ -432,6 +420,17 @@ impl Loader {
             .with_cargo_size(100)
             .with_building_site(BuildingSite { prefab_id, input })
             .with_docking()
+    }
+
+    pub fn set_orbiting(
+        world: &mut World,
+        obj_id: ObjId,
+        parent_id: ObjId,
+        distance: f32,
+        radians: f32,
+        speed: f32,
+    ) {
+        AstroBodies::set_orbit(world, obj_id, parent_id, distance, radians);
     }
 }
 

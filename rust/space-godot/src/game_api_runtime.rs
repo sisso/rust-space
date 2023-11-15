@@ -48,7 +48,7 @@ impl Runtime {
         log::info!("initializing game");
 
         _ = env_logger::builder()
-            .filter(None, log::LevelFilter::Info)
+            .filter_level(log::LevelFilter::Debug)
             // .filter(Some("world_view"), log::LevelFilter::Warn)
             // .filter(Some("space_flap"), log::LevelFilter::Warn)
             // .filter(Some("space_domain"), log::LevelFilter::Warn)

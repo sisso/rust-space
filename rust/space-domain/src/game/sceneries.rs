@@ -1,6 +1,6 @@
 use crate::game::commands::Command;
 use crate::game::factory::Receipt;
-use crate::game::loader::{BasicScenery, Loader};
+use crate::game::loader::Loader;
 use crate::game::objects::ObjId;
 use crate::game::sectors::SectorId;
 use crate::game::shipyard::{ProductionOrder, Shipyard};
@@ -9,6 +9,18 @@ use crate::game::{sectors, wares, Game};
 use crate::utils::{DeltaTime, V2};
 use commons::math::P2I;
 use specs::prelude::*;
+
+pub struct BasicScenery {
+    pub asteroid_id: ObjId,
+    pub shipyard_id: ObjId,
+    pub miner_id: ObjId,
+    pub trader_id: ObjId,
+    pub ware_ore_id: WareId,
+    pub ware_components_id: WareId,
+    pub sector_0: SectorId,
+    pub sector_1: SectorId,
+    pub component_factory_id: ObjId,
+}
 
 pub struct SceneryBuilder;
 
@@ -174,27 +186,25 @@ impl BuilderStep for SceneryBuilderWithSector {
 impl BuilderBuild for SceneryBuilderWithSector {}
 
 impl SceneryBuilderWithSector {
-    pub fn add_asteroid(mut self, sector_i: usize, ware_id: usize) -> Self {
+    pub fn add_asteroid(mut self, sector_i: usize, ware_id: usize, pos: V2) -> Self {
         struct Task {
             sector_i: usize,
             ware_i: usize,
+            pos: V2,
         }
         impl BuilderTask for Task {
             fn apply(&self, game: &mut Game, result: &mut SceneryBuilderResult) {
                 let ware_ore_id = result.wares.get(self.ware_i).expect("ware not found");
                 let sector_id = result.sectors.get(self.sector_i).expect("sector not found");
-                let asteroid_id = Loader::add_asteroid(
-                    &mut game.world,
-                    *sector_id,
-                    V2::new(-2.0, 3.0),
-                    *ware_ore_id,
-                );
+                let asteroid_id =
+                    Loader::add_asteroid(&mut game.world, *sector_id, self.pos, *ware_ore_id);
                 result.asteroids.push(asteroid_id);
             }
         }
         self.tasks.push(Box::new(Task {
             sector_i,
             ware_i: ware_id,
+            pos,
         }));
         self
     }
@@ -290,7 +300,7 @@ pub fn load_minimum_scenery(game: &mut Game) -> MinimumScenery {
     let rs = SceneryBuilder::new()
         .add_ware("ore")
         .builder_single_sector()
-        .add_asteroid(0, 0)
+        .add_asteroid(0, 0, V2::new(2.0, 0.0))
         .build(game);
 
     MinimumScenery {
@@ -441,6 +451,7 @@ pub struct MothershipScenery {
     pub sector_id: SectorId,
     pub miner_id: ObjId,
     pub mothership_id: ObjId,
+    pub asteroid_id: ObjId,
 }
 
 /// Basic scenery with mothership
@@ -451,21 +462,25 @@ pub struct MothershipScenery {
 /// - mothership (ore -> components) and shipyard
 /// - asteroid (ore)
 pub fn load_basic_mothership_scenery(game: &mut Game) -> MothershipScenery {
-    let rs = SceneryBuilder::new()
-        .add_ware("ore")
-        .add_ware("components")
-        .add_fleets_prefabs("components")
-        .builder_single_sector()
-        .add_asteroid(0, 0)
-        .new_mothership()
-        .with_random_orders()
-        .build()
-        .add_miner()
-        .build(game);
+    let rs = new_basic_mothership_scenery().build(game);
 
     MothershipScenery {
         sector_id: rs.sectors[0],
         miner_id: rs.fleets[0],
         mothership_id: rs.stations[0],
+        asteroid_id: rs.asteroids[0],
     }
+}
+
+pub fn new_basic_mothership_scenery() -> SceneryBuilderWithSector {
+    SceneryBuilder::new()
+        .add_ware("ore")
+        .add_ware("components")
+        .add_fleets_prefabs("components")
+        .builder_single_sector()
+        .add_asteroid(0, 0, V2::new(2.0, 0.0))
+        .new_mothership()
+        .with_random_orders()
+        .build()
+        .add_miner()
 }

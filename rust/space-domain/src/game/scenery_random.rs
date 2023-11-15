@@ -208,13 +208,6 @@ fn add_bodies_to_sectors(
     AstroBodies::update_orbits(world);
 }
 
-fn sector_pos<R: rand::Rng>(rng: &mut R) -> V2 {
-    V2::new(
-        (rng.gen_range(0..10) - 5) as f32,
-        (rng.gen_range(0..10) - 5) as f32,
-    )
-}
-
 fn add_stations_random(
     world: &mut World,
     seed: u64,
