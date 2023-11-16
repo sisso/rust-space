@@ -4,9 +4,9 @@ use rand::prelude::*;
 use specs::prelude::*;
 
 use commons;
-use commons::math::{self, P2, P2I};
+use commons::math::{Distance, Rad, P2, P2I};
 
-use crate::game::astrobody::{AstroBodies, AstroBody, AstroBodyKind, OrbitalPos};
+use crate::game::astrobody::{AstroBody, AstroBodyKind};
 use crate::game::building_site::BuildingSite;
 use crate::game::code::{Code, HasCode};
 use crate::game::commands::Command;
@@ -16,9 +16,10 @@ use crate::game::extractables::Extractable;
 use crate::game::factory::{Factory, Receipt};
 use crate::game::fleets::Fleet;
 use crate::game::label::Label;
-use crate::game::locations::{Location, Moveable};
+use crate::game::locations::{Location, Moveable, Orbit};
 use crate::game::new_obj::NewObj;
 use crate::game::objects::ObjId;
+use crate::game::orbit::Orbits;
 use crate::game::order::{TradeOrders, TRADE_ORDER_ID_BUILDING_SITE, TRADE_ORDER_ID_FACTORY};
 use crate::game::prefab::{Prefab, PrefabId};
 use crate::game::sectors::{Jump, JumpId, Sector, SectorId};
@@ -245,7 +246,19 @@ impl Loader {
             builder.set(Docking::default());
         }
 
-        if let Some(location) = &new_obj.location {
+        if let Some(orbit) = new_obj.orbit.as_ref() {
+            builder.set(Location::Orbiting {
+                parent_id: orbit.parent,
+                pos: Default::default(),
+                sector_id: orbit.sector_id,
+                orbit: Orbit {
+                    radius: orbit.angle,
+                    starting: orbit.start_time,
+                    start_angle: orbit.angle,
+                    speed: orbit.speed,
+                },
+            });
+        } else if let Some(location) = &new_obj.location {
             builder.set(location.clone());
 
             match location {
@@ -319,14 +332,6 @@ impl Loader {
         if let Some(_) = new_obj.planet {
             builder.set(AstroBody {
                 kind: AstroBodyKind::Planet,
-            });
-        }
-
-        if let Some(orbit) = new_obj.orbit.as_ref() {
-            builder.set(OrbitalPos {
-                parent: orbit.parent,
-                distance: orbit.distance,
-                initial_angle: orbit.angle,
             });
         }
 
@@ -426,59 +431,60 @@ impl Loader {
         world: &mut World,
         obj_id: ObjId,
         parent_id: ObjId,
-        distance: f32,
-        radians: f32,
-        speed: f32,
+        distance: Distance,
+        radians: Rad,
+        speed: Speed,
     ) {
-        AstroBodies::set_orbit(world, obj_id, parent_id, distance, radians);
+        Orbits::set_orbit(world, obj_id, parent_id, distance, radians, speed);
     }
 }
 
 pub fn set_orbit_random_body(world: &mut World, obj_id: ObjId, seed: u64) {
-    let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
-
-    let mut candidates = vec![];
-
-    {
-        let entities = world.entities();
-        let locations = world.read_storage::<Location>();
-        let astros = world.read_storage::<AstroBody>();
-        let orbits = world.read_storage::<OrbitalPos>();
-
-        let sector_id = match locations.get(obj_id).and_then(|i| i.as_space()) {
-            None => {
-                log::warn!("obj {:?} it is not in a sector to set a orbit", obj_id);
-                return;
-            }
-            Some(v) => v.sector_id,
-        };
-
-        for (id, l, o, _) in (&entities, &locations, &orbits, &astros).join() {
-            if l.get_sector_id() != Some(sector_id) {
-                continue;
-            }
-
-            candidates.push((id, o.distance));
-        }
-
-        if candidates.len() == 0 {
-            log::warn!(
-                "not astro bodies candidates found for sector_id {:?}",
-                sector_id
-            );
-            return;
-        }
-    }
-
-    let selected = rng.gen_range(0..candidates.len());
-    let mut base_radius = candidates[selected].1;
-    // fix stars with radius 0
-    if base_radius < 0.01 {
-        base_radius = 10.0;
-    }
-    let radius = rng.gen_range((base_radius * 0.1)..(base_radius * 0.5));
-    let angle = rng.gen_range(0.0..math::TWO_PI);
-    AstroBodies::set_orbit(world, obj_id, candidates[selected].0, radius, angle);
+    todo!();
+    // let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
+    //
+    // let mut candidates = vec![];
+    //
+    // {
+    //     let entities = world.entities();
+    //     let locations = world.read_storage::<Location>();
+    //     let astros = world.read_storage::<AstroBody>();
+    //
+    //     let sector_id = match locations.get(obj_id).and_then(|i| i.as_space()) {
+    //         None => {
+    //             log::warn!("obj {:?} it is not in a sector to set a orbit", obj_id);
+    //             return;
+    //         }
+    //         Some(v) => v.sector_id,
+    //     };
+    //
+    //     for (id, l, _) in (&entities, &locations, &astros).join() {
+    //         if l.get_sector_id() != Some(sector_id) {
+    //             continue;
+    //         }
+    //
+    //         todo!()
+    //         // candidates.push((id, o.distance));
+    //     }
+    //
+    //     if candidates.len() == 0 {
+    //         log::warn!(
+    //             "not astro bodies candidates found for sector_id {:?}",
+    //             sector_id
+    //         );
+    //         return;
+    //     }
+    // }
+    //
+    // let selected = rng.gen_range(0..candidates.len());
+    // let mut base_radius = candidates[selected].1;
+    // // fix stars with radius 0
+    // if base_radius < 0.01 {
+    //     base_radius = 10.0;
+    // }
+    // let radius = rng.gen_range((base_radius * 0.1)..(base_radius * 0.5));
+    // let angle = rng.gen_range(0.0..math::TWO_PI);
+    // Orbits::set_orbit(world, obj_id, candidates[selected].0, radius, angle);
 }
 
 // pub fn load_station_prefab(world: &mut World, station: &conf::Station) -> Option<Entity> {}

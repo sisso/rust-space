@@ -1,6 +1,6 @@
 mod index_per_sector_system;
 
-use commons::math::P2;
+use commons::math::{Distance, Rad, P2};
 use specs::prelude::*;
 use specs::storage::MaskedStorage;
 use std::collections::HashMap;
@@ -13,26 +13,79 @@ use crate::utils::*;
 use crate::game::locations::index_per_sector_system::*;
 use crate::game::{GameInitContext, RequireInitializer};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct LocationSpace {
     pub pos: P2,
     pub sector_id: SectorId,
 }
 
-/// Can not be a flat struct or will require a ship when change, to update its internal hangars
-/// of hangars
-#[derive(Debug, Clone, Component)]
+#[derive(Debug, Clone, Copy)]
+pub struct LocationOrbit {
+    pub parent_id: Entity,
+    pub pos: P2,
+    pub sector_id: SectorId,
+    pub orbit: Orbit,
+}
+
+#[derive(Clone, Debug, Copy)]
+pub struct Orbit {
+    pub radius: Distance,
+    pub starting: TotalTime,
+    pub start_angle: Rad,
+    pub speed: Speed,
+}
+
+#[derive(Debug, Clone, Component, Copy)]
 pub enum Location {
-    Space { pos: P2, sector_id: SectorId },
-    Dock { docked_id: ObjId },
+    Space {
+        pos: P2,
+        sector_id: SectorId,
+    },
+    Dock {
+        docked_id: ObjId,
+    },
+    Orbiting {
+        parent_id: Entity,
+        pos: P2,
+        sector_id: SectorId,
+        orbit: Orbit,
+    },
 }
 
 impl Location {
+    pub fn is_orbit(&self) -> bool {
+        match self {
+            Location::Orbiting { .. } => true,
+            _ => false,
+        }
+    }
+
     pub fn as_space(&self) -> Option<LocationSpace> {
         match self {
             Location::Space { pos, sector_id } => Some(LocationSpace {
                 pos: *pos,
                 sector_id: *sector_id,
+            }),
+            Location::Orbiting { pos, sector_id, .. } => Some(LocationSpace {
+                pos: *pos,
+                sector_id: *sector_id,
+            }),
+            _ => None,
+        }
+    }
+
+    pub fn as_orbit(&self) -> Option<LocationOrbit> {
+        match self {
+            Location::Orbiting {
+                parent_id,
+                pos,
+                sector_id,
+                orbit,
+            } => Some(LocationOrbit {
+                parent_id: *parent_id,
+                pos: *pos,
+                sector_id: *sector_id,
+                orbit: *orbit,
             }),
             _ => None,
         }
@@ -45,6 +98,27 @@ impl Location {
                 *pos = new_pos;
                 Ok(())
             }
+            Location::Orbiting { pos, .. } => {
+                *pos = new_pos;
+                Ok(())
+            }
+            _ => Err(()),
+        }
+    }
+
+    /// Utility method since we can not easily reference a enum type
+    pub fn set_pos_and_sector(&mut self, new_pos: P2, new_sector_id: SectorId) -> Result<(), ()> {
+        match self {
+            Location::Space { pos, sector_id } => {
+                *pos = new_pos;
+                *sector_id = new_sector_id;
+                Ok(())
+            }
+            Location::Orbiting { pos, sector_id, .. } => {
+                *pos = new_pos;
+                *sector_id = new_sector_id;
+                Ok(())
+            }
             _ => Err(()),
         }
     }
@@ -53,6 +127,7 @@ impl Location {
     pub fn get_pos(&self) -> Option<P2> {
         match self {
             Location::Space { pos, .. } => Some(*pos),
+            Location::Orbiting { pos, .. } => Some(*pos),
             _ => None,
         }
     }
@@ -215,7 +290,7 @@ impl Locations {
         Locations::is_near_maybe(pos_a, pos_b)
     }
 
-    /// recursive search through docked entities until find what space position entity is
+    /// recursive search through docked entities until find what space position entity is at
     pub fn resolve_space_position<'a, D>(
         locations: &Storage<'a, Location, D>,
         obj: ObjId,
@@ -232,7 +307,7 @@ impl Locations {
         }
     }
 
-    /// recursive search for position, but receive an already fetched one
+    /// recursive search for position, but receive an already fetched Location component
     pub fn resolve_space_position_from<'a, D>(
         locations: &Storage<'a, Location, D>,
         location: &Location,
@@ -241,10 +316,10 @@ impl Locations {
         D: Deref<Target = MaskedStorage<Location>>,
     {
         match location {
-            location @ Location::Space { .. } => location.as_space(),
             Location::Dock { docked_id } => {
                 Locations::resolve_space_position(locations, *docked_id)
             }
+            location => location.as_space(),
         }
     }
 }

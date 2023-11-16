@@ -39,6 +39,7 @@ pub mod locations;
 pub mod navigations;
 pub mod new_obj;
 pub mod objects;
+mod orbit;
 pub mod order;
 pub mod prefab;
 pub mod production_cost;

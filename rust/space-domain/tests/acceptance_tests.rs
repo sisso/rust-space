@@ -16,7 +16,7 @@ use space_domain::game::station::Station;
 use space_domain::game::wares::WareAmount;
 use space_domain::game::Game;
 use space_domain::test::init_trace_log;
-use space_domain::utils::DeltaTime;
+use space_domain::utils::{DeltaTime, Speed};
 use specs::prelude::*;
 use specs::WorldExt;
 use std::borrow::Borrow;
@@ -132,7 +132,14 @@ fn test_mining_on_high_speed_with_orbiting_objects() {
     let rs = sceneries::load_basic_mothership_scenery(&mut game);
 
     let sun_id = Loader::add_object(&mut game.world, &Loader::new_star(rs.sector_id));
-    Loader::set_orbiting(&mut game.world, rs.asteroid_id, sun_id, 2.0, 0.0, 0.1);
+    Loader::set_orbiting(
+        &mut game.world,
+        rs.asteroid_id,
+        sun_id,
+        2.0,
+        0.0,
+        Speed(0.1),
+    );
 
     let delta = DeltaTime(30.0);
     for _tick in 0..300 {

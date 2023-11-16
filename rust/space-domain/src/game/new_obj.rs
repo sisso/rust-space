@@ -2,7 +2,7 @@ use specs::prelude::*;
 
 use crate::game::building_site::BuildingSite;
 use crate::game::production_cost::ProductionCost;
-use commons::math::{Rad, P2, P2I};
+use commons::math::{Distance, Rad, P2, P2I};
 
 use crate::game::commands::Command;
 use crate::game::extractables::Extractable;
@@ -17,9 +17,12 @@ use crate::utils::*;
 
 #[derive(Debug, Clone, Component)]
 pub struct NewObjOrbit {
+    pub sector_id: SectorId,
     pub parent: ObjId,
-    pub distance: f32,
+    pub distance: Distance,
     pub angle: Rad,
+    pub speed: Speed,
+    pub start_time: TotalTime,
 }
 
 #[derive(Debug, Clone, Component, Default)]
@@ -176,11 +179,22 @@ impl NewObj {
         self
     }
 
-    pub fn with_orbit(mut self, parent: ObjId, distance: f32, angle: Rad) -> Self {
+    pub fn with_orbit(
+        mut self,
+        parent: ObjId,
+        sector_id: SectorId,
+        distance: f32,
+        angle: Rad,
+        speed: Speed,
+        start_time: TotalTime,
+    ) -> Self {
         self.orbit = Some(NewObjOrbit {
+            sector_id,
             parent,
             distance,
             angle,
+            speed,
+            start_time,
         });
         self
     }

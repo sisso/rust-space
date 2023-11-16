@@ -10,6 +10,7 @@ pub const PI: f32 = std::f32::consts::PI;
 pub const TWO_PI: f32 = 2.0 * std::f32::consts::PI;
 pub type Deg = f32;
 pub type Rad = f32;
+pub type Distance = f32;
 
 pub fn p2v(p2: P2) -> V2 {
     p2

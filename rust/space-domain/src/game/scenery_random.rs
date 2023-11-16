@@ -1,6 +1,8 @@
-use crate::game::astrobody::{AstroBodies, OrbitalPos};
+use crate::game::astrobody::AstroBodies;
 use crate::game::extractables::Extractable;
 use crate::game::loader::Loader;
+use crate::game::locations::Location;
+use crate::game::orbit::Orbits;
 use crate::game::sectors::Sector;
 use crate::game::shipyard::Shipyard;
 use crate::game::{conf, loader, sectors, shipyard, wares, Game};
@@ -122,90 +124,91 @@ fn add_bodies_to_sectors(
     seed: u64,
     universe_cfg: &system_generator::UniverseCfg,
 ) {
-    let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
-
-    let sectors_id = sectors::list(world);
-    let wares = wares::list_wares_by_code(world);
-
-    for sector_id in sectors_id {
-        let system = system_generator::new_system(&universe_cfg, rng.gen());
-
-        // create bodies
-        let mut new_bodies = vec![];
-        for body in &system.bodies {
-            let maybe_obj_id = match &body.desc {
-                system_generator::BodyDesc::Star { .. } => {
-                    let new_obj = Loader::new_star(sector_id);
-                    Some(Loader::add_object(world, &new_obj))
-                }
-                system_generator::BodyDesc::AsteroidField { resources } => {
-                    let maybe_ware_id = resources
-                        .iter()
-                        .flat_map(|body_resource| {
-                            let ware_id = wares.get(body_resource.resource.as_str());
-                            if ware_id.is_none() {
-                                log::warn!(
-                                    "asteroid resource {:?} is not a ware, ignoring",
-                                    body_resource.resource
-                                );
-                            }
-                            ware_id
-                        })
-                        .next();
-
-                    if let Some(ware_id) = maybe_ware_id {
-                        let new_obj =
-                            Loader::new_asteroid(sector_id).extractable(Extractable { ware_id });
-                        Some(Loader::add_object(world, &new_obj))
-                    } else {
-                        log::warn!("fail to create asteroid field {:?}", body);
-                        None
-                    }
-                }
-                system_generator::BodyDesc::Planet(_) => {
-                    let new_obj = Loader::new_planet(sector_id);
-                    Some(Loader::add_object(world, &new_obj))
-                }
-            };
-            new_bodies.push((maybe_obj_id, body));
-        }
-
-        // update orbits
-        let mut orbits = world.write_storage::<OrbitalPos>();
-
-        for (obj_id, body) in &new_bodies {
-            let obj_id = unwrap_or_continue!(obj_id);
-
-            if body.index == body.parent {
-                continue;
-            }
-
-            // search body with parent
-            let found = new_bodies.iter().find(|(_, j)| j.index == body.parent);
-
-            let parent_obj_id = match found {
-                Some((Some(id), _)) => id,
-                _ => {
-                    log::warn!(
-                        "at sector {:?}, fail to find parent body for {:?}",
-                        sector_id,
-                        body.parent
-                    );
-                    continue;
-                }
-            };
-
-            AstroBodies::set_orbits_from_storage(
-                &mut orbits,
-                *obj_id,
-                *parent_obj_id,
-                body.distance,
-                body.angle,
-            );
-        }
-    }
-
-    AstroBodies::update_orbits(world);
+    todo!()
+    // let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
+    //
+    // let sectors_id = sectors::list(world);
+    // let wares = wares::list_wares_by_code(world);
+    //
+    // for sector_id in sectors_id {
+    //     let system = system_generator::new_system(&universe_cfg, rng.gen());
+    //
+    //     // create bodies
+    //     let mut new_bodies = vec![];
+    //     for body in &system.bodies {
+    //         let maybe_obj_id = match &body.desc {
+    //             system_generator::BodyDesc::Star { .. } => {
+    //                 let new_obj = Loader::new_star(sector_id);
+    //                 Some(Loader::add_object(world, &new_obj))
+    //             }
+    //             system_generator::BodyDesc::AsteroidField { resources } => {
+    //                 let maybe_ware_id = resources
+    //                     .iter()
+    //                     .flat_map(|body_resource| {
+    //                         let ware_id = wares.get(body_resource.resource.as_str());
+    //                         if ware_id.is_none() {
+    //                             log::warn!(
+    //                                 "asteroid resource {:?} is not a ware, ignoring",
+    //                                 body_resource.resource
+    //                             );
+    //                         }
+    //                         ware_id
+    //                     })
+    //                     .next();
+    //
+    //                 if let Some(ware_id) = maybe_ware_id {
+    //                     let new_obj =
+    //                         Loader::new_asteroid(sector_id).extractable(Extractable { ware_id });
+    //                     Some(Loader::add_object(world, &new_obj))
+    //                 } else {
+    //                     log::warn!("fail to create asteroid field {:?}", body);
+    //                     None
+    //                 }
+    //             }
+    //             system_generator::BodyDesc::Planet(_) => {
+    //                 let new_obj = Loader::new_planet(sector_id);
+    //                 Some(Loader::add_object(world, &new_obj))
+    //             }
+    //         };
+    //         new_bodies.push((maybe_obj_id, body));
+    //     }
+    //
+    //     // update orbits
+    //     let mut orbits = world.write_storage::<Location>();
+    //
+    //     for (obj_id, body) in &new_bodies {
+    //         let obj_id = unwrap_or_continue!(obj_id);
+    //
+    //         if body.index == body.parent {
+    //             continue;
+    //         }
+    //
+    //         // search body with parent
+    //         let found = new_bodies.iter().find(|(_, j)| j.index == body.parent);
+    //
+    //         let parent_obj_id = match found {
+    //             Some((Some(id), _)) => id,
+    //             _ => {
+    //                 log::warn!(
+    //                     "at sector {:?}, fail to find parent body for {:?}",
+    //                     sector_id,
+    //                     body.parent
+    //                 );
+    //                 continue;
+    //             }
+    //         };
+    //
+    //         Orbits::set_orbits_from_storage(
+    //             &mut orbits,
+    //             *obj_id,
+    //             *parent_obj_id,
+    //             body.distance,
+    //             body.angle,
+    //         );
+    //     }
+    // }
+    //
+    // AstroBodies::update_orbits(world);
 }
 
 fn add_stations_random(
@@ -214,51 +217,52 @@ fn add_stations_random(
     params: &conf::Params,
     station_per_sector_density: f32,
 ) {
-    let rng: &mut StdRng = &mut SeedableRng::seed_from_u64(seed);
-
-    // add minimal requirements
-    add_stations_minimal(world, rng.next_u64(), params);
-
-    // compute number of stations to add
-    let sectors_list = sectors::list(world);
-    let total_stations: f32 = station_per_sector_density * sectors_list.len() as f32;
-    let total_solar = (total_stations / 3.0) as i32;
-    let total_factory = (total_stations / 3.0) as i32;
-    let total_shipyard = (total_stations / 10.0) as i32;
-
-    let shipyard_new_obj =
-        Loader::new_by_prefab_code(world, params.prefab_station_shipyard.as_str())
-            .expect("fail to new shipyard");
-    let factory_new_obj = Loader::new_by_prefab_code(world, params.prefab_station_factory.as_str())
-        .expect("fail to new factory");
-    let solar_new_obj = Loader::new_by_prefab_code(world, params.prefab_station_solar.as_str())
-        .expect("fail to new solar");
-
-    for (mut new_obj, count) in [
-        (solar_new_obj, total_solar),
-        (factory_new_obj, total_factory),
-        (shipyard_new_obj, total_shipyard),
-    ] {
-        for _ in 0..count {
-            // choose a sector
-            let sector_id = commons::prob::select(rng, &sectors_list)
-                .copied()
-                .expect("empty list of sectors");
-
-            // create obj in a random orbit
-            new_obj = new_obj.at_position(sector_id, P2::ZERO);
-
-            new_obj.shipyard.as_mut().map(|shipyard| {
-                shipyard.set_production_order(shipyard::ProductionOrder::Random);
-            });
-
-            let obj_id = Loader::add_object(world, &new_obj);
-
-            loader::set_orbit_random_body(world, obj_id, rng.next_u64());
-        }
-    }
-
-    AstroBodies::update_orbits(world);
+    todo!()
+    // let rng: &mut StdRng = &mut SeedableRng::seed_from_u64(seed);
+    //
+    // // add minimal requirements
+    // add_stations_minimal(world, rng.next_u64(), params);
+    //
+    // // compute number of stations to add
+    // let sectors_list = sectors::list(world);
+    // let total_stations: f32 = station_per_sector_density * sectors_list.len() as f32;
+    // let total_solar = (total_stations / 3.0) as i32;
+    // let total_factory = (total_stations / 3.0) as i32;
+    // let total_shipyard = (total_stations / 10.0) as i32;
+    //
+    // let shipyard_new_obj =
+    //     Loader::new_by_prefab_code(world, params.prefab_station_shipyard.as_str())
+    //         .expect("fail to new shipyard");
+    // let factory_new_obj = Loader::new_by_prefab_code(world, params.prefab_station_factory.as_str())
+    //     .expect("fail to new factory");
+    // let solar_new_obj = Loader::new_by_prefab_code(world, params.prefab_station_solar.as_str())
+    //     .expect("fail to new solar");
+    //
+    // for (mut new_obj, count) in [
+    //     (solar_new_obj, total_solar),
+    //     (factory_new_obj, total_factory),
+    //     (shipyard_new_obj, total_shipyard),
+    // ] {
+    //     for _ in 0..count {
+    //         // choose a sector
+    //         let sector_id = commons::prob::select(rng, &sectors_list)
+    //             .copied()
+    //             .expect("empty list of sectors");
+    //
+    //         // create obj in a random orbit
+    //         new_obj = new_obj.at_position(sector_id, P2::ZERO);
+    //
+    //         new_obj.shipyard.as_mut().map(|shipyard| {
+    //             shipyard.set_production_order(shipyard::ProductionOrder::Random);
+    //         });
+    //
+    //         let obj_id = Loader::add_object(world, &new_obj);
+    //
+    //         loader::set_orbit_random_body(world, obj_id, rng.next_u64());
+    //     }
+    // }
+    //
+    // AstroBodies::update_orbits(world);
 }
 
 fn add_mothership(world: &mut World, seed: u64, params: &conf::Params) {
