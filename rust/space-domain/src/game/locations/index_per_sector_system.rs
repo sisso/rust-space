@@ -1,5 +1,5 @@
 use super::*;
-use crate::game::dock::Docking;
+use crate::game::dock::HasDocking;
 use crate::game::extractables::Extractable;
 use specs::prelude::*;
 use specs::{SystemData, Write};
@@ -15,9 +15,9 @@ pub struct IndexPerSectorSystem;
 pub struct IndexPerSectorData<'a> {
     entities: Entities<'a>,
     index: Write<'a, EntityPerSectorIndex>,
-    locations: ReadStorage<'a, Location>,
+    locations: ReadStorage<'a, LocationSpace>,
     extractables: ReadStorage<'a, Extractable>,
-    stations: ReadStorage<'a, Docking>,
+    stations: ReadStorage<'a, HasDocking>,
 }
 
 impl<'a> System<'a> for IndexPerSectorSystem {
@@ -31,7 +31,7 @@ impl<'a> System<'a> for IndexPerSectorSystem {
 
         for (entity, location) in (&data.entities, &data.locations).join() {
             match location {
-                Location::Space { sector_id, .. } => {
+                LocationSpace { sector_id, .. } => {
                     let sector_id = *sector_id;
 
                     // log::trace!("indexing {:?} at {:?}", entity, sector_id);

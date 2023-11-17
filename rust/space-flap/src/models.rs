@@ -306,14 +306,14 @@ impl JumpData {
 
     pub fn get_sector_id(&self) -> Id {
         let g = self.game.borrow();
-        let locations = g.world.read_storage::<Location>();
+        let locations = g.world.read_storage::<LocationSpace>();
         let loc = Locations::resolve_space_position(&locations, self.entity);
         encode_entity(loc.unwrap().sector_id)
     }
 
     pub fn get_coords(&self) -> (f32, f32) {
         let g = self.game.borrow();
-        let locations = g.world.read_storage::<Location>();
+        let locations = g.world.read_storage::<LocationSpace>();
         let loc = Locations::resolve_space_position(&locations, self.entity);
         let pos = loc.unwrap().pos;
         (pos.x, pos.y)

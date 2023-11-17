@@ -9,19 +9,10 @@ where
     SystemType: for<'c> System<'c> + Send + 'a,
     Callback: FnOnce(&mut World) -> ReturnType,
 {
-    let mut world = World::new();
-
-    // create dispatcher for testing
-    let mut dispatcher = DispatcherBuilder::new().with(system, "test", &[]).build();
-
-    dispatcher.setup(&mut world);
-
-    let result = add_entities(&mut world);
-
-    dispatcher.dispatch(&world);
-    world.maintain();
-
-    (world, result)
+    let mut runner = TestSystemRunner::new(system);
+    let result = add_entities(&mut runner.world);
+    runner.tick();
+    (runner.world, result)
 }
 
 pub fn assert_v2(value: V2, expected: V2) {
@@ -38,4 +29,26 @@ pub fn init_trace_log() {
     _ = env_logger::builder()
         .filter(None, log::LevelFilter::Trace)
         .try_init();
+}
+
+pub struct TestSystemRunner<'a> {
+    pub world: World,
+    pub dispatcher: Dispatcher<'a, 'a>,
+}
+
+impl<'a> TestSystemRunner<'a> {
+    pub fn new<SystemType>(system: SystemType) -> TestSystemRunner<'a>
+    where
+        SystemType: for<'c> System<'c> + Send + 'a,
+    {
+        let mut world = World::new();
+        let mut dispatcher = DispatcherBuilder::new().with(system, "test", &[]).build();
+        dispatcher.setup(&mut world);
+        TestSystemRunner { world, dispatcher }
+    }
+
+    pub fn tick(&mut self) {
+        self.dispatcher.dispatch(&self.world);
+        self.world.maintain();
+    }
 }

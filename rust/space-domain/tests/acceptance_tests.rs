@@ -132,7 +132,8 @@ fn test_mining_on_high_speed_with_orbiting_objects() {
     let rs = sceneries::load_basic_mothership_scenery(&mut game);
 
     let sun_id = Loader::add_object(&mut game.world, &Loader::new_star(rs.sector_id));
-    Loader::set_orbiting(
+
+    Loader::set_obj_at_orbit(
         &mut game.world,
         rs.asteroid_id,
         sun_id,

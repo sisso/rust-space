@@ -3,7 +3,7 @@ use specs::prelude::*;
 use super::super::locations::*;
 use super::*;
 use crate::game::sectors::{Jump, Sector};
-use crate::game::{navigations, SYSTEM_TIMEOUT};
+use crate::game::SYSTEM_TIMEOUT;
 
 use std::borrow::Borrow;
 
@@ -18,7 +18,8 @@ pub struct NavRequestHandlerData<'a> {
     entities: Entities<'a>,
     sectors: ReadStorage<'a, Sector>,
     jumps: ReadStorage<'a, Jump>,
-    locations: ReadStorage<'a, Location>,
+    locations: ReadStorage<'a, LocationSpace>,
+    locations_docked: ReadStorage<'a, LocationDocked>,
     requests: WriteStorage<'a, NavRequest>,
     navigation: WriteStorage<'a, Navigation>,
     navigation_move_to: WriteStorage<'a, NavigationMoveTo>,
@@ -33,22 +34,28 @@ impl<'a> System<'a> for NavRequestHandlerSystem {
 
         let timeout = commons::TimeDeadline::new(SYSTEM_TIMEOUT);
 
-        for (entity, request, location) in (&*data.entities, &data.requests, &data.locations).join()
+        for (id, request, maybe_docked) in (
+            &*data.entities,
+            &data.requests,
+            data.locations_docked.maybe(),
+        )
+            .join()
         {
             let (target_id, should_dock) = match request {
                 NavRequest::MoveToTarget { target_id } => (*target_id, false),
                 NavRequest::MoveAndDockAt { target_id } => (*target_id, true),
             };
 
-            processed_requests.push(entity);
+            processed_requests.push(id);
 
-            let is_docked = location.as_docked().is_some();
-            let location = Locations::resolve_space_position(locations, entity)
+            let is_docked = maybe_docked.is_some();
+            let location = Locations::resolve_space_position(locations, &data.locations_docked, id)
                 .expect("entity has no location");
-            let target_location = Locations::resolve_space_position(locations, target_id)
-                .expect("target has no location");
+            let target_location =
+                Locations::resolve_space_position(locations, &data.locations_docked, target_id)
+                    .expect("target has no location");
 
-            let mut plan = navigations::create_plan(
+            let mut plan = create_plan(
                 &data.entities,
                 &data.sectors,
                 &data.jumps,
@@ -66,14 +73,14 @@ impl<'a> System<'a> for NavRequestHandlerSystem {
 
             log::debug!(
                 "{:?} handle navigation to {:?} by the plan {:?}",
-                entity,
+                id,
                 request,
                 plan,
             );
 
-            data.navigation.insert(entity, Navigation::MoveTo).unwrap();
+            data.navigation.insert(id, Navigation::MoveTo).unwrap();
             data.navigation_move_to
-                .insert(entity, NavigationMoveTo { target_id, plan })
+                .insert(id, NavigationMoveTo { target_id, plan })
                 .unwrap();
 
             if timeout.is_timeout() {
@@ -100,7 +107,7 @@ mod test {
     fn setup_station_and_asteroid(world: &mut World, sectors: &SectorScenery) -> (Entity, Entity) {
         let asteroid = world
             .create_entity()
-            .with(Location::Space {
+            .with(LocationSpace {
                 pos: P2::X,
                 sector_id: sectors.sector_1,
             })
@@ -108,7 +115,7 @@ mod test {
 
         let station = world
             .create_entity()
-            .with(Location::Space {
+            .with(LocationSpace {
                 pos: P2::ZERO,
                 sector_id: sectors.sector_0,
             })
@@ -125,7 +132,7 @@ mod test {
 
             let miner = world
                 .create_entity()
-                .with(Location::Space {
+                .with(LocationSpace {
                     pos: P2::ZERO,
                     sector_id: sector_scenery.sector_0,
                 })
@@ -153,12 +160,12 @@ mod test {
     #[test]
     fn test_nav_request_handler_should_create_navigation_from_requests_when_docked() {
         let (world, (_asteroid, miner)) = test_system(NavRequestHandlerSystem, |world| {
-            let sector_scenery = crate::game::sectors::test_scenery::setup_sector_scenery(world);
+            let sector_scenery = setup_sector_scenery(world);
             let (station, asteroid) = setup_station_and_asteroid(world, &sector_scenery);
 
             let miner = world
                 .create_entity()
-                .with(Location::Dock { docked_id: station })
+                .with(LocationDocked { parent_id: station })
                 .with(NavRequest::MoveToTarget {
                     target_id: asteroid,
                 })

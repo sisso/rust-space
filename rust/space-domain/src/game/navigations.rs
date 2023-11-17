@@ -8,7 +8,7 @@ use crate::game::{GameInitContext, RequireInitializer};
 
 use specs::prelude::*;
 
-use crate::game::locations::Location;
+use crate::game::locations::LocationSpace;
 use commons::math::P2;
 use std::collections::VecDeque;
 
@@ -81,7 +81,7 @@ pub fn create_plan<'a>(
     entities: &Entities<'a>,
     sectors: &ReadStorage<'a, Sector>,
     jumps: &ReadStorage<'a, Jump>,
-    locations: &ReadStorage<'a, Location>,
+    locations: &ReadStorage<'a, LocationSpace>,
     from_sector_id: SectorId,
     _from_pos: P2,
     to_sector_id: SectorId,
@@ -145,7 +145,7 @@ mod test {
         let entities = world.entities();
         let sectors = world.read_storage::<Sector>();
         let jumps = world.read_storage::<Jump>();
-        let locations = world.read_storage::<Location>();
+        let locations = world.read_storage::<LocationSpace>();
 
         let plan = navigations::create_plan(
             &entities,

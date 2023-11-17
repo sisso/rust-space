@@ -19,7 +19,7 @@ pub struct FfiOutputData<'a> {
     entities: Entities<'a>,
     events: Write<'a, Events>,
     output: Write<'a, FfiOutpusBuilder>,
-    location: ReadStorage<'a, Location>,
+    location: ReadStorage<'a, LocationSpace>,
     station: ReadStorage<'a, Station>,
     sectors: ReadStorage<'a, Sector>,
     jumps: ReadStorage<'a, Jump>,
@@ -61,7 +61,7 @@ impl<'a> System<'a> for FfiOutputSystem {
                             .sectors_new
                             .push(SectorNew::new(entity.as_u32(), &sector.coords.into()));
                     } else if let Some(jump) = data.jumps.get(entity) {
-                        let jump_location = data.location.get(entity).unwrap().as_space().unwrap();
+                        let jump_location = data.location.get(entity).unwrap();
 
                         output.jumps_new.push(JumpNew::new(
                             entity.as_u32(),

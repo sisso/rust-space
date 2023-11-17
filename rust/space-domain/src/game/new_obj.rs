@@ -2,7 +2,7 @@ use specs::prelude::*;
 
 use crate::game::building_site::BuildingSite;
 use crate::game::production_cost::ProductionCost;
-use commons::math::{Distance, Rad, P2, P2I};
+use commons::math::{Rad, P2, P2I};
 
 use crate::game::commands::Command;
 use crate::game::extractables::Extractable;
@@ -15,27 +15,16 @@ use crate::game::wares::{Cargo, Volume, WareAmount};
 use crate::game::work::WorkUnit;
 use crate::utils::*;
 
-#[derive(Debug, Clone, Component)]
-pub struct NewObjOrbit {
-    pub sector_id: SectorId,
-    pub parent: ObjId,
-    pub distance: Distance,
-    pub angle: Rad,
-    pub speed: Speed,
-    pub start_time: TotalTime,
-}
-
 #[derive(Debug, Clone, Component, Default)]
 pub struct NewObj {
     pub speed: Option<Speed>,
     pub cargo: Option<Cargo>,
     pub extractable: Option<Extractable>,
-    pub location: Option<Location>,
+    pub location_space: Option<LocationSpace>,
+    pub location_docked: Option<LocationDocked>,
     pub can_dock: bool,
     pub fleet: bool,
     pub docking: bool,
-    // TODO: What is the purpose of this if fleets already have commands? loader do not use it
-    pub ai: bool,
     pub station: bool,
     pub sector: Option<P2I>,
     pub jump_to: Option<(SectorId, P2)>,
@@ -49,7 +38,7 @@ pub struct NewObj {
     pub star: Option<()>,
     pub planet: Option<()>,
     pub asteroid: Option<()>,
-    pub orbit: Option<NewObjOrbit>,
+    pub location_orbit: Option<LocationOrbit>,
     pub building_site: Option<BuildingSite>,
     pub production_cost: Option<ProductionCost>,
 }
@@ -75,12 +64,12 @@ impl NewObj {
     }
 
     pub fn at_position(mut self, sector_id: SectorId, pos: P2) -> Self {
-        self.location = Some(Location::Space { pos, sector_id });
+        self.location_space = Some(LocationSpace { pos, sector_id });
         self
     }
 
-    pub fn at_dock(mut self, docked_id: ObjId) -> Self {
-        self.location = Some(Location::Dock { docked_id });
+    pub fn at_dock(mut self, parent_id: ObjId) -> Self {
+        self.location_docked = Some(LocationDocked { parent_id });
         self
     }
 
@@ -96,11 +85,6 @@ impl NewObj {
 
     pub fn can_dock(mut self) -> Self {
         self.can_dock = true;
-        self
-    }
-
-    pub fn with_ai(mut self) -> Self {
-        self.ai = true;
         self
     }
 
@@ -181,20 +165,18 @@ impl NewObj {
 
     pub fn with_orbit(
         mut self,
-        parent: ObjId,
-        sector_id: SectorId,
+        parent_id: ObjId,
         distance: f32,
-        angle: Rad,
+        start_angle: Rad,
         speed: Speed,
         start_time: TotalTime,
     ) -> Self {
-        self.orbit = Some(NewObjOrbit {
-            sector_id,
-            parent,
+        self.location_orbit = Some(LocationOrbit {
+            parent_id,
             distance,
-            angle,
-            speed,
             start_time,
+            speed,
+            start_angle,
         });
         self
     }

@@ -5,7 +5,7 @@ use super::*;
 
 use crate::game::events::{Event, EventKind, Events};
 
-use crate::game::dock::Docking;
+use crate::game::dock::HasDocking;
 
 pub struct UndockSystem;
 
@@ -14,8 +14,9 @@ pub struct UndockData<'a> {
     entities: Entities<'a>,
     actions: WriteStorage<'a, ActionActive>,
     actions_undock: WriteStorage<'a, ActionUndock>,
-    locations: WriteStorage<'a, Location>,
-    docking: WriteStorage<'a, Docking>,
+    locations_space: WriteStorage<'a, LocationSpace>,
+    locations_docked: WriteStorage<'a, LocationDocked>,
+    has_docking: WriteStorage<'a, HasDocking>,
     events: Write<'a, Events>,
 }
 
@@ -25,52 +26,51 @@ impl<'a> System<'a> for UndockSystem {
     fn run(&mut self, mut data: UndockData) {
         log::trace!("running");
 
-        let mut processed: Vec<(Entity, Option<(Location, Entity)>)> = vec![];
+        let mut processed: Vec<(Entity, Option<(LocationSpace, Entity)>)> = vec![];
 
-        for (entity, _, location) in (&*data.entities, &data.actions_undock, &data.locations).join()
+        for (id, _, docked_at) in (
+            &*data.entities,
+            &data.actions_undock,
+            data.locations_docked.maybe(),
+        )
+            .join()
         {
-            if let Some(docked_id) = location.as_docked() {
-                let target_location = data.locations.get(docked_id);
-                match target_location {
-                    Some(location @ Location::Space { .. }) => {
-                        log::debug!("{:?} un-docking from {:?}", entity, docked_id);
-                        processed.push((entity, Some((location.clone(), docked_id))));
+            if let Some(docked_at) = docked_at {
+                match data.locations_space.get(docked_at.parent_id) {
+                    Some(location) => {
+                        log::debug!("{:?} un-docking from {:?}", id, docked_at.parent_id);
+                        processed.push((id, Some((location.clone(), docked_at.parent_id))));
                     }
-                    _ => {
-                        log::warn!(
-                            "{:?} can not un-dock from {:?}, target has no location",
-                            entity,
-                            target_location
-                        );
-                        processed.push((entity, None))
+                    None => {
+                        log::warn!("{:?} can not un-dock, parent is not in space", id,);
+                        processed.push((id, None))
                     }
                 }
             } else {
-                log::debug!(
-                    "{:?} can not un-dock, ship is already in space {:?}, ignoring",
-                    entity,
-                    location,
-                );
-                processed.push((entity, None));
+                log::warn!("{:?} can no undock, it is not docked, ignoring", id);
+                processed.push((id, None))
             }
         }
 
         let events = &mut data.events;
 
         for (entity, location_and_docked_id) in processed {
-            if let Some((location, docked_id)) = location_and_docked_id {
+            if let Some((new_location, docked_id)) = location_and_docked_id {
                 // update entity location
-                data.locations.insert(entity, location).unwrap();
+                data.locations_space.insert(entity, new_location).unwrap();
+                data.locations_docked.remove(entity).unwrap();
 
                 // remove entity from docked
-                data.docking
+                data.has_docking
                     .get_mut(docked_id)
                     .expect("docked entity has no docking")
                     .docked
                     .retain(|id| *id != entity);
             }
+            // remove actions
             data.actions.remove(entity).unwrap();
             data.actions_undock.remove(entity).unwrap();
+            // generate events
             events.push(Event::new(entity, EventKind::Undock));
         }
     }
@@ -91,25 +91,25 @@ mod test {
 
             let station_id = world
                 .create_entity()
-                .with(Location::Space {
+                .with(LocationSpace {
                     pos: Position::new(0.0, 0.0),
                     sector_id: sector_id,
                 })
-                .with(Docking::default())
+                .with(HasDocking::default())
                 .build();
 
             let fleet_id = world
                 .create_entity()
                 .with(ActionActive(Action::Undock))
                 .with(ActionUndock)
-                .with(Location::Dock {
-                    docked_id: station_id,
+                .with(LocationDocked {
+                    parent_id: station_id,
                 })
                 .build();
 
             // update station docking
             world
-                .write_storage::<Docking>()
+                .write_storage::<HasDocking>()
                 .get_mut(station_id)
                 .unwrap()
                 .docked
@@ -121,10 +121,10 @@ mod test {
         // check fleet
         assert!(world.read_storage::<ActionActive>().get(fleet_id).is_none());
         assert!(world.read_storage::<ActionUndock>().get(fleet_id).is_none());
-        let storage = world.read_storage::<Location>();
+        let storage = world.read_storage::<LocationSpace>();
         let position = storage.get(fleet_id);
         match position {
-            Some(Location::Space { pos, .. }) => {
+            Some(LocationSpace { pos, .. }) => {
                 assert_v2(*pos, Position::new(0.0, 0.0));
             }
             _ => panic!(),
@@ -132,7 +132,7 @@ mod test {
 
         // check docking
         assert!(world
-            .read_storage::<Docking>()
+            .read_storage::<HasDocking>()
             .get(station_id)
             .unwrap()
             .docked
@@ -148,7 +148,7 @@ mod test {
                 .create_entity()
                 .with(ActionActive(Action::Undock))
                 .with(ActionUndock)
-                .with(Location::Space {
+                .with(LocationSpace {
                     pos: Position::new(0.0, 0.0),
                     sector_id,
                 })
@@ -159,10 +159,10 @@ mod test {
 
         assert!(world.read_storage::<ActionActive>().get(entity).is_none());
         assert!(world.read_storage::<ActionUndock>().get(entity).is_none());
-        let storage = world.read_storage::<Location>();
+        let storage = world.read_storage::<LocationSpace>();
         let position = storage.get(entity);
         match position {
-            Some(Location::Space { pos, .. }) => {
+            Some(LocationSpace { pos, .. }) => {
                 assert_v2(*pos, Position::new(0.0, 0.0));
             }
             _ => panic!(),

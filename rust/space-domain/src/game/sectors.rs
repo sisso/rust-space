@@ -4,7 +4,7 @@ use std::borrow::BorrowMut;
 use commons::math::{IntoP2Ext, P2, P2I};
 use std::time::Instant;
 
-use crate::game::locations::Location;
+use crate::game::locations::LocationSpace;
 use crate::game::objects::ObjId;
 use crate::game::{GameInitContext, RequireInitializer};
 use crate::utils::*;
@@ -62,7 +62,7 @@ impl<'a> System<'a> for UpdateIndexSystem {
         Entities<'a>,
         WriteStorage<'a, Sector>,
         ReadStorage<'a, Jump>,
-        ReadStorage<'a, Location>,
+        ReadStorage<'a, LocationSpace>,
     );
 
     fn run(&mut self, (entities, mut sectors, jumps, locations): Self::SystemData) {
@@ -76,9 +76,7 @@ impl<'a> System<'a> for UpdateIndexSystem {
                 to_sector: j.target_sector_id,
             };
 
-            let sector_id = l.get_sector_id().expect("jump must be in a sector");
-            let sector = sectors.get_mut(sector_id).expect("jump sector not found");
-
+            let sector = sectors.get_mut(l.sector_id).expect("jump sector not found");
             match sector.jumps_cache.as_mut() {
                 Some(list) => list.push(cache),
                 None => sector.jumps_cache = Some(vec![cache]),
@@ -92,7 +90,6 @@ impl<'a> System<'a> for UpdateIndexSystem {
 
 pub mod test_scenery {
     use super::*;
-    use crate::game::locations::Location;
 
     #[derive(Debug)]
     pub struct SectorScenery {
@@ -111,7 +108,7 @@ pub mod test_scenery {
 
     /// Setup 3 sector with jump gate connecting
     pub fn setup_sector_scenery(world: &mut World) -> SectorScenery {
-        world.register::<Location>();
+        world.register::<LocationSpace>();
         world.register::<Jump>();
         world.register::<Sector>();
 
@@ -138,7 +135,7 @@ pub mod test_scenery {
                 target_sector_id: sector_1,
                 target_pos: jump_1_to_0_pos,
             })
-            .with(Location::Space {
+            .with(LocationSpace {
                 pos: jump_0_to_1_pos,
                 sector_id: sector_0,
             })
@@ -150,7 +147,7 @@ pub mod test_scenery {
                 target_sector_id: sector_0,
                 target_pos: jump_0_to_1_pos,
             })
-            .with(Location::Space {
+            .with(LocationSpace {
                 pos: jump_1_to_0_pos,
                 sector_id: sector_1,
             })
@@ -162,7 +159,7 @@ pub mod test_scenery {
                 target_sector_id: sector_2,
                 target_pos: jump_2_to_1_pos,
             })
-            .with(Location::Space {
+            .with(LocationSpace {
                 pos: jump_1_to_2_pos,
                 sector_id: sector_1,
             })
@@ -174,7 +171,7 @@ pub mod test_scenery {
                 target_sector_id: sector_2,
                 target_pos: jump_1_to_2_pos,
             })
-            .with(Location::Space {
+            .with(LocationSpace {
                 pos: jump_2_to_1_pos,
                 sector_id: sector_2,
             })
@@ -211,7 +208,7 @@ pub fn find_path<'a>(
     entities: &Entities<'a>,
     sectors: &ReadStorage<'a, Sector>,
     jumps: &ReadStorage<'a, Jump>,
-    locations: &ReadStorage<'a, Location>,
+    locations: &ReadStorage<'a, LocationSpace>,
     from: SectorId,
     to: SectorId,
 ) -> Option<Vec<PathLeg>> {
@@ -222,7 +219,7 @@ pub fn find_path_raw<'a>(
     _entities: &Entities<'a>,
     sectors: &ReadStorage<'a, Sector>,
     jumps: &ReadStorage<'a, Jump>,
-    locations: &ReadStorage<'a, Location>,
+    locations: &ReadStorage<'a, LocationSpace>,
     from: SectorId,
     to: SectorId,
     algorithm: u8,
@@ -337,8 +334,7 @@ pub fn find_path_raw<'a>(
         let jump_pos = locations
             .get(jc.jump_id)
             .expect("jump id has no location")
-            .get_pos()
-            .unwrap();
+            .pos;
         let jump_target_pos = &jumps
             .get(jc.jump_id)
             .expect("jump id has no jump")
@@ -402,13 +398,13 @@ pub fn list(world: &World) -> Vec<Entity> {
 mod test {
     use super::test_scenery::setup_sector_scenery;
     use crate::game::events::Events;
-    use crate::game::locations::Location;
 
     use crate::game::sectors::{Jump, PathLeg, Sector, SectorId};
 
     use specs::prelude::*;
 
     use crate::game::label::Label;
+    use crate::game::locations::LocationSpace;
     use commons::math::P2I;
     use std::time::Instant;
 
@@ -453,7 +449,7 @@ mod test {
 
         let mut world = World::new();
         world.register::<Sector>();
-        world.register::<Location>();
+        world.register::<LocationSpace>();
         world.register::<Jump>();
         world.register::<Label>();
         world.insert(Events::default());
@@ -461,7 +457,7 @@ mod test {
         // [2021-11-13T12:45:56Z WARN  space_domain::game::sectors] create plan find_path 2.761989ms
         // number of edges 87, number of query nodes 1864,
         // from V2 { x: 12.0, y: 7.0 } to V2 { x: 31.0, y: 45.0 }
-        let size = 100;
+        let size = (10, 10);
         let p1 = P2I::new(12, 7);
         let p2 = P2I::new(31, 45);
 
@@ -470,7 +466,7 @@ mod test {
         let entities = &world.entities();
         let sectors = &world.read_storage::<Sector>();
         let jumps = &world.read_storage::<Jump>();
-        let locations = &world.read_storage::<Location>();
+        let locations = &world.read_storage::<LocationSpace>();
 
         let from = super::get_sector_by_coords(entities, sectors, p1).unwrap();
         let to = super::get_sector_by_coords(entities, sectors, p2).unwrap();
@@ -500,7 +496,7 @@ mod test {
             &world.entities(),
             &world.read_storage::<Sector>(),
             &world.read_storage::<Jump>(),
-            &world.read_storage::<Location>(),
+            &world.read_storage::<LocationSpace>(),
             from,
             to,
         )

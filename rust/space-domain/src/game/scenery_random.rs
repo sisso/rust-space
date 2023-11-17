@@ -1,13 +1,8 @@
-use crate::game::astrobody::AstroBodies;
-use crate::game::extractables::Extractable;
 use crate::game::loader::Loader;
-use crate::game::locations::Location;
-use crate::game::orbit::Orbits;
 use crate::game::sectors::Sector;
 use crate::game::shipyard::Shipyard;
-use crate::game::{conf, loader, sectors, shipyard, wares, Game};
-use commons::math::{P2, P2I, V2, V2I};
-use commons::unwrap_or_continue;
+use crate::game::{conf, loader, sectors, Game};
+use commons::math::{P2I, V2, V2I};
 use rand::prelude::*;
 use space_galaxy::system_generator;
 use specs::prelude::*;
@@ -174,7 +169,7 @@ fn add_bodies_to_sectors(
     //     }
     //
     //     // update orbits
-    //     let mut orbits = world.write_storage::<Location>();
+    //     let mut orbits = world.write_storage::<LocationSpace>();
     //
     //     for (obj_id, body) in &new_bodies {
     //         let obj_id = unwrap_or_continue!(obj_id);
@@ -335,7 +330,7 @@ mod test {
         loader::load_prefabs(&mut game.world, &cfg.prefabs);
 
         let rcfg = RandomMapCfg {
-            size: 3,
+            size: (3, 3),
             seed: 0,
             fleets: 3,
             universe_cfg: cfg.system_generator.clone().unwrap(),

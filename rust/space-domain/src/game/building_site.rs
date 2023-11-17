@@ -1,4 +1,4 @@
-use crate::game::locations::Location;
+use crate::game::locations::LocationSpace;
 use crate::game::prefab::{Prefab, PrefabId};
 use crate::game::wares::{Cargo, WareAmount};
 use specs::prelude::*;
@@ -20,7 +20,7 @@ pub struct BuildingSystem;
 impl<'a> System<'a> for BuildingSystem {
     type SystemData = (
         Entities<'a>,
-        WriteStorage<'a, Location>,
+        WriteStorage<'a, LocationSpace>,
         WriteStorage<'a, BuildingSite>,
         WriteStorage<'a, Cargo>,
         ReadStorage<'a, Prefab>,
@@ -60,7 +60,7 @@ impl<'a> System<'a> for BuildingSystem {
                 Some(prefab) => prefab.obj.clone(),
             };
 
-            new_obj.location = locations.get(e).cloned();
+            new_obj.location_space = locations.get(e).cloned();
             lazy.create_entity(&entities).with(new_obj).build();
             _ = entities.delete(e);
         }

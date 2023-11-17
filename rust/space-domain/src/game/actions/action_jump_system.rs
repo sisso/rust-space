@@ -2,12 +2,11 @@ use specs::prelude::*;
 
 use super::*;
 use crate::game::events::{Event, EventKind, Events};
-use crate::game::locations::Location;
+use crate::game::locations::LocationSpace;
 use crate::game::sectors::Jump;
 use std::borrow::BorrowMut;
 
 pub struct ActionJumpSystem;
-
 
 #[derive(SystemData)]
 pub struct ActionJumpData<'a> {
@@ -16,7 +15,7 @@ pub struct ActionJumpData<'a> {
     // sectors: Read<'a, Sectors>,
     actions: WriteStorage<'a, ActionActive>,
     actions_jump: WriteStorage<'a, ActionJump>,
-    locations: WriteStorage<'a, Location>,
+    locations_space: WriteStorage<'a, LocationSpace>,
     jumps: ReadStorage<'a, Jump>,
     events: Write<'a, Events>,
 }
@@ -74,11 +73,11 @@ impl<'a> System<'a> for ActionJumpSystem {
                 jump.target_pos,
             );
 
-            data.locations
+            data.locations_space
                 .borrow_mut()
                 .insert(
                     entity,
-                    Location::Space {
+                    LocationSpace {
                         pos: jump.target_pos,
                         sector_id: jump.target_sector_id,
                     },
@@ -96,7 +95,6 @@ impl<'a> System<'a> for ActionJumpSystem {
 mod test {
     use super::super::*;
     use super::*;
-    use crate::game::locations::Location;
     use crate::game::sectors::test_scenery;
     use crate::game::sectors::test_scenery::SectorScenery;
     use crate::test::{assert_v2, test_system};
@@ -115,7 +113,7 @@ mod test {
             .with(ActionJump {
                 complete_time: jump_time,
             })
-            .with(Location::Space {
+            .with(LocationSpace {
                 pos: scenery.jump_0_to_1_pos,
                 sector_id: scenery.sector_0,
             })
@@ -126,8 +124,8 @@ mod test {
     fn assert_jumped(world: &World, sector_scenery: &SectorScenery, entity: Entity) {
         assert!(world.read_storage::<ActionActive>().get(entity).is_none());
         assert!(world.read_storage::<ActionJump>().get(entity).is_none());
-        let storage = world.read_storage::<Location>();
-        let location = storage.get(entity).unwrap().as_space().unwrap();
+        let storage = world.read_storage::<LocationSpace>();
+        let location = storage.get(entity).unwrap();
         assert_eq!(location.sector_id, sector_scenery.sector_1);
         assert_v2(location.pos, sector_scenery.jump_1_to_0_pos);
     }
@@ -135,8 +133,8 @@ mod test {
     fn assert_not_jumped(world: &World, sector_scenery: &SectorScenery, entity: Entity) {
         assert!(world.read_storage::<ActionActive>().get(entity).is_some());
         assert!(world.read_storage::<ActionJump>().get(entity).is_some());
-        let storage = world.read_storage::<Location>();
-        let location = storage.get(entity).unwrap().as_space().unwrap();
+        let storage = world.read_storage::<LocationSpace>();
+        let location = storage.get(entity).unwrap();
         assert_eq!(location.sector_id, sector_scenery.sector_0);
         assert_v2(location.pos, sector_scenery.jump_0_to_1_pos);
     }

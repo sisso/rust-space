@@ -1,5 +1,5 @@
 use crate::game::commands::{Command, TradeState};
-use crate::game::locations::{EntityPerSectorIndex, Location, Locations};
+use crate::game::locations::{EntityPerSectorIndex, LocationDocked, LocationSpace, Locations};
 use crate::game::navigations::{NavRequest, Navigation};
 use crate::game::objects::ObjId;
 use crate::game::order::TradeOrders;
@@ -18,7 +18,8 @@ pub struct CommandTradeSystem;
 pub struct CommandTradeData<'a> {
     entities: Entities<'a>,
     total_time: Read<'a, TotalTime>,
-    locations: ReadStorage<'a, Location>,
+    locations: ReadStorage<'a, LocationSpace>,
+    locations_docked: ReadStorage<'a, LocationDocked>,
     commands: WriteStorage<'a, Command>,
     nav_request: WriteStorage<'a, NavRequest>,
     sector_index: Read<'a, EntityPerSectorIndex>,
@@ -100,7 +101,7 @@ impl<'a> System<'a> for CommandTradeSystem {
         let cargos = &data.cargos;
 
         // choose targets for pickup
-        for (_, entity, location, command) in (
+        for (_, id, _, command) in (
             idlers_pickup,
             &*data.entities,
             &data.locations,
@@ -108,9 +109,10 @@ impl<'a> System<'a> for CommandTradeSystem {
         )
             .join()
         {
-            let sector_id = Locations::resolve_space_position_from(&data.locations, &location)
-                .unwrap()
-                .sector_id;
+            let sector_id =
+                Locations::resolve_space_position(&data.locations, &data.locations_docked, id)
+                    .unwrap()
+                    .sector_id;
 
             let candidates = sectors_index.search_nearest_stations(sector_id).flat_map(
                 |(_sector_id, distance, candidate_id)| match orders
@@ -146,13 +148,13 @@ impl<'a> System<'a> for CommandTradeSystem {
             match utils::next_lower(candidates) {
                 Some(target_id) => {
                     pickup_targets.push(target_id);
-                    pickup_traders.add(entity.id());
+                    pickup_traders.add(id.id());
 
                     let wares = orders.get(target_id).unwrap().wares_provider();
 
                     log::debug!(
                         "{:?} found station {:?} to pickup {:?}",
-                        entity,
+                        id,
                         target_id,
                         wares,
                     );
@@ -165,7 +167,7 @@ impl<'a> System<'a> for CommandTradeSystem {
                     *command = Command::Trade(TradeState::Delay { deadline });
                     log::debug!(
                         "{:?} can not find a station to pickup, setting wait time of {:?} seconds",
-                        entity,
+                        id,
                         wait_time,
                     );
                 }
@@ -173,18 +175,18 @@ impl<'a> System<'a> for CommandTradeSystem {
         }
 
         // choose targets for deliver
-        for (_, entity, location, cargo, command) in (
+        for (_, id, cargo, command) in (
             idlers_deliver,
             &*data.entities,
-            &data.locations,
             &data.cargos,
             &mut data.commands,
         )
             .join()
         {
-            let sector_id = Locations::resolve_space_position_from(&data.locations, &location)
-                .unwrap()
-                .sector_id;
+            let sector_id =
+                Locations::resolve_space_position(&data.locations, &data.locations_docked, id)
+                    .unwrap()
+                    .sector_id;
 
             let wares_in_cargo: Vec<WareId> = cargo.get_wares_ids().collect();
 
@@ -221,7 +223,7 @@ impl<'a> System<'a> for CommandTradeSystem {
             match utils::next_lower(candidates) {
                 Some(target_id) => {
                     deliver_targets.push(target_id);
-                    deliver_traders.add(entity.id());
+                    deliver_traders.add(id.id());
 
                     let wares_requests = orders.get(target_id).unwrap().wares_requests();
                     assert!(!wares_requests.is_empty(), "request wares can not be empty");
@@ -235,7 +237,7 @@ impl<'a> System<'a> for CommandTradeSystem {
 
                     log::debug!(
                         "{:?} found station {:?} to deliver {:?}",
-                        entity,
+                        id,
                         target_id,
                         wares,
                     );
@@ -245,36 +247,29 @@ impl<'a> System<'a> for CommandTradeSystem {
                 None => {
                     log::warn!(
                         "{:?} can not find a station to deliver, discarding cargo",
-                        entity,
+                        id,
                     );
-                    discard_cargo.add(entity.id());
+                    discard_cargo.add(id.id());
                 }
             }
         }
 
         // deliver
-        for (_, entity, command, location) in (
-            deliver_traders,
-            &*data.entities,
-            &data.commands,
-            &data.locations,
-        )
-            .join()
-        {
+        for (_, id, command) in (deliver_traders, &*data.entities, &data.commands).join() {
             let (target_id, wares) = match &command {
                 Command::Trade(TradeState::Deliver { target_id, wares }) => (*target_id, wares),
                 _ => continue,
             };
 
-            if location.as_docked() == Some(target_id) {
-                let transfer = Cargos::move_only(&mut data.cargos, entity, target_id, wares);
+            if Locations::is_docked_at(&data.locations_docked, id, target_id) {
+                let transfer = Cargos::move_only(&mut data.cargos, id, target_id, wares);
                 if transfer.moved.is_empty() {
-                    log::warn!("{:?} fail to deliver wares {:?} to station {:?}, trader cargo is {:?}, station cargo is {:?}", entity, wares, target_id, data.cargos.get(entity), data.cargos.get(target_id));
-                    back_to_idle.add(entity.id());
+                    log::warn!("{:?} fail to deliver wares {:?} to station {:?}, trader cargo is {:?}, station cargo is {:?}", id, wares, target_id, data.cargos.get(id), data.cargos.get(target_id));
+                    back_to_idle.add(id.id());
                 } else {
                     log::info!(
                         "{:?} deliver wares {:?} to station {:?}",
-                        entity,
+                        id,
                         transfer,
                         target_id,
                     );
@@ -282,46 +277,39 @@ impl<'a> System<'a> for CommandTradeSystem {
             } else {
                 log::debug!(
                     "{:?} navigating to deliver wares {:?} at station {:?}",
-                    entity,
+                    id,
                     wares,
                     target_id,
                 );
                 data.nav_request
                     .borrow_mut()
-                    .insert(entity, NavRequest::MoveAndDockAt { target_id })
+                    .insert(id, NavRequest::MoveAndDockAt { target_id })
                     .unwrap();
             }
         }
 
         // pick up
-        for (_, entity, command, location) in (
-            pickup_traders,
-            &*data.entities,
-            &data.commands,
-            &data.locations,
-        )
-            .join()
-        {
+        for (_, id, command) in (pickup_traders, &*data.entities, &data.commands).join() {
             let (target_id, wares) = match &command {
                 Command::Trade(TradeState::PickUp { target_id, wares }) => (*target_id, wares),
                 _ => continue,
             };
 
-            if location.as_docked() == Some(target_id) {
-                let transfer = Cargos::move_only(&mut data.cargos, target_id, entity, wares);
+            if Locations::is_docked_at(&data.locations_docked, id, target_id) {
+                let transfer = Cargos::move_only(&mut data.cargos, target_id, id, wares);
                 if transfer.moved.is_empty() {
                     log::info!(
                         "{:?} fail to take wares {:?} from station {:?}, station cargo is {:?}",
-                        entity,
+                        id,
                         wares,
                         target_id,
                         data.cargos.get(target_id),
                     );
-                    back_to_idle.add(entity.id());
+                    back_to_idle.add(id.id());
                 } else {
                     log::info!(
                         "{:?} take wares {:?} from station {:?}",
-                        entity,
+                        id,
                         transfer,
                         target_id,
                     );
@@ -329,13 +317,13 @@ impl<'a> System<'a> for CommandTradeSystem {
             } else {
                 log::debug!(
                     "{:?} navigating to pick wares {:?} at station {:?}",
-                    entity,
+                    id,
                     wares,
                     target_id,
                 );
                 data.nav_request
                     .borrow_mut()
-                    .insert(entity, NavRequest::MoveAndDockAt { target_id })
+                    .insert(id, NavRequest::MoveAndDockAt { target_id })
                     .unwrap();
             }
         }
@@ -358,7 +346,7 @@ mod test {
     use super::*;
 
     use crate::game::commands::Command;
-    use crate::game::dock::Docking;
+    use crate::game::dock::HasDocking;
     use crate::game::locations::EntityPerSectorIndex;
     use crate::game::navigations::Navigation;
     use crate::game::objects::ObjId;
@@ -391,11 +379,11 @@ mod test {
     fn add_station(world: &mut World, sector_id: SectorId, orders: TradeOrders) -> ObjId {
         world
             .create_entity()
-            .with(Location::Space {
+            .with(LocationSpace {
                 pos: P2::ZERO,
                 sector_id,
             })
-            .with(Docking::default())
+            .with(HasDocking::default())
             .with(orders)
             .with(Cargo::new(STATION_CARGO))
             .build()
@@ -404,7 +392,7 @@ mod test {
     fn add_trader(world: &mut World, sector_id: SectorId) -> ObjId {
         world
             .create_entity()
-            .with(Location::Space {
+            .with(LocationSpace {
                 pos: P2::ZERO,
                 sector_id,
             })
@@ -414,7 +402,7 @@ mod test {
     }
 
     fn setup_scenery(world: &mut World) -> SceneryResult {
-        world.register::<Docking>();
+        world.register::<HasDocking>();
 
         world.insert(TotalTime(0.0));
 
@@ -508,12 +496,12 @@ mod test {
 
     fn set_docked_at(world: &mut World, ship_id: ObjId, target_id: ObjId) {
         world
-            .write_storage::<Location>()
+            .write_storage::<LocationDocked>()
             .borrow_mut()
             .insert(
                 ship_id,
-                Location::Dock {
-                    docked_id: target_id,
+                LocationDocked {
+                    parent_id: target_id,
                 },
             )
             .unwrap();

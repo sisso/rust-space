@@ -5,7 +5,7 @@ use super::*;
 
 use crate::game::events::{Event, EventKind, Events};
 
-use crate::game::dock::Docking;
+use crate::game::dock::HasDocking;
 use std::borrow::BorrowMut;
 
 pub struct DockSystem;
@@ -15,8 +15,9 @@ pub struct DockData<'a> {
     entities: Entities<'a>,
     actions: WriteStorage<'a, ActionActive>,
     actions_dock: WriteStorage<'a, ActionDock>,
-    locations: WriteStorage<'a, Location>,
-    docking: WriteStorage<'a, Docking>,
+    location_space: WriteStorage<'a, LocationSpace>,
+    location_docked: WriteStorage<'a, LocationDocked>,
+    docking: WriteStorage<'a, HasDocking>,
     events: Write<'a, Events>,
 }
 
@@ -26,9 +27,9 @@ impl<'a> System<'a> for DockSystem {
     fn run(&mut self, mut data: DockData) {
         log::trace!("running");
 
-        let mut processed: Vec<(Entity, Location)> = vec![];
+        let mut processed: Vec<(Entity, LocationDocked)> = vec![];
 
-        for (entity, action, _dock) in (&*data.entities, &data.actions, &data.actions_dock).join() {
+        for (entity, action, _) in (&*data.entities, &data.actions, &data.actions_dock).join() {
             let target_id = match action.get_action() {
                 Action::Dock { target_id } => target_id.clone(),
                 _ => continue,
@@ -39,8 +40,8 @@ impl<'a> System<'a> for DockSystem {
             // update entity location
             processed.push((
                 entity,
-                Location::Dock {
-                    docked_id: target_id,
+                LocationDocked {
+                    parent_id: target_id,
                 },
             ));
 
@@ -53,10 +54,12 @@ impl<'a> System<'a> for DockSystem {
         }
 
         let events = &mut data.events;
+
         for (entity, location) in processed {
             data.actions.borrow_mut().remove(entity).unwrap();
             data.actions_dock.borrow_mut().remove(entity).unwrap();
-            data.locations
+            data.location_space.borrow_mut().remove(entity).unwrap();
+            data.location_docked
                 .borrow_mut()
                 .insert(entity, location)
                 .unwrap();
@@ -69,7 +72,7 @@ impl<'a> System<'a> for DockSystem {
 mod test {
     use super::super::*;
     use super::*;
-    use crate::game::dock::Docking;
+    use crate::game::dock::HasDocking;
 
     use crate::test::test_system;
     use crate::utils::Position;
@@ -83,18 +86,18 @@ mod test {
 
             let station = world
                 .create_entity()
-                .with(Location::Space {
+                .with(LocationSpace {
                     pos: station_position,
                     sector_id: sector_0,
                 })
-                .with(Docking::default())
+                .with(HasDocking::default())
                 .build();
 
             let entity = world
                 .create_entity()
                 .with(ActionActive(Action::Dock { target_id: station }))
                 .with(ActionDock)
-                .with(Location::Space {
+                .with(LocationSpace {
                     pos: station_position,
                     sector_id: sector_0,
                 })
@@ -106,15 +109,15 @@ mod test {
         // check
         assert!(world.read_storage::<ActionActive>().get(entity).is_none());
         assert!(world.read_storage::<ActionDock>().get(entity).is_none());
-        let storage = world.read_storage::<Location>();
+        let storage = world.read_storage::<LocationDocked>();
         match storage.get(entity) {
-            Some(Location::Dock { docked_id }) => assert_eq!(*docked_id, station_id),
+            Some(LocationDocked { parent_id }) => assert_eq!(*parent_id, station_id),
             _ => panic!(),
         }
 
         // check if docked object contain the new obj
         let station_has_dock = world
-            .read_storage::<Docking>()
+            .read_storage::<HasDocking>()
             .get(station_id)
             .unwrap()
             .clone();

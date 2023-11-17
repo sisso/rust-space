@@ -43,9 +43,11 @@ pub enum Action {
     Dock {
         target_id: ObjId,
     },
+    // move to a position in the same sector
     MoveTo {
         pos: P2,
     },
+    // move to object in the same sector
     MoveToTargetPos {
         target_id: ObjId,
         last_position: Option<P2>,

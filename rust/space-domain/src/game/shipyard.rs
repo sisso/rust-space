@@ -270,13 +270,13 @@ impl<'a> System<'a> for ShipyardSystem {
 mod test {
     use crate::game::code::HasCode;
     use crate::game::commands::Command;
-    use crate::game::dock::Docking;
+    use crate::game::dock::HasDocking;
     use crate::game::label::Label;
     use crate::game::loader::Loader;
-    use crate::game::locations::Location;
+    use crate::game::locations::LocationDocked;
     use crate::game::order::TradeOrders;
     use crate::game::wares::{Volume, WareAmount, WareId};
-    use crate::test::{init_trace_log, test_system};
+    use crate::test::test_system;
     use crate::utils::DeltaTime;
 
     use super::*;
@@ -377,12 +377,11 @@ mod test {
 
         let new_obj: &NewObj = storage.as_slice().iter().last().unwrap();
 
-        assert!(new_obj.ai);
         assert!(new_obj.speed.is_some());
 
-        match &new_obj.location {
-            Some(Location::Dock { docked_id }) => {
-                assert_eq!(*docked_id, shipyard_id);
+        match &new_obj.location_docked {
+            Some(LocationDocked { parent_id }) => {
+                assert_eq!(*parent_id, shipyard_id);
             }
             other => {
                 panic!("unexpected location {:?}", other);
@@ -467,13 +466,12 @@ mod test {
         test_system(ShipyardSystem, move |world| {
             world.register::<HasCode>();
             world.register::<Label>();
-            world.register::<Docking>();
+            world.register::<HasDocking>();
 
             let ware_id = world.create_entity().with(Label::from("ore")).build();
             let new_obj = Loader::new_ship(2.0, "fleet".to_string())
                 .with_command(Command::mine())
-                .with_production_cost(TOTAL_WORK, vec![WareAmount::new(ware_id, REQUIRE_CARGO)])
-                .with_ai();
+                .with_production_cost(TOTAL_WORK, vec![WareAmount::new(ware_id, REQUIRE_CARGO)]);
             let prefab_id = Loader::add_prefab(world, "fleet", "fleet", new_obj, true, false);
 
             // create station prefab to check we never building it by mistake
@@ -508,7 +506,7 @@ mod test {
                 .with(Label::from("shipyard"))
                 .with(cargo)
                 .with(shipyard.clone())
-                .with(Docking::default())
+                .with(HasDocking::default())
                 .with(TradeOrders::default())
                 .build();
             log::trace!("creating shipyard {:?} {:?}", shipyard_id, shipyard);

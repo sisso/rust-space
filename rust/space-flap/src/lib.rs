@@ -14,7 +14,7 @@ pub use models::*;
 use space_domain::game::actions::{Action, ActionActive, Actions};
 use space_domain::game::astrobody::{AstroBodies, AstroBody, AstroBodyKind, OrbitalPos};
 use space_domain::game::conf::BlueprintCode;
-use space_domain::game::dock::Docking;
+use space_domain::game::dock::HasDocking;
 use space_domain::game::extractables::Extractable;
 use space_domain::game::factory::Factory;
 use space_domain::game::fleets::Fleet;
@@ -130,7 +130,7 @@ impl SpaceGame {
 
         let e_sector = decode_entity_and_get(&g, sector_id);
 
-        let locations = g.world.read_storage::<Location>();
+        let locations = g.world.read_storage::<LocationSpace>();
         let mut result = vec![];
         for (e, l) in (&entities, &locations).join() {
             if l.get_sector_id() == e_sector {
@@ -198,7 +198,7 @@ impl SpaceGame {
         let g = self.game.borrow();
 
         let entities = g.world.entities();
-        let locations = g.world.read_storage::<Location>();
+        let locations = g.world.read_storage::<LocationSpace>();
         let stations = g.world.read_storage::<Station>();
         let jumps = g.world.read_storage::<Jump>();
         let fleets = g.world.read_storage::<Fleet>();
@@ -275,7 +275,7 @@ impl SpaceGame {
         let entities = g.world.entities();
         let e = decode_entity_and_get(&g, id)?;
 
-        let locations = g.world.read_storage::<Location>();
+        let locations = g.world.read_storage::<LocationSpace>();
         let astros = g.world.read_storage::<AstroBody>();
         let orbits = g.world.read_storage::<OrbitalPos>();
 
@@ -329,7 +329,7 @@ impl SpaceGame {
 
         let docked_fleets = g
             .world
-            .read_storage::<Docking>()
+            .read_storage::<HasDocking>()
             .get(e)
             .map(|has_dock| {
                 has_dock
@@ -371,7 +371,7 @@ impl SpaceGame {
     pub fn get_obj_coords(&self, id: Id) -> Option<ObjCoords> {
         let game = self.game.borrow();
         let e = decode_entity_and_get(&game, id)?;
-        let locations = game.world.read_storage::<Location>();
+        let locations = game.world.read_storage::<LocationSpace>();
         let loc = locations.get(e)?;
         let ls = Locations::resolve_space_position_from(&locations, loc)?;
         let is_docked = loc.get_pos().is_none();

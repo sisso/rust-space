@@ -1,9 +1,9 @@
 use specs::prelude::*;
 
 use super::*;
-use crate::game::dock::Docking;
+use crate::game::dock::HasDocking;
 use crate::game::extractables::Extractable;
-use crate::game::locations::{EntityPerSectorIndex, Location};
+use crate::game::locations::{EntityPerSectorIndex, LocationDocked, LocationSpace};
 use crate::game::navigations::{NavRequest, Navigation};
 use crate::game::order::TradeOrders;
 use crate::game::wares::{Cargo, WareId};
@@ -29,7 +29,8 @@ pub struct CommandMineSystem;
 #[derive(SystemData)]
 pub struct CommandMineData<'a> {
     entities: Entities<'a>,
-    locations: ReadStorage<'a, Location>,
+    locations: ReadStorage<'a, LocationSpace>,
+    dockeds: ReadStorage<'a, LocationDocked>,
     commands: WriteStorage<'a, Command>,
     nav_request: WriteStorage<'a, NavRequest>,
     sector_index: Read<'a, EntityPerSectorIndex>,
@@ -38,7 +39,7 @@ pub struct CommandMineData<'a> {
     action_extract: ReadStorage<'a, ActionExtract>,
     action_request: WriteStorage<'a, ActionRequest>,
     extractable: ReadStorage<'a, Extractable>,
-    _docks: ReadStorage<'a, Docking>,
+    _docks: ReadStorage<'a, HasDocking>,
     orders: ReadStorage<'a, TradeOrders>,
 }
 
@@ -67,7 +68,7 @@ impl<'a> System<'a> for CommandMineSystem {
         }
 
         // find mine commands without action or navigation
-        for (entity, command, cargo, _, _, location) in (
+        for (id, command, cargo, _, _, location) in (
             &*data.entities,
             &mut data.commands,
             &data.cargos,
@@ -92,9 +93,10 @@ impl<'a> System<'a> for CommandMineSystem {
                 let target_id = match command.deliver_target_id {
                     Some(id) => id,
                     None => {
-                        let sector_id = Locations::resolve_space_position(locations, entity)
-                            .unwrap()
-                            .sector_id;
+                        let sector_id =
+                            Locations::resolve_space_position(locations, &data.dockeds, id)
+                                .unwrap()
+                                .sector_id;
 
                         let wares_to_deliver: Vec<WareId> = cargo.get_wares_ids().collect();
 
@@ -120,7 +122,7 @@ impl<'a> System<'a> for CommandMineSystem {
                     }
                 };
 
-                if location.as_docked() == Some(target_id) {
+                if Locations::is_docked_at(&data.dockeds, id, target_id) {
                     let target_has_space = !data
                         .cargos
                         .get(target_id)
@@ -130,26 +132,26 @@ impl<'a> System<'a> for CommandMineSystem {
                     if target_has_space {
                         log::debug!(
                             "{:?} miner cargo is full, transferring cargo to station {:?}",
-                            entity,
+                            id,
                             target_id,
                         );
-                        cargo_transfers.push((entity, target_id));
+                        cargo_transfers.push((id, target_id));
                     } else {
                         log::debug!(
                             "{:?} miner cargo is full, stations cargo is {:?} is full, waiting",
-                            entity,
+                            id,
                             target_id,
                         );
                     }
                 } else {
                     log::debug!(
                         "{:?} cargo full, command to navigate to station {:?}",
-                        entity,
+                        id,
                         target_id,
                     );
                     data.nav_request
                         .borrow_mut()
-                        .insert(entity, NavRequest::MoveAndDockAt { target_id })
+                        .insert(id, NavRequest::MoveAndDockAt { target_id })
                         .unwrap();
                 }
             } else {
@@ -157,12 +159,13 @@ impl<'a> System<'a> for CommandMineSystem {
                 let target_id = match command.mine_target_id {
                     Some(id) => id,
                     None => {
-                        let sector_id = Locations::resolve_space_position(locations, entity)
-                            .unwrap()
-                            .sector_id;
+                        let sector_id =
+                            Locations::resolve_space_position(locations, &data.dockeds, id)
+                                .unwrap()
+                                .sector_id;
 
                         let target_id =
-                            search_mine_target(sectors_index, &already_targets, entity, sector_id);
+                            search_mine_target(sectors_index, &already_targets, id, sector_id);
                         command.mine_target_id = Some(target_id);
                         command.deliver_target_id = None;
 
@@ -180,28 +183,21 @@ impl<'a> System<'a> for CommandMineSystem {
 
                     log::debug!(
                         "{:?} arrive at extractable {:?}, start extraction of {:?}",
-                        entity,
+                        id,
                         target_id,
                         ware_id,
                     );
 
                     data.action_request
                         .borrow_mut()
-                        .insert(
-                            entity,
-                            ActionRequest(Action::Extract { target_id, ware_id }),
-                        )
+                        .insert(id, ActionRequest(Action::Extract { target_id, ware_id }))
                         .unwrap();
                 } else {
-                    log::debug!(
-                        "{:?} command to move to extractable {:?}",
-                        entity,
-                        target_id,
-                    );
+                    log::debug!("{:?} command to move to extractable {:?}", id, target_id,);
                     // move to target
                     data.nav_request
                         .borrow_mut()
-                        .insert(entity, NavRequest::MoveToTarget { target_id })
+                        .insert(id, NavRequest::MoveToTarget { target_id })
                         .unwrap();
                 }
             }
@@ -257,7 +253,7 @@ mod test {
         ware_id: WareId,
     }
 
-    fn create_asteroid(world: &mut World, location: Location, ware_id: WareId) -> ObjId {
+    fn create_asteroid(world: &mut World, location: LocationSpace, ware_id: WareId) -> ObjId {
         world
             .create_entity()
             .with(location)
@@ -265,10 +261,12 @@ mod test {
             .build()
     }
 
-    fn create_miner(world: &mut World, location: Location) -> ObjId {
+    fn create_miner(world: &mut World, docked_at: ObjId) -> ObjId {
         world
             .create_entity()
-            .with(location)
+            .with(LocationDocked {
+                parent_id: docked_at,
+            })
             .with(Command::mine())
             .with(Cargo::new(100))
             .build()
@@ -282,7 +280,7 @@ mod test {
 
         let asteroid = create_asteroid(
             world,
-            Location::Space {
+            LocationSpace {
                 pos: V2::new(0.0, 0.0),
                 sector_id: sector_scenery.sector_0,
             },
@@ -292,31 +290,31 @@ mod test {
         let mut orders = TradeOrders::default();
         orders.add_request(TRADE_ORDER_ID_EXTRACTABLE, ware_id);
 
-        let station = world
+        let station_id = world
             .create_entity()
-            .with(Location::Space {
+            .with(LocationSpace {
                 pos: V2::new(0.0, 0.0),
                 sector_id: sector_scenery.sector_0,
             })
-            .with(Docking::default())
+            .with(HasDocking::default())
             .with(Cargo::new(1000))
             .with(orders)
             .build();
 
-        let miner = create_miner(world, Location::Dock { docked_id: station });
+        let miner_id = create_miner(world, station_id);
 
         // inject objects into the location index
         // TODO: how to test it easy?
         let mut entities_per_sector = EntityPerSectorIndex::new();
-        entities_per_sector.add_stations(sector_scenery.sector_0, station);
+        entities_per_sector.add_stations(sector_scenery.sector_0, station_id);
         entities_per_sector.add_extractable(sector_scenery.sector_0, asteroid);
         world.insert(entities_per_sector);
 
         let scenery = SceneryResult {
             sector_scenery,
-            miner,
+            miner: miner_id,
             asteroid,
-            station,
+            station: station_id,
             ware_id,
         };
 
@@ -335,7 +333,7 @@ mod test {
 
     fn move_miner_to_asteroid(world: &mut World, scenery: &SceneryResult) {
         // move ship to asteroid, should start to mine
-        let location_storage = &mut world.write_storage::<Location>();
+        let location_storage = &mut world.write_storage::<LocationSpace>();
         let asteroid_location = location_storage.get(scenery.asteroid);
         location_storage
             .insert(scenery.miner, asteroid_location.unwrap().clone())
@@ -523,7 +521,7 @@ mod test {
 
                 let asteroid_1 = create_asteroid(
                     world,
-                    Location::Space {
+                    LocationSpace {
                         pos: V2::new(0.0, 0.0),
                         sector_id: scenery.sector_scenery.sector_1,
                     },
@@ -532,7 +530,7 @@ mod test {
 
                 let asteroid_2 = create_asteroid(
                     world,
-                    Location::Space {
+                    LocationSpace {
                         pos: V2::new(0.5, 0.0),
                         sector_id: scenery.sector_scenery.sector_1,
                     },
@@ -543,12 +541,7 @@ mod test {
 
                 let mut miners = vec![scenery.miner];
                 for _ in 1..miners_count {
-                    let miner = create_miner(
-                        world,
-                        Location::Dock {
-                            docked_id: scenery.station,
-                        },
-                    );
+                    let miner = create_miner(world, scenery.station);
 
                     miners.push(miner);
                 }

@@ -1,22 +1,24 @@
+use rand::prelude::StdRng;
+use rand::{Rng, SeedableRng};
 use std::collections::HashMap;
 
-use rand::prelude::*;
 use specs::prelude::*;
 
 use commons;
+use commons::math;
 use commons::math::{Distance, Rad, P2, P2I};
 
 use crate::game::astrobody::{AstroBody, AstroBodyKind};
 use crate::game::building_site::BuildingSite;
 use crate::game::code::{Code, HasCode};
 use crate::game::commands::Command;
-use crate::game::dock::Docking;
+use crate::game::dock::HasDocking;
 use crate::game::events::{Event, EventKind, Events};
 use crate::game::extractables::Extractable;
 use crate::game::factory::{Factory, Receipt};
 use crate::game::fleets::Fleet;
 use crate::game::label::Label;
-use crate::game::locations::{Location, Moveable, Orbit};
+use crate::game::locations::{LocationOrbit, LocationSpace, Moveable};
 use crate::game::new_obj::NewObj;
 use crate::game::objects::ObjId;
 use crate::game::orbit::Orbits;
@@ -28,8 +30,9 @@ use crate::game::station::Station;
 use crate::game::wares::{CargoDistributionDirty, Ware, WareAmount, WareId, WaresByCode};
 use crate::game::{conf, prefab};
 use crate::specs_extras::*;
-use crate::utils::{DeltaTime, Speed, V2};
+use crate::utils::{DeltaTime, Speed, TotalTime, V2};
 
+/// AKA World editor
 pub struct Loader {}
 
 impl Loader {
@@ -156,7 +159,7 @@ impl Loader {
                 target_sector_id: to_sector_id,
                 target_pos: to_pos,
             })
-            .with(Location::Space {
+            .with(LocationSpace {
                 pos: from_pos,
                 sector_id: from_sector_id,
             })
@@ -168,7 +171,7 @@ impl Loader {
                 target_sector_id: from_sector_id,
                 target_pos: from_pos,
             })
-            .with(Location::Space {
+            .with(LocationSpace {
                 pos: to_pos,
                 sector_id: to_sector_id,
             })
@@ -228,7 +231,6 @@ impl Loader {
 
         // create new obj
         let mut orders = TradeOrders::default();
-        let mut update_docking: Option<ObjId> = None;
 
         if let Some(code) = new_obj.code.as_ref() {
             builder.set(HasCode {
@@ -243,30 +245,19 @@ impl Loader {
         }
 
         if new_obj.docking {
-            builder.set(Docking::default());
+            builder.set(HasDocking::default());
         }
 
-        if let Some(orbit) = new_obj.orbit.as_ref() {
-            builder.set(Location::Orbiting {
-                parent_id: orbit.parent,
-                pos: Default::default(),
-                sector_id: orbit.sector_id,
-                orbit: Orbit {
-                    radius: orbit.angle,
-                    starting: orbit.start_time,
-                    start_angle: orbit.angle,
-                    speed: orbit.speed,
-                },
-            });
-        } else if let Some(location) = &new_obj.location {
-            builder.set(location.clone());
+        if let Some(orbit) = new_obj.location_orbit.as_ref() {
+            builder.set(orbit.clone());
+        }
 
-            match location {
-                Location::Dock { docked_id } => {
-                    update_docking = Some(*docked_id);
-                }
-                _ => {}
-            }
+        if let Some(location) = &new_obj.location_space {
+            builder.set(location.clone());
+        }
+
+        if let Some(docked) = &new_obj.location_docked {
+            builder.set(docked.clone());
         }
 
         if let Some(speed) = &new_obj.speed {
@@ -357,25 +348,6 @@ impl Loader {
 
         let entity = builder.build();
 
-        // update docked
-        if let Some(docked_id) = update_docking {
-            world
-                .write_storage::<Docking>()
-                .get_mut(docked_id)
-                .unwrap()
-                .docked
-                .push(entity);
-        }
-
-        // // setup cargo
-        // if new_obj.cargo.is_some() {
-        //     Cargo::rearrange_cargo(world, entity);
-        //     // let mut wares_selector = vec![];
-        //     // if let Some(factory) = &new_obj.factory {
-        //     //     factory.setup_cargo(&mut cargo);
-        //     // }
-        // }
-
         log::debug!("add_object {:?} from {:?}", entity, new_obj);
 
         let events = &mut world.write_resource::<Events>();
@@ -427,64 +399,92 @@ impl Loader {
             .with_docking()
     }
 
-    pub fn set_orbiting(
+    pub fn set_obj_at_orbit(
         world: &mut World,
         obj_id: ObjId,
         parent_id: ObjId,
         distance: Distance,
-        radians: Rad,
+        angle: Rad,
         speed: Speed,
     ) {
-        Orbits::set_orbit(world, obj_id, parent_id, distance, radians, speed);
+        let total_time = *world.read_resource::<TotalTime>();
+        let mut orbits = world.write_storage::<LocationOrbit>();
+        orbits
+            .insert(
+                obj_id,
+                LocationOrbit {
+                    parent_id,
+                    distance,
+                    start_time: total_time,
+                    start_angle: angle,
+                    speed,
+                },
+            )
+            .unwrap();
+        drop(orbits);
+        Orbits::update_orbits(world);
     }
 }
 
-pub fn set_orbit_random_body(world: &mut World, obj_id: ObjId, seed: u64) {
-    todo!();
-    // let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
-    //
-    // let mut candidates = vec![];
-    //
-    // {
-    //     let entities = world.entities();
-    //     let locations = world.read_storage::<Location>();
-    //     let astros = world.read_storage::<AstroBody>();
-    //
-    //     let sector_id = match locations.get(obj_id).and_then(|i| i.as_space()) {
-    //         None => {
-    //             log::warn!("obj {:?} it is not in a sector to set a orbit", obj_id);
-    //             return;
-    //         }
-    //         Some(v) => v.sector_id,
-    //     };
-    //
-    //     for (id, l, _) in (&entities, &locations, &astros).join() {
-    //         if l.get_sector_id() != Some(sector_id) {
-    //             continue;
-    //         }
-    //
-    //         todo!()
-    //         // candidates.push((id, o.distance));
-    //     }
-    //
-    //     if candidates.len() == 0 {
-    //         log::warn!(
-    //             "not astro bodies candidates found for sector_id {:?}",
-    //             sector_id
-    //         );
-    //         return;
-    //     }
-    // }
-    //
-    // let selected = rng.gen_range(0..candidates.len());
-    // let mut base_radius = candidates[selected].1;
-    // // fix stars with radius 0
-    // if base_radius < 0.01 {
-    //     base_radius = 10.0;
-    // }
-    // let radius = rng.gen_range((base_radius * 0.1)..(base_radius * 0.5));
-    // let angle = rng.gen_range(0.0..math::TWO_PI);
-    // Orbits::set_orbit(world, obj_id, candidates[selected].0, radius, angle);
+pub fn set_orbit_random_body(
+    world: &mut World,
+    obj_id: ObjId,
+    seed: u64,
+) -> Result<ObjId, &'static str> {
+    let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
+
+    let mut candidates = vec![];
+    {
+        let entities = world.entities();
+        let locations = world.read_storage::<LocationSpace>();
+        let orbits = world.read_storage::<LocationOrbit>();
+        let astros = world.read_storage::<AstroBody>();
+
+        // get entity sector
+        let sector_id = match locations.get(obj_id).and_then(|i| i.as_space()) {
+            None => {
+                log::warn!(
+                    "obj {:?} it is not in a sector to set a orbit, skipping",
+                    obj_id
+                );
+                return Err("entity is not in sector");
+            }
+            Some(v) => v.sector_id,
+        };
+
+        // find all candidates in sector
+        for (i_id, l, _, o) in (&entities, &locations, &astros, orbits.maybe()).join() {
+            if i_id == obj_id {
+                continue;
+            }
+
+            if l.get_sector_id() != Some(sector_id) {
+                continue;
+            }
+
+            candidates.push((i_id, o.distance));
+        }
+
+        if candidates.len() == 0 {
+            log::warn!(
+                "not astro bodies candidates found for sector_id {:?}",
+                sector_id
+            );
+            return Err("no candidate in sector");
+        }
+    }
+
+    let selected = rng.gen_range(0..candidates.len());
+    let mut base_radius = candidates[selected].1;
+    // fix stars with radius 0
+    if base_radius < 0.01 {
+        base_radius = 10.0;
+    }
+    let radius = rng.gen_range((base_radius * 0.1)..(base_radius * 0.5));
+    let angle = rng.gen_range(0.0..math::TWO_PI);
+    Orbits::set_orbit(world, obj_id, candidates[selected].0, radius, angle);
+
+    Ok(candidates[selected].0)
 }
 
 // pub fn load_station_prefab(world: &mut World, station: &conf::Station) -> Option<Entity> {}
@@ -536,8 +536,7 @@ pub fn load_prefabs(world: &mut World, prefabs: &conf::Prefabs) {
         let mut obj = NewObj::new()
             .with_cargo_size(fleet.storage)
             .with_speed(Speed(fleet.speed))
-            .with_label(fleet.label.clone())
-            .with_ai();
+            .with_label(fleet.label.clone());
 
         if let Some(prod_cost) = fleet.production_cost.as_ref() {
             obj = obj.with_production_cost(
