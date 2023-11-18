@@ -3,7 +3,6 @@ use godot::obj::Gd;
 
 use space_flap::{Id, ObjAction, ObjActionKind, ObjCargo, ObjData, SpaceGame, WareData};
 
-use crate::game_api::GameApi;
 use crate::main_gui::{Description, LabeledId, MainGui};
 use crate::sector_view::SectorView;
 use crate::{main_gui, sector_view};
@@ -60,7 +59,7 @@ impl Runtime {
                 Err(err)
             });
 
-        let mut game = SpaceGame::new(vec![
+        let game = SpaceGame::new(vec![
             "--size-xy".to_string(),
             "2,1".to_string(),
             "--fleets".to_string(),

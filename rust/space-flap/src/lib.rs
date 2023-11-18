@@ -12,7 +12,7 @@ use specs::prelude::*;
 use commons::math::P2;
 pub use models::*;
 use space_domain::game::actions::{Action, ActionActive, Actions};
-use space_domain::game::astrobody::{AstroBodies, AstroBody, AstroBodyKind, OrbitalPos};
+use space_domain::game::astrobody::{AstroBodies, AstroBody, AstroBodyKind};
 use space_domain::game::conf::BlueprintCode;
 use space_domain::game::dock::HasDocking;
 use space_domain::game::extractables::Extractable;
@@ -20,7 +20,7 @@ use space_domain::game::factory::Factory;
 use space_domain::game::fleets::Fleet;
 use space_domain::game::label::Label;
 use space_domain::game::loader::Loader;
-use space_domain::game::locations::{Location, LocationSpace, Locations};
+use space_domain::game::locations::{LocationDocked, LocationOrbit, LocationSpace, Locations};
 use space_domain::game::navigations::{Navigation, NavigationMoveTo};
 use space_domain::game::objects::ObjId;
 use space_domain::game::order::TradeOrders;
@@ -128,12 +128,12 @@ impl SpaceGame {
 
         let entities = g.world.entities();
 
-        let e_sector = decode_entity_and_get(&g, sector_id);
+        let e_sector = decode_entity_and_get(&g, sector_id).unwrap();
 
         let locations = g.world.read_storage::<LocationSpace>();
         let mut result = vec![];
         for (e, l) in (&entities, &locations).join() {
-            if l.get_sector_id() == e_sector {
+            if l.sector_id == e_sector {
                 result.push(encode_entity(e));
             }
         }
@@ -199,24 +199,26 @@ impl SpaceGame {
 
         let entities = g.world.entities();
         let locations = g.world.read_storage::<LocationSpace>();
+        let docked = g.world.read_storage::<LocationDocked>();
         let stations = g.world.read_storage::<Station>();
         let jumps = g.world.read_storage::<Jump>();
         let fleets = g.world.read_storage::<Fleet>();
 
         let mut r = vec![];
-        for (e, flt, st, j, l) in (
+        for (id, flt, st, j, l, d) in (
             &entities,
             &fleets,
-            (&stations).maybe(),
-            (&jumps).maybe(),
-            &locations,
+            stations.maybe(),
+            jumps.maybe(),
+            locations.maybe(),
+            docked.maybe(),
         )
             .join()
         {
-            let ls = match Locations::resolve_space_position_from(&locations, l) {
+            let ls = match Locations::resolve_space_position(&locations, &docked, id) {
                 Some(l) => l,
                 None => {
-                    log::warn!("fail to resolve position for {:?}", e);
+                    log::warn!("fail to resolve position for {:?}", id);
                     continue;
                 }
             };
@@ -233,10 +235,10 @@ impl SpaceGame {
             };
 
             r.push(ObjData {
-                id: e,
+                id,
                 coords: ls.pos,
                 sector_id: ls.sector_id,
-                docked: l.as_docked(),
+                docked: d.map(|i| i.parent_id),
                 kind: kind,
                 orbit: None,
                 trade_orders: vec![],
@@ -277,12 +279,13 @@ impl SpaceGame {
 
         let locations = g.world.read_storage::<LocationSpace>();
         let astros = g.world.read_storage::<AstroBody>();
-        let orbits = g.world.read_storage::<OrbitalPos>();
+        let orbits = g.world.read_storage::<LocationOrbit>();
+        let loc_docked = g.world.read_storage::<LocationDocked>();
 
-        let loc = (&locations).get(e)?;
-        let ls = Locations::resolve_space_position_from(&locations, loc)?;
+        let ls = Locations::resolve_space_position(&locations, &loc_docked, e)?;
         let ab = astros.get(e);
-        let orb = orbits.get(e);
+        let orbit = orbits.get(e);
+        let docked = loc_docked.get(e);
 
         let kind = ObjKind {
             fleet: g.world.read_storage::<Fleet>().contains(e),
@@ -295,8 +298,8 @@ impl SpaceGame {
             shipyard: g.world.read_storage::<Shipyard>().contains(e),
         };
 
-        let orbit_data = orb.map(|o| {
-            let parent_pos = locations.get(o.parent).and_then(|i| i.as_space()).unwrap();
+        let orbit_data = orbit.map(|o| {
+            let parent_pos = locations.get(o.parent_id).unwrap();
             ObjOrbitData {
                 radius: o.distance,
                 parent_pos: parent_pos.pos,
@@ -313,7 +316,7 @@ impl SpaceGame {
             id: e,
             coords: ls.pos,
             sector_id: ls.sector_id,
-            docked: loc.as_docked(),
+            docked: docked.map(|d| d.parent_id),
             kind: kind,
             orbit: orbit_data,
             trade_orders,
@@ -371,10 +374,10 @@ impl SpaceGame {
     pub fn get_obj_coords(&self, id: Id) -> Option<ObjCoords> {
         let game = self.game.borrow();
         let e = decode_entity_and_get(&game, id)?;
-        let locations = game.world.read_storage::<LocationSpace>();
-        let loc = locations.get(e)?;
-        let ls = Locations::resolve_space_position_from(&locations, loc)?;
-        let is_docked = loc.get_pos().is_none();
+        let loc_spce = game.world.read_storage::<LocationSpace>();
+        let loc_docked = game.world.read_storage::<LocationDocked>();
+        let ls = Locations::resolve_space_position(&loc_spce, &loc_docked, e)?;
+        let is_docked = loc_docked.get(e).is_some();
         Some(ObjCoords {
             location: ls,
             is_docked,

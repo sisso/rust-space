@@ -8,7 +8,7 @@ use specs::Entity;
 use commons::math::P2;
 use space_domain::game::actions::Action;
 use space_domain::game::factory::Factory;
-use space_domain::game::locations::{Location, LocationSpace, Locations};
+use space_domain::game::locations::{LocationSpace, Locations};
 use space_domain::game::navigations::NavigationMoveTo;
 use space_domain::game::order::TradeOrders;
 use space_domain::game::sectors::Jump;
@@ -306,15 +306,13 @@ impl JumpData {
 
     pub fn get_sector_id(&self) -> Id {
         let g = self.game.borrow();
-        let locations = g.world.read_storage::<LocationSpace>();
-        let loc = Locations::resolve_space_position(&locations, self.entity);
+        let loc = Locations::resolve_space_position_from_world(&g.world, self.entity);
         encode_entity(loc.unwrap().sector_id)
     }
 
     pub fn get_coords(&self) -> (f32, f32) {
         let g = self.game.borrow();
-        let locations = g.world.read_storage::<LocationSpace>();
-        let loc = Locations::resolve_space_position(&locations, self.entity);
+        let loc = Locations::resolve_space_position_from_world(&g.world, self.entity);
         let pos = loc.unwrap().pos;
         (pos.x, pos.y)
     }

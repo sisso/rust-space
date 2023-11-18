@@ -163,6 +163,15 @@ impl Locations {
         Locations::is_near_maybe(pos_a, pos_b)
     }
 
+    pub fn resolve_space_position_from_world(
+        world: &World,
+        obj_id: ObjId,
+    ) -> Option<LocationSpace> {
+        let loc_space = world.read_storage::<LocationSpace>();
+        let loc_docked = world.read_storage::<LocationDocked>();
+        Locations::resolve_space_position(&loc_space, &loc_docked, obj_id)
+    }
+
     /// recursive search through docked entities until find what space position entity is at
     pub fn resolve_space_position<'a, D1, D2>(
         locations_space: &Storage<'a, LocationSpace, D1>,
