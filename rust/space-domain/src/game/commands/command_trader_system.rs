@@ -51,7 +51,7 @@ impl<'a> System<'a> for CommandTradeSystem {
         let total_time = data.total_time.borrow();
 
         // split traders between state
-        for (entity, command, cargo, _) in (
+        for (id, command, cargo, _) in (
             &*data.entities,
             &mut data.commands,
             &data.cargos,
@@ -68,32 +68,41 @@ impl<'a> System<'a> for CommandTradeSystem {
 
             match trade_state {
                 TradeState::Idle if cargo.is_empty() => {
-                    idlers_pickup.add(entity.id());
+                    log::trace!("{:?} selected as idle with empty cargo", id);
+                    idlers_pickup.add(id.id());
                 }
                 TradeState::Idle => {
-                    idlers_deliver.add(entity.id());
+                    log::trace!("{:?} selected as idle", id);
+                    idlers_deliver.add(id.id());
                 }
                 TradeState::PickUp { .. } if cargo.is_full() => {
+                    log::trace!("{:?} on pick up with full cargo, update as idle", id);
                     *command = Command::Trade(TradeState::Idle);
-                    idlers_deliver.add(entity.id());
+                    idlers_deliver.add(id.id());
                 }
                 TradeState::PickUp { target_id, .. } => {
+                    log::trace!("{:?} selected on pick up", id);
                     pickup_targets.push(*target_id);
-                    pickup_traders.add(entity.id());
+                    pickup_traders.add(id.id());
                 }
                 TradeState::Deliver { .. } if cargo.is_empty() => {
+                    log::trace!("{:?} on deliver with empty cargo, selected as idle", id);
                     *command = Command::Trade(TradeState::Idle);
-                    idlers_pickup.add(entity.id());
+                    idlers_pickup.add(id.id());
                 }
                 TradeState::Deliver { target_id, .. } => {
+                    log::trace!("{:?} selected as deliver", id);
                     deliver_targets.push(*target_id);
-                    deliver_traders.add(entity.id());
+                    deliver_traders.add(id.id());
                 }
                 TradeState::Delay { deadline } if total_time.is_after(*deadline) => {
+                    log::trace!("{:?} delayed with deadline, selected as idle", id);
                     *command = Command::Trade(TradeState::Idle);
-                    idlers_pickup.add(entity.id());
+                    idlers_pickup.add(id.id());
                 }
-                TradeState::Delay { .. } => {}
+                TradeState::Delay { .. } => {
+                    log::trace!("{:?} delayed, skipping", id);
+                }
             };
         }
 
@@ -101,14 +110,7 @@ impl<'a> System<'a> for CommandTradeSystem {
         let cargos = &data.cargos;
 
         // choose targets for pickup
-        for (_, id, _, command) in (
-            idlers_pickup,
-            &*data.entities,
-            &data.locations,
-            &mut data.commands,
-        )
-            .join()
-        {
+        for (_, id, command) in (idlers_pickup, &*data.entities, &mut data.commands).join() {
             let sector_id =
                 Locations::resolve_space_position(&data.locations, &data.locations_docked, id)
                     .unwrap()
@@ -426,7 +428,6 @@ mod test {
 
         let trader_id = add_trader(world, sector_id);
 
-        // TODO: remove it
         // inject objects into the location index
         let mut entities_per_sector = EntityPerSectorIndex::new();
         entities_per_sector.add_stations(sector_id, producer_station_id);

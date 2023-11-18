@@ -23,7 +23,6 @@ use std::borrow::Borrow;
 
 #[test]
 fn test_game_should_mine_and_deliver_cargo_to_mothership_until_produce_a_new_ship() {
-    init_trace_log();
     let mut game = Game::new();
     _ = sceneries::load_basic_mothership_scenery(&mut game);
     game.debug_dump();
@@ -36,7 +35,6 @@ fn test_game_should_mine_and_deliver_cargo_to_mothership_until_produce_a_new_shi
 
 #[test]
 fn test_game_should_mine_and_deliver_cargo_to_shipyard_until_produce_a_new_ship() {
-    init_trace_log();
     let mut game = Game::new();
     sceneries::load_basic_scenery(&mut game);
     game.debug_dump();
@@ -125,8 +123,6 @@ fn test_load_random_scenery() {
 
 #[test]
 fn test_mining_on_high_speed_with_orbiting_objects() {
-    init_trace_log();
-
     let mut game = Game::new();
 
     let rs = sceneries::load_basic_mothership_scenery(&mut game);

@@ -113,8 +113,8 @@ impl Component {
 #[derive(Clone, Debug)]
 struct ComponentItem {
     // pub damage: u32,
-// pub max_damage: u32,
-// pub working: u32,
+    // pub max_damage: u32,
+    // pub working: u32,
 }
 
 #[derive(Clone, Debug)]
@@ -435,10 +435,10 @@ pub struct ShipStats {
     pub speed: Speed,
 }
 
-fn round_width(value: f32) -> u32 {
-    value.ceil() as u32
-}
-
-fn round_weight(value: f32) -> u32 {
-    value.ceil() as u32
-}
+// fn round_width(value: f32) -> u32 {
+//     value.ceil() as u32
+// }
+//
+// fn round_weight(value: f32) -> u32 {
+//     value.ceil() as u32
+// }

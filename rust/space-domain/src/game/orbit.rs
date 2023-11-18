@@ -110,7 +110,7 @@ impl<'a> System<'a> for OrbitalPosSystem {
 
         let current_time = *time;
 
-        for (obj_id, orbit) in (&entities, &orbits).join() {
+        for (obj_id, _) in (&entities, &orbits).join() {
             let pos = match compute_orbital_pos(
                 &mut cache,
                 &locations_space,
@@ -156,8 +156,6 @@ mod test {
 
     #[test]
     fn test_orbits_system_should_resolve_positions() {
-        crate::test::init_trace_log();
-
         let (world, result) = crate::test::test_system(OrbitalPosSystem, move |world| {
             world.insert(TotalTime(0.0));
             create_system_1(world)
@@ -184,8 +182,6 @@ mod test {
                 .map(|(_, l)| l.pos)
                 .collect()
         }
-
-        crate::test::init_trace_log();
 
         let mut runner = TestSystemRunner::new(OrbitalPosSystem);
         runner.world.insert(TotalTime(0.0));

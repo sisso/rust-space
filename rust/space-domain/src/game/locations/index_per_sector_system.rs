@@ -30,24 +30,19 @@ impl<'a> System<'a> for IndexPerSectorSystem {
         index.clear();
 
         for (entity, location) in (&data.entities, &data.locations).join() {
-            match location {
-                LocationSpace { sector_id, .. } => {
-                    let sector_id = *sector_id;
+            let sector_id = location.sector_id;
 
-                    // log::trace!("indexing {:?} at {:?}", entity, sector_id);
-                    index.add(sector_id, entity);
+            // log::trace!("indexing {:?} at {:?}", entity, sector_id);
+            index.add(sector_id, entity);
 
-                    if data.extractables.contains(entity) {
-                        // log::trace!("indexing extractable {:?} at {:?}", entity, sector_id);
-                        index.add_extractable(sector_id, entity);
-                    }
+            if data.extractables.contains(entity) {
+                // log::trace!("indexing extractable {:?} at {:?}", entity, sector_id);
+                index.add_extractable(sector_id, entity);
+            }
 
-                    if data.stations.contains(entity) {
-                        // log::trace!("indexing stations {:?} at {:?}", entity, sector_id);
-                        index.add_stations(sector_id, entity);
-                    }
-                }
-                _ => {}
+            if data.stations.contains(entity) {
+                // log::trace!("indexing stations {:?} at {:?}", entity, sector_id);
+                index.add_stations(sector_id, entity);
             }
         }
     }

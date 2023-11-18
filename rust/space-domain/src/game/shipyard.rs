@@ -242,23 +242,6 @@ impl<'a> System<'a> for ShipyardSystem {
             }
         }
 
-        // // update request orders
-        // // TODO: should not override already existing orders, current is in conflict with
-        // //       factory on same entity
-        // for (shipyard_id, order_change) in orders_updates {
-        //     if let Some(order) = order_change {
-        //         log::debug!("{:?} adding request order {:?}", shipyard_id, order);
-        //         orders
-        //             .insert(shipyard_id, order)
-        //             .expect("fail to add request order to shipyard");
-        //     } else {
-        //         log::debug!("{:?} removing request order", shipyard_id);
-        //         orders
-        //             .remove(shipyard_id)
-        //             .expect("fail to remove request order for shipyard");
-        //     }
-        // }
-
         // create new objects
         for obj in produced_fleets {
             entities.build_entity().with(obj, &mut new_objects).build();
@@ -496,8 +479,8 @@ mod test {
             shipyard.production_order = next_order(prefab_id);
             shipyard.current_production =
                 current_production.map(|pending_work| ShipyardProduction {
-                    pending_work: pending_work,
-                    prefab_id: prefab_id,
+                    pending_work,
+                    prefab_id,
                 });
             shipyard.dirt_trade_order = true;
 

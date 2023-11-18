@@ -29,6 +29,21 @@ impl Wares {
             &[],
         );
     }
+
+    pub fn list_wares_by_code(world: &World) -> WaresByCode {
+        WaresByCode::new(world)
+    }
+
+    pub fn list_wares(world: &World) -> Vec<(Entity, String)> {
+        (
+            &world.entities(),
+            &world.read_storage::<Ware>(),
+            &world.read_storage::<HasCode>(),
+        )
+            .join()
+            .map(|(e, _, c)| (e, c.code.clone()))
+            .collect()
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -85,7 +100,7 @@ pub struct WaresByCode {
 impl WaresByCode {
     pub fn new(world: &World) -> Self {
         let mut map: HashMap<String, Entity> = Default::default();
-        for (e, code) in list_wares(world) {
+        for (e, code) in Wares::list_wares(world) {
             map.insert(code, e);
         }
         Self { map }
@@ -100,21 +115,6 @@ impl From<HashMap<String, Entity>> for WaresByCode {
     fn from(value: HashMap<String, Entity>) -> Self {
         Self { map: value }
     }
-}
-
-pub fn list_wares_by_code(world: &World) -> WaresByCode {
-    WaresByCode::new(world)
-}
-
-pub fn list_wares(world: &World) -> Vec<(Entity, String)> {
-    (
-        &world.entities(),
-        &world.read_storage::<Ware>(),
-        &world.read_storage::<HasCode>(),
-    )
-        .join()
-        .map(|(e, _, c)| (e, c.code.clone()))
-        .collect()
 }
 
 #[derive(Debug, Clone, Component, Default)]
@@ -375,8 +375,10 @@ impl Cargos {
         let transfer = CargoTransfer::transfer_impl(cargo_from, cargo_to, wares);
 
         log::trace!(
-            "move wares from {:?} to {:?}, transfer is {:?}, with filter {:?}",
+            "move wares from  {:?} {:?} to {:?} {:?}, transfer is {:?}, with filter {:?}",
+            from_id,
             cargo_from,
+            to_id,
             cargo_to,
             transfer,
             wares,

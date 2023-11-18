@@ -11,6 +11,7 @@ use crate::game::fleets::Fleet;
 use crate::game::loader::Loader;
 use crate::game::locations::Locations;
 use crate::game::navigations::Navigations;
+use crate::game::orbit::Orbits;
 use crate::game::order::TradeOrders;
 use crate::game::sectors::Sectors;
 use crate::game::shipyard::Shipyard;
@@ -107,6 +108,7 @@ impl Game {
         Fleet::init(&mut init_ctx);
         AstroBodies::init(&mut init_ctx);
         Wares::init(&mut init_ctx);
+        Orbits::init(&mut init_ctx);
         init_ctx
             .dispatcher
             .add(building_site::BuildingSystem, "buildings", &[]);

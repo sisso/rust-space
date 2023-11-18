@@ -18,7 +18,7 @@ use crate::game::extractables::Extractable;
 use crate::game::factory::{Factory, Receipt};
 use crate::game::fleets::Fleet;
 use crate::game::label::Label;
-use crate::game::locations::{LocationOrbit, LocationSpace, Moveable};
+use crate::game::locations::{LocationDocked, LocationOrbit, LocationSpace, Moveable};
 use crate::game::new_obj::NewObj;
 use crate::game::objects::ObjId;
 use crate::game::orbit::Orbits;
@@ -36,6 +36,8 @@ use crate::utils::{DeltaTime, Speed, TotalTime, V2};
 pub struct Loader {}
 
 impl Loader {
+    pub const DEFAULT_ORBIT_SPEED: Speed = Speed(500.0);
+
     pub fn add_asteroid(world: &mut World, sector_id: SectorId, pos: V2, ware_id: WareId) -> ObjId {
         let asteroid = Self::new_asteroid(sector_id)
             .with_label("asteroid".to_string())
@@ -155,6 +157,7 @@ impl Loader {
     ) -> (ObjId, ObjId) {
         let jump_from_id = world
             .create_entity()
+            .with(Label::from("jump"))
             .with(Jump {
                 target_sector_id: to_sector_id,
                 target_pos: to_pos,
@@ -306,7 +309,6 @@ impl Loader {
         for factory in &new_obj.factory {
             builder.set(factory.clone());
             for wa in &factory.production.input {
-                log::info!("adding request order for ware {:?}", wa);
                 orders.add_request(TRADE_ORDER_ID_FACTORY, wa.ware_id);
             }
             for wa in &factory.production.output {
@@ -424,6 +426,45 @@ impl Loader {
         drop(orbits);
         Orbits::update_orbits(world);
     }
+
+    pub fn set_obj_to_obj_position(world: &mut World, obj_id: ObjId, target_id: ObjId) {
+        let location_storage = &mut world.write_storage::<LocationSpace>();
+        let target_location = location_storage.get(target_id).unwrap().clone();
+
+        log::debug!(
+            "{:?} teleported to target {:?} location {:?}",
+            obj_id,
+            target_id,
+            target_location
+        );
+
+        location_storage.insert(obj_id, target_location).unwrap();
+
+        let docked = &mut world.write_storage::<LocationDocked>();
+        docked.remove(obj_id);
+    }
+
+    pub fn set_obj_position(world: &mut World, obj_id: ObjId, location_space: &LocationSpace) {
+        log::debug!("{:?} teleported to position {:?}", obj_id, location_space,);
+
+        let location_storage = &mut world.write_storage::<LocationSpace>();
+        location_storage
+            .insert(obj_id, location_space.clone())
+            .unwrap();
+
+        let docked = &mut world.write_storage::<LocationDocked>();
+        docked.remove(obj_id);
+    }
+
+    pub fn set_obj_docked(world: &mut World, obj_id: ObjId, parent_id: ObjId) {
+        log::debug!("{:?} teleported docked at {:?}", obj_id, parent_id,);
+
+        (&mut world.write_storage::<LocationSpace>()).remove(obj_id);
+        (&mut world.write_storage::<LocationOrbit>()).remove(obj_id);
+        (&mut world.write_storage::<LocationDocked>())
+            .insert(obj_id, LocationDocked { parent_id })
+            .unwrap();
+    }
 }
 
 pub fn set_orbit_random_body(
@@ -441,7 +482,7 @@ pub fn set_orbit_random_body(
         let astros = world.read_storage::<AstroBody>();
 
         // get entity sector
-        let sector_id = match locations.get(obj_id).and_then(|i| i.as_space()) {
+        let sector_id = match locations.get(obj_id) {
             None => {
                 log::warn!(
                     "obj {:?} it is not in a sector to set a orbit, skipping",
@@ -458,11 +499,11 @@ pub fn set_orbit_random_body(
                 continue;
             }
 
-            if l.get_sector_id() != Some(sector_id) {
+            if l.sector_id != sector_id {
                 continue;
             }
 
-            candidates.push((i_id, o.distance));
+            candidates.push((i_id, o.map(|i| i.distance).unwrap_or(10.0)));
         }
 
         if candidates.len() == 0 {
@@ -475,16 +516,16 @@ pub fn set_orbit_random_body(
     }
 
     let selected = rng.gen_range(0..candidates.len());
-    let mut base_radius = candidates[selected].1;
-    // fix stars with radius 0
-    if base_radius < 0.01 {
-        base_radius = 10.0;
-    }
+    let base_radius = candidates[selected].1;
+    // if base_radius < 0.01 {
+    //     base_radius = 10.0;
+    // }
     let radius = rng.gen_range((base_radius * 0.1)..(base_radius * 0.5));
     let angle = rng.gen_range(0.0..math::TWO_PI);
-    Orbits::set_orbit(world, obj_id, candidates[selected].0, radius, angle);
+    let parent_id = candidates[selected].0;
+    Loader::set_obj_at_orbit(world, obj_id, parent_id, radius, angle, Speed(500.0));
 
-    Ok(candidates[selected].0)
+    Ok(parent_id)
 }
 
 // pub fn load_station_prefab(world: &mut World, station: &conf::Station) -> Option<Entity> {}

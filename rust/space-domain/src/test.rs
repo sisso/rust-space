@@ -1,4 +1,5 @@
 use crate::utils::{MIN_DISTANCE, V2};
+use log::SetLoggerError;
 use specs::prelude::*;
 
 pub fn test_system<'a, SystemType, Callback, ReturnType>(
@@ -25,10 +26,10 @@ pub fn assert_v2(value: V2, expected: V2) {
     }
 }
 
-pub fn init_trace_log() {
-    _ = env_logger::builder()
+pub fn init_trace_log() -> Result<(), SetLoggerError> {
+    env_logger::builder()
         .filter(None, log::LevelFilter::Trace)
-        .try_init();
+        .try_init()
 }
 
 pub struct TestSystemRunner<'a> {

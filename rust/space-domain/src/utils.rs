@@ -1,8 +1,6 @@
 use commons::math::P2;
 use serde::{Deserialize, Serialize};
 use specs::Entity;
-use std::collections::HashMap;
-use std::hash::Hash;
 
 pub const MIN_DISTANCE: f32 = 0.01;
 pub const MIN_DISTANCE_SQR: f32 = MIN_DISTANCE * MIN_DISTANCE;
@@ -129,21 +127,21 @@ impl IdAsU32Support for Entity {
     }
 }
 
-struct CountBy<T: Hash + Eq> {
-    index: HashMap<T, f32>,
-}
+// struct CountBy<T: Hash + Eq> {
+//     index: HashMap<T, f32>,
+// }
 
-impl<T: Hash + Eq> CountBy<T> {
-    pub fn new() -> Self {
-        CountBy {
-            index: Default::default(),
-        }
-    }
-
-    pub fn add(&mut self, key: T) {
-        *self.index.entry(key).or_insert(0.0) += 1.0;
-    }
-}
+// impl<T: Hash + Eq> CountBy<T> {
+//     // pub fn new() -> Self {
+//     //     CountBy {
+//     //         index: Default::default(),
+//     //     }
+//     // }
+//
+//     pub fn add(&mut self, key: T) {
+//         *self.index.entry(key).or_insert(0.0) += 1.0;
+//     }
+// }
 
 #[test]
 fn test_total_time_give_us_hundred_years_game_60_fps_precision() {

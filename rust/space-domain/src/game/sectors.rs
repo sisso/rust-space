@@ -90,6 +90,8 @@ impl<'a> System<'a> for UpdateIndexSystem {
 
 pub mod test_scenery {
     use super::*;
+    use crate::game::label::Label;
+    use crate::game::locations::{LocationDocked, LocationOrbit};
 
     #[derive(Debug)]
     pub struct SectorScenery {
@@ -109,8 +111,11 @@ pub mod test_scenery {
     /// Setup 3 sector with jump gate connecting
     pub fn setup_sector_scenery(world: &mut World) -> SectorScenery {
         world.register::<LocationSpace>();
+        world.register::<LocationOrbit>();
+        world.register::<LocationDocked>();
         world.register::<Jump>();
         world.register::<Sector>();
+        world.register::<Label>();
 
         let sector_0 = world
             .create_entity()
@@ -457,7 +462,7 @@ mod test {
         // [2021-11-13T12:45:56Z WARN  space_domain::game::sectors] create plan find_path 2.761989ms
         // number of edges 87, number of query nodes 1864,
         // from V2 { x: 12.0, y: 7.0 } to V2 { x: 31.0, y: 45.0 }
-        let size = (10, 10);
+        let size = (100, 100);
         let p1 = P2I::new(12, 7);
         let p2 = P2I::new(31, 45);
 
