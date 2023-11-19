@@ -1,16 +1,13 @@
-use crate::space_domain::game::sceneries::BuilderBuild;
 extern crate space_domain;
 
 use space_domain::game::commands::Command;
 
-use commons::math::{P2, V2};
+use commons::math::P2;
 use space_domain::game;
 use space_domain::game::building_site::BuildingSite;
-use space_domain::game::conf::Fleet;
 use space_domain::game::label::Label;
 use space_domain::game::loader::Loader;
 use space_domain::game::sceneries;
-use space_domain::game::sceneries::SceneryBuilder;
 use space_domain::game::scenery_random::{InitialCondition, RandomMapCfg};
 use space_domain::game::station::Station;
 use space_domain::game::wares::WareAmount;

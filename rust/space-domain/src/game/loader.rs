@@ -523,7 +523,11 @@ pub fn set_orbit_random_body(
     let radius = rng.gen_range((base_radius * 0.1)..(base_radius * 0.5));
     let angle = rng.gen_range(0.0..math::TWO_PI);
     let parent_id = candidates[selected].0;
-    Loader::set_obj_at_orbit(world, obj_id, parent_id, radius, angle, Speed(500.0));
+
+    let base_speed = Loader::DEFAULT_ORBIT_SPEED.0;
+    let speed = Speed(rng.gen_range(base_speed * 0.5..base_speed * 1.5));
+    log::info!("radius{:?} speed {:?}", radius, speed.0);
+    Loader::set_obj_at_orbit(world, obj_id, parent_id, radius, angle, speed);
 
     Ok(parent_id)
 }
