@@ -1,5 +1,6 @@
 use godot::log::{godot_print, godot_warn};
 use godot::obj::Gd;
+use log::LevelFilter;
 
 use space_flap::{Id, ObjAction, ObjActionKind, ObjCargo, ObjData, SpaceGame, WareData};
 
@@ -43,21 +44,17 @@ pub struct Runtime {
 }
 
 impl Runtime {
-    pub fn new(sector_view: Gd<SectorView>, gui: Gd<MainGui>) -> Self {
+    pub fn new(sector_view: Gd<SectorView>, gui: Gd<MainGui>, log_level: LevelFilter) -> Self {
         log::info!("initializing game");
 
-        _ = env_logger::builder()
-            .filter_level(log::LevelFilter::Debug)
+        env_logger::builder()
+            .filter_level(log_level)
             // .filter(Some("world_view"), log::LevelFilter::Warn)
             // .filter(Some("space_flap"), log::LevelFilter::Warn)
             // .filter(Some("space_domain"), log::LevelFilter::Warn)
             // .filter(Some("space_domain::conf"), log::LevelFilter::Debug)
-            .filter(Some("space_domain::game::loader"), log::LevelFilter::Trace)
-            .try_init()
-            .or_else(|err| {
-                log::warn!("fail to initialize log {err:?}");
-                Err(err)
-            });
+            // .filter(Some("space_domain::game::loader"), log::LevelFilter::Trace)
+            .init();
 
         let game = SpaceGame::new(vec![
             "--size-xy".to_string(),

@@ -36,7 +36,7 @@ use crate::utils::{DeltaTime, Speed, TotalTime, V2};
 pub struct Loader {}
 
 impl Loader {
-    pub const DEFAULT_ORBIT_SPEED: Speed = Speed(500.0);
+    pub const DEFAULT_ORBIT_SPEED: Speed = Speed(5.0);
 
     pub fn add_asteroid(world: &mut World, sector_id: SectorId, pos: V2, ware_id: WareId) -> ObjId {
         let asteroid = Self::new_asteroid(sector_id)
@@ -465,6 +465,13 @@ impl Loader {
             .insert(obj_id, LocationDocked { parent_id })
             .unwrap();
     }
+
+    pub fn compute_orbit_speed(radius: Distance) -> Speed {
+        let base_speed = Loader::DEFAULT_ORBIT_SPEED.0;
+        let speed = math::map_value(radius, 1.0, 10.0, base_speed * 1.5, base_speed * 0.1);
+        // log::info!("{:?} radius {:?} speed {:?}", obj_id, radius, speed);
+        Speed(speed)
+    }
 }
 
 pub fn set_orbit_random_body(
@@ -524,9 +531,8 @@ pub fn set_orbit_random_body(
     let angle = rng.gen_range(0.0..math::TWO_PI);
     let parent_id = candidates[selected].0;
 
-    let base_speed = Loader::DEFAULT_ORBIT_SPEED.0;
-    let speed = Speed(rng.gen_range(base_speed * 0.5..base_speed * 1.5));
-    log::info!("radius{:?} speed {:?}", radius, speed.0);
+    let speed = Loader::compute_orbit_speed(radius);
+    log::trace!("{:?} radius {:?} speed {:?}", obj_id, radius, speed);
     Loader::set_obj_at_orbit(world, obj_id, parent_id, radius, angle, speed);
 
     Ok(parent_id)

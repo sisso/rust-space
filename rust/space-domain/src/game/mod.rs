@@ -150,7 +150,7 @@ impl Game {
     pub fn load(&mut self, _load: &mut impl Load) {}
 
     pub fn reindex_sectors(&mut self) {
-        log::info!("reindex_sectors");
+        log::trace!("reindex_sectors");
         sectors::update_sectors_index(&self.world);
         locations::update_locations_index(&self.world)
     }

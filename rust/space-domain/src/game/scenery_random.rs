@@ -13,6 +13,7 @@ use rand::prelude::*;
 use space_galaxy::system_generator;
 use specs::prelude::*;
 use specs::World;
+use std::any::Any;
 use std::collections::HashSet;
 
 pub enum InitialCondition {
@@ -199,13 +200,20 @@ fn add_bodies_to_sectors(
                 }
             };
 
+            let speed = Loader::compute_orbit_speed(body.distance);
             let orbit = LocationOrbit {
                 parent_id: *parent_obj_id,
                 distance: body.distance,
                 start_time: total_time,
                 start_angle: body.angle,
-                speed: Loader::DEFAULT_ORBIT_SPEED,
+                speed: speed,
             };
+            log::trace!(
+                "{:?} on orbit radius {:?} setted speed {:?}",
+                obj_id,
+                body.distance,
+                speed.0
+            );
             orbits.insert(*obj_id, orbit).unwrap();
         }
     }

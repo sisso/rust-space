@@ -32,8 +32,9 @@ pub fn compute_orbit_local_pos(
     speed: Speed,
     current_time: TotalTime,
 ) -> P2 {
+    let base = math::TWO_PI as f64 / 10000.0f64;
     let angle = initial_angle as f64
-        + (current_time.as_f64() - start_time.as_f64()) * (math::TWO_PI as f64 / speed.0 as f64);
+        + (current_time.as_f64() - start_time.as_f64()) * (base * speed.0 as f64);
     math::rotate_vector_by_angle(P2::new(radius, 0.0), angle as f32).into()
 }
 

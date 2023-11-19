@@ -66,7 +66,7 @@ impl<'a> System<'a> for UpdateIndexSystem {
     );
 
     fn run(&mut self, (entities, mut sectors, jumps, locations): Self::SystemData) {
-        log::info!("indexing sectors");
+        log::debug!("indexing sectors");
         let start = Instant::now();
         let sectors = sectors.borrow_mut();
 
@@ -84,7 +84,7 @@ impl<'a> System<'a> for UpdateIndexSystem {
         }
 
         let total = Instant::now() - start;
-        log::info!("indexing sector complete in {:?}", total);
+        log::debug!("indexing sector complete in {:?}", total);
     }
 }
 
