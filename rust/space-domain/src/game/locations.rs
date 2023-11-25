@@ -28,6 +28,18 @@ pub struct LocationOrbit {
     pub speed: Speed,
 }
 
+impl LocationOrbit {
+    pub fn new(target_id: ObjId) -> Self {
+        LocationOrbit {
+            parent_id: target_id,
+            distance: 0.0,
+            start_time: Default::default(),
+            start_angle: 0.0,
+            speed: Speed(0.0),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Copy, Component)]
 pub struct LocationDocked {
     pub parent_id: ObjId,
@@ -163,6 +175,7 @@ impl Locations {
         Locations::is_near_maybe(pos_a, pos_b)
     }
 
+    /// same as resolve_space_position, but receive a world and the storages are fetched from it
     pub fn resolve_space_position_from_world(
         world: &World,
         obj_id: ObjId,

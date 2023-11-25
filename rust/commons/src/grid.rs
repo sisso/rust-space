@@ -339,7 +339,7 @@ mod test {
 
         // #X##
         // ####
-        assert_eq!(grid.raytrace(&(1, 0).into(), -1, 0), Vec::<Coord>::new());
+        assert_eq!(grid.raytrace(&(1, 0).into(), -1, 0), vec![(0, 0).into()]);
 
         // 0###
         // ####

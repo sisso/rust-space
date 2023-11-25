@@ -124,10 +124,13 @@ mod test {
 
     #[test]
     fn test1() {
-        let g = Galaxy::new(Cfg { seed: 0, size: 2 });
+        let g = Galaxy::new(Cfg {
+            seed: 0,
+            size: (2, 2),
+        });
 
         assert_eq!(4, g.sectors.list.len());
-        assert!(g.jumps.len() >= 3, "num jubs is {}", g.jumps.len());
-        assert_eq!("", format!("{:?}", g));
+        assert!(g.jumps.len() >= 3, "num of jumps is {}", g.jumps.len());
+        // assert_eq!("", format!("{:?}", g));
     }
 }

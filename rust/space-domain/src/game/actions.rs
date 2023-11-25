@@ -17,6 +17,7 @@ use crate::game::actions::action_move_to_system::ActionMoveToSystem;
 use crate::game::actions::action_progress_system::ActionProgressSystem;
 use crate::game::actions::action_request_handler_system::ActionRequestHandlerSystem;
 use crate::game::actions::action_undock_system::UndockSystem;
+use crate::game::actions::actions_system::ActionsSystem;
 use crate::game::sectors::JumpId;
 use crate::game::wares::WareId;
 use crate::game::{GameInitContext, RequireInitializer};
@@ -29,6 +30,7 @@ mod action_move_to_system;
 mod action_progress_system;
 mod action_request_handler_system;
 mod action_undock_system;
+mod actions_system;
 
 pub const ACTION_JUMP_TOTAL_TIME: DeltaTime = DeltaTime(2.0);
 
@@ -55,6 +57,10 @@ pub enum Action {
     Extract {
         target_id: ObjId,
         ware_id: WareId,
+    },
+    Deorbit,
+    Orbit {
+        target_id: ObjId,
     },
 }
 
@@ -90,7 +96,8 @@ impl ActionRequest {
     }
 }
 
-/// Current action that entity is doing
+/// Current action that entity is doing, it is the source of truth. Others sidecart components can
+/// to hold state or route into proper system
 #[derive(Debug, Clone, Component)]
 pub struct ActionActive(pub Action);
 
@@ -123,6 +130,9 @@ pub struct ActionExtract;
 pub struct ActionJump {
     complete_time: Option<TotalTime>,
 }
+
+#[derive(Debug, Clone, Component)]
+pub struct ActionGeneric {}
 
 impl ActionJump {
     pub fn new() -> Self {
@@ -160,7 +170,7 @@ impl RequireInitializer for Actions {
             .add(ActionMoveToSystem, "action_move_to", &default_dependencies);
         context
             .dispatcher
-            .add(DockSystem, "action_dock_to", &["action_request_handler"]);
+            .add(DockSystem, "action_dock_to", &default_dependencies);
         context
             .dispatcher
             .add(UndockSystem, "action_undock_to", &default_dependencies);
@@ -170,5 +180,8 @@ impl RequireInitializer for Actions {
         context
             .dispatcher
             .add(ActionExtractSystem, "action_extract", &default_dependencies);
+        context
+            .dispatcher
+            .add(ActionsSystem, "action", &default_dependencies);
     }
 }

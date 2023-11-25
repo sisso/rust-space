@@ -350,7 +350,7 @@ mod test {
     use crate::game::commands::Command;
     use crate::game::dock::HasDocking;
     use crate::game::locations::EntityPerSectorIndex;
-    use crate::game::navigations::Navigation;
+    use crate::game::navigations::{Navigation, NavigationPlan};
     use crate::game::objects::ObjId;
     use crate::game::order::{TradeOrders, TRADE_ORDER_ID_FACTORY};
     use crate::game::sectors::SectorId;
@@ -358,6 +358,7 @@ mod test {
     use crate::test::test_system;
     use crate::utils::TotalTime;
 
+    use crate::game::actions::Action;
     use commons::math::P2;
     use std::borrow::{Borrow, BorrowMut};
 
@@ -535,7 +536,19 @@ mod test {
         world
             .write_storage::<Navigation>()
             .borrow_mut()
-            .insert(ship_id, Navigation::MoveTo {})
+            .insert(
+                ship_id,
+                Navigation {
+                    request: NavRequest::MoveToTarget { target_id: ship_id },
+                    plan: NavigationPlan {
+                        path: [Action::MoveToTargetPos {
+                            target_id: ship_id,
+                            last_position: None,
+                        }]
+                        .into(),
+                    },
+                },
+            )
             .unwrap();
     }
 

@@ -3,7 +3,7 @@ use specs::prelude::*;
 use super::*;
 use crate::game::dock::HasDocking;
 use crate::game::extractables::Extractable;
-use crate::game::locations::{EntityPerSectorIndex, LocationDocked, LocationSpace};
+use crate::game::locations::{EntityPerSectorIndex, LocationDocked, LocationOrbit, LocationSpace};
 use crate::game::navigations::{NavRequest, Navigation};
 use crate::game::order::TradeOrders;
 use crate::game::wares::{Cargo, WareId};
@@ -41,6 +41,7 @@ pub struct CommandMineData<'a> {
     extractable: ReadStorage<'a, Extractable>,
     _docks: ReadStorage<'a, HasDocking>,
     orders: ReadStorage<'a, TradeOrders>,
+    orbiting: ReadStorage<'a, LocationOrbit>,
 }
 
 impl<'a> System<'a> for CommandMineSystem {
@@ -68,13 +69,13 @@ impl<'a> System<'a> for CommandMineSystem {
         }
 
         // find mine commands without action or navigation
-        for (id, mut command, cargo, _, _, maybe_location) in (
+        for (id, mut command, cargo, _, _, maybe_orbit) in (
             &*data.entities,
             &mut data.commands,
             &data.cargos,
             !&data.navigation,
             !&data.action_extract,
-            data.locations.maybe(),
+            data.orbiting.maybe(),
         )
             .join()
         {
@@ -159,7 +160,7 @@ impl<'a> System<'a> for CommandMineSystem {
                         .unwrap();
                 }
             } else {
-                // mine for non full cargo
+                // cargo is not full
                 let target_id = match command.mine_target_id {
                     Some(id) => id,
                     None => {
@@ -185,25 +186,15 @@ impl<'a> System<'a> for CommandMineSystem {
                     }
                 };
 
-                // navigate to mine
-                let target_location = if let Some(target_location) = locations.get(target_id) {
-                    target_location
-                } else {
-                    log::warn!(
-                        "{:?} can not deliver to {:?}, it has it is not on space",
-                        id,
-                        target_id
-                    );
-                    continue;
-                };
-
-                match maybe_location {
-                    Some(location) if Locations::is_near(location, &target_location) => {
-                        // find extractable ware id
+                // check if is already orbiting the target
+                match maybe_orbit {
+                    Some(orbit) if orbit.parent_id == target_id => {
+                        // find extractable ware id, currently take any,
+                        // future: choose based on demand
                         let ware_id = data.extractable.get(target_id).unwrap().ware_id;
 
                         log::debug!(
-                            "{:?} arrive at extractable {:?}, start extraction of {:?}",
+                            "{:?} orbiting extractable {:?}, start extraction of {:?}",
                             id,
                             target_id,
                             ware_id,
@@ -219,7 +210,7 @@ impl<'a> System<'a> for CommandMineSystem {
                         // move to target
                         data.nav_request
                             .borrow_mut()
-                            .insert(id, NavRequest::MoveToTarget { target_id })
+                            .insert(id, NavRequest::OrbitTarget { target_id })
                             .unwrap();
                     }
                 }
@@ -267,7 +258,7 @@ mod test {
 
     use crate::game::sectors::test_scenery::SectorScenery;
     use crate::game::wares::WareId;
-    use crate::test::test_system;
+    use crate::test::{init_trace_log, test_system};
 
     #[derive(Debug)]
     struct SceneryResult {
@@ -357,8 +348,8 @@ mod test {
             .unwrap();
     }
 
-    fn move_miner_to_asteroid(world: &mut World, scenery: &SceneryResult) {
-        Loader::set_obj_to_obj_position(world, scenery.miner_id, scenery.asteroid_id);
+    fn set_miner_to_asteroid_orbit(world: &mut World, scenery: &SceneryResult) {
+        Loader::set_obj_to_obj_orbit(world, scenery.miner_id, scenery.asteroid_id);
     }
 
     #[test]
@@ -380,18 +371,20 @@ mod test {
 
         let request_storage = world.read_storage::<NavRequest>();
         match request_storage.get(scenery.miner_id) {
-            Some(NavRequest::MoveToTarget { target_id: target }) => {
+            Some(NavRequest::OrbitTarget { target_id: target }) => {
                 assert_eq!(target.clone(), scenery.asteroid_id);
             }
-            _ => panic!(),
+            other => panic!("invalid request {:?}", other),
         }
     }
 
     #[test]
     fn test_command_mine_should_mine() {
+        init_trace_log().unwrap();
+
         let (world, scenery) = test_system(CommandMineSystem, |world| {
             let scenery = setup_scenery(world);
-            move_miner_to_asteroid(world, &scenery);
+            set_miner_to_asteroid_orbit(world, &scenery);
             scenery
         });
         let action = world
@@ -440,7 +433,7 @@ mod test {
         let (world, scenery) = test_system(CommandMineSystem, |world| {
             let scenery = setup_scenery(world);
 
-            move_miner_to_asteroid(world, &scenery);
+            set_miner_to_asteroid_orbit(world, &scenery);
 
             // fill miner cargo
             let cargo_storage = &mut world.write_storage::<Cargo>();

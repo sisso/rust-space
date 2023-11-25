@@ -91,7 +91,6 @@ impl<'a> System<'a> for UpdateIndexSystem {
 pub mod test_scenery {
     use super::*;
     use crate::game::label::Label;
-    use crate::game::locations::{LocationDocked, LocationOrbit};
 
     #[derive(Debug)]
     pub struct SectorScenery {
@@ -111,8 +110,6 @@ pub mod test_scenery {
     /// Setup 3 sector with jump gate connecting
     pub fn setup_sector_scenery(world: &mut World) -> SectorScenery {
         world.register::<LocationSpace>();
-        world.register::<LocationOrbit>();
-        world.register::<LocationDocked>();
         world.register::<Jump>();
         world.register::<Sector>();
         world.register::<Label>();

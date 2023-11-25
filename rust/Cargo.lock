@@ -1669,6 +1669,7 @@ version = "0.1.0"
 dependencies = [
  "commons",
  "env_logger 0.7.1",
+ "env_logger 0.9.3",
  "flapigen",
  "itertools 0.10.5",
  "log",

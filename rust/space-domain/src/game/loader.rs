@@ -427,6 +427,29 @@ impl Loader {
         Orbits::update_orbits(world);
     }
 
+    pub fn set_obj_to_obj_orbit(world: &mut World, obj_id: ObjId, target_id: ObjId) {
+        let location_storage = &mut world.write_storage::<LocationSpace>();
+        let target_location = location_storage.get(target_id).unwrap().clone();
+
+        log::debug!(
+            "{:?} teleported to target {:?} orbit location {:?}",
+            obj_id,
+            target_id,
+            target_location
+        );
+        location_storage
+            .insert(obj_id, target_location)
+            .expect("fail to set obj position");
+
+        world
+            .write_storage::<LocationOrbit>()
+            .insert(obj_id, LocationOrbit::new(target_id))
+            .expect("fail to set obj in orbit");
+
+        // remove if docked
+        _ = world.write_storage::<LocationDocked>().remove(obj_id);
+    }
+
     pub fn set_obj_to_obj_position(world: &mut World, obj_id: ObjId, target_id: ObjId) {
         let location_storage = &mut world.write_storage::<LocationSpace>();
         let target_location = location_storage.get(target_id).unwrap().clone();
@@ -440,8 +463,8 @@ impl Loader {
 
         location_storage.insert(obj_id, target_location).unwrap();
 
-        let docked = &mut world.write_storage::<LocationDocked>();
-        docked.remove(obj_id);
+        // remove if docked
+        _ = world.write_storage::<LocationDocked>().remove(obj_id);
     }
 
     pub fn set_obj_position(world: &mut World, obj_id: ObjId, location_space: &LocationSpace) {

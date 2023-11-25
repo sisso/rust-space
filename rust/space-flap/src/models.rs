@@ -9,7 +9,7 @@ use commons::math::P2;
 use space_domain::game::actions::Action;
 use space_domain::game::factory::Factory;
 use space_domain::game::locations::{LocationSpace, Locations};
-use space_domain::game::navigations::NavigationMoveTo;
+use space_domain::game::navigations::{NavRequest, Navigation};
 use space_domain::game::order::TradeOrders;
 use space_domain::game::sectors::Jump;
 use space_domain::game::shipyard::{ProductionOrder, Shipyard};
@@ -27,6 +27,8 @@ pub enum EventKind {
     Jump,
     Dock,
     Undock,
+    Orbit,
+    Deorbit,
 }
 
 #[derive(Clone, Debug)]
@@ -158,6 +160,8 @@ pub enum ObjActionKind {
     MoveTo,
     MoveToTargetPos,
     Extract,
+    Orbit,
+    Deorbit,
 }
 
 #[derive(Clone, Debug)]
@@ -174,6 +178,8 @@ impl ObjAction {
             Action::MoveTo { .. } => ObjActionKind::MoveTo,
             Action::MoveToTargetPos { .. } => ObjActionKind::MoveToTargetPos,
             Action::Extract { .. } => ObjActionKind::Extract,
+            Action::Deorbit => ObjActionKind::Deorbit,
+            Action::Orbit { .. } => ObjActionKind::Orbit,
         }
     }
 
@@ -201,7 +207,7 @@ pub struct ObjDesc {
     pub(crate) label: String,
     pub(crate) extractable: Option<Entity>,
     pub(crate) action: Option<Action>,
-    pub(crate) nav_move_to: Option<NavigationMoveTo>,
+    pub(crate) nav_move_to: Option<Navigation>,
     pub(crate) cargo: Option<Cargo>,
     pub(crate) factory: Option<Factory>,
     pub(crate) shipyard: Option<Shipyard>,
@@ -226,7 +232,13 @@ impl ObjDesc {
     pub fn get_nav_move_to_target(&self) -> Option<Id> {
         self.nav_move_to
             .as_ref()
-            .map(|i| encode_entity(i.target_id))
+            .and_then(|i| match &i.request {
+                NavRequest::OrbitTarget { target_id, .. } => Some(*target_id),
+                NavRequest::MoveToTarget { target_id, .. } => Some(*target_id),
+                NavRequest::MoveAndDockAt { target_id, .. } => Some(*target_id),
+                NavRequest::MoveToPos { .. } => None,
+            })
+            .map(encode_entity)
     }
 
     pub fn get_cargo(&self) -> Option<ObjCargo> {
@@ -399,6 +411,8 @@ impl EventData {
             events::EventKind::Jump => EventKind::Jump,
             events::EventKind::Dock => EventKind::Dock,
             events::EventKind::Undock => EventKind::Undock,
+            events::EventKind::Deorbit => EventKind::Deorbit,
+            events::EventKind::Orbit => EventKind::Orbit,
         }
     }
 }

@@ -1,4 +1,3 @@
-
 use specs::prelude::*;
 
 use super::*;
@@ -12,7 +11,6 @@ pub struct NavigationSystem;
 pub struct NavigationData<'a> {
     entities: Entities<'a>,
     navigation: WriteStorage<'a, Navigation>,
-    navigation_move_to: WriteStorage<'a, NavigationMoveTo>,
     action: ReadStorage<'a, ActionActive>,
     action_request: WriteStorage<'a, ActionRequest>,
 }
@@ -24,34 +22,28 @@ impl<'a> System<'a> for NavigationSystem {
         log::trace!("running");
 
         let mut completed = vec![];
-        let mut requests = vec![];
 
-        for (entity, nav, _) in
-            (&*data.entities, &mut data.navigation_move_to, !&data.action).join()
-        {
-            match nav.next() {
-                Some(action) => requests.push((entity, ActionRequest(action))),
+        // for each navigation without active action
+        for (entity, nav, _) in (&*data.entities, &mut data.navigation, !&data.action).join() {
+            // pop next action form path
+            match nav.plan.path.pop_front() {
+                Some(action) => {
+                    log::debug!(
+                        "{:?} navigation requesting next action {:?}",
+                        entity,
+                        action,
+                    );
+                    data.action_request
+                        .insert(entity, ActionRequest(action))
+                        .unwrap();
+                }
                 None => completed.push(entity),
             }
         }
 
-        let requests_storage = &mut data.action_request;
-        for (entity, action) in requests {
-            log::debug!(
-                "{:?} navigation requesting next action {:?}",
-                entity,
-                action,
-            );
-            requests_storage.insert(entity, action).unwrap();
-        }
-
-        let navigation = &mut data.navigation;
-        let navigation_move_to_storage = &mut data.navigation_move_to;
         for entity in completed {
             log::debug!("{:?} navigation complete", entity);
-
-            navigation.remove(entity).unwrap();
-            navigation_move_to_storage.remove(entity).unwrap();
+            data.navigation.remove(entity).unwrap();
         }
     }
 }
@@ -60,6 +52,7 @@ impl<'a> System<'a> for NavigationSystem {
 mod test {
     use super::*;
     use crate::test::test_system;
+    use crate::utils::V2;
 
     #[test]
     fn test_navigation_move_to_system_should_complete_when_path_is_empty() {
@@ -68,9 +61,11 @@ mod test {
 
             let entity = world
                 .create_entity()
-                .with(Navigation::MoveTo)
-                .with(NavigationMoveTo {
-                    target_id: target_id,
+                .with(Navigation {
+                    request: NavRequest::MoveToPos {
+                        sector_id: target_id,
+                        pos: V2::ZERO,
+                    },
                     plan: NavigationPlan {
                         path: Default::default(),
                     },
@@ -83,7 +78,7 @@ mod test {
         let nav_storage = world.read_component::<Navigation>();
         assert!(nav_storage.get(entity).is_none());
 
-        let nav_move_to_storage = world.read_component::<NavigationMoveTo>();
+        let nav_move_to_storage = world.read_component::<Navigation>();
         assert!(nav_move_to_storage.get(entity).is_none());
     }
 }

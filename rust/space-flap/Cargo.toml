@@ -17,5 +17,5 @@ itertools = "0.10.3"
 
 [build-dependencies]
 flapigen = { git="https://github.com/sisso/flapigen-rs.git", version="0.6.0-pre8", branch="dotnet-pr" }
-env_logger = "0.7"
+env_logger="0.9.*"
 log = "0.4"

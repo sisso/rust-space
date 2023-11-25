@@ -104,6 +104,8 @@ foreign_enum!(
         MoveTo = ObjActionKind::MoveTo,
         MoveToTargetPos = ObjActionKind::MoveToTargetPos,
         Extract = ObjActionKind::Extract,
+        Orbit = ObjActionKind::Orbit,
+        Deorbit = ObjActionKind::Deorbit,
     }
 );
 
@@ -134,6 +136,8 @@ foreign_enum!(
         Jump = EventKind::Jump,
         Dock = EventKind::Dock,
         Undock = EventKind::Undock,
+        Orbit = EventKind::Orbit,
+        Deorbit = EventKind::Deorbit,
     }
 );
 

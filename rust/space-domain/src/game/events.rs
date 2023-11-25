@@ -7,6 +7,8 @@ pub enum EventKind {
     Jump,
     Dock,
     Undock,
+    Deorbit,
+    Orbit,
 }
 
 #[derive(Debug, Clone)]

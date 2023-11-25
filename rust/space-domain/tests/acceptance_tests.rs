@@ -12,7 +12,6 @@ use space_domain::game::scenery_random::{InitialCondition, RandomMapCfg};
 use space_domain::game::station::Station;
 use space_domain::game::wares::WareAmount;
 use space_domain::game::Game;
-use space_domain::test::init_trace_log;
 use space_domain::utils::{DeltaTime, Speed};
 use specs::prelude::*;
 use specs::WorldExt;

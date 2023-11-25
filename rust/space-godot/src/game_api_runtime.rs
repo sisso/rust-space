@@ -443,6 +443,8 @@ fn get_action_string(action: ObjAction) -> String {
         ObjActionKind::MoveTo => "move to".to_string(),
         ObjActionKind::MoveToTargetPos => "move to target".to_string(),
         ObjActionKind::Extract => "extract".to_string(),
+        ObjActionKind::Orbit => "orbit".to_string(),
+        ObjActionKind::Deorbit => "deorbit".to_string(),
     }
 }
 

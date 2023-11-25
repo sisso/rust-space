@@ -21,7 +21,7 @@ use space_domain::game::fleets::Fleet;
 use space_domain::game::label::Label;
 use space_domain::game::loader::Loader;
 use space_domain::game::locations::{LocationDocked, LocationOrbit, LocationSpace, Locations};
-use space_domain::game::navigations::{Navigation, NavigationMoveTo};
+use space_domain::game::navigations::Navigation;
 use space_domain::game::objects::ObjId;
 use space_domain::game::order::TradeOrders;
 use space_domain::game::prefab::Prefab;
@@ -361,7 +361,7 @@ impl SpaceGame {
                 .read_storage::<ActionActive>()
                 .get(e)
                 .map(|action| action.get_action().clone()),
-            nav_move_to: g.world.read_storage::<NavigationMoveTo>().get(e).cloned(),
+            nav_move_to: g.world.read_storage::<Navigation>().get(e).cloned(),
             cargo: g.world.read_storage::<Cargo>().get(e).cloned(),
             factory: g.world.read_storage::<Factory>().get(e).cloned(),
             shipyard: g.world.read_storage::<Shipyard>().get(e).cloned(),

@@ -13,7 +13,6 @@ use rand::prelude::*;
 use space_galaxy::system_generator;
 use specs::prelude::*;
 use specs::World;
-use std::any::Any;
 use std::collections::HashSet;
 
 pub enum InitialCondition {

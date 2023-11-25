@@ -3,8 +3,7 @@ use rand::prelude::*;
 use space_galaxy::system_generator::BodyDesc;
 use space_galaxy::terrain_generator::ResCfg;
 use space_galaxy::{galaxy_generator, system_generator, terrain_generator};
-use std::cmp::max;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 fn main() {
     env_logger::builder()
@@ -16,7 +15,7 @@ fn main() {
 
     let galaxy_cfg = galaxy_generator::Cfg {
         seed: rng.gen(),
-        size: 2,
+        size: (2, 2),
     };
     let system_cfg = system_generator::new_config_from_file(&PathBuf::from(
         "space-galaxy/data/system_generator.conf",
@@ -74,7 +73,7 @@ fn main() {
                 .save(&format!("/tmp/res/{}-{}-terrain.png", sector.id, i))
                 .unwrap();
 
-            for (j, r) in terrain.resources_map.iter().enumerate() {
+            for (j, _) in terrain.resources_map.iter().enumerate() {
                 terrain_generator::save_gradient_as_image(
                     terrain.width,
                     terrain.height,
