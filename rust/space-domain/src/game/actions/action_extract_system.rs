@@ -69,7 +69,8 @@ impl<'a> System<'a> for ActionExtractSystem {
 
             let production =
                 data.delta_time.as_f32() * extractable.accessibility * default_extraction_speed;
-            let amount_extracted: Volume = (production * EXTRACTION_PER_SECOND) as u32;
+            // we max to 1 because on slow motion is possible to never produce anything
+            let amount_extracted: Volume = ((production * EXTRACTION_PER_SECOND) as u32).max(1);
 
             let ware_id = match &active_action.0 {
                 Action::Extract {

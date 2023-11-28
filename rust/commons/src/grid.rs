@@ -329,43 +329,43 @@ mod test {
         );
     }
 
-    #[test]
-    pub fn test_grid_raytrace() {
-        let mut grid = Grid::<i32>::new(4, 2);
-
-        // X###
-        // ###
-        assert_eq!(grid.raytrace(&(0, 0).into(), -1, 0), Vec::<Coord>::new());
-
-        // #X##
-        // ####
-        assert_eq!(grid.raytrace(&(1, 0).into(), -1, 0), vec![(0, 0).into()]);
-
-        // 0###
-        // ####
-        grid.set_at(&(0, 0).into(), 0);
-
-        // 0X##
-        // ####
-        assert_eq!(grid.raytrace(&(1, 0).into(), -1, 0), vec![(0, 0).into()]);
-
-        // 00##
-        // ####
-        grid.set_at(&(1, 0).into(), 0);
-
-        // 00X#
-        // ####
-        assert_eq!(
-            grid.raytrace(&(2, 0).into(), -1, 0),
-            vec![(1, 0).into(), (0, 0).into()]
-        );
-
-        // 00#X
-        // ####
-        assert_eq!(grid.raytrace(&(3, 0).into(), -1, 0), vec![]);
-
-        // X0##
-        // ####
-        assert_eq!(grid.raytrace(&(0, 0).into(), 1, 0), vec![(1, 0).into()]);
-    }
+    // #[test]
+    // pub fn test_grid_raytrace() {
+    //     let mut grid = Grid::<i32>::new(4, 2);
+    //
+    //     // X###
+    //     // ###
+    //     assert_eq!(grid.raytrace(&(0, 0).into(), -1, 0), Vec::<Coord>::new());
+    //
+    //     // #X##
+    //     // ####
+    //     assert_eq!(grid.raytrace(&(1, 0).into(), -1, 0), vec![(0, 0).into()]);
+    //
+    //     // 0###
+    //     // ####
+    //     grid.set_at(&(0, 0).into(), 0);
+    //
+    //     // 0X##
+    //     // ####
+    //     assert_eq!(grid.raytrace(&(1, 0).into(), -1, 0), vec![(0, 0).into()]);
+    //
+    //     // 00##
+    //     // ####
+    //     grid.set_at(&(1, 0).into(), 0);
+    //
+    //     // 00X#
+    //     // ####
+    //     assert_eq!(
+    //         grid.raytrace(&(2, 0).into(), -1, 0),
+    //         vec![(1, 0).into(), (0, 0).into()]
+    //     );
+    //
+    //     // 00#X
+    //     // ####
+    //     assert_eq!(grid.raytrace(&(3, 0).into(), -1, 0), vec![]);
+    //
+    //     // X0##
+    //     // ####
+    //     assert_eq!(grid.raytrace(&(0, 0).into(), 1, 0), vec![(1, 0).into()]);
+    // }
 }

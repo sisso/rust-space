@@ -123,9 +123,9 @@ impl SectorView {
 
                 Update::Orbit {
                     id,
-                    pos,
                     parent_pos,
                     radius,
+                    ..
                 } => {
                     self.orbits_model
                         .entry(id)
@@ -336,7 +336,7 @@ impl SectorView {
 
 #[godot_api]
 impl ControlVirtual for SectorView {
-    fn init(mut base: Base<Control>) -> Self {
+    fn init(base: Base<Control>) -> Self {
         if Engine::singleton().is_editor_hint() {
         } else {
         }
