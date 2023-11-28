@@ -1,10 +1,12 @@
 use crate::game::actions::{Action, ActionActive, ActionExtract};
 use crate::game::extractables::Extractable;
-use crate::game::wares::{Cargo, Volume};
+use crate::game::wares::{Cargo, ResourceExtraction, Volume};
 use crate::utils::DeltaTime;
 
 use specs::prelude::*;
 use std::borrow::BorrowMut;
+
+const EXTRACTION_PER_SECOND: f32 = 100.0;
 
 pub struct ActionExtractSystem;
 
@@ -12,7 +14,7 @@ pub struct ActionExtractSystem;
 pub struct ActionExtractData<'a> {
     entities: Entities<'a>,
     delta_time: Read<'a, DeltaTime>,
-    _extractables: ReadStorage<'a, Extractable>,
+    extractables: ReadStorage<'a, Extractable>,
     cargo: WriteStorage<'a, Cargo>,
     action_active: WriteStorage<'a, ActionActive>,
     action_extract: WriteStorage<'a, ActionExtract>,
@@ -24,10 +26,10 @@ impl<'a> System<'a> for ActionExtractSystem {
     fn run(&mut self, mut data: ActionExtractData) {
         log::trace!("running");
 
-        let delta = data.delta_time.clone();
         let mut extract_complete = Vec::<Entity>::new();
+        let default_extraction_speed: ResourceExtraction = 1.0;
 
-        for (entity, active_action, _, cargo) in (
+        for (obj_id, active_action, _, cargo) in (
             &*data.entities,
             &data.action_active,
             &data.action_extract,
@@ -35,28 +37,60 @@ impl<'a> System<'a> for ActionExtractSystem {
         )
             .join()
         {
-            let amount_extracted: Volume = (delta.as_f32() * 100.0) as u32;
+            let (ware_id, target_id) = match &active_action.0 {
+                Action::Extract { target_id, ware_id } => (*ware_id, *target_id),
+                _other => {
+                    log::warn!("{:?} unexpected action type {:?}", obj_id, active_action);
+                    continue;
+                }
+            };
+
+            let extractable = if let Some(extractable) = data.extractables.get(target_id) {
+                extractable
+            } else {
+                log::warn!(
+                    "{:?} try to extract {:?} that is not extractable",
+                    obj_id,
+                    target_id
+                );
+                continue;
+            };
+
+            if extractable.ware_id != ware_id {
+                log::warn!(
+                    "{:?} try to extract ware_id {:?} from {:?} but it can only produce {:?}",
+                    obj_id,
+                    ware_id,
+                    target_id,
+                    extractable.ware_id
+                );
+                continue;
+            }
+
+            let production =
+                data.delta_time.as_f32() * extractable.accessibility * default_extraction_speed;
+            let amount_extracted: Volume = (production * EXTRACTION_PER_SECOND) as u32;
 
             let ware_id = match &active_action.0 {
                 Action::Extract {
                     target_id: _,
                     ware_id,
                 } => *ware_id,
-                _other => panic!("{:?} unexpected action type {:?}", entity, active_action),
+                _other => panic!("{:?} unexpected action type {:?}", obj_id, active_action),
             };
 
             let amount_added = cargo.add_to_max(ware_id, amount_extracted);
             log::trace!(
                 "{:?} extracted {:?} {:?}, cargo now is {:?}/{:?}",
-                entity,
+                obj_id,
                 amount_extracted,
                 ware_id,
                 cargo.get_current_volume(),
                 cargo.get_max(),
             );
             if amount_added < amount_extracted {
-                log::debug!("{:?} cargo is full, stopping to extract", entity);
-                extract_complete.push(entity);
+                log::debug!("{:?} cargo is full, stopping to extract", obj_id);
+                extract_complete.push(obj_id);
             }
         }
 
@@ -81,7 +115,13 @@ mod test {
 
             let ware_id = world.create_entity().build();
 
-            let asteroid_id = world.create_entity().build();
+            let asteroid_id = world
+                .create_entity()
+                .with(Extractable {
+                    ware_id,
+                    accessibility: 1.0,
+                })
+                .build();
 
             let entity = world
                 .create_entity()
@@ -89,7 +129,7 @@ mod test {
                     target_id: asteroid_id,
                     ware_id,
                 }))
-                .with(ActionExtract {})
+                .with(ActionExtract::default())
                 .with(Cargo::new(100))
                 .build();
 
@@ -108,7 +148,13 @@ mod test {
 
             let ware_id = world.create_entity().build();
 
-            let asteroid_id = world.create_entity().build();
+            let asteroid_id = world
+                .create_entity()
+                .with(Extractable {
+                    ware_id,
+                    accessibility: 1.0,
+                })
+                .build();
 
             let mut cargo = Cargo::new(100);
             cargo.add(ware_id, 95).unwrap();
@@ -119,7 +165,7 @@ mod test {
                     target_id: asteroid_id,
                     ware_id,
                 }))
-                .with(ActionExtract {})
+                .with(ActionExtract::default())
                 .with(cargo)
                 .build();
 

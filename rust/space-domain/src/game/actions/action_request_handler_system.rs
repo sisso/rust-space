@@ -56,7 +56,9 @@ impl<'a> System<'a> for ActionRequestHandlerSystem {
                     data.actions_move_to.insert(obj_id, ActionMoveTo).unwrap();
                 }
                 Action::Extract { .. } => {
-                    data.actions_extract.insert(obj_id, ActionExtract).unwrap();
+                    data.actions_extract
+                        .insert(obj_id, ActionExtract::default())
+                        .unwrap();
                 }
                 _ => {
                     data.actions_generic

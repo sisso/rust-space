@@ -157,8 +157,10 @@ fn add_bodies_to_sectors(
                         .next();
 
                     if let Some(ware_id) = maybe_ware_id {
-                        let new_obj =
-                            Loader::new_asteroid(sector_id).extractable(Extractable { ware_id });
+                        let new_obj = Loader::new_asteroid(sector_id).extractable(Extractable {
+                            ware_id,
+                            accessibility: 1.0,
+                        });
                         Some(Loader::add_object(world, &new_obj))
                     } else {
                         log::warn!("fail to create asteroid field {:?}", body);

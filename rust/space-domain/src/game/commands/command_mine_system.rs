@@ -273,7 +273,10 @@ mod test {
         world
             .create_entity()
             .with(location)
-            .with(Extractable { ware_id })
+            .with(Extractable {
+                ware_id,
+                accessibility: 1.0,
+            })
             .build()
     }
 

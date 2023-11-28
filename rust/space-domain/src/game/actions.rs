@@ -123,8 +123,10 @@ pub struct ActionDock;
 #[derive(Debug, Clone, Component)]
 pub struct ActionMoveTo;
 
-#[derive(Debug, Clone, Component)]
-pub struct ActionExtract;
+#[derive(Debug, Clone, Component, Default)]
+pub struct ActionExtract {
+    pub extraction_time: DeltaTime,
+}
 
 #[derive(Debug, Clone, Component)]
 pub struct ActionJump {

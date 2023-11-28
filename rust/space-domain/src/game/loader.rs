@@ -42,7 +42,10 @@ impl Loader {
         let asteroid = Self::new_asteroid(sector_id)
             .with_label("asteroid".to_string())
             .with_pos(pos)
-            .extractable(Extractable { ware_id });
+            .extractable(Extractable {
+                ware_id,
+                accessibility: 1.0,
+            });
         Loader::add_object(world, &asteroid)
     }
 

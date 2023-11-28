@@ -13,6 +13,12 @@ pub type WareId = Entity;
 
 pub type Volume = u32;
 
+/** amount of resources extracted per second */
+pub type ResourceAccessibility = f32;
+
+/** amount of resources extracted per second */
+pub type ResourceExtraction = f32;
+
 #[derive(Debug, Clone, Component)]
 pub struct Ware;
 
