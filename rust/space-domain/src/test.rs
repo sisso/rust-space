@@ -1,4 +1,4 @@
-use crate::utils::{MIN_DISTANCE, V2};
+use crate::utils::{DeltaTime, TotalTime, MIN_DISTANCE, V2};
 use log::SetLoggerError;
 use specs::prelude::*;
 
@@ -49,6 +49,19 @@ impl<'a> TestSystemRunner<'a> {
     }
 
     pub fn tick(&mut self) {
+        self.dispatcher.dispatch(&self.world);
+        self.world.maintain();
+    }
+
+    pub fn tick_timed(&mut self, delta_time: DeltaTime) {
+        let total_time = self
+            .world
+            .try_fetch::<TotalTime>()
+            .map(|value| *value)
+            .unwrap_or_default();
+
+        self.world.insert(total_time.add(delta_time));
+        self.world.insert(delta_time);
         self.dispatcher.dispatch(&self.world);
         self.world.maintain();
     }

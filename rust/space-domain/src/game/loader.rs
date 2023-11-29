@@ -44,7 +44,7 @@ impl Loader {
             .with_pos(pos)
             .extractable(Extractable {
                 ware_id,
-                accessibility: 1.0,
+                accessibility: 10.0,
             });
         Loader::add_object(world, &asteroid)
     }

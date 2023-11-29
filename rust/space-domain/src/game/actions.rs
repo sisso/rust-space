@@ -125,7 +125,9 @@ pub struct ActionMoveTo;
 
 #[derive(Debug, Clone, Component, Default)]
 pub struct ActionExtract {
-    pub extraction_time: DeltaTime,
+    // accumulate the rest of extraction that is not enough to fill one volume unit between
+    // runs, once get above 1, it should be deducted and added to cargo by the system
+    pub rest_acc: f32,
 }
 
 #[derive(Debug, Clone, Component)]

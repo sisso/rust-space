@@ -1,12 +1,10 @@
 use crate::game::actions::{Action, ActionActive, ActionExtract};
 use crate::game::extractables::Extractable;
-use crate::game::wares::{Cargo, ResourceExtraction, Volume};
+use crate::game::wares::Cargo;
 use crate::utils::DeltaTime;
 
 use specs::prelude::*;
 use std::borrow::BorrowMut;
-
-const EXTRACTION_PER_SECOND: f32 = 100.0;
 
 pub struct ActionExtractSystem;
 
@@ -27,12 +25,11 @@ impl<'a> System<'a> for ActionExtractSystem {
         log::trace!("running");
 
         let mut extract_complete = Vec::<Entity>::new();
-        let default_extraction_speed: ResourceExtraction = 1.0;
 
-        for (obj_id, active_action, _, cargo) in (
+        for (obj_id, active_action, action_extract, cargo) in (
             &*data.entities,
             &data.action_active,
-            &data.action_extract,
+            &mut data.action_extract,
             &mut data.cargo,
         )
             .join()
@@ -67,10 +64,13 @@ impl<'a> System<'a> for ActionExtractSystem {
                 continue;
             }
 
+            let previous_rest_acc = action_extract.rest_acc;
             let production =
-                data.delta_time.as_f32() * extractable.accessibility * default_extraction_speed;
-            // we max to 1 because on slow motion is possible to never produce anything
-            let amount_extracted: Volume = ((production * EXTRACTION_PER_SECOND) as u32).max(1);
+                data.delta_time.as_f32() * extractable.accessibility + previous_rest_acc;
+
+            let amount_extracted = production.floor();
+            action_extract.rest_acc = production - amount_extracted;
+            let amount_extracted = amount_extracted as u32;
 
             let ware_id = match &active_action.0 {
                 Action::Extract {
@@ -80,12 +80,15 @@ impl<'a> System<'a> for ActionExtractSystem {
                 _other => panic!("{:?} unexpected action type {:?}", obj_id, active_action),
             };
 
-            let amount_added = cargo.add_to_max(ware_id, amount_extracted);
+            let amount_added = cargo.add_to_max(ware_id, amount_extracted as u32);
             log::trace!(
-                "{:?} extracted {:?} {:?}, cargo now is {:?}/{:?}",
+                "{:?} extracted {:?}, acc {:?}, total extracted {:?} with volume of {:?} and rest of {:?}, cargo now is {:?}/{:?}",
                 obj_id,
-                amount_extracted,
                 ware_id,
+                previous_rest_acc,
+                production,
+                amount_extracted,
+                action_extract.rest_acc,
                 cargo.get_current_volume(),
                 cargo.get_max(),
             );
@@ -106,78 +109,74 @@ impl<'a> System<'a> for ActionExtractSystem {
 mod test {
     use super::super::*;
     use super::*;
-    use crate::test::test_system;
+    use crate::game::wares::Volume;
+    use crate::test::TestSystemRunner;
     use crate::utils::DeltaTime;
 
     #[test]
-    fn should_extract_ware() {
-        let (world, (entity, ware_id)) = test_system(ActionExtractSystem, |world| {
-            world.insert(DeltaTime(1.0));
+    fn test_extraction() {
+        let mut ts = TestSystemRunner::new(ActionExtractSystem);
 
-            let ware_id = world.create_entity().build();
+        let ware_id = ts.world.create_entity().build();
 
-            let asteroid_id = world
-                .create_entity()
-                .with(Extractable {
-                    ware_id,
-                    accessibility: 1.0,
-                })
-                .build();
+        let asteroid_id = ts
+            .world
+            .create_entity()
+            .with(Extractable {
+                ware_id,
+                accessibility: 1.0,
+            })
+            .build();
 
-            let entity = world
-                .create_entity()
-                .with(ActionActive(Action::Extract {
-                    target_id: asteroid_id,
-                    ware_id,
-                }))
-                .with(ActionExtract::default())
-                .with(Cargo::new(100))
-                .build();
+        let fleet_id = ts
+            .world
+            .create_entity()
+            .with(ActionActive(Action::Extract {
+                target_id: asteroid_id,
+                ware_id,
+            }))
+            .with(ActionExtract::default())
+            .with(Cargo::new(5))
+            .build();
 
-            (entity, ware_id)
-        });
+        // first tick, it should be not enough to generate one resource
+        ts.tick_timed(DeltaTime(0.5));
+        assert_running(&ts.world, fleet_id);
+        assert_cargo(&ts.world, fleet_id, 0);
 
-        let cargo_storage = world.read_storage::<Cargo>();
-        let cargo = cargo_storage.get(entity).unwrap();
-        assert_eq!(100, cargo.get_amount(ware_id));
+        // second tick, should be enough to generate a cargo
+        ts.tick_timed(DeltaTime(0.5));
+        assert_running(&ts.world, fleet_id);
+        assert_cargo(&ts.world, fleet_id, 1);
+
+        // ticket a big jump leap second, should fill all the cargo and action completed
+        ts.tick_timed(DeltaTime(60.0));
+        assert_cargo(&ts.world, fleet_id, 5);
+        assert_complete(&ts.world, fleet_id);
     }
 
-    #[test]
-    fn should_remove_action_when_cargo_is_full() {
-        let (world, (entity, ware_id)) = test_system(ActionExtractSystem, |world| {
-            world.insert(DeltaTime(1.0));
+    fn assert_running(world: &World, fleet_id: ObjId) {
+        assert!(world.read_storage::<ActionActive>().get(fleet_id).is_some());
+        assert!(world
+            .read_storage::<ActionExtract>()
+            .get(fleet_id)
+            .is_some());
+    }
 
-            let ware_id = world.create_entity().build();
+    fn assert_cargo(world: &World, fleet_id: ObjId, amount: Volume) {
+        let current = world
+            .read_storage::<Cargo>()
+            .get(fleet_id)
+            .expect("fail to find cargo")
+            .get_current_volume();
+        assert_eq!(current, amount);
+    }
 
-            let asteroid_id = world
-                .create_entity()
-                .with(Extractable {
-                    ware_id,
-                    accessibility: 1.0,
-                })
-                .build();
-
-            let mut cargo = Cargo::new(100);
-            cargo.add(ware_id, 95).unwrap();
-
-            let entity = world
-                .create_entity()
-                .with(ActionActive(Action::Extract {
-                    target_id: asteroid_id,
-                    ware_id,
-                }))
-                .with(ActionExtract::default())
-                .with(cargo)
-                .build();
-
-            (entity, ware_id)
-        });
-
-        let cargo_storage = world.read_storage::<Cargo>();
-        let cargo = cargo_storage.get(entity).unwrap();
-        assert_eq!(100, cargo.get_amount(ware_id));
-
-        assert!(world.read_storage::<ActionActive>().get(entity).is_none());
-        assert!(world.read_storage::<ActionExtract>().get(entity).is_none());
+    fn assert_complete(world: &World, fleet_id: ObjId) {
+        assert!(world.read_storage::<ActionActive>().get(fleet_id).is_none());
+        assert!(world
+            .read_storage::<ActionExtract>()
+            .get(fleet_id)
+            .is_none());
     }
 }
