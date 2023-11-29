@@ -1,8 +1,8 @@
 use commons::math::{P2, V2};
 use ggez::conf::WindowMode;
-use ggez::event::{self, Axis, Button, ErrorOrigin, EventHandler, GamepadId, KeyMods, MouseButton};
-use ggez::graphics::{self, Color, DrawMode, Rect};
-use ggez::winit::event::VirtualKeyCode;
+use ggez::event::{self, EventHandler, MouseButton};
+use ggez::graphics::{self, Color, DrawMode, DrawParam, Rect};
+use ggez::input::keyboard::KeyInput;
 use ggez::{Context, ContextBuilder, GameError, GameResult};
 use rand::prelude::StdRng;
 use space_2d_gui::system_generator::*;
@@ -87,7 +87,7 @@ impl Viewer {
                 P2::new(1.0, 0.0) * bodies[index].distance * 50.0,
                 bodies[index].angle + bodies[index].speed * total_time * 0.25,
             );
-            self.compute_local_pos(bodies[index].parent, total_time) + relative.coords
+            self.compute_local_pos(bodies[index].parent, total_time) + relative
         }
     }
     fn compute_pos(&self, index: usize, total_time: f32) -> P2 {
@@ -102,22 +102,17 @@ impl EventHandler<GameError> for Viewer {
         Ok(())
     }
 
-    fn key_up_event(
-        &mut self,
-        _ctx: &mut Context,
-        keycode: ggez::input::keyboard::KeyCode,
-        _keymods: KeyMods,
-    ) {
-        match keycode {
-            ggez::input::keyboard::KeyCode::R => {
+    fn key_up_event(&mut self, ctx: &mut Context, input: KeyInput) -> Result<(), GameError> {
+        match input.keycode {
+            Some(ggez::input::keyboard::KeyCode::R) => {
                 self.seed = 0;
                 self.system = load_system(self.seed);
             }
-            ggez::input::keyboard::KeyCode::S => {
+            Some(ggez::input::keyboard::KeyCode::S) => {
                 self.seed += 1;
                 self.system = load_system(self.seed);
             }
-            ggez::input::keyboard::KeyCode::A => {
+            Some(ggez::input::keyboard::KeyCode::A) => {
                 if self.seed > 0 {
                     self.seed -= 1;
                     self.system = load_system(self.seed);
@@ -125,16 +120,31 @@ impl EventHandler<GameError> for Viewer {
             }
             _ => {}
         }
+
+        Ok(())
     }
 
-    fn mouse_button_down_event(&mut self, _ctx: &mut Context, button: MouseButton, x: f32, y: f32) {
+    fn mouse_button_down_event(
+        &mut self,
+        _ctx: &mut Context,
+        button: MouseButton,
+        x: f32,
+        y: f32,
+    ) -> Result<(), GameError> {
         if button == MouseButton::Right {
             let v2screen = P2::new(x, y);
             self.target = self.screen_to_world(v2screen);
         }
+        Ok(())
     }
 
-    fn mouse_button_up_event(&mut self, ctx: &mut Context, button: MouseButton, x: f32, y: f32) {
+    fn mouse_button_up_event(
+        &mut self,
+        ctx: &mut Context,
+        button: MouseButton,
+        x: f32,
+        y: f32,
+    ) -> Result<(), GameError> {
         if button == MouseButton::Left {
             let total_time = ggez::timer::time_since_start(ctx).as_secs_f32();
             let mouse_pos = P2::new(x, y);
@@ -145,7 +155,7 @@ impl EventHandler<GameError> for Viewer {
                 let pos = self.compute_pos(i, total_time);
                 let radius = BODY_SIZE * b.size * self.zoom;
 
-                let dist = (pos - &mouse_pos).magnitude();
+                let dist = pos.distance(mouse_pos);
                 if min_dist.is_none() || dist < min_dist.unwrap() {
                     min_dist = Some(dist);
                     min_index = Some(i);
@@ -180,22 +190,33 @@ impl EventHandler<GameError> for Viewer {
         } else if button == MouseButton::Right {
             self.selected = None;
         }
+
+        Ok(())
     }
 
-    fn mouse_motion_event(&mut self, ctx: &mut Context, x: f32, y: f32, dx: f32, dy: f32) {
-        if ggez::input::mouse::button_pressed(ctx, MouseButton::Left) {
+    fn mouse_motion_event(
+        &mut self,
+        ctx: &mut Context,
+        x: f32,
+        y: f32,
+        dx: f32,
+        dy: f32,
+    ) -> Result<(), GameError> {
+        if ctx.mouse.button_pressed(MouseButton::Left) {
             self.center.x += dx;
             self.center.y += dy;
         }
+        Ok(())
     }
 
-    fn mouse_wheel_event(&mut self, _ctx: &mut Context, _x: f32, y: f32) {
+    fn mouse_wheel_event(&mut self, _ctx: &mut Context, _x: f32, y: f32) -> Result<(), GameError> {
         self.zoom *= 1.0 + (y as f32) / 50.0;
+        Ok(())
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
-        graphics::clear(ctx, Color::BLACK);
-        let total_time = ggez::timer::time_since_start(ctx).as_secs_f32();
+        let mut canvas = graphics::Canvas::from_frame(ctx, Color::BLACK);
+        let total_time = ctx.time.time_since_start().as_secs_f32();
 
         for (i, b) in self.system.bodies.iter().enumerate() {
             if i == 0 {
@@ -209,7 +230,7 @@ impl EventHandler<GameError> for Viewer {
                     1.0,
                     Color::WHITE,
                 )?;
-                graphics::draw(ctx, &mesh, graphics::DrawParam::default())?;
+                canvas.draw(&mesh, graphics::DrawParam::default());
             } else {
                 let pos = self.compute_pos(i, total_time);
 
@@ -222,11 +243,11 @@ impl EventHandler<GameError> for Viewer {
                     1.0,
                     Color::BLUE,
                 )?;
-                graphics::draw(ctx, &mesh, graphics::DrawParam::default())?;
+                canvas.draw(&mesh, graphics::DrawParam::default());
 
                 // draw orbit
                 let parent_pos = self.compute_pos(b.parent, total_time);
-                let dist: f32 = (pos - parent_pos.clone()).magnitude();
+                let dist = pos.distance(parent_pos);
 
                 let mesh = ggez::graphics::Mesh::new_circle(
                     ctx,
@@ -236,12 +257,12 @@ impl EventHandler<GameError> for Viewer {
                     1.0,
                     Color::RED,
                 )?;
-                graphics::draw(ctx, &mesh, graphics::DrawParam::default())?;
+                canvas.draw(&mesh, graphics::DrawParam::default());
 
                 // draw parent line
                 let mesh =
                     ggez::graphics::Mesh::new_line(ctx, &[pos, parent_pos], 1.0, Color::GREEN)?;
-                graphics::draw(ctx, &mesh, graphics::DrawParam::default())?;
+                canvas.draw(&mesh, graphics::DrawParam::default());
             }
         }
 
@@ -257,12 +278,13 @@ impl EventHandler<GameError> for Viewer {
                 );
                 let mesh =
                     ggez::graphics::Mesh::new_rectangle(ctx, DrawMode::fill(), rect, color_uibg)?;
-                ggez::graphics::draw(ctx, &mesh, graphics::DrawParam::default())?;
-                graphics::draw(
-                    ctx,
+                canvas.draw(&mesh, graphics::DrawParam::default());
+                canvas.draw(
                     &selected.text,
-                    (P2::new(rect.x + 20.0, rect.y + 20.0), color_uitext),
-                )?;
+                    DrawParam::default()
+                        .dest(P2::new(rect.x + 20.0, rect.y + 20.0))
+                        .color(color_uitext),
+                );
             }
             _ => {}
         }
@@ -276,8 +298,7 @@ impl EventHandler<GameError> for Viewer {
             1.0,
             Color::YELLOW,
         )?;
-        graphics::draw(ctx, &mesh, graphics::DrawParam::default())?;
-
-        graphics::present(ctx)
+        canvas.draw(&mesh, graphics::DrawParam::default());
+        canvas.finish(ctx)
     }
 }

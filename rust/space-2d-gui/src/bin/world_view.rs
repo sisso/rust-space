@@ -5,9 +5,8 @@ use ggez::conf::WindowMode;
 use ggez::event::{self, EventHandler, MouseButton};
 use ggez::graphics::{self, Canvas, Color, DrawParam, StrokeOptions};
 use ggez::{Context, ContextBuilder, GameError, GameResult};
-use mint::Point2;
 use space_flap;
-use space_flap::{EventKind, Id, ObjActionKind, ObjData, ObjDesc, SectorData};
+use space_flap::{Id, ObjActionKind, ObjData, ObjDesc, SectorData};
 
 const COLOR_FLEET: Color = Color::RED;
 const COLOR_ASTEROID: Color = Color::MAGENTA;
@@ -92,10 +91,9 @@ impl State {
         screen_size: (f32, f32),
         fleet_id: space_flap::Id,
     ) -> GameResult<()> {
-        let Some(fleet) = self.game.get_obj(fleet_id)
-        else {
+        let Some(fleet) = self.game.get_obj(fleet_id) else {
             self.screen = StateScreen::Galaxy;
-            return Ok(())
+            return Ok(());
         };
 
         self.draw_sector(ctx, canvas, screen_size, fleet.get_sector_id())
@@ -347,6 +345,7 @@ impl State {
                             let target_id = action.get_target().unwrap();
                             ui.label(format!("action: extract {target_id}"));
                         }
+                        _ => {}
                     }
                 }
 
@@ -478,16 +477,12 @@ impl EventHandler for State {
         // collect events
         for event in self.game.take_events() {
             match event.get_kind() {
-                EventKind::Add => {}
-                EventKind::Move => {}
-                EventKind::Jump => {}
-                EventKind::Dock => {}
-                EventKind::Undock => {}
+                _ => {}
             }
         }
 
         let hovering = self.draw_gui(ctx);
-        self.handle_inputs(ctx, hovering);
+        self.handle_inputs(ctx, hovering)?;
 
         Ok(())
     }

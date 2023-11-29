@@ -1,8 +1,9 @@
+use commons::math;
+use commons::math::Affine2;
 use ggez::conf::WindowMode;
 use ggez::event::{self, EventHandler};
-use ggez::graphics::{Color, StrokeOptions};
+use ggez::graphics::{Color, DrawParam, StrokeOptions};
 use ggez::{graphics, timer, Context, ContextBuilder, GameError, GameResult};
-use nalgebra::{Point2, Rotation2, Vector2};
 use rand::{thread_rng, Rng};
 use specs::prelude::*;
 use specs::{World, WorldExt};
@@ -10,8 +11,8 @@ use specs_derive::Component;
 use std::borrow::{Borrow, BorrowMut};
 use std::ops::Deref;
 
-type V2 = Vector2<f32>;
-type P2 = Point2<f32>;
+type V2 = math::V2;
+type P2 = math::P2;
 
 const ARRIVAL_DISTANCE: f32 = 2.0;
 
@@ -189,7 +190,7 @@ struct Model {
 impl Model {
     pub fn new(size: f32, color: graphics::Color) -> Self {
         Model {
-            pos: Point2::new(0.0, 0.0),
+            pos: V2::new(0.0, 0.0),
             size,
             color,
         }
@@ -226,7 +227,7 @@ fn follow_command_system(world: &mut World) -> GameResult<()> {
             relative_pos = follow.relative_pos.clone();
         }
 
-        let target_pos = target_movable.pos.clone() + relative_pos.coords;
+        let target_pos = target_movable.pos.clone() + relative_pos;
         let delta_to_pos = target_pos - movable.pos.clone();
         let desired_vel = target_movable.vel.clone() + delta_to_pos;
 
@@ -241,7 +242,7 @@ fn follow_command_system(world: &mut World) -> GameResult<()> {
             )
             .unwrap();
 
-        if delta_to_pos.magnitude() > 10.0 {
+        if delta_to_pos.length() > 10.0 {
             follower_behind_flag.push((follow.target, movable.max_speed));
         }
     }
@@ -379,7 +380,7 @@ fn action_move_to(
     arrival: bool,
 ) -> ActionMoveResult {
     let delta = target_pos - current_pos;
-    let distance = delta.magnitude();
+    let distance = delta.length();
 
     if distance < ARRIVAL_DISTANCE {
         ActionMoveResult {
@@ -414,7 +415,7 @@ fn movable_system(delta: f32, world: &mut World) -> GameResult<()> {
 
 fn tick_movable(delta: f32, movable: &mut Movable) {
     let delta_vel = movable.desired_vel.clone() - movable.vel.clone();
-    let mag = delta_vel.magnitude();
+    let mag = delta_vel.length();
     if mag > 0.01 {
         let acc = delta_vel / mag * movable.max_acc;
         movable.vel = movable.vel.clone() + acc * delta;
@@ -552,14 +553,14 @@ impl App {
             let entity_0 = world
                 .create_entity()
                 .with(Model::new(6.0, graphics::Color::WHITE))
-                .with(Movable::new(Point2::new(400.0, 300.0), 80.0, 70.0))
+                .with(Movable::new(P2::new(400.0, 300.0), 80.0, 70.0))
                 .with(PatrolCommand {
                     index: 0,
                     route: vec![
-                        Point2::new(200.0, 300.0),
-                        Point2::new(400.0, 150.0),
-                        Point2::new(600.0, 300.0),
-                        Point2::new(400.0, 550.0),
+                        P2::new(200.0, 300.0),
+                        P2::new(400.0, 150.0),
+                        P2::new(600.0, 300.0),
+                        P2::new(400.0, 550.0),
                     ],
                 })
                 .build();
@@ -567,7 +568,7 @@ impl App {
             world
                 .create_entity()
                 .with(Model::new(2.0, graphics::Color::new(1.0, 0.0, 0.0, 1.0)))
-                .with(Movable::new(Point2::new(450.0, 320.0), 70.0, 40.0))
+                .with(Movable::new(P2::new(450.0, 320.0), 70.0, 40.0))
                 .with(FollowCommand {
                     target: entity_0,
                     relative_pos: P2::new(0.0, -10.0),
@@ -577,7 +578,7 @@ impl App {
             world
                 .create_entity()
                 .with(Model::new(2.0, graphics::Color::new(0.0, 1.0, 0.0, 1.0)))
-                .with(Movable::new(Point2::new(450.0, 320.0), 55.0, 80.0))
+                .with(Movable::new(P2::new(450.0, 320.0), 55.0, 80.0))
                 .with(FollowCommand {
                     target: entity_0,
                     relative_pos: P2::new(0.0, 10.0),
@@ -591,7 +592,7 @@ impl App {
             .create_entity()
             .with(Model::new(15.0, graphics::Color::new(0.0, 1.0, 0.0, 1.0)))
             .with(Station {
-                pos: Point2::new(110.0, 200.0),
+                pos: P2::new(110.0, 200.0),
                 entrance_dir: V2::new(1.0, 0.0),
                 entrance_distance: 40.0,
             })
@@ -601,7 +602,7 @@ impl App {
             .create_entity()
             .with(Model::new(15.0, graphics::Color::new(1.0, 0.0, 0.0, 1.0)))
             .with(Station {
-                pos: Point2::new(700.0, 300.0),
+                pos: P2::new(700.0, 300.0),
                 entrance_dir: V2::new(0.0, 1.0),
                 entrance_distance: 40.0,
             })
@@ -618,7 +619,7 @@ impl App {
             world
                 .create_entity()
                 .with(Model::new(4.0, graphics::Color::WHITE))
-                .with(Movable::new(Point2::new(x, y), speed, acc))
+                .with(Movable::new(P2::new(x, y), speed, acc))
                 .with(TradeCommand::new(vec![station_0, station_1]))
                 .build();
         }
@@ -649,7 +650,7 @@ impl EventHandler<GameError> for App {
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
-        graphics::clear(ctx, graphics::Color::BLACK);
+        let mut canvas = graphics::Canvas::from_frame(ctx, Color::BLACK);
 
         let entities = self.world.entities();
         let models = self.world.read_storage::<Model>();
@@ -677,7 +678,7 @@ impl EventHandler<GameError> for App {
                 0.1,
                 model.color,
             )?;
-            graphics::draw(ctx, &circle, graphics::DrawParam::default())?;
+            canvas.draw(&circle, graphics::DrawParam::default());
 
             // draw prediction
             if let Some(prediction) = prediction {
@@ -686,24 +687,24 @@ impl EventHandler<GameError> for App {
                     let points: Vec<P2> = prediction.points.clone();
 
                     let line_mesh = graphics::Mesh::new_line(ctx, points.as_slice(), 1.0, color)?;
-                    graphics::draw(ctx, &line_mesh, graphics::DrawParam::default())?;
+                    canvas.draw(&line_mesh, graphics::DrawParam::default());
                 }
             }
 
             // draw movements
             if let Some(movable) = movable {
-                if movable.vel.magnitude() > 1.0 {
+                if movable.vel.length() > 1.0 {
                     let color = Color::new(0.0, 0.0, 0.9, 0.25);
                     let points: Vec<P2> = vec![movable.pos, movable.pos + movable.vel];
                     let line_mesh = graphics::Mesh::new_line(ctx, points.as_slice(), 1.0, color)?;
-                    graphics::draw(ctx, &line_mesh, graphics::DrawParam::default())?;
+                    canvas.draw(&line_mesh, graphics::DrawParam::default());
                 }
 
-                if movable.desired_vel.magnitude() > 1.0 {
+                if movable.desired_vel.length() > 1.0 {
                     let color = Color::new(0.0, 0.9, 0.0, 0.25);
                     let points: Vec<P2> = vec![movable.pos, movable.pos + movable.desired_vel];
                     let line_mesh = graphics::Mesh::new_line(ctx, points.as_slice(), 1.0, color)?;
-                    graphics::draw(ctx, &line_mesh, graphics::DrawParam::default())?;
+                    canvas.draw(&line_mesh, graphics::DrawParam::default());
                 }
             }
 
@@ -714,7 +715,7 @@ impl EventHandler<GameError> for App {
 
                 let points: Vec<P2> = vec![station.pos, entrance_incoming_pos];
                 let line_mesh = graphics::Mesh::new_line(ctx, points.as_slice(), 1.0, color)?;
-                graphics::draw(ctx, &line_mesh, graphics::DrawParam::default())?;
+                canvas.draw(&line_mesh, graphics::DrawParam::default());
 
                 let circle = graphics::Mesh::new_circle(
                     ctx,
@@ -724,7 +725,7 @@ impl EventHandler<GameError> for App {
                     0.1,
                     model.color,
                 )?;
-                graphics::draw(ctx, &circle, graphics::DrawParam::default())?;
+                canvas.draw(&circle, graphics::DrawParam::default());
             }
         }
 
@@ -732,21 +733,25 @@ impl EventHandler<GameError> for App {
         for (a, b, color) in std::mem::replace(&mut debug.lines, Vec::new()) {
             let points: Vec<P2> = vec![a, b];
             let line_mesh = graphics::Mesh::new_line(ctx, points.as_slice(), 1.0, color)?;
-            graphics::draw(ctx, &line_mesh, graphics::DrawParam::default())?;
+            canvas.draw(&line_mesh, graphics::DrawParam::default());
         }
 
         let cfg = &self.world.read_resource::<Cfg>();
         let text = graphics::Text::new(format!("{:?}", cfg.deref()));
-        graphics::draw(ctx, &text, (Point2::new(0.0, 0.0), graphics::Color::WHITE))?;
+        canvas.draw(
+            &text,
+            DrawParam::default().dest(V2::ZERO).color(Color::WHITE),
+        );
 
-        graphics::present(ctx)
+        canvas.finish(ctx)
     }
 
-    fn mouse_wheel_event(&mut self, _ctx: &mut Context, _x: f32, y: f32) {
+    fn mouse_wheel_event(&mut self, _ctx: &mut Context, _x: f32, y: f32) -> Result<(), GameError> {
         self.world.write_resource::<Cfg>().speed_reduction += y * 0.1;
+        Ok(())
     }
 
-    fn text_input_event(&mut self, _ctx: &mut Context, character: char) {
+    fn text_input_event(&mut self, _ctx: &mut Context, character: char) -> Result<(), GameError> {
         match character {
             ' ' => {
                 let cfg = &mut self.world.write_resource::<Cfg>();
@@ -760,6 +765,7 @@ impl EventHandler<GameError> for App {
 
             _ => {}
         }
+        Ok(())
     }
 }
 
@@ -783,14 +789,13 @@ pub fn angle_vector(v: V2) -> f32 {
     v.y.atan2(v.x)
 }
 
-pub fn rotate_vector(dir: V2, point: P2) -> P2 {
+pub fn rotate_vector(dir: V2, v: V2) -> V2 {
     let angle = angle_vector(dir);
-    rotate_vector_by_angle(point, angle)
+    rotate_vector_by_angle(v, angle)
 }
 
-pub fn rotate_vector_by_angle(point: P2, angle: f32) -> P2 {
-    let rotation = Rotation2::new(angle);
-    rotation * point
+pub fn rotate_vector_by_angle(vector: V2, angle: f32) -> V2 {
+    Affine2::from_angle(angle).transform_vector2(vector)
 }
 
 #[cfg(test)]
