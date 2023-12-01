@@ -492,8 +492,6 @@ fn new_trader_orders(o: &TradeOrders) -> Vec<ObjTradeOrder> {
     trade_orders
 }
 
-include!(concat!(env!("OUT_DIR"), "/glue.rs"));
-
 #[cfg(test)]
 mod test {
     use std::num::NonZeroI32;

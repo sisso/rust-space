@@ -2,9 +2,7 @@ use commons::math::{rotate_vector_by_angle, P2, V2};
 use ggez::conf::WindowMode;
 use ggez::event::{self, EventHandler};
 use ggez::glam::Vec2;
-use ggez::graphics::{
-    self, Canvas, Color, DrawMode, DrawParam, FillOptions, Mesh, MeshBuilder, StrokeOptions,
-};
+use ggez::graphics::{Canvas, Color, DrawMode, DrawParam, Mesh, MeshBuilder, StrokeOptions};
 use ggez::{Context, ContextBuilder, GameResult};
 use itertools::Itertools;
 use log::LevelFilter;
@@ -66,11 +64,10 @@ fn main() {
 struct App {
     planets: Vec<Planet>,
     fleets: Vec<Fleet>,
-    time_mult: f32,
 }
 
 impl App {
-    pub fn new(ctx: &mut Context) -> App {
+    pub fn new(_ctx: &mut Context) -> App {
         App {
             planets: vec![
                 Planet {
@@ -106,7 +103,6 @@ impl App {
                     color: Color::GREEN,
                 },
             ],
-            time_mult: 1.0,
         }
     }
 
