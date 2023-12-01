@@ -2,7 +2,7 @@ use commons::math::{rotate_vector_by_angle, P2, V2};
 use ggez::conf::WindowMode;
 use ggez::event::{self, EventHandler};
 use ggez::glam::Vec2;
-use ggez::graphics::{Canvas, Color, DrawMode, DrawParam, Mesh, MeshBuilder, StrokeOptions};
+use ggez::graphics::{Canvas, Color, DrawMode, DrawParam, Mesh, MeshBuilder, StrokeOptions, Text};
 use ggez::{Context, ContextBuilder, GameResult};
 use itertools::Itertools;
 use log::LevelFilter;
@@ -10,6 +10,7 @@ use std::collections::VecDeque;
 
 const MAX_TRACE_POINTS: usize = 1000;
 
+#[derive(Debug, Clone, Default)]
 pub struct Planet {
     pos: P2,
     distance: f32,
@@ -22,24 +23,29 @@ pub struct Planet {
 //
 // type FleetModel = Box<dyn FleetModelImpl>;
 
+#[derive(Debug, Clone, Copy)]
 enum FleetModel {
     Direct,
     Predict,
+    Newton,
 }
 
+#[derive(Debug, Clone)]
 struct Fleet {
     pos: P2,
     target_planet: usize,
     trace: VecDeque<P2>,
     model: FleetModel,
     speed: f32,
+    acc: f32,
     color: Color,
+    state: String,
 }
 
 fn main() {
     env_logger::builder()
         .filter_level(LevelFilter::Warn)
-        .filter(Some("newtonian_ships"), LevelFilter::Debug)
+        .filter(Some("newtonian_ships"), LevelFilter::Info)
         .init();
 
     // Make a Context.
@@ -73,15 +79,22 @@ impl App {
                 Planet {
                     pos: Default::default(),
                     distance: 100.0,
-                    orbit_speed: 0.1,
+                    orbit_speed: 0.025,
                     starting_angle: 0.0,
                     trace: Default::default(),
                 },
                 Planet {
                     pos: Default::default(),
                     distance: 300.0,
-                    orbit_speed: 0.05,
+                    orbit_speed: 0.0125,
                     starting_angle: std::f32::consts::PI,
+                    trace: Default::default(),
+                },
+                Planet {
+                    pos: Default::default(),
+                    distance: 500.0,
+                    orbit_speed: 0.0025,
+                    starting_angle: 7.0,
                     trace: Default::default(),
                 },
             ],
@@ -91,16 +104,40 @@ impl App {
                     target_planet: 0,
                     trace: Default::default(),
                     model: FleetModel::Direct,
-                    speed: 20.0,
+                    speed: 2.0,
+                    acc: 0.0,
                     color: Color::RED,
+                    state: String::new(),
                 },
                 Fleet {
                     pos: Default::default(),
                     target_planet: 0,
                     trace: Default::default(),
                     model: FleetModel::Predict,
-                    speed: 20.0,
+                    speed: 5.0,
+                    acc: 0.0,
                     color: Color::GREEN,
+                    state: String::new(),
+                },
+                Fleet {
+                    pos: Default::default(),
+                    target_planet: 0,
+                    trace: Default::default(),
+                    model: FleetModel::Newton,
+                    speed: 0.0,
+                    acc: 5.0,
+                    color: Color::YELLOW,
+                    state: String::new(),
+                },
+                Fleet {
+                    pos: Default::default(),
+                    target_planet: 0,
+                    trace: Default::default(),
+                    model: FleetModel::Newton,
+                    speed: 0.0,
+                    acc: 1.0,
+                    color: Color::BLUE,
+                    state: String::new(),
                 },
             ],
         }
@@ -137,14 +174,20 @@ impl App {
         trace: &VecDeque<P2>,
         color: Color,
     ) -> GameResult {
-        if trace.len() > 2 {
-            let mut mb = MeshBuilder::new();
-            let points: Vec<P2> = trace
-                .iter()
-                .map(|p| *p + camera_pos)
-                .tuple_windows()
-                .flat_map(|(a, b)| vec![a, b])
-                .collect::<Vec<_>>();
+        let mut mb = MeshBuilder::new();
+        let points: Vec<P2> = trace
+            .iter()
+            .map(|p| *p + camera_pos)
+            .tuple_windows()
+            .flat_map(|(a, b)| {
+                // if a.distance_squared(b) < 0.001 {
+                //     return vec![];
+                // }
+                vec![a, b]
+            })
+            .collect::<Vec<_>>();
+
+        if points.len() > 2 {
             mb.line(&points, 1.0, color)?;
             let mesh = Mesh::from_data(ctx, mb.build());
             canvas.draw(&mesh, DrawParam::default());
@@ -229,6 +272,82 @@ impl EventHandler for App {
                         fleet.trace.pop_front();
                     }
                 }
+
+                FleetModel::Newton => {
+                    let target = &self.planets[fleet.target_planet];
+                    let mut target_pos = target.pos;
+                    let delta = target_pos - fleet.pos;
+                    let distance = delta.length();
+
+                    if distance < 1.0 {
+                        log::debug!("fleet arrive, next target");
+                        fleet.target_planet =
+                            get_next_target(self.planets.len(), fleet.target_planet);
+                        fleet.state.clear();
+                    } else {
+                        // first interaction
+                        let arrival_time = if fleet.speed > 0.0001 {
+                            Some(distance / fleet.speed)
+                        } else {
+                            None
+                        };
+
+                        if let Some(arrival_time) = arrival_time {
+                            let time_to_target = arrival_time;
+                            target_pos = predict_planet_position(target, time + time_to_target);
+                        }
+
+                        let delta = target_pos - fleet.pos;
+                        let distance = delta.length();
+                        let stop_time = fleet.speed / fleet.acc;
+
+                        fleet.state.clear();
+                        fleet.state.push_str(&format!(
+                            "delta {:.2}, arrival_time: {:.2}, stop_time {:.2}\n",
+                            distance,
+                            arrival_time.unwrap_or(0.0),
+                            stop_time
+                        ));
+
+                        if arrival_time.unwrap_or(f32::MAX) < stop_time {
+                            if fleet.speed > 5.0 {
+                                // speed down
+                                let change = fleet.acc * delta_time;
+                                fleet.speed = fleet.speed - change;
+                                fleet
+                                    .state
+                                    .push_str(&format!("speed {:.2} slowdown\n", fleet.speed));
+                            } else {
+                                fleet
+                                    .state
+                                    .push_str(&format!("speed {:.2} cruising\n", fleet.speed));
+                            }
+                        } else {
+                            // speed up
+                            let change = fleet.acc * delta_time;
+                            fleet.speed = fleet.speed + change;
+                            fleet
+                                .state
+                                .push_str(&format!("speed {:.2} speed up\n", fleet.speed));
+                        }
+
+                        // apply movement
+                        let change = delta.normalize() * fleet.speed * delta_time;
+                        let new_pos = fleet.pos + change;
+                        log::trace!(
+                            "fleet at {:?} moving by {:?}, new pos {:?}",
+                            fleet.pos,
+                            change,
+                            new_pos
+                        );
+                        fleet.pos = new_pos;
+                    }
+
+                    fleet.trace.push_back(fleet.pos);
+                    while fleet.trace.len() > MAX_TRACE_POINTS {
+                        fleet.trace.pop_front();
+                    }
+                }
             }
         }
 
@@ -287,6 +406,11 @@ impl EventHandler for App {
             );
             // draw trace
             Self::draw_trace(ctx, &mut canvas, camera_pos, &fleet.trace, fleet.color)?;
+
+            // draw text
+            let text_pos = fleet.pos + camera_pos + Vec2::new(10.0, 0.0);
+            let text = Text::new(&fleet.state);
+            canvas.draw(&text, DrawParam::new().dest(text_pos));
         }
 
         canvas.finish(ctx)
