@@ -2,11 +2,10 @@
 members = [
   "commons",
   "space-domain",
-#  "space-lib",
 #  "space-console",
   "space-2d-gui",
   "space-flap",
-#  "space-galaxy",
+  "space-galaxy",
   "space-godot",
 ]
 

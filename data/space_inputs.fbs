@@ -1,8 +1,0 @@
-namespace space_data;
-
-table Inputs {
-  new_game: bool;
-  arguments: [string];
-}
-
-root_type Inputs;
