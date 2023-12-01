@@ -24,6 +24,7 @@ specs = { version = "0.16.*", features = ["serde"] }
 specs-derive = "0.4.0"
 shred = { version = "0.10.*", default-features = false }
 shred-derive = "0.6.*"
+itertools = "0.10.5"
 
 hocon="0.9"
 

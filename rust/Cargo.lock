@@ -3424,6 +3424,7 @@ dependencies = [
  "ggegui",
  "ggez",
  "hocon",
+ "itertools 0.10.5",
  "log",
  "mint",
  "rand",
