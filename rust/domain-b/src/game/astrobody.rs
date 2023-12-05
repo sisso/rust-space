@@ -15,7 +15,5 @@ pub struct AstroBody {
 pub struct AstroBodies;
 
 impl RequireInitializer for AstroBodies {
-    fn init(context: &mut GameInitContext) {
-        context.world.register::<AstroBody>();
-    }
+    fn init(context: &mut GameInitContext) {}
 }

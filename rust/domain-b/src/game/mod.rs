@@ -2,10 +2,13 @@ use std::borrow::BorrowMut;
 use std::sync::Arc;
 
 use bevy_ecs::prelude::*;
+use bevy_ecs::schedule::InternedScheduleLabel;
+use bevy_ecs::system::RunSystemOnce;
 
 use crate::game::actions::Actions;
 use crate::game::astrobody::AstroBodies;
-use crate::game::commands::Commands;
+use crate::game::commands::FleetCommands;
+use crate::game::events::GEvent;
 use crate::game::factory::Factory;
 use crate::game::fleets::Fleet;
 use crate::game::loader::Loader;
@@ -16,14 +19,15 @@ use crate::game::order::TradeOrders;
 use crate::game::sectors::Sectors;
 use crate::game::shipyard::Shipyard;
 use crate::game::station::Stations;
+use crate::game::utils::{DeltaTime, TotalTime};
 use crate::game::wares::Wares;
-use crate::utils::*;
 
 use self::new_obj::NewObj;
 use self::save::{Load, Save};
 
 pub mod actions;
 pub mod astrobody;
+mod bevy_utils;
 pub mod building_site;
 pub mod code;
 pub mod commands;
@@ -40,7 +44,7 @@ pub mod locations;
 pub mod navigations;
 pub mod new_obj;
 pub mod objects;
-mod orbit;
+pub mod orbit;
 pub mod order;
 pub mod prefab;
 pub mod production_cost;
@@ -51,23 +55,22 @@ pub mod sectors;
 pub mod ship;
 pub mod shipyard;
 pub mod station;
+pub mod utils;
 pub mod wares;
 pub mod work;
 
 pub const FRAME_TIME: std::time::Duration = std::time::Duration::from_millis(17);
 pub const SYSTEM_TIMEOUT: std::time::Duration = std::time::Duration::from_millis(1);
 
-// TODO: add tick to game field
 pub struct Game {
-    pub total_time: TotalTime,
     pub world: World,
-    pub dispatcher: Dispatcher<'static, 'static>,
-    pub thread_pool: Arc<rayon_core::ThreadPool>,
+    pub scheduler: Schedule,
 }
 
+// TODO: merge into game
 pub struct GameInitContext {
     pub world: World,
-    pub dispatcher: DispatcherBuilder<'static, 'static>,
+    pub scheduler: Schedule,
 }
 
 pub trait RequireInitializer {
@@ -76,30 +79,22 @@ pub trait RequireInitializer {
 
 impl Game {
     pub fn new() -> Self {
-        let thread_pool: Arc<rayon_core::ThreadPool> = Arc::new(
-            rayon_core::ThreadPoolBuilder::new()
-                .build()
-                .expect("Invalid configuration"),
-        );
-
-        let dispatcher_builder = DispatcherBuilder::new().with_pool(thread_pool.clone());
+        let scheduler = Schedule::default();
 
         // initialize all
         let mut init_ctx = GameInitContext {
             world: World::new(),
-            dispatcher: dispatcher_builder,
+            scheduler,
         };
 
+        init_ctx.world.insert_resource(TotalTime(0.0));
+        init_ctx.world.init_resource::<Events<GEvent>>();
+
         // initializations
-        init_ctx.world.register::<label::Label>();
-        init_ctx.world.register::<code::HasCode>();
-        init_ctx.world.register::<prefab::Prefab>();
-        init_ctx.world.register::<building_site::BuildingSite>();
-        init_ctx.world.register::<production_cost::ProductionCost>();
         Sectors::init(&mut init_ctx);
         Locations::init(&mut init_ctx);
         Actions::init(&mut init_ctx);
-        Commands::init(&mut init_ctx);
+        FleetCommands::init(&mut init_ctx);
         Navigations::init(&mut init_ctx);
         Shipyard::init(&mut init_ctx);
         Factory::init(&mut init_ctx);
@@ -109,40 +104,35 @@ impl Game {
         AstroBodies::init(&mut init_ctx);
         Wares::init(&mut init_ctx);
         Orbits::init(&mut init_ctx);
-        init_ctx
-            .dispatcher
-            .add(building_site::BuildingSystem, "buildings", &[]);
 
-        let mut dispatcher = init_ctx.dispatcher.build();
-
-        let mut world = init_ctx.world;
-        dispatcher.setup(&mut world);
+        // init_ctx
+        //     .scheduler
+        //     .add_systems(building_site::BuildingSystem);
 
         Game {
-            total_time: TotalTime(0.0),
-            world,
-            dispatcher,
-            thread_pool,
+            world: init_ctx.world,
+            scheduler: init_ctx.scheduler,
         }
     }
 
     pub fn tick(&mut self, delta_time: DeltaTime) {
         // update time
-        self.total_time = self.total_time.add(delta_time);
-        self.world.insert(delta_time);
-        self.world.insert(self.total_time);
-        log::debug!(
+        self.world.insert_resource(delta_time);
+        let total_time = self.world.get_resource_mut::<TotalTime>().unwrap();
+        total_time.add(delta_time);
+        log::trace!(
             "tick delta {} total {}",
             delta_time.as_f32(),
-            self.total_time.as_f64(),
+            total_time.as_f64(),
         );
+        drop(total_time);
 
         // update systems
-        self.dispatcher.dispatch(&mut self.world);
+        // self.dispatcher.dispatch(&mut self.world);
         // apply all lazy updates
-        self.world.maintain();
+        // self.world.maintain();
         // instantiate new objects
-        self.tick_new_objects_system();
+        self.world.run_system_once(Self::tick_new_objects_system);
     }
 
     pub fn save(&self, _save: &mut impl Save) {}
@@ -155,21 +145,10 @@ impl Game {
         locations::update_locations_index(&self.world)
     }
 
-    fn tick_new_objects_system(&mut self) {
-        let mut list = vec![];
-
-        for (e, new_obj) in (
-            &*self.world.entities(),
-            self.world.write_storage::<NewObj>().borrow_mut().drain(),
-        )
-            .join()
-        {
-            list.push(new_obj);
-            self.world.entities().delete(e).unwrap();
-        }
-
-        for obj in &list {
-            Loader::add_object(&mut self.world, obj);
+    fn tick_new_objects_system(mut commands: Commands, query: Query<(Entity, &NewObj)>) {
+        for (obj_id, new_obj) in query {
+            Loader::add_object(&mut commands, new_obj);
+            commands.entity(obj_id).despawn();
         }
     }
 

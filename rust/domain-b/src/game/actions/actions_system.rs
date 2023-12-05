@@ -5,7 +5,7 @@ use super::*;
 
 use crate::game::events::{Event, EventKind, Events};
 
-use crate::utils::Speed;
+use crate::game::utils::Speed;
 use commons::math;
 
 pub struct ActionsSystem;

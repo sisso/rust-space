@@ -74,8 +74,8 @@ mod test {
     use super::*;
     use crate::game::dock::HasDocking;
 
+    use crate::game::utils::Position;
     use crate::test::test_system;
-    use crate::utils::Position;
 
     #[test]
     fn test_dock_system_should_dock() {

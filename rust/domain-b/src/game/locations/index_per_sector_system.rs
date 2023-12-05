@@ -2,7 +2,6 @@ use super::*;
 use crate::game::dock::HasDocking;
 use crate::game::extractables::Extractable;
 use bevy_ecs::prelude::*;
-use specs::{SystemData, Write};
 use std::borrow::BorrowMut;
 
 /// Index entities to provide fast look up like:

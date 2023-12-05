@@ -4,9 +4,9 @@ use crate::game::navigations::{NavRequest, Navigation};
 use crate::game::objects::ObjId;
 use crate::game::order::TradeOrders;
 
+use crate::game::utils::{DeltaTime, TotalTime};
 use crate::game::wares::{Cargo, Cargos, WareId};
 use crate::utils;
-use crate::utils::{DeltaTime, TotalTime};
 
 use bevy_ecs::prelude::*;
 use rand::RngCore;
@@ -354,9 +354,9 @@ mod test {
     use crate::game::objects::ObjId;
     use crate::game::order::{TradeOrders, TRADE_ORDER_ID_FACTORY};
     use crate::game::sectors::SectorId;
+    use crate::game::utils::TotalTime;
     use crate::game::wares::{Cargo, Volume, WareId};
     use crate::test::test_system;
-    use crate::utils::TotalTime;
 
     use crate::game::actions::Action;
     use commons::math::P2;

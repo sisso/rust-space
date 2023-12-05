@@ -1,8 +1,8 @@
 use crate::game::code;
-use crate::game::code::HasCode;
 use crate::game::new_obj::NewObj;
 use crate::game::objects::ObjId;
 use bevy_ecs::prelude::*;
+use bevy_ecs::system::RunSystemOnce;
 
 pub type PrefabId = ObjId;
 
@@ -15,24 +15,7 @@ pub struct Prefab {
     pub build_site: bool,
 }
 
-pub fn find_prefab_by_code(world: &World, code: &str) -> Option<Prefab> {
-    let e = code::get_entity_by_code(world, code)?;
-    let prefabs = world.read_storage::<Prefab>();
-    let prefab = prefabs.get(e)?;
-    Some(prefab.clone())
-}
-
-pub fn find_new_obj_by_code(
-    entities: &Entities,
-    codes: &ReadStorage<'_, HasCode>,
-    prefabs: &ReadStorage<'_, Prefab>,
-    code: &str,
-) -> Option<NewObj> {
-    code::find(entities, codes, code)
-        .and_then(|entity_id| prefabs.get(entity_id))
-        .map(|prefab| prefab.obj.clone())
-}
-
-pub fn get_by_id(prefabs: &ReadStorage<'_, Prefab>, prefab_id: PrefabId) -> Option<NewObj> {
-    prefabs.get(prefab_id).map(|prefab| prefab.obj.clone())
+pub fn find_prefab_by_code<'a>(world: &'a mut World, code: &str) -> Option<&'a Prefab> {
+    let prefab_id = world.run_system_once_with(code, code::find_entity_by_code);
+    world.get::<Prefab>(prefab_id)
 }

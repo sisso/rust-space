@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::utils::Speed;
+use crate::game::utils::Speed;
 
 #[derive(Clone, Debug)]
 pub struct Armor {

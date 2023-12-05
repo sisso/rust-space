@@ -1,5 +1,5 @@
 use crate::game::actions::ActionProgress;
-use crate::utils::TotalTime;
+use crate::game::utils::TotalTime;
 
 use bevy_ecs::prelude::*;
 use std::borrow::BorrowMut;
@@ -40,8 +40,8 @@ impl<'a> System<'a> for ActionProgressSystem {
 mod test {
     use crate::game::actions::action_progress_system::ActionProgressSystem;
     use crate::game::actions::ActionProgress;
+    use crate::game::utils::TotalTime;
     use crate::test::test_system;
-    use crate::utils::TotalTime;
     use specs::{Builder, WorldExt};
 
     #[test]

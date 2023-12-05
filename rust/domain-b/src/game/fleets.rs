@@ -5,7 +5,5 @@ use bevy_ecs::prelude::*;
 pub struct Fleet {}
 
 impl RequireInitializer for Fleet {
-    fn init(context: &mut GameInitContext) {
-        context.world.register::<Fleet>();
-    }
+    fn init(context: &mut GameInitContext) {}
 }

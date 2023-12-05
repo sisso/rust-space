@@ -1,16 +1,14 @@
-mod index_per_sector_system;
+// mod index_per_sector_system;
 
 use bevy_ecs::prelude::*;
 use commons::math::{Distance, Rad, P2};
-use specs::storage::MaskedStorage;
 use std::collections::HashMap;
-use std::ops::Deref;
 
 use super::objects::*;
 use super::sectors::*;
-use crate::utils::*;
+use crate::game::utils::*;
 
-use crate::game::locations::index_per_sector_system::*;
+// use crate::game::locations::index_per_sector_system::*;
 use crate::game::{GameInitContext, RequireInitializer};
 
 #[derive(Debug, Clone, Copy, Component)]
@@ -142,9 +140,10 @@ pub struct Locations {}
 
 impl RequireInitializer for Locations {
     fn init(context: &mut GameInitContext) {
-        context
-            .dispatcher
-            .add(IndexPerSectorSystem, INDEX_SECTOR_SYSTEM, &[]);
+        todo!()
+        // context
+        //     .dispatcher
+        //     .add(IndexPerSectorSystem, INDEX_SECTOR_SYSTEM, &[]);
     }
 }
 
@@ -165,61 +164,71 @@ impl Locations {
         }
     }
 
-    pub fn is_near_from_storage(
-        locations: &ReadStorage<LocationSpace>,
-        obj_a: ObjId,
-        obj_b: ObjId,
-    ) -> bool {
-        let pos_a = locations.get(obj_a);
-        let pos_b = locations.get(obj_b);
-        Locations::is_near_maybe(pos_a, pos_b)
+    pub fn is_near_from_storage(world: &World, obj_a: ObjId, obj_b: ObjId) -> bool {
+        Locations::is_near_maybe(
+            world.get::<LocationSpace>(obj_a),
+            world.get::<LocationSpace>(obj_b),
+        )
     }
 
     /// same as resolve_space_position, but receive a world and the storages are fetched from it
-    pub fn resolve_space_position_from_world(
-        world: &World,
+    pub fn resolve_space_position(
         obj_id: ObjId,
+        query: &Query<(Entity, Option<&LocationSpace>, Option<&LocationDocked>)>,
     ) -> Option<LocationSpace> {
-        let loc_space = world.read_storage::<LocationSpace>();
-        let loc_docked = world.read_storage::<LocationDocked>();
-        Locations::resolve_space_position(&loc_space, &loc_docked, obj_id)
-    }
-
-    /// recursive search through docked entities until find what space position entity is at
-    pub fn resolve_space_position<'a, D1, D2>(
-        locations_space: &Storage<'a, LocationSpace, D1>,
-        locations_docked: &Storage<'a, LocationDocked, D2>,
-        obj_id: ObjId,
-    ) -> Option<LocationSpace>
-    where
-        D1: Deref<Target = MaskedStorage<LocationSpace>>,
-        D2: Deref<Target = MaskedStorage<LocationDocked>>,
-    {
-        match (locations_space.get(obj_id), locations_docked.get(obj_id)) {
-            (Some(at_space), _) => Some(at_space.clone()),
-            (_, Some(docked)) => {
-                Self::resolve_space_position(locations_space, locations_docked, docked.parent_id)
-            }
-            _ => None,
+        match query.get(obj_id).ok()? {
+            (_, Some(space), _) => space,
         }
+
+        // match (
+        //     world.get::<LocationSpace>(obj_id),
+        //     world.get::<LocationSpace>(obj_id),
+        // ) {
+        //     (Some(at_space), _) => Some(at_space.clone()),
+        //     (_, Some(docked)) => {
+        //         Self::resolve_space_position(locations_space, locations_docked, docked.parent_id)
+        //     }
+        //     _ => None,
+        // }
     }
 
-    pub fn is_docked_at<D1>(
-        locations_docked: &Storage<LocationDocked, D1>,
-        obj_id: ObjId,
-        target_id: ObjId,
-    ) -> bool
-    where
-        D1: Deref<Target = MaskedStorage<LocationDocked>>,
-    {
-        locations_docked
-            .get(obj_id)
-            .map(|docked| docked.parent_id == target_id)
-            .unwrap_or(false)
-    }
+    // /// recursive search through docked entities until find what space position entity is at
+    // pub fn resolve_space_position<'a, D1, D2>(
+    //     world: &World,
+    //     locations_space: &Storage<'a, LocationSpace, D1>,
+    //     locations_docked: &Storage<'a, LocationDocked, D2>,
+    //     obj_id: ObjId,
+    // ) -> Option<LocationSpace>
+    // where
+    //     D1: Deref<Target = MaskedStorage<LocationSpace>>,
+    //     D2: Deref<Target = MaskedStorage<LocationDocked>>,
+    // {
+    //     match (locations_space.get(obj_id), locations_docked.get(obj_id)) {
+    //         (Some(at_space), _) => Some(at_space.clone()),
+    //         (_, Some(docked)) => {
+    //             Self::resolve_space_position(locations_space, locations_docked, docked.parent_id)
+    //         }
+    //         _ => None,
+    //     }
+    // }
+
+    // pub fn is_docked_at<D1>(
+    //     locations_docked: &Storage<LocationDocked, D1>,
+    //     obj_id: ObjId,
+    //     target_id: ObjId,
+    // ) -> bool
+    // where
+    //     D1: Deref<Target = MaskedStorage<LocationDocked>>,
+    // {
+    //     locations_docked
+    //         .get(obj_id)
+    //         .map(|docked| docked.parent_id == target_id)
+    //         .unwrap_or(false)
+    // }
 }
 
 pub fn update_locations_index(world: &World) {
-    let mut system = index_per_sector_system::IndexPerSectorSystem {};
-    system.run_now(world);
+    todo!()
+    // let mut system = index_per_sector_system::IndexPerSectorSystem {};
+    // system.run_now(world);
 }

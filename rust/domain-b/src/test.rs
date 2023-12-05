@@ -1,4 +1,4 @@
-use crate::utils::{MIN_DISTANCE, V2};
+use crate::game::utils::{MIN_DISTANCE, V2};
 use bevy_ecs::prelude::*;
 use log::SetLoggerError;
 

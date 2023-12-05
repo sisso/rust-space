@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use rand::Rng;
 
-use crate::utils::Speed;
+use crate::game::utils::Speed;
 
 use super::damages;
 use super::ship_internals::*;

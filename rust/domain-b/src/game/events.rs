@@ -1,6 +1,7 @@
 use crate::game::objects::ObjId;
+use bevy_ecs::prelude::Event;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum EventKind {
     Add,
     Move,
@@ -11,36 +12,36 @@ pub enum EventKind {
     Orbit,
 }
 
-#[derive(Debug, Clone)]
-pub struct Event {
+#[derive(Debug, Clone, Copy, Event)]
+pub struct GEvent {
     pub id: ObjId,
     pub kind: EventKind,
 }
 
-impl Event {
+impl GEvent {
     pub fn new(id: ObjId, kind: EventKind) -> Self {
-        Event { id, kind }
+        GEvent { id, kind }
     }
 }
 
-pub struct Events {
-    queue: Vec<Event>,
+pub struct GEvents {
+    queue: Vec<GEvent>,
 }
 
-impl Default for Events {
+impl Default for GEvents {
     fn default() -> Self {
-        Events {
+        GEvents {
             queue: Default::default(),
         }
     }
 }
 
-impl Events {
-    pub fn push(&mut self, event: Event) {
+impl GEvents {
+    pub fn push(&mut self, event: GEvent) {
         self.queue.push(event);
     }
 
-    pub fn take(&mut self) -> Vec<Event> {
+    pub fn take(&mut self) -> Vec<GEvent> {
         std::mem::replace(&mut self.queue, vec![])
     }
 }

@@ -34,7 +34,7 @@ impl Speed {
 
 pub type Seconds = DeltaTime;
 
-#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Resource)]
 pub struct DeltaTime(pub f32);
 
 impl DeltaTime {
@@ -55,7 +55,7 @@ impl From<f32> for DeltaTime {
     }
 }
 
-#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Resource)]
 pub struct TotalTime(pub f64);
 
 impl Default for TotalTime {
@@ -143,20 +143,6 @@ impl IdAsU32Support for Entity {
 //     }
 // }
 
-#[test]
-fn test_total_time_give_us_hundred_years_game_60_fps_precision() {
-    let total = TotalTime(100.0 * 360.0 * 24.0 * 60.0 * 60.0);
-    let change = DeltaTime(1.0 / 60.0);
-    let new_total = total.add(change.into());
-    let diff = new_total.sub(total);
-    let diff_expected = (change.0 - diff.0).abs();
-    println!("{:?}", total);
-    println!("{:?}", change);
-    println!("{:?}", new_total);
-    println!("{:?}", diff);
-    assert!(diff_expected < 0.0166666);
-}
-
 pub fn next_lower<Value, Score, Iter>(iter: Iter) -> Option<Value>
 where
     Value: Sized,
@@ -181,20 +167,35 @@ where
     selected
 }
 
-#[test]
-fn test_find_next() {
-    assert_eq!(Some(0u32), next_lower(vec![(2, 0), (3, 1)].into_iter()));
-}
+#[cfg(test)]
+mod test {
+    use super::*;
 
-#[test]
-fn test_v2_eq() {
-    let p1 = V2::new(1.123, 0.0001 - 0.0000001);
-    let p2 = V2::new(1.1230000001, 0.0001);
+    #[test]
+    fn test_total_time_give_us_hundred_years_game_60_fps_precision() {
+        let total = TotalTime(100.0 * 360.0 * 24.0 * 60.0 * 60.0);
+        let change = DeltaTime(1.0 / 60.0);
+        let new_total = total.add(change.into());
+        let diff = new_total.sub(total);
+        let diff_expected = (change.0 - diff.0).abs();
+        println!("{:?}", total);
+        println!("{:?}", change);
+        println!("{:?}", new_total);
+        println!("{:?}", diff);
+        assert!(diff_expected < 0.0166666);
+    }
 
-    let equals = p1.abs_diff_eq(p2, f32::EPSILON);
-    assert!(equals);
-}
+    #[test]
+    fn test_find_next() {
+        assert_eq!(Some(0u32), next_lower(vec![(2, 0), (3, 1)].into_iter()));
+    }
 
-pub fn enable_logs(level: log::LevelFilter) {
-    _ = env_logger::builder().filter(None, level).try_init();
+    #[test]
+    fn test_v2_eq() {
+        let p1 = V2::new(1.123, 0.0001 - 0.0000001);
+        let p2 = V2::new(1.1230000001, 0.0001);
+
+        let equals = p1.abs_diff_eq(p2, f32::EPSILON);
+        assert!(equals);
+    }
 }

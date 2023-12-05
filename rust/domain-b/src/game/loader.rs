@@ -3,6 +3,7 @@ use rand::{Rng, SeedableRng};
 use std::collections::HashMap;
 
 use bevy_ecs::prelude::*;
+use bevy_ecs::system::CommandQueue;
 
 use commons;
 use commons::math;
@@ -13,7 +14,7 @@ use crate::game::building_site::BuildingSite;
 use crate::game::code::{Code, HasCode};
 use crate::game::commands::Command;
 use crate::game::dock::HasDocking;
-use crate::game::events::{Event, EventKind, Events};
+use crate::game::events::{EventKind, GEvent, GEvents};
 use crate::game::extractables::Extractable;
 use crate::game::factory::{Factory, Receipt};
 use crate::game::fleets::Fleet;
@@ -27,18 +28,23 @@ use crate::game::prefab::{Prefab, PrefabId};
 use crate::game::sectors::{Jump, JumpId, Sector, SectorId};
 use crate::game::shipyard::Shipyard;
 use crate::game::station::Station;
+use crate::game::utils::{DeltaTime, Speed, TotalTime, V2};
 use crate::game::wares::{CargoDistributionDirty, Ware, WareAmount, WareId, WaresByCode};
-use crate::game::{conf, prefab};
-use crate::specs_extras::*;
-use crate::utils::{DeltaTime, Speed, TotalTime, V2};
+use crate::game::{bevy_utils, conf, prefab};
 
-/// AKA World editor
+/// AKA commands editor
 pub struct Loader {}
 
 impl Loader {
     pub const DEFAULT_ORBIT_SPEED: Speed = Speed(5.0);
 
-    pub fn add_asteroid(world: &mut World, sector_id: SectorId, pos: V2, ware_id: WareId) -> ObjId {
+    pub fn add_asteroid(
+        commands: &mut Commands,
+        events: &mut EventWriter<GEvent>,
+        sector_id: SectorId,
+        pos: V2,
+        ware_id: WareId,
+    ) -> ObjId {
         let asteroid = Self::new_asteroid(sector_id)
             .with_label("asteroid".to_string())
             .with_pos(pos)
@@ -46,21 +52,27 @@ impl Loader {
                 ware_id,
                 accessibility: 10.0,
             });
-        Loader::add_object(world, &asteroid)
+        Loader::add_object(commands, events, &asteroid)
     }
 
-    pub fn add_shipyard(world: &mut World, sector_id: SectorId, pos: V2) -> ObjId {
+    pub fn add_shipyard(
+        commands: &mut Commands,
+        events: &mut EventWriter<GEvent>,
+        sector_id: SectorId,
+        pos: V2,
+    ) -> ObjId {
         let new_obj = Self::new_station()
             .at_position(sector_id, pos)
             .with_label("shipyard".to_string())
             .with_cargo_size(500)
             .with_shipyard(Shipyard::new());
 
-        Loader::add_object(world, &new_obj)
+        Loader::add_object(commands, events, &new_obj)
     }
 
     pub fn add_mothership(
-        world: &mut World,
+        commands: &mut Commands,
+        events: &mut EventWriter<GEvent>,
         sector_id: SectorId,
         pos: V2,
         receipt: Receipt,
@@ -72,11 +84,21 @@ impl Loader {
             .with_shipyard(Shipyard::new())
             .with_factory(Factory::new(receipt));
 
-        Loader::add_object(world, &new_obj)
+        Loader::add_object(commands, events, &new_obj)
     }
 
-    pub fn add_factory(world: &mut World, sector_id: SectorId, pos: V2, receipt: Receipt) -> ObjId {
-        Loader::add_object(world, &Self::new_factory(sector_id, pos, receipt))
+    pub fn add_factory(
+        commands: &mut Commands,
+        events: &mut EventWriter<GEvent>,
+        sector_id: SectorId,
+        pos: V2,
+        receipt: Receipt,
+    ) -> ObjId {
+        Loader::add_object(
+            commands,
+            events,
+            &Self::new_factory(sector_id, pos, receipt),
+        )
     }
 
     pub fn new_station() -> NewObj {
@@ -94,9 +116,16 @@ impl Loader {
             .with_factory(Factory::new(receipt))
     }
 
-    pub fn add_ship_miner(world: &mut World, docked_at: ObjId, speed: f32, label: String) -> ObjId {
+    pub fn add_ship_miner(
+        commands: &mut Commands,
+        events: &mut EventWriter<GEvent>,
+        docked_at: ObjId,
+        speed: f32,
+        label: String,
+    ) -> ObjId {
         Loader::add_object(
-            world,
+            commands,
+            events,
             &Loader::new_ship(speed, label)
                 .at_dock(docked_at)
                 .with_command(Command::mine()),
@@ -104,13 +133,15 @@ impl Loader {
     }
 
     pub fn add_ship_trader(
-        world: &mut World,
+        commands: &mut Commands,
+        events: &mut EventWriter<GEvent>,
         docked_at: ObjId,
         speed: f32,
         label: String,
     ) -> ObjId {
         Loader::add_object(
-            world,
+            commands,
+            events,
             &Loader::new_ship(speed, label)
                 .at_dock(docked_at)
                 .with_command(Command::trade()),
@@ -137,13 +168,19 @@ impl Loader {
     //         .with_command(Command::mine())
     // }
 
-    pub fn add_sector(world: &mut World, pos: P2I, name: String) -> ObjId {
-        Loader::add_object(world, &NewObj::new().with_sector(pos).with_label(name))
+    pub fn add_sector(commands: &mut Commands,
+                      events: &mut EventWriter<GEvent>,
+
+                      pos: P2I, name: String) -> ObjId {
+        Loader::add_object(commands, events, &NewObj::new().with_sector(pos).with_label(name))
     }
 
-    pub fn add_ware<T: Into<String>>(world: &mut World, code: T, name: T) -> WareId {
+    pub fn add_ware<T: Into<String>>(commands: &mut Commands,
+                                     events: &mut EventWriter<GEvent>,
+                                     , code: T, name: T) -> WareId {
         Loader::add_object(
-            world,
+            commands,
+            events,
             &NewObj::new()
                 .with_ware()
                 .with_code(code.into())
@@ -152,40 +189,40 @@ impl Loader {
     }
 
     pub fn add_jump(
-        world: &mut World,
+        commands: &mut Commands,
+        mut events: EventWriter<GEvent>,
         from_sector_id: SectorId,
         from_pos: P2,
         to_sector_id: JumpId,
         to_pos: P2,
     ) -> (ObjId, ObjId) {
-        let jump_from_id = world
-            .create_entity()
-            .with(Label::from("jump"))
-            .with(Jump {
+        let jump_from_id = commands
+            .spawn_empty()
+            .insert(Label::from("jump"))
+            .insert(Jump {
                 target_sector_id: to_sector_id,
                 target_pos: to_pos,
             })
-            .with(LocationSpace {
+            .insert(LocationSpace {
                 pos: from_pos,
                 sector_id: from_sector_id,
             })
-            .build();
+            .id();
 
-        let jump_to_id = world
-            .create_entity()
-            .with(Jump {
+        let jump_to_id = commands
+            .spawn_empty()
+            .insert(Jump {
                 target_sector_id: from_sector_id,
                 target_pos: from_pos,
             })
-            .with(LocationSpace {
+            .insert(LocationSpace {
                 pos: to_pos,
                 sector_id: to_sector_id,
             })
-            .build();
+            .id();
 
-        let events = &mut world.write_resource::<Events>();
-        events.push(Event::new(jump_from_id, EventKind::Add));
-        events.push(Event::new(jump_to_id, EventKind::Add));
+        events.send(GEvent::new(jump_from_id, EventKind::Add));
+        events.send(GEvent::new(jump_to_id, EventKind::Add));
 
         log::debug!(
             "{:?} creating jump from {:?} to {:?}",
@@ -217,8 +254,16 @@ impl Loader {
         NewObj::new().at_position(sector_id, P2::ZERO).with_planet()
     }
 
-    pub fn add_object(world: &mut World, new_obj: &NewObj) -> ObjId {
-        let mut builder = world.create_entity();
+    pub fn add_object_from_commands(world: &mut World, new_obj: &NewObj) -> ObjId {
+        bevy_utils::run_commands(world, |commands| Self::add_object(commands, new_obj))
+    }
+
+    pub fn add_object(
+        commands: &mut Commands,
+        events: &mut EventWriter<GEvent>,
+        new_obj: &NewObj,
+    ) -> ObjId {
+        let mut builder = commands.spawn_empty();
 
         // assert consistency
         if new_obj.cargo.is_none() && (new_obj.shipyard.is_some() || new_obj.factory.is_some()) {
@@ -239,78 +284,78 @@ impl Loader {
         let mut orders = TradeOrders::default();
 
         if let Some(code) = new_obj.code.as_ref() {
-            builder.set(HasCode {
+            builder.insert(HasCode {
                 code: code.to_string(),
-            })
+            });
         }
 
         if let Some(label) = new_obj.label.as_ref() {
-            builder.set(Label {
+            builder.insert(Label {
                 label: label.to_string(),
-            })
+            });
         }
 
         if new_obj.docking {
-            builder.set(HasDocking::default());
+            builder.insert(HasDocking::default());
         }
 
         if let Some(orbit) = new_obj.location_orbit.as_ref() {
-            builder.set(orbit.clone());
+            builder.insert(orbit.clone());
         }
 
         if let Some(location) = &new_obj.location_space {
-            builder.set(location.clone());
+            builder.insert(location.clone());
         }
 
         if let Some(docked) = &new_obj.location_docked {
-            builder.set(docked.clone());
+            builder.insert(docked.clone());
         }
 
         if let Some(speed) = &new_obj.speed {
-            builder.set(Moveable {
+            builder.insert(Moveable {
                 speed: speed.clone(),
             });
         }
 
         if let Some(extractable) = &new_obj.extractable {
-            builder.set(extractable.clone());
+            builder.insert(extractable.clone());
         }
 
         if new_obj.station {
-            builder.set(Station {});
+            builder.insert(Station {});
         }
 
         if new_obj.fleet {
-            builder.set(Fleet {});
+            builder.insert(Fleet {});
         }
 
         if let Some(sector_pos) = &new_obj.sector {
-            builder.set(Sector::new(sector_pos.clone()));
+            builder.insert(Sector::new(sector_pos.clone()));
         }
 
         for (target_sector_id, target_pos) in &new_obj.jump_to {
-            builder.set(Jump {
+            builder.insert(Jump {
                 target_sector_id: *target_sector_id,
                 target_pos: *target_pos,
             });
         }
 
         for command in &new_obj.command {
-            builder.set(command.clone());
+            builder.insert(command.clone());
         }
 
         for shipyard in &new_obj.shipyard {
-            builder.set(shipyard.clone());
+            builder.insert(shipyard.clone());
         }
 
         if let Some(cargo) = &new_obj.cargo {
             let cargo = cargo.clone();
-            builder.set(cargo);
-            builder.set(CargoDistributionDirty {});
+            builder.insert(cargo);
+            builder.insert(CargoDistributionDirty {});
         }
 
         for factory in &new_obj.factory {
-            builder.set(factory.clone());
+            builder.insert(factory.clone());
             for wa in &factory.production.input {
                 orders.add_request(TRADE_ORDER_ID_FACTORY, wa.ware_id);
             }
@@ -320,49 +365,48 @@ impl Loader {
         }
 
         if let Some(_) = new_obj.star {
-            builder.set(AstroBody {
+            builder.insert(AstroBody {
                 kind: AstroBodyKind::Star,
             });
         }
 
         if let Some(_) = new_obj.planet {
-            builder.set(AstroBody {
+            builder.insert(AstroBody {
                 kind: AstroBodyKind::Planet,
             });
         }
 
         if new_obj.ware {
-            builder.set(Ware {});
+            builder.insert(Ware {});
         }
 
         if let Some(building_site) = &new_obj.building_site {
-            builder.set(building_site.clone());
+            builder.insert(building_site.clone());
             for ware_id in &building_site.input {
                 orders.add_request(TRADE_ORDER_ID_BUILDING_SITE, ware_id.ware_id);
             }
         }
 
         if let Some(production_cost) = &new_obj.production_cost {
-            builder.set(production_cost.clone());
+            builder.insert(production_cost.clone());
         }
 
         if !orders.is_empty() || new_obj.shipyard.is_some() {
-            log::debug!("{:?} setting order of {:?}", builder.entity, orders);
-            builder.set(orders);
+            log::debug!("{:?} setting order of {:?}", builder.id(), orders);
+            builder.insert(orders);
         }
 
-        let entity = builder.build();
+        let entity = builder.id();
 
         log::debug!("add_object {:?} from {:?}", entity, new_obj);
 
-        let events = &mut world.write_resource::<Events>();
-        events.push(Event::new(entity, EventKind::Add));
+        events.send(GEvent::new(entity, EventKind::Add));
 
         entity
     }
 
     pub fn add_prefab(
-        world: &mut World,
+        commands: &mut Commands,
         code: &str,
         label: &str,
         new_obj: NewObj,
@@ -371,29 +415,29 @@ impl Loader {
     ) -> Entity {
         let new_obj_str = format!("{:?}", new_obj);
 
-        let entity = world
-            .create_entity()
-            .with(Prefab {
+        let entity = commands
+            .spawn_empty()
+            .insert(Prefab {
                 obj: new_obj,
                 shipyard: shipyard,
                 build_site: building_site,
             })
-            .with(HasCode::from_str(code))
-            .with(Label::from(label))
-            .build();
+            .insert(HasCode::from_str(code))
+            .insert(Label::from(label))
+            .id();
 
         log::debug!("add_prefab {:?} from {}", entity, new_obj_str);
 
         entity
     }
 
-    pub fn new_by_prefab_code(world: &mut World, code: &str) -> Option<NewObj> {
-        prefab::find_prefab_by_code(world, code).map(|p| p.obj)
+    pub fn new_by_prefab_code(commands: &mut Commands, code: &str) -> Option<NewObj> {
+        prefab::find_prefab_by_code(commands, code).map(|p| p.obj)
     }
 
-    pub fn add_by_prefab_code(world: &mut World, code: &str) -> Option<ObjId> {
-        let new_obj = Self::new_by_prefab_code(world, code)?;
-        Some(Self::add_object(world, &new_obj))
+    pub fn add_by_prefab_code(commands: &mut Commands, code: &str) -> Option<ObjId> {
+        let new_obj = Self::new_by_prefab_code(commands, code)?;
+        Some(Self::add_object(commands, &new_obj))
     }
 
     pub fn new_station_building_site(prefab_id: PrefabId, input: Vec<WareAmount>) -> NewObj {
@@ -405,15 +449,15 @@ impl Loader {
     }
 
     pub fn set_obj_at_orbit(
-        world: &mut World,
+        commands: &mut Commands,
         obj_id: ObjId,
         parent_id: ObjId,
         distance: Distance,
         angle: Rad,
         speed: Speed,
     ) {
-        let total_time = *world.read_resource::<TotalTime>();
-        let mut orbits = world.write_storage::<LocationOrbit>();
+        let total_time = *commands.read_resource::<TotalTime>();
+        let mut orbits = commands.write_storage::<LocationOrbit>();
         orbits
             .insert(
                 obj_id,
@@ -427,11 +471,11 @@ impl Loader {
             )
             .unwrap();
         drop(orbits);
-        Orbits::update_orbits(world);
+        Orbits::update_orbits(commands);
     }
 
-    pub fn set_obj_to_obj_orbit(world: &mut World, obj_id: ObjId, target_id: ObjId) {
-        let location_storage = &mut world.write_storage::<LocationSpace>();
+    pub fn set_obj_to_obj_orbit(commands: &mut Commands, obj_id: ObjId, target_id: ObjId) {
+        let location_storage = &mut commands.write_storage::<LocationSpace>();
         let target_location = location_storage.get(target_id).unwrap().clone();
 
         log::debug!(
@@ -444,17 +488,17 @@ impl Loader {
             .insert(obj_id, target_location)
             .expect("fail to set obj position");
 
-        world
+        commands
             .write_storage::<LocationOrbit>()
             .insert(obj_id, LocationOrbit::new(target_id))
             .expect("fail to set obj in orbit");
 
         // remove if docked
-        _ = world.write_storage::<LocationDocked>().remove(obj_id);
+        _ = commands.write_storage::<LocationDocked>().remove(obj_id);
     }
 
-    pub fn set_obj_to_obj_position(world: &mut World, obj_id: ObjId, target_id: ObjId) {
-        let location_storage = &mut world.write_storage::<LocationSpace>();
+    pub fn set_obj_to_obj_position(commands: &mut Commands, obj_id: ObjId, target_id: ObjId) {
+        let location_storage = &mut commands.write_storage::<LocationSpace>();
         let target_location = location_storage.get(target_id).unwrap().clone();
 
         log::debug!(
@@ -467,27 +511,31 @@ impl Loader {
         location_storage.insert(obj_id, target_location).unwrap();
 
         // remove if docked
-        _ = world.write_storage::<LocationDocked>().remove(obj_id);
+        _ = commands.write_storage::<LocationDocked>().remove(obj_id);
     }
 
-    pub fn set_obj_position(world: &mut World, obj_id: ObjId, location_space: &LocationSpace) {
+    pub fn set_obj_position(
+        commands: &mut Commands,
+        obj_id: ObjId,
+        location_space: &LocationSpace,
+    ) {
         log::debug!("{:?} teleported to position {:?}", obj_id, location_space,);
 
-        let location_storage = &mut world.write_storage::<LocationSpace>();
+        let location_storage = &mut commands.write_storage::<LocationSpace>();
         location_storage
             .insert(obj_id, location_space.clone())
             .unwrap();
 
-        let docked = &mut world.write_storage::<LocationDocked>();
+        let docked = &mut commands.write_storage::<LocationDocked>();
         docked.remove(obj_id);
     }
 
-    pub fn set_obj_docked(world: &mut World, obj_id: ObjId, parent_id: ObjId) {
+    pub fn set_obj_docked(commands: &mut Commands, obj_id: ObjId, parent_id: ObjId) {
         log::debug!("{:?} teleported docked at {:?}", obj_id, parent_id,);
 
-        (&mut world.write_storage::<LocationSpace>()).remove(obj_id);
-        (&mut world.write_storage::<LocationOrbit>()).remove(obj_id);
-        (&mut world.write_storage::<LocationDocked>())
+        (&mut commands.write_storage::<LocationSpace>()).remove(obj_id);
+        (&mut commands.write_storage::<LocationOrbit>()).remove(obj_id);
+        (&mut commands.write_storage::<LocationDocked>())
             .insert(obj_id, LocationDocked { parent_id })
             .unwrap();
     }
@@ -501,7 +549,7 @@ impl Loader {
 }
 
 pub fn set_orbit_random_body(
-    world: &mut World,
+    commands: &mut Commands,
     obj_id: ObjId,
     seed: u64,
 ) -> Result<ObjId, &'static str> {
@@ -509,10 +557,10 @@ pub fn set_orbit_random_body(
 
     let mut candidates = vec![];
     {
-        let entities = world.entities();
-        let locations = world.read_storage::<LocationSpace>();
-        let orbits = world.read_storage::<LocationOrbit>();
-        let astros = world.read_storage::<AstroBody>();
+        let entities = commands.entities();
+        let locations = commands.read_storage::<LocationSpace>();
+        let orbits = commands.read_storage::<LocationOrbit>();
+        let astros = commands.read_storage::<AstroBody>();
 
         // get entity sector
         let sector_id = match locations.get(obj_id) {
@@ -559,12 +607,12 @@ pub fn set_orbit_random_body(
 
     let speed = Loader::compute_orbit_speed(radius);
     log::trace!("{:?} radius {:?} speed {:?}", obj_id, radius, speed);
-    Loader::set_obj_at_orbit(world, obj_id, parent_id, radius, angle, speed);
+    Loader::set_obj_at_orbit(commands, obj_id, parent_id, radius, angle, speed);
 
     Ok(parent_id)
 }
 
-// pub fn load_station_prefab(world: &mut World, station: &conf::Station) -> Option<Entity> {}
+// pub fn load_station_prefab(commands: &mut Commands, station: &conf::Station) -> Option<Entity> {}
 fn into_wareamount(wares_by_code: &WaresByCode, code: &str, amount: u32) -> WareAmount {
     let ware_id = wares_by_code
         .get(code)
@@ -584,11 +632,11 @@ fn into_wareamount_list(
         .collect()
 }
 
-pub fn load_prefabs(world: &mut World, prefabs: &conf::Prefabs) {
+pub fn load_prefabs(commands: &mut Commands, prefabs: &conf::Prefabs) {
     // generate wares and collect index
     let mut wares_by_code: HashMap<Code, WareId> = Default::default();
     for ware in &prefabs.wares {
-        let ware_id = Loader::add_ware(world, ware.code.clone(), ware.label.clone());
+        let ware_id = Loader::add_ware(commands, ware.code.clone(), ware.label.clone());
         wares_by_code.insert(ware.code.clone(), ware_id);
     }
     let wares_by_code = WaresByCode::from(wares_by_code);
@@ -622,7 +670,7 @@ pub fn load_prefabs(world: &mut World, prefabs: &conf::Prefabs) {
             );
         }
 
-        Loader::add_prefab(world, &fleet.code, &fleet.label, obj, true, false);
+        Loader::add_prefab(commands, &fleet.code, &fleet.label, obj, true, false);
     }
 
     // create stations prefabs
@@ -658,6 +706,6 @@ pub fn load_prefabs(world: &mut World, prefabs: &conf::Prefabs) {
             );
         }
 
-        Loader::add_prefab(world, &station.code, &station.label, obj, false, true);
+        Loader::add_prefab(commands, &station.code, &station.label, obj, false, true);
     }
 }

@@ -97,8 +97,8 @@ mod test {
     use super::*;
     use crate::game::sectors::test_scenery;
     use crate::game::sectors::test_scenery::SectorScenery;
+    use crate::game::utils::TotalTime;
     use crate::test::{assert_v2, test_system};
-    use crate::utils::TotalTime;
 
     fn create_jump_entity(
         world: &mut World,

@@ -51,8 +51,8 @@ impl<'a> System<'a> for NavigationSystem {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::game::utils::V2;
     use crate::test::test_system;
-    use crate::utils::V2;
 
     #[test]
     fn test_navigation_move_to_system_should_complete_when_path_is_empty() {

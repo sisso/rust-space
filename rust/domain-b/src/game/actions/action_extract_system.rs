@@ -1,7 +1,7 @@
 use crate::game::actions::{Action, ActionActive, ActionExtract};
 use crate::game::extractables::Extractable;
+use crate::game::utils::DeltaTime;
 use crate::game::wares::Cargo;
-use crate::utils::DeltaTime;
 
 use bevy_ecs::prelude::*;
 use std::borrow::BorrowMut;
@@ -109,9 +109,9 @@ impl<'a> System<'a> for ActionExtractSystem {
 mod test {
     use super::super::*;
     use super::*;
+    use crate::game::utils::DeltaTime;
     use crate::game::wares::Volume;
     use crate::test::TestSystemRunner;
-    use crate::utils::DeltaTime;
 
     #[test]
     fn test_extraction() {
