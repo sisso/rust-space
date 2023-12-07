@@ -43,10 +43,7 @@ impl Sector {
 pub struct Sectors;
 
 impl RequireInitializer for Sectors {
-    fn init(context: &mut GameInitContext) {
-        context.world.register::<Jump>();
-        context.world.register::<Sector>();
-    }
+    fn init(context: &mut GameInitContext) {}
 }
 
 pub fn update_sectors_index(world: &World) {
@@ -371,11 +368,9 @@ pub fn update_sectors_index(world: &World) {
 //     Some(result)
 // }
 
-pub fn get_sector_by_coords(world: &mut World, coords: P2I) -> Option<Entity> {
-    let mut system: SystemState<(Query<(Entity, Sector)>)> = SystemState::new(world);
-    let query = system.get(world);
+pub fn get_sector_by_coords(input: In<P2I>, query: Query<(Entity, &Sector)>) -> Option<Entity> {
     query.iter().find_map(|(id, sector)| {
-        if sector.coords.eq(&coords) {
+        if sector.coords.eq(&input.0) {
             Some(id)
         } else {
             None
@@ -383,9 +378,7 @@ pub fn get_sector_by_coords(world: &mut World, coords: P2I) -> Option<Entity> {
     })
 }
 
-pub fn list(world: &mut World) -> Vec<Entity> {
-    let mut system: SystemState<(Query<(Entity, With<Sector>)>)> = SystemState::new(world);
-    let query = system.get(world);
+pub fn list(query: Query<(Entity, With<Sector>)>) -> Vec<Entity> {
     query.iter().map(|i| i.0).collect()
 }
 

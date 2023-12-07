@@ -37,18 +37,18 @@ impl Wares {
         // );
     }
 
-    pub fn list_wares_by_code(world: &World) -> WaresByCode {
-        WaresByCode::new(world)
+    pub fn list_wares_by_code(query: Query<(Entity, With<Ware>, &HasCode)>) -> WaresByCode {
+        let mut map: HashMap<String, Entity> = Default::default();
+        for (e, code) in Self::list_wares(query) {
+            map.insert(code, e);
+        }
+        WaresByCode::from(map)
     }
 
-    pub fn list_wares(world: &World) -> Vec<(Entity, String)> {
-        (
-            &world.entities(),
-            &world.read_storage::<Ware>(),
-            &world.read_storage::<HasCode>(),
-        )
-            .join()
-            .map(|(e, _, c)| (e, c.code.clone()))
+    pub fn list_wares(query: Query<(Entity, With<Ware>, &HasCode)>) -> Vec<(Entity, String)> {
+        query
+            .iter()
+            .map(|(id, _, code)| (id, code.code.clone()))
             .collect()
     }
 }
@@ -89,30 +89,11 @@ impl VecWareAmount for Vec<WareAmount> {
     }
 }
 
-pub fn find_ware_by_code(world: &World, code: &str) -> Option<Entity> {
-    (
-        &world.entities(),
-        &world.read_storage::<Ware>(),
-        &world.read_storage::<HasCode>(),
-    )
-        .join()
-        .find(|(_, _, c)| c.code.eq_ignore_ascii_case(code))
-        .map(|(e, _, _)| e)
-}
-
 pub struct WaresByCode {
     map: HashMap<String, Entity>,
 }
 
 impl WaresByCode {
-    pub fn new(world: &World) -> Self {
-        let mut map: HashMap<String, Entity> = Default::default();
-        for (e, code) in Wares::list_wares(world) {
-            map.insert(code, e);
-        }
-        Self { map }
-    }
-
     pub fn get(&self, code: &str) -> Option<Entity> {
         self.map.get(code).cloned()
     }
@@ -387,14 +368,14 @@ impl Cargos {
             wares,
         );
 
-        let cargo_from = cargos.get_mut(from_id).expect("Entity cargo not found");
+        let mut cargo_from = cargos.get_mut(from_id).expect("Entity cargo not found");
         transfer
-            .apply_move_from(cargo_from)
+            .apply_move_from(&mut cargo_from)
             .expect("To remove wares to be transfer");
 
-        let cargo_to = cargos.get_mut(to_id).expect("Deliver cargo not found");
+        let mut cargo_to = cargos.get_mut(to_id).expect("Deliver cargo not found");
         transfer
-            .apply_move_to(cargo_to)
+            .apply_move_to(&mut cargo_to)
             .expect("To add wares to be transfer");
 
         transfer

@@ -13,7 +13,5 @@ impl Station {
 pub struct Stations;
 
 impl RequireInitializer for Stations {
-    fn init(context: &mut GameInitContext) {
-        context.world.register::<Station>();
-    }
+    fn init(context: &mut GameInitContext) {}
 }

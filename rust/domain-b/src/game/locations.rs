@@ -26,6 +26,7 @@ pub struct LocationOrbit {
     pub speed: Speed,
 }
 
+// TODO: move to orbits
 impl LocationOrbit {
     pub fn new(target_id: ObjId) -> Self {
         LocationOrbit {
@@ -177,19 +178,10 @@ impl Locations {
         query: &Query<(Entity, Option<&LocationSpace>, Option<&LocationDocked>)>,
     ) -> Option<LocationSpace> {
         match query.get(obj_id).ok()? {
-            (_, Some(space), _) => space,
+            (_, Some(space), _) => Some(space.clone()),
+            (_, _, Some(docked)) => Self::resolve_space_position(docked.parent_id, query),
+            _ => None,
         }
-
-        // match (
-        //     world.get::<LocationSpace>(obj_id),
-        //     world.get::<LocationSpace>(obj_id),
-        // ) {
-        //     (Some(at_space), _) => Some(at_space.clone()),
-        //     (_, Some(docked)) => {
-        //         Self::resolve_space_position(locations_space, locations_docked, docked.parent_id)
-        //     }
-        //     _ => None,
-        // }
     }
 
     // /// recursive search through docked entities until find what space position entity is at

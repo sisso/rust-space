@@ -138,7 +138,5 @@ impl TradeOrders {
 }
 
 impl RequireInitializer for TradeOrders {
-    fn init(context: &mut GameInitContext) {
-        context.world.register::<TradeOrders>();
-    }
+    fn init(context: &mut GameInitContext) {}
 }

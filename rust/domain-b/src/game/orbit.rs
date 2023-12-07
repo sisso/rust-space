@@ -22,7 +22,7 @@ impl Orbits {
     pub fn update_orbits(world: &mut World) {
         // let mut system = OrbitalPosSystem;
         // system.run_now(world);
-        todo!()
+        todo!("system not implemented")
     }
 }
 
@@ -48,27 +48,22 @@ fn compute_orbital_pos(
     time: TotalTime,
     id: ObjId,
 ) -> Result<LocationSpace, &'static str> {
+    // check if is already cached
     if let Some(pos) = cache.get(&id) {
         return Ok(*pos);
     }
 
-    let location_space = query.get::<LocationSpace>(id).unwrap();
+    let (_, loc_space, orbit) = query.get(id).map_err(|_| "obj_id not found")?;
 
-    let orbit = match query.get::<LocationOrbit>(id).ok() {
+    // get orbit
+    let orbit = match orbit {
         Some(orbit) => orbit,
         None => {
-            cache.insert(id, location_space.clone());
-            return Ok(location_space.clone());
+            // if not orbit, update cache and return position
+            cache.insert(id, loc_space.clone());
+            return Ok(loc_space.clone());
         }
     };
-
-    // let at_space = locations.get(id).ok_or("obj without position")?;
-    // let orbit = if let Some(orbit) = orbits.get(id) {
-    //     orbit
-    // } else {
-    //     cache.insert(id, *at_space);
-    //     return Ok(*at_space);
-    // };
 
     let parent_pos = match compute_orbital_pos(cache, query, time, orbit.parent_id) {
         Ok(pos) => pos,
@@ -98,6 +93,8 @@ fn compute_orbital_pos(
     cache.insert(id, pos);
     Ok(pos)
 }
+
+// pub fn update_orbits_for_new_objects(input: In<Vec<ObjId>>, query: Query) {}
 
 // pub struct OrbitalPosSystem;
 //

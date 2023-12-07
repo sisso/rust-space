@@ -1,6 +1,8 @@
 use crate::game::code;
+use crate::game::code::HasCode;
 use crate::game::new_obj::NewObj;
 use crate::game::objects::ObjId;
+use bevy_ecs::bundle::DynamicBundle;
 use bevy_ecs::prelude::*;
 use bevy_ecs::system::RunSystemOnce;
 
@@ -15,7 +17,11 @@ pub struct Prefab {
     pub build_site: bool,
 }
 
-pub fn find_prefab_by_code<'a>(world: &'a mut World, code: &str) -> Option<&'a Prefab> {
-    let prefab_id = world.run_system_once_with(code, code::find_entity_by_code);
-    world.get::<Prefab>(prefab_id)
+pub fn find_prefab_by_code(
+    input: In<(String)>,
+    query_codes: Query<(Entity, &HasCode)>,
+    query_prefabs: Query<&Prefab>,
+) -> Option<Prefab> {
+    let prefab_id = code::find_entity_by_code(input, query_codes)?;
+    query_prefabs.get(prefab_id).ok().cloned()
 }

@@ -117,15 +117,15 @@ impl NextId {
     }
 }
 
-pub trait IdAsU32Support {
-    fn as_u32(&self) -> u32;
-}
-
-impl IdAsU32Support for Entity {
-    fn as_u32(&self) -> u32 {
-        self.id()
-    }
-}
+// pub trait IdAsU32Support {
+//     fn as_u32(&self) -> u32;
+// }
+//
+// impl IdAsU32Support for Entity {
+//     fn as_u32(&self) -> u32 {
+//         self.index()
+//     }
+// }
 
 // struct CountBy<T: Hash + Eq> {
 //     index: HashMap<T, f32>,

@@ -1,13 +1,38 @@
+use crate::game::events::GEvent;
 use bevy_ecs::prelude::*;
-use bevy_ecs::system::CommandQueue;
+use bevy_ecs::system::{Command, CommandQueue, SystemParam, SystemState};
 
-pub fn run_commands<T, F>(world: &mut World, f: F) -> T
-where
-    F: FnOnce(&mut Commands) -> T,
-{
-    let mut command_queue = CommandQueue::default();
-    let mut commands = Commands::new(&mut command_queue, world);
-    let result = f(&mut commands);
-    command_queue.apply(world);
-    result
+pub trait WorldExt {
+    fn run_commands<T, F>(&mut self, f: F) -> T
+    where
+        F: FnOnce(Commands) -> T;
+}
+
+impl WorldExt for World {
+    fn run_commands<T, F>(&mut self, f: F) -> T
+    where
+        F: FnOnce(Commands) -> T,
+    {
+        let mut command_queue = CommandQueue::default();
+        let commands = Commands::new(&mut command_queue, self);
+        let result = f(commands);
+        command_queue.apply(self);
+        result
+    }
+}
+
+pub struct CommandSendEvent {
+    pub event: GEvent,
+}
+
+impl Command for CommandSendEvent {
+    fn apply(self, world: &mut World) {
+        world.send_event(self.event);
+    }
+}
+
+impl From<GEvent> for CommandSendEvent {
+    fn from(event: GEvent) -> Self {
+        CommandSendEvent { event }
+    }
 }

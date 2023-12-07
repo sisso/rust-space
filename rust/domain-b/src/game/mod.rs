@@ -4,6 +4,7 @@ use std::sync::Arc;
 use bevy_ecs::prelude::*;
 use bevy_ecs::schedule::InternedScheduleLabel;
 use bevy_ecs::system::RunSystemOnce;
+use itertools::Itertools;
 
 use crate::game::actions::Actions;
 use crate::game::astrobody::AstroBodies;
@@ -27,7 +28,7 @@ use self::save::{Load, Save};
 
 pub mod actions;
 pub mod astrobody;
-mod bevy_utils;
+pub mod bevy_utils;
 pub mod building_site;
 pub mod code;
 pub mod commands;
@@ -146,22 +147,23 @@ impl Game {
     }
 
     fn tick_new_objects_system(mut commands: Commands, query: Query<(Entity, &NewObj)>) {
-        for (obj_id, new_obj) in query {
+        for (obj_id, new_obj) in &query {
             Loader::add_object(&mut commands, new_obj);
             commands.entity(obj_id).despawn();
         }
     }
 
-    pub fn debug_dump(&self) {
-        let labels = self.world.read_storage::<label::Label>();
-        let entities = self.world.entities();
-
-        for (e, l) in (&entities, labels.maybe()).join() {
-            log::debug!(
-                "{} {}",
-                e.id(),
-                l.map(|l| l.label.as_str()).unwrap_or("unknown")
-            )
+    pub fn debug_dump(&mut self) {
+        fn dump(query: Query<(Entity, Option<&label::Label>)>) {
+            for (e, l) in &query {
+                log::debug!(
+                    "{:?} {}",
+                    e,
+                    l.map(|l| l.label.as_str()).unwrap_or("unknown")
+                )
+            }
         }
+
+        self.world.run_system_once(dump);
     }
 }
