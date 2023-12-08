@@ -1,21 +1,12 @@
 use crate::game::locations::{LocationOrbit, LocationSpace};
 use crate::game::objects::ObjId;
 use crate::game::utils::{Speed, TotalTime};
-use crate::game::{GameInitContext, RequireInitializer};
 use bevy_ecs::prelude::*;
 use commons::math;
 use commons::math::{Distance, Rad, P2};
 use std::collections::HashMap;
-use std::ops::Deref;
 
 pub struct Orbits;
-
-impl RequireInitializer for Orbits {
-    fn init(context: &mut GameInitContext) {
-        // context.dispatcher.add(OrbitalPosSystem, "orbital_pos", &[]);
-        todo!()
-    }
-}
 
 impl Orbits {
     // id_map is mapping a giving astro index to a world entity

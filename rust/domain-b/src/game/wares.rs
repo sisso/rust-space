@@ -2,7 +2,6 @@ use crate::game::code::HasCode;
 use crate::game::factory::Factory;
 use crate::game::prefab::Prefab;
 use crate::game::shipyard::Shipyard;
-use crate::game::GameInitContext;
 use bevy_ecs::prelude::*;
 use log;
 use std::collections::HashMap;
@@ -25,18 +24,6 @@ pub struct Ware;
 pub struct Wares;
 
 impl Wares {
-    pub fn init(ctx: &mut GameInitContext) {
-        todo!()
-        // ctx.world.register::<Ware>();
-        // ctx.world.register::<Cargo>();
-        // ctx.world.register::<CargoDistributionDirty>();
-        // ctx.dispatcher.add(
-        //     CargoDistributionDirtySystem {},
-        //     "cargo_distribution_dirty",
-        //     &[],
-        // );
-    }
-
     pub fn list_wares_by_code(query: Query<(Entity, With<Ware>, &HasCode)>) -> WaresByCode {
         let mut map: HashMap<String, Entity> = Default::default();
         for (e, code) in Self::list_wares(query) {

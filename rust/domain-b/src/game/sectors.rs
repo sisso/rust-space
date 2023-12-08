@@ -8,7 +8,6 @@ use std::time::Instant;
 use crate::game::locations::LocationSpace;
 use crate::game::objects::ObjId;
 use crate::game::utils::*;
-use crate::game::{GameInitContext, RequireInitializer};
 
 #[derive(Clone, Debug, Component)]
 pub struct Jump {
@@ -41,10 +40,6 @@ impl Sector {
 }
 
 pub struct Sectors;
-
-impl RequireInitializer for Sectors {
-    fn init(context: &mut GameInitContext) {}
-}
 
 pub fn update_sectors_index(world: &World) {
     todo!()

@@ -1,4 +1,3 @@
-use crate::game::{GameInitContext, RequireInitializer};
 use bevy_ecs::prelude::*;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -13,7 +12,3 @@ pub struct AstroBody {
 }
 
 pub struct AstroBodies;
-
-impl RequireInitializer for AstroBodies {
-    fn init(context: &mut GameInitContext) {}
-}

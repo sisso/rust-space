@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use bevy_ecs::prelude::*;
 
-use crate::game::locations::{EntityPerSectorIndex, Locations, INDEX_SECTOR_SYSTEM};
+use crate::game::locations::{EntityPerSectorIndex, Locations};
 use crate::game::wares::{Cargos, WareId};
 
 use super::actions::*;
@@ -14,7 +14,6 @@ use super::sectors::*;
 use crate::game::dock::HasDocking;
 use crate::game::order::TradeOrders;
 use crate::game::utils::TotalTime;
-use crate::game::{GameInitContext, RequireInitializer};
 // use command_mine_system::*;
 
 // pub mod command_mine_system;
@@ -81,21 +80,6 @@ impl Command {
 }
 
 pub struct FleetCommands;
-
-impl RequireInitializer for FleetCommands {
-    fn init(context: &mut GameInitContext) {
-        todo!()
-        // context.world.register::<HasDocking>();
-        //
-        // context
-        //     .dispatcher
-        //     .add(CommandMineSystem, "command_mine", &[INDEX_SECTOR_SYSTEM]);
-        //
-        // context
-        //     .dispatcher
-        //     .add(CommandTradeSystem, "command_trade", &[INDEX_SECTOR_SYSTEM]);
-    }
-}
 
 impl FleetCommands {}
 

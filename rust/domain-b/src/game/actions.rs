@@ -20,7 +20,6 @@ use super::objects::ObjId;
 use crate::game::sectors::JumpId;
 use crate::game::utils::{DeltaTime, TotalTime};
 use crate::game::wares::WareId;
-use crate::game::{GameInitContext, RequireInitializer};
 
 // mod action_dock_system;
 // mod action_extract_system;
@@ -146,46 +145,3 @@ impl ActionJump {
 }
 
 pub struct Actions;
-
-const ACTION_PROGRESS_SYSTEM_NAME: &str = "action_progress_system";
-const ACTION_REQUEST_SYSTEM_NAME: &str = "action_request_handler";
-
-///
-/// Flow:
-/// - execute action progress
-/// - execute request handler
-/// - execute actions
-impl RequireInitializer for Actions {
-    fn init(context: &mut GameInitContext) {
-        todo!()
-        // context
-        //     .dispatcher
-        //     .add(ActionProgressSystem, ACTION_PROGRESS_SYSTEM_NAME, &[]);
-        // context.dispatcher.add(
-        //     ActionRequestHandlerSystem,
-        //     ACTION_REQUEST_SYSTEM_NAME,
-        //     &[ACTION_PROGRESS_SYSTEM_NAME],
-        // );
-        //
-        // let default_dependencies = [ACTION_PROGRESS_SYSTEM_NAME, ACTION_REQUEST_SYSTEM_NAME];
-        //
-        // context
-        //     .dispatcher
-        //     .add(ActionMoveToSystem, "action_move_to", &default_dependencies);
-        // context
-        //     .dispatcher
-        //     .add(DockSystem, "action_dock_to", &default_dependencies);
-        // context
-        //     .dispatcher
-        //     .add(UndockSystem, "action_undock_to", &default_dependencies);
-        // context
-        //     .dispatcher
-        //     .add(ActionJumpSystem, "action_jump_to", &default_dependencies);
-        // context
-        //     .dispatcher
-        //     .add(ActionExtractSystem, "action_extract", &default_dependencies);
-        // context
-        //     .dispatcher
-        //     .add(ActionsSystem, "action", &default_dependencies);
-    }
-}

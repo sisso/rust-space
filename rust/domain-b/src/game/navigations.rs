@@ -4,7 +4,6 @@ use crate::game::actions::*;
 // use crate::game::navigations::navigation_system::NavigationSystem;
 use crate::game::objects::ObjId;
 use crate::game::sectors::{Jump, Sector, SectorId};
-use crate::game::{GameInitContext, RequireInitializer};
 
 use bevy_ecs::prelude::*;
 
@@ -61,21 +60,6 @@ pub struct NavigationPlan {
 // }
 
 pub struct Navigations;
-
-impl RequireInitializer for Navigations {
-    fn init(context: &mut GameInitContext) {
-        todo!()
-        // context
-        //     .dispatcher
-        //     .add(NavRequestHandlerSystem, "navigation_request_handler", &[]);
-        //
-        // context.dispatcher.add(
-        //     NavigationSystem,
-        //     "navigation",
-        //     &["navigation_request_handler"],
-        // );
-    }
-}
 
 // pub fn resolve_target_sector_id_and_post<'a>(
 //     locations: &readstorage<'a, locationspace>,

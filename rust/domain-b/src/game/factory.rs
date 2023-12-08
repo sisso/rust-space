@@ -1,6 +1,5 @@
 use crate::game::utils::{DeltaTime, TotalTime};
 use crate::game::wares::{Cargo, WareAmount, WareId};
-use crate::game::{GameInitContext, RequireInitializer};
 use bevy_ecs::prelude::*;
 
 #[derive(Debug, Clone)]
@@ -40,13 +39,6 @@ impl Factory {
         result.extend(self.production.input.iter().map(|i| i.ware_id));
         result.extend(self.production.output.iter().map(|i| i.ware_id));
         result
-    }
-}
-
-impl RequireInitializer for Factory {
-    fn init(context: &mut GameInitContext) {
-        // context.dispatcher.add(FactorySystem, "factory_system", &[]);
-        todo!()
     }
 }
 

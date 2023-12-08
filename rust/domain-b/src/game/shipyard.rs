@@ -8,7 +8,6 @@ use crate::game::prefab::{Prefab, PrefabId};
 use crate::game::utils::DeltaTime;
 use crate::game::wares::{Cargo, VecWareAmount};
 use crate::game::work::WorkUnit;
-use crate::game::{prefab, GameInitContext, RequireInitializer};
 
 /// keep state of shipyard production in progress, when pending_work is <= zero, the prefab is
 /// created
@@ -74,15 +73,6 @@ impl Shipyard {
 
     pub fn get_producing(&self) -> Option<PrefabId> {
         self.current_production.as_ref().map(|i| i.prefab_id)
-    }
-}
-
-impl RequireInitializer for Shipyard {
-    fn init(context: &mut GameInitContext) {
-        todo!()
-        // context
-        //     .dispatcher
-        //     .add(ShipyardSystem, "shipyard_system", &[]);
     }
 }
 

@@ -1,8 +1,6 @@
 use std::borrow::BorrowMut;
-use std::sync::Arc;
 
 use bevy_ecs::prelude::*;
-use bevy_ecs::schedule::InternedScheduleLabel;
 use bevy_ecs::system::RunSystemOnce;
 use itertools::Itertools;
 
@@ -63,57 +61,84 @@ pub mod work;
 pub const FRAME_TIME: std::time::Duration = std::time::Duration::from_millis(17);
 pub const SYSTEM_TIMEOUT: std::time::Duration = std::time::Duration::from_millis(1);
 
+#[derive(SystemSet, Clone, Debug, PartialEq, Eq, Hash)]
+pub enum SystemSeq {
+    Before,
+    AI,
+    Changes,
+    After,
+}
+
 pub struct Game {
     pub world: World,
     pub scheduler: Schedule,
 }
 
-// TODO: merge into game
-pub struct GameInitContext {
-    pub world: World,
-    pub scheduler: Schedule,
-}
-
-pub trait RequireInitializer {
-    fn init(context: &mut GameInitContext);
-}
+// // TODO: merge into game
+// pub struct GameInitContext {
+//     pub world: World,
+//     pub scheduler: Schedule,
+// }
+//
+// pub trait RequireInitializer {
+//     fn init(context: &mut GameInitContext);
+// }
 
 impl Game {
     pub fn new() -> Self {
-        let scheduler = Schedule::default();
-
-        // initialize all
-        let mut init_ctx = GameInitContext {
+        let mut game = Game {
             world: World::new(),
-            scheduler,
+            scheduler: Schedule::default(),
         };
 
-        init_ctx.world.insert_resource(TotalTime(0.0));
-        init_ctx.world.init_resource::<Events<GEvent>>();
+        // configure
+        game.scheduler.configure_sets(
+            (
+                SystemSeq::Before,
+                SystemSeq::AI,
+                SystemSeq::Changes,
+                SystemSeq::After,
+            )
+                .chain(),
+        );
+
+        // add resources
+        game.world.insert_resource(TotalTime(0.0));
+        game.world.init_resource::<Events<GEvent>>();
+
+        // after
+        game.scheduler
+            .add_systems(locations::update_entity_per_sector_index.in_set(SystemSeq::After));
+
+        // // // initialize all
+        // // let mut init_ctx = GameInitContext {
+        // //     world: World::new(),
+        // //     scheduler,
+        // // };
+        //
+        // init_ctx.world.insert_resource(TotalTime(0.0));
+        // init_ctx.world.init_resource::<Events<GEvent>>();
 
         // initializations
-        Sectors::init(&mut init_ctx);
-        Locations::init(&mut init_ctx);
-        Actions::init(&mut init_ctx);
-        FleetCommands::init(&mut init_ctx);
-        Navigations::init(&mut init_ctx);
-        Shipyard::init(&mut init_ctx);
-        Factory::init(&mut init_ctx);
-        TradeOrders::init(&mut init_ctx);
-        Stations::init(&mut init_ctx);
-        Fleet::init(&mut init_ctx);
-        AstroBodies::init(&mut init_ctx);
-        Wares::init(&mut init_ctx);
-        Orbits::init(&mut init_ctx);
-
+        // Sectors::init(&mut init_ctx);
+        // Locations::init(&mut init_ctx);
+        // Actions::init(&mut init_ctx);
+        // FleetCommands::init(&mut init_ctx);
+        // Navigations::init(&mut init_ctx);
+        // Shipyard::init(&mut init_ctx);
+        // Factory::init(&mut init_ctx);
+        // TradeOrders::init(&mut init_ctx);
+        // Stations::init(&mut init_ctx);
+        // Fleet::init(&mut init_ctx);
+        // AstroBodies::init(&mut init_ctx);
+        // Wares::init(&mut init_ctx);
+        // Orbits::init(&mut init_ctx);
+        //
         // init_ctx
         //     .scheduler
         //     .add_systems(building_site::BuildingSystem);
 
-        Game {
-            world: init_ctx.world,
-            scheduler: init_ctx.scheduler,
-        }
+        game
     }
 
     pub fn tick(&mut self, delta_time: DeltaTime) {
@@ -143,7 +168,7 @@ impl Game {
     pub fn reindex_sectors(&mut self) {
         log::trace!("reindex_sectors");
         sectors::update_sectors_index(&self.world);
-        locations::update_locations_index(&self.world)
+        locations::force_update_locations_index(&mut self.world)
     }
 
     fn tick_new_objects_system(mut commands: Commands, query: Query<(Entity, &NewObj)>) {

@@ -1,6 +1,5 @@
-// mod index_per_sector_system;
-
 use bevy_ecs::prelude::*;
+use bevy_ecs::system::RunSystemOnce;
 use commons::math::{Distance, Rad, P2};
 use std::collections::HashMap;
 
@@ -9,7 +8,8 @@ use super::sectors::*;
 use crate::game::utils::*;
 
 // use crate::game::locations::index_per_sector_system::*;
-use crate::game::{GameInitContext, RequireInitializer};
+use crate::game::dock::HasDocking;
+use crate::game::extractables::Extractable;
 
 #[derive(Debug, Clone, Copy, Component)]
 pub struct LocationSpace {
@@ -53,8 +53,14 @@ pub trait SectorDistanceIndex {
     fn distance(&self, a: SectorId, b: SectorId) -> u32;
 }
 
-// TODO: make more flexible, like tags?
-#[derive(Clone, Debug, Default, Component)]
+/// Index entities to provide fast look up. This system is update on end of tick, so is expected
+/// to provide outdated data during a run.
+/// - what ships are in sector 0?
+/// - what is nearest asteroid from sector 2?
+/// - tags?
+/// - space partition?
+/// - collision prediction?
+#[derive(Clone, Debug, Default, Resource)]
 pub struct EntityPerSectorIndex {
     pub index: HashMap<SectorId, Vec<ObjId>>,
     pub index_extractables: HashMap<SectorId, Vec<ObjId>>,
@@ -135,18 +141,7 @@ impl EntityPerSectorIndex {
     }
 }
 
-pub const INDEX_SECTOR_SYSTEM: &str = "index_sector";
-
 pub struct Locations {}
-
-impl RequireInitializer for Locations {
-    fn init(context: &mut GameInitContext) {
-        todo!()
-        // context
-        //     .dispatcher
-        //     .add(IndexPerSectorSystem, INDEX_SECTOR_SYSTEM, &[]);
-    }
-}
 
 impl Locations {
     pub fn new() -> Self {
@@ -219,8 +214,36 @@ impl Locations {
     // }
 }
 
-pub fn update_locations_index(world: &World) {
-    todo!()
-    // let mut system = index_per_sector_system::IndexPerSectorSystem {};
-    // system.run_now(world);
+pub fn force_update_locations_index(world: &mut World) {
+    world.run_system_once(update_entity_per_sector_index);
+}
+
+pub fn update_entity_per_sector_index(
+    mut index: ResMut<EntityPerSectorIndex>,
+    query: Query<(
+        Entity,
+        &LocationSpace,
+        Option<&Extractable>,
+        Option<&HasDocking>,
+    )>,
+) {
+    log::trace!("running");
+    index.clear();
+
+    for (obj_id, location, maybe_extratable, maybe_docking) in &query {
+        let sector_id = location.sector_id;
+
+        // log::trace!("indexing {:?} at {:?}", entity, sector_id);
+        index.add(sector_id, obj_id);
+
+        if maybe_extratable.is_some() {
+            // log::trace!("indexing extractable {:?} at {:?}", entity, sector_id);
+            index.add_extractable(sector_id, obj_id);
+        }
+
+        if maybe_docking.is_some() {
+            // log::trace!("indexing stations {:?} at {:?}", entity, sector_id);
+            index.add_stations(sector_id, obj_id);
+        }
+    }
 }
