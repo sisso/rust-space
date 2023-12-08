@@ -132,7 +132,7 @@ pub fn generate_sectors(world: &mut World, size: (usize, usize), seed: u64) {
         }
     });
 
-    sectors::update_sectors_index(world);
+    sectors::update_sectors_index_from_world(world);
 }
 
 fn add_bodies_to_sectors(
@@ -350,7 +350,8 @@ mod test {
         let cfg = conf::load_str(&file).expect("fail to read config file");
 
         let mut game = Game::new();
-        loader::load_prefabs(&mut game.world, &cfg.prefabs);
+        game.world
+            .run_commands(|mut commands| loader::load_prefabs(&mut commands, &cfg.prefabs));
 
         let rcfg = RandomMapCfg {
             size: (3, 3),

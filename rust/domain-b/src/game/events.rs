@@ -1,5 +1,6 @@
 use crate::game::objects::ObjId;
 use bevy_ecs::prelude::Event;
+use bevy_ecs::system::Resource;
 
 #[derive(Debug, Clone, Copy)]
 pub enum EventKind {
@@ -24,6 +25,7 @@ impl GEvent {
     }
 }
 
+#[derive(Resource, Debug)]
 pub struct GEvents {
     queue: Vec<GEvent>,
 }

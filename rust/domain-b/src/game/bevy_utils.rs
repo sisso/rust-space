@@ -1,6 +1,7 @@
-use crate::game::events::GEvent;
+use crate::game::events::{GEvent, GEvents};
 use bevy_ecs::prelude::*;
 use bevy_ecs::system::{Command, CommandQueue, SystemParam, SystemState};
+use space_galaxy::system_generator::GenerateError::Generic;
 
 pub trait WorldExt {
     fn run_commands<T, F>(&mut self, f: F) -> T
@@ -27,7 +28,10 @@ pub struct CommandSendEvent {
 
 impl Command for CommandSendEvent {
     fn apply(self, world: &mut World) {
-        world.send_event(self.event);
+        world
+            .get_resource_mut::<GEvents>()
+            .expect("events not found in resources")
+            .push(self.event);
     }
 }
 

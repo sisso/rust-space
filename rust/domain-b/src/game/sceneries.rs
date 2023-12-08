@@ -110,7 +110,7 @@ impl SceneryBuilderInit {
                     result.sectors = vec![sector_id];
                 });
 
-                sectors::update_sectors_index(&mut game.world);
+                sectors::update_sectors_index_from_world(&mut game.world);
             }
         }
         self.tasks.push(Box::new(Task {}));
@@ -138,7 +138,7 @@ impl SceneryBuilderInit {
                     (sector_0, sector_1)
                 });
 
-                sectors::update_sectors_index(&mut game.world);
+                sectors::update_sectors_index_from_world(&mut game.world);
                 result.sectors = vec![sector_0, sector_1];
             }
         }
@@ -410,7 +410,7 @@ pub fn load_basic_scenery(game: &mut Game) -> BasicScenery {
     });
 
     // update caches
-    sectors::update_sectors_index(&mut game.world);
+    sectors::update_sectors_index_from_world(&mut game.world);
 
     // set shipyard to build random stuff
     Loader::set_shipyard_order_to_random(&mut game.world, scenery.shipyard_id)
@@ -502,7 +502,7 @@ pub fn load_advanced_scenery(world: &mut World) {
         );
     });
 
-    sectors::update_sectors_index(world);
+    sectors::update_sectors_index_from_world(world);
 }
 
 pub struct MothershipScenery {

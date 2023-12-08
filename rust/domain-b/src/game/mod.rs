@@ -7,7 +7,7 @@ use itertools::Itertools;
 use crate::game::actions::Actions;
 use crate::game::astrobody::AstroBodies;
 use crate::game::commands::FleetCommands;
-use crate::game::events::GEvent;
+use crate::game::events::{GEvent, GEvents};
 use crate::game::factory::Factory;
 use crate::game::fleets::Fleet;
 use crate::game::loader::Loader;
@@ -104,6 +104,7 @@ impl Game {
 
         // add resources
         game.world.insert_resource(TotalTime(0.0));
+        game.world.insert_resource(GEvents::default());
         game.world.init_resource::<Events<GEvent>>();
 
         // after
@@ -167,7 +168,7 @@ impl Game {
 
     pub fn reindex_sectors(&mut self) {
         log::trace!("reindex_sectors");
-        sectors::update_sectors_index(&self.world);
+        sectors::update_sectors_index_from_world(&self.world);
         locations::force_update_locations_index(&mut self.world)
     }
 
