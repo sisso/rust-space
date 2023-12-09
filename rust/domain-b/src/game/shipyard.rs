@@ -124,118 +124,148 @@ fn system_shipyard(
 
         match shipyard.update_production(delta_time) {
             ProductionResult::Completed(prefab_id) => {
-                // move out the reference to allow us to change current production
-                // complete current production
-                shipyard.current_production = None;
-
-                // create produced prefab
-                if let Some((_, prefab)) =
-                    prefabs_candidates.iter().find(|(id, _)| *id == prefab_id)
-                {
-                    let mut new_obj = prefab.obj.clone();
-
-                    // put into shipyard
-                    new_obj = new_obj.at_dock(shipyard_id);
-                    log::debug!("{:?} complete production of {:?}", shipyard_id, new_obj);
-
-                    Loader::add_object(&mut commands, &new_obj);
-                } else {
-                    log::warn!(
-                        "{:?} fail to produce fleet, prefab id {:?} not found, ignoring production",
-                        shipyard_id,
-                        prefab_id
-                    );
-                }
+                run_shipyard_complete_order(
+                    &mut commands,
+                    &prefabs_candidates,
+                    shipyard_id,
+                    &mut shipyard,
+                    prefab_id,
+                );
             }
             ProductionResult::Producing => {}
-
             ProductionResult::NotProducing => {
-                let (prefab_id, clean_on_build) = match shipyard.production_order {
-                    ProductionOrder::None => {
-                        log::trace!("{:?} no producing order, skipping", shipyard_id);
-                        continue;
-                    }
-                    ProductionOrder::Next(prefab_id) => (prefab_id, true),
-                    ProductionOrder::Random => {
-                        let index = rand::thread_rng().gen_range(0..prefabs_candidates.len());
-                        let (prefab_id, _) = prefabs_candidates[index];
-                        (prefab_id, false)
-                    }
-                    ProductionOrder::RandomSelected(prefab_id) => (prefab_id, false),
-                };
+                run_shipyard_next_order(
+                    &prefabs_candidates,
+                    shipyard_id,
+                    &mut shipyard,
+                    &mut cargo,
+                    &mut trade_order,
+                );
+            }
+        };
+    }
+}
 
-                let prefab = match prefabs_candidates.iter().find(|(e, _)| *e == prefab_id) {
-                    Some((_, prefab)) => prefab,
-                    None => {
-                        log::warn!(
-                            "shipyard could not find prefab from id {:?}, skipping",
-                            prefab_id
-                        );
-                        continue;
-                    }
-                };
+fn run_shipyard_complete_order(
+    mut commands: &mut Commands,
+    prefabs_candidates: &Vec<(Entity, &Prefab)>,
+    shipyard_id: Entity,
+    shipyard: &mut Shipyard,
+    prefab_id: PrefabId,
+) {
+    // move out the reference to allow us to change current production
+    // complete current production
+    shipyard.current_production = None;
 
-                let production_cost = match prefab.obj.production_cost.as_ref() {
-                    Some(value) => value,
-                    None => {
-                        log::warn!(
-                            "prefab_id {:?} do not have production cost, skipping",
-                            prefab_id
-                        );
-                        continue;
-                    }
-                };
+    // create produced prefab
+    if let Some((_, prefab)) = prefabs_candidates.iter().find(|(id, _)| *id == prefab_id) {
+        let mut new_obj = prefab.obj.clone();
 
-                // check if have enough resources
-                if cargo.remove_all_or_none(&production_cost.cost).is_ok() {
-                    // setup completion
-                    shipyard.current_production = Some(ShipyardProduction {
-                        pending_work: production_cost.work,
-                        prefab_id,
-                    });
+        // put into shipyard
+        new_obj = new_obj.at_dock(shipyard_id);
+        log::debug!("{:?} complete production of {:?}", shipyard_id, new_obj);
 
-                    // update next order
-                    if clean_on_build {
-                        shipyard.production_order = ProductionOrder::None;
-                    } else {
-                        shipyard.production_order = ProductionOrder::Random;
-                    }
+        Loader::add_object(&mut commands, &new_obj);
+    } else {
+        log::warn!(
+            "{:?} fail to produce fleet, prefab id {:?} not found, ignoring production",
+            shipyard_id,
+            prefab_id
+        );
+    }
+}
 
-                    // remove requesting orders
-                    trade_order.remove_by_id(TRADE_ORDER_ID_SHIPYARD);
+fn run_shipyard_next_order(
+    prefabs_candidates: &Vec<(Entity, &Prefab)>,
+    shipyard_id: Entity,
+    shipyard: &mut Shipyard,
+    cargo: &mut Cargo,
+    trade_order: &mut TradeOrders,
+) -> bool {
+    let (prefab_id, clean_on_build) = match shipyard.production_order {
+        ProductionOrder::None => {
+            log::trace!("{:?} no producing order, skipping", shipyard_id);
+            return true;
+        }
+        ProductionOrder::Next(prefab_id) => (prefab_id, true),
+        ProductionOrder::Random => {
+            let index = rand::thread_rng().gen_range(0..prefabs_candidates.len());
+            let (prefab_id, _) = prefabs_candidates[index];
+            (prefab_id, false)
+        }
+        ProductionOrder::RandomSelected(prefab_id) => (prefab_id, false),
+    };
 
-                    log::debug!(
+    let prefab = match prefabs_candidates.iter().find(|(e, _)| *e == prefab_id) {
+        Some((_, prefab)) => prefab,
+        None => {
+            log::warn!(
+                "shipyard could not find prefab from id {:?}, skipping",
+                prefab_id
+            );
+            return true;
+        }
+    };
+
+    let production_cost = match prefab.obj.production_cost.as_ref() {
+        Some(value) => value,
+        None => {
+            log::warn!(
+                "prefab_id {:?} do not have production cost, skipping",
+                prefab_id
+            );
+            return true;
+        }
+    };
+
+    // check if have enough resources
+    if cargo.remove_all_or_none(&production_cost.cost).is_ok() {
+        // setup completion
+        shipyard.current_production = Some(ShipyardProduction {
+            pending_work: production_cost.work,
+            prefab_id,
+        });
+
+        // update next order
+        if clean_on_build {
+            shipyard.production_order = ProductionOrder::None;
+        } else {
+            shipyard.production_order = ProductionOrder::Random;
+        }
+
+        // remove requesting orders
+        trade_order.remove_by_id(TRADE_ORDER_ID_SHIPYARD);
+
+        log::debug!(
                         "{:?} staring production of prefab {:?}, expected to be complete at {:?}, next order is {:?}",
                         shipyard_id,
                         prefab_id,
                         production_cost.work / shipyard.production,
                         shipyard.production_order,
                     );
-                } else {
-                    log::trace!(
-                        "{:?} can not start production of {:?}, not enough resources",
-                        shipyard_id,
-                        prefab_id
-                    );
+    } else {
+        log::trace!(
+            "{:?} can not start production of {:?}, not enough resources",
+            shipyard_id,
+            prefab_id
+        );
 
-                    if shipyard.dirt_trade_order {
-                        // update trade orders
-                        shipyard.dirt_trade_order = false;
-                        trade_order.remove_by_id(TRADE_ORDER_ID_SHIPYARD);
-                        let requested_wares = production_cost.cost.get_wares_id();
-                        log::trace!(
-                            "{:?} updating trading orders to request {:?} ",
-                            shipyard_id,
-                            requested_wares
-                        );
-                        for ware_id in requested_wares {
-                            trade_order.add_request(TRADE_ORDER_ID_SHIPYARD, ware_id);
-                        }
-                    }
-                }
+        if shipyard.dirt_trade_order {
+            // update trade orders
+            shipyard.dirt_trade_order = false;
+            trade_order.remove_by_id(TRADE_ORDER_ID_SHIPYARD);
+            let requested_wares = production_cost.cost.get_wares_id();
+            log::trace!(
+                "{:?} updating trading orders to request {:?} ",
+                shipyard_id,
+                requested_wares
+            );
+            for ware_id in requested_wares {
+                trade_order.add_request(TRADE_ORDER_ID_SHIPYARD, ware_id);
             }
-        };
+        }
     }
+    false
 }
 
 #[cfg(test)]
