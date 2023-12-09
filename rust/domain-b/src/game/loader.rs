@@ -556,12 +556,12 @@ pub fn set_orbit_random_body(
 
         // find all candidates in sector
         let mut system_state: SystemState<
-            (Query<(
+            Query<(
                 Entity,
                 &LocationSpace,
                 With<AstroBody>,
                 Option<&LocationOrbit>,
-            )>),
+            )>,
         > = SystemState::new(world);
         let query = system_state.get(world);
 
