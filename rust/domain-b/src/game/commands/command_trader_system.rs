@@ -382,26 +382,26 @@ mod test {
     fn add_station(world: &mut World, sector_id: SectorId, orders: TradeOrders) -> ObjId {
         world
             .create_entity()
-            .with(LocationSpace {
+            .insert(LocationSpace {
                 pos: P2::ZERO,
                 sector_id,
             })
-            .with(HasDocking::default())
-            .with(orders)
-            .with(Cargo::new(STATION_CARGO))
-            .build()
+            .insert(HasDocking::default())
+            .insert(orders)
+            .insert(Cargo::new(STATION_CARGO))
+            .id()
     }
 
     fn add_trader(world: &mut World, sector_id: SectorId) -> ObjId {
         world
             .create_entity()
-            .with(LocationSpace {
+            .insert(LocationSpace {
                 pos: P2::ZERO,
                 sector_id,
             })
-            .with(Command::trade())
-            .with(Cargo::new(SHIP_CARGO))
-            .build()
+            .insert(Command::trade())
+            .insert(Cargo::new(SHIP_CARGO))
+            .id()
     }
 
     fn setup_scenery(world: &mut World) -> SceneryResult {
@@ -409,11 +409,11 @@ mod test {
 
         world.insert(TotalTime(0.0));
 
-        let sector_id = world.create_entity().build();
+        let sector_id = world.spawn_empty().id();
 
-        let ware0_id = world.create_entity().build();
-        let ware1_id = world.create_entity().build();
-        let ware2_id = world.create_entity().build();
+        let ware0_id = world.spawn_empty().id();
+        let ware1_id = world.spawn_empty().id();
+        let ware2_id = world.spawn_empty().id();
 
         let producer_station_id = add_station(
             world,

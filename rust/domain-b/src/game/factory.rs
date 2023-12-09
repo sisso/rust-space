@@ -183,9 +183,9 @@ impl Factory {
 //         expected_plates: Volume,
 //     ) {
 //         let (world, (entity, plate_id)) = test_system(FactorySystem, move |world| {
-//             let ore_id = world.create_entity().build();
-//             let energy_id = world.create_entity().build();
-//             let plate_id = world.create_entity().build();
+//             let ore_id = world.spawn_empty().id();
+//             let energy_id = world.spawn_empty().id();
+//             let plate_id = world.spawn_empty().id();
 //
 //             let production = Receipt {
 //                 label: "ore processing".to_string(),
@@ -207,12 +207,12 @@ impl Factory {
 //
 //             let entity = world
 //                 .create_entity()
-//                 .with(cargo)
-//                 .with(Factory {
+//                 .insert(cargo)
+//                 .insert(Factory {
 //                     production,
 //                     production_time: production_time.map(|time| TotalTime(time)),
 //                 })
-//                 .build();
+//                 .id();
 //
 //             (entity, plate_id)
 //         });

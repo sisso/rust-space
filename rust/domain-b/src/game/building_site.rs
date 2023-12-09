@@ -61,7 +61,7 @@ pub struct BuildingSite {
 //             };
 //
 //             new_obj.location_space = locations.get(e).cloned();
-//             lazy.create_entity(&entities).with(new_obj).build();
+//             lazy.create_entity(&entities).insert(new_obj).id();
 //             _ = entities.delete(e);
 //         }
 //     }

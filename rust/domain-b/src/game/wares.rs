@@ -369,219 +369,203 @@ impl Cargos {
     }
 }
 
-// pub struct CargoDistributionDirtySystem {}
-//
-// impl<'a> System<'a> for CargoDistributionDirtySystem {
-//     type SystemData = (
-//         Entities<'a>,
-//         WriteStorage<'a, Cargo>,
-//         WriteStorage<'a, CargoDistributionDirty>,
-//         ReadStorage<'a, Factory>,
-//         ReadStorage<'a, Shipyard>,
-//         ReadStorage<'a, Prefab>,
-//     );
-//
-//     fn run(
-//         &mut self,
-//         (entities, mut cargos, mut cargos_dirty, factories, shipyards, prefabs): Self::SystemData,
-//     ) {
-//         log::trace!("running CargoDistributionDirtySystem");
-//
-//         let mut shipyard_caching = None;
-//
-//         // update cargos giving others component requirements
-//         for (e, c, _, f, s) in (
-//             &entities,
-//             &mut cargos,
-//             &cargos_dirty,
-//             factories.maybe(),
-//             shipyards.maybe(),
-//         )
-//             .join()
-//         {
-//             let mut wares = vec![];
-//             if let Some(f) = f {
-//                 wares.extend(f.get_cargos_allocation());
-//             }
-//             if let Some(_) = s {
-//                 if shipyard_caching.is_none() {
-//                     let prefab_wares: Vec<_> = (&prefabs,)
-//                         .join()
-//                         .filter(|(p,)| p.shipyard)
-//                         .flat_map(|(p,)| {
-//                             p.obj
-//                                 .production_cost
-//                                 .iter()
-//                                 .flat_map(|pc| &pc.cost)
-//                                 .map(|c| c.ware_id)
-//                         })
-//                         .collect();
-//                     shipyard_caching = Some(prefab_wares);
-//                 }
-//                 wares.extend(shipyard_caching.as_ref().unwrap().iter());
-//             }
-//
-//             log::debug!("update {e:?} cargo wares to {wares:?}");
-//             c.set_whitelist(wares);
-//         }
-//
-//         // remove dirty flag
-//         cargos_dirty.clear();
-//     }
-// }
-//
-// #[cfg(test)]
-// mod test {
-//     use super::*;
-//
-//     fn create_wares() -> (WareId, WareId, WareId) {
-//         let mut world = World::new();
-//         let ware_0 = world.create_entity().build();
-//         let ware_1 = world.create_entity().build();
-//         let ware_2 = world.create_entity().build();
-//         (ware_0, ware_1, ware_2)
-//     }
-//
-//     #[test]
-//     fn test_cargo_transfer() {
-//         let (ware_0, ware_1, _ware_2) = create_wares();
-//
-//         let mut cargo_from = Cargo::new(10);
-//         cargo_from.add(ware_0, 4).unwrap();
-//         cargo_from.add(ware_1, 3).unwrap();
-//
-//         let mut cargo_to = Cargo::new(5);
-//
-//         let transfer = CargoTransfer::transfer_all(&cargo_from, &cargo_to);
-//         transfer.apply_move_from(&mut cargo_from).unwrap();
-//         transfer.apply_move_to(&mut cargo_to).unwrap();
-//
-//         assert_eq!(0, cargo_from.get_amount(ware_0));
-//         assert_eq!(2, cargo_from.get_amount(ware_1));
-//
-//         assert_eq!(4, cargo_to.get_amount(ware_0));
-//         assert_eq!(1, cargo_to.get_amount(ware_1));
-//     }
-//
-//     #[test]
-//     fn test_cargo_transfer_only() {
-//         let (ware_0, ware_1, ware_2) = create_wares();
-//
-//         let mut cargo_from = Cargo::new(10);
-//         cargo_from.add(ware_0, 2).unwrap();
-//         cargo_from.add(ware_1, 2).unwrap();
-//         cargo_from.add(ware_2, 2).unwrap();
-//
-//         let mut cargo_to = Cargo::new(5);
-//
-//         let transfer = CargoTransfer::transfer_only(&cargo_from, &cargo_to, &vec![ware_0, ware_1]);
-//         transfer.apply_move_from(&mut cargo_from).unwrap();
-//         transfer.apply_move_to(&mut cargo_to).unwrap();
-//
-//         assert_eq!(0, cargo_from.get_amount(ware_0));
-//         assert_eq!(0, cargo_from.get_amount(ware_1));
-//         assert_eq!(2, cargo_from.get_amount(ware_2));
-//
-//         assert_eq!(2, cargo_to.get_amount(ware_0));
-//         assert_eq!(2, cargo_to.get_amount(ware_1));
-//         assert_eq!(0, cargo_to.get_amount(ware_2));
-//     }
-//
-//     #[test]
-//     fn test_cargo_add_over_capacity_should_fail() {
-//         let (ware_0, _, _ware_2) = create_wares();
-//         let mut cargo = Cargo::new(1);
-//         let result = cargo.add(ware_0, 2);
-//         assert!(result.is_err())
-//     }
-//
-//     #[test]
-//     fn test_cargo_add_to_max() {
-//         let (ware_0, _, _ware_2) = create_wares();
-//
-//         let mut cargo = Cargo::new(1);
-//         let amount = cargo.add_to_max(ware_0, 2);
-//         assert_eq!(1, amount);
-//         assert_eq!(1, cargo.get_current_volume());
-//
-//         let amount = cargo.add_to_max(ware_0, 2);
-//         assert_eq!(0, amount);
-//         assert_eq!(1, cargo.get_current_volume());
-//     }
-//
-//     #[test]
-//     fn test_cargo_whitelist_should_reject_any_other_ware() {
-//         let (ware_0, ware_1, _ware_2) = create_wares();
-//
-//         let mut cargo = Cargo::new(10);
-//         cargo.set_whitelist(vec![ware_0]);
-//
-//         // with invalid ware
-//         assert!(cargo.add(ware_1, 1).is_err());
-//         assert_eq!(cargo.add_to_max(ware_1, 1), 0);
-//         assert!(cargo
-//             .add_all_or_none(&vec![WareAmount::new(ware_1, 1)])
-//             .is_err());
-//         assert_eq!(cargo.free_volume(ware_1).unwrap_or(0), 0);
-//     }
-//
-//     #[test]
-//     fn test_cargo_whitelist_should_accept_valid_ware() {
-//         let (ware_0, _ware_1, _ware_2) = create_wares();
-//
-//         let mut cargo = Cargo::new(10);
-//         cargo.set_whitelist(vec![ware_0]);
-//
-//         assert_eq!(cargo.free_volume(ware_0).unwrap_or(0), 10);
-//         assert!(cargo.add(ware_0, 2).is_ok());
-//         assert!(cargo
-//             .add_all_or_none(&vec![WareAmount::new(ware_0, 2)])
-//             .is_ok());
-//         assert_eq!(cargo.get_amount(ware_0), 4);
-//         assert_eq!(cargo.add_to_max(ware_0, 20), 6);
-//     }
-//
-//     #[test]
-//     fn test_cargo_whitelist_should_split_cargo_even() {
-//         let (ware_0, ware_1, _ware_2) = create_wares();
-//
-//         let mut cargo = Cargo::new(10);
-//         cargo.set_whitelist(vec![ware_0, ware_1]);
-//
-//         for ware_id in vec![ware_0, ware_1] {
-//             assert_eq!(cargo.free_volume(ware_id).unwrap_or(0), 5);
-//             assert!(cargo.add(ware_id, 2).is_ok());
-//             assert!(cargo
-//                 .add_all_or_none(&vec![WareAmount::new(ware_id, 2)])
-//                 .is_ok());
-//             assert_eq!(cargo.get_amount(ware_id), 4);
-//             assert_eq!(cargo.free_volume(ware_id).unwrap_or(0), 1);
-//             assert_eq!(cargo.add_to_max(ware_id, 20), 1);
-//             assert_eq!(cargo.get_amount(ware_id), 5);
-//             assert_eq!(cargo.free_volume(ware_id).unwrap_or(0), 0);
-//             assert!(cargo.add(ware_id, 1).is_err());
-//         }
-//     }
-//
-//     #[test]
-//     fn test_cargo_should_not_return_empty_lists() {
-//         let (ware_0, _ware_1, _ware_2) = create_wares();
-//
-//         let mut cargo = Cargo::new(10);
-//         cargo.add(ware_0, 4).unwrap();
-//         cargo.remove(ware_0, 4).unwrap();
-//
-//         assert!(cargo.get_wares_ids().next().is_none());
-//     }
-//
-//     #[test]
-//     fn test_cargo_remove_more_that_contains_should_fail() {
-//         let (ware_0, _, _) = create_wares();
-//
-//         let mut cargo = Cargo::new(10);
-//         cargo.add(ware_0, 5).unwrap();
-//         assert!(cargo.remove(ware_0, 6).is_err());
-//
-//         assert_eq!(5, cargo.get_amount(ware_0));
-//     }
-// }
+pub fn system_cargo_distribution(
+    mut commands: Commands,
+    mut query: Query<
+        (Entity, &mut Cargo, Option<&Factory>, Option<&Shipyard>),
+        With<CargoDistributionDirty>,
+    >,
+    query_prefabs: Query<(Entity, &Prefab)>,
+) {
+    log::trace!("running CargoDistributionDirtySystem");
+
+    let mut shipyard_caching = None;
+
+    // update cargos giving others component requirements
+    for (obj_id, mut cargo, maybe_factory, maybe_shipyard) in &mut query {
+        let mut wares = vec![];
+        if let Some(f) = maybe_factory {
+            wares.extend(f.get_cargos_allocation());
+        }
+        if let Some(_) = maybe_shipyard {
+            if shipyard_caching.is_none() {
+                // collect all wares used for ship production
+                let prefab_wares: Vec<_> = query_prefabs
+                    .iter()
+                    .filter(|(_, p)| p.shipyard)
+                    .flat_map(|(id, p)| {
+                        p.obj
+                            .production_cost
+                            .iter()
+                            .flat_map(|pc| &pc.cost)
+                            .map(|c| c.ware_id)
+                    })
+                    .collect();
+                shipyard_caching = Some(prefab_wares);
+            }
+            wares.extend(shipyard_caching.as_ref().unwrap().iter());
+        }
+
+        log::debug!("update {obj_id:?} cargo wares to {wares:?}");
+        cargo.set_whitelist(wares);
+
+        // remove dirty flag
+        commands.entity(obj_id).remove::<CargoDistributionDirty>();
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    fn create_wares() -> (WareId, WareId, WareId) {
+        let mut world = World::new();
+        let ware_0 = world.spawn_empty().id();
+        let ware_1 = world.spawn_empty().id();
+        let ware_2 = world.spawn_empty().id();
+        (ware_0, ware_1, ware_2)
+    }
+
+    #[test]
+    fn test_cargo_transfer() {
+        let (ware_0, ware_1, _ware_2) = create_wares();
+
+        let mut cargo_from = Cargo::new(10);
+        cargo_from.add(ware_0, 4).unwrap();
+        cargo_from.add(ware_1, 3).unwrap();
+
+        let mut cargo_to = Cargo::new(5);
+
+        let transfer = CargoTransfer::transfer_all(&cargo_from, &cargo_to);
+        transfer.apply_move_from(&mut cargo_from).unwrap();
+        transfer.apply_move_to(&mut cargo_to).unwrap();
+
+        assert_eq!(0, cargo_from.get_amount(ware_0));
+        assert_eq!(2, cargo_from.get_amount(ware_1));
+
+        assert_eq!(4, cargo_to.get_amount(ware_0));
+        assert_eq!(1, cargo_to.get_amount(ware_1));
+    }
+
+    #[test]
+    fn test_cargo_transfer_only() {
+        let (ware_0, ware_1, ware_2) = create_wares();
+
+        let mut cargo_from = Cargo::new(10);
+        cargo_from.add(ware_0, 2).unwrap();
+        cargo_from.add(ware_1, 2).unwrap();
+        cargo_from.add(ware_2, 2).unwrap();
+
+        let mut cargo_to = Cargo::new(5);
+
+        let transfer = CargoTransfer::transfer_only(&cargo_from, &cargo_to, &vec![ware_0, ware_1]);
+        transfer.apply_move_from(&mut cargo_from).unwrap();
+        transfer.apply_move_to(&mut cargo_to).unwrap();
+
+        assert_eq!(0, cargo_from.get_amount(ware_0));
+        assert_eq!(0, cargo_from.get_amount(ware_1));
+        assert_eq!(2, cargo_from.get_amount(ware_2));
+
+        assert_eq!(2, cargo_to.get_amount(ware_0));
+        assert_eq!(2, cargo_to.get_amount(ware_1));
+        assert_eq!(0, cargo_to.get_amount(ware_2));
+    }
+
+    #[test]
+    fn test_cargo_add_over_capacity_should_fail() {
+        let (ware_0, _, _ware_2) = create_wares();
+        let mut cargo = Cargo::new(1);
+        let result = cargo.add(ware_0, 2);
+        assert!(result.is_err())
+    }
+
+    #[test]
+    fn test_cargo_add_to_max() {
+        let (ware_0, _, _ware_2) = create_wares();
+
+        let mut cargo = Cargo::new(1);
+        let amount = cargo.add_to_max(ware_0, 2);
+        assert_eq!(1, amount);
+        assert_eq!(1, cargo.get_current_volume());
+
+        let amount = cargo.add_to_max(ware_0, 2);
+        assert_eq!(0, amount);
+        assert_eq!(1, cargo.get_current_volume());
+    }
+
+    #[test]
+    fn test_cargo_whitelist_should_reject_any_other_ware() {
+        let (ware_0, ware_1, _ware_2) = create_wares();
+
+        let mut cargo = Cargo::new(10);
+        cargo.set_whitelist(vec![ware_0]);
+
+        // with invalid ware
+        assert!(cargo.add(ware_1, 1).is_err());
+        assert_eq!(cargo.add_to_max(ware_1, 1), 0);
+        assert!(cargo
+            .add_all_or_none(&vec![WareAmount::new(ware_1, 1)])
+            .is_err());
+        assert_eq!(cargo.free_volume(ware_1).unwrap_or(0), 0);
+    }
+
+    #[test]
+    fn test_cargo_whitelist_should_accept_valid_ware() {
+        let (ware_0, _ware_1, _ware_2) = create_wares();
+
+        let mut cargo = Cargo::new(10);
+        cargo.set_whitelist(vec![ware_0]);
+
+        assert_eq!(cargo.free_volume(ware_0).unwrap_or(0), 10);
+        assert!(cargo.add(ware_0, 2).is_ok());
+        assert!(cargo
+            .add_all_or_none(&vec![WareAmount::new(ware_0, 2)])
+            .is_ok());
+        assert_eq!(cargo.get_amount(ware_0), 4);
+        assert_eq!(cargo.add_to_max(ware_0, 20), 6);
+    }
+
+    #[test]
+    fn test_cargo_whitelist_should_split_cargo_even() {
+        let (ware_0, ware_1, _ware_2) = create_wares();
+
+        let mut cargo = Cargo::new(10);
+        cargo.set_whitelist(vec![ware_0, ware_1]);
+
+        for ware_id in vec![ware_0, ware_1] {
+            assert_eq!(cargo.free_volume(ware_id).unwrap_or(0), 5);
+            assert!(cargo.add(ware_id, 2).is_ok());
+            assert!(cargo
+                .add_all_or_none(&vec![WareAmount::new(ware_id, 2)])
+                .is_ok());
+            assert_eq!(cargo.get_amount(ware_id), 4);
+            assert_eq!(cargo.free_volume(ware_id).unwrap_or(0), 1);
+            assert_eq!(cargo.add_to_max(ware_id, 20), 1);
+            assert_eq!(cargo.get_amount(ware_id), 5);
+            assert_eq!(cargo.free_volume(ware_id).unwrap_or(0), 0);
+            assert!(cargo.add(ware_id, 1).is_err());
+        }
+    }
+
+    #[test]
+    fn test_cargo_should_not_return_empty_lists() {
+        let (ware_0, _ware_1, _ware_2) = create_wares();
+
+        let mut cargo = Cargo::new(10);
+        cargo.add(ware_0, 4).unwrap();
+        cargo.remove(ware_0, 4).unwrap();
+
+        assert!(cargo.get_wares_ids().next().is_none());
+    }
+
+    #[test]
+    fn test_cargo_remove_more_that_contains_should_fail() {
+        let (ware_0, _, _) = create_wares();
+
+        let mut cargo = Cargo::new(10);
+        cargo.add(ware_0, 5).unwrap();
+        assert!(cargo.remove(ware_0, 6).is_err());
+
+        assert_eq!(5, cargo.get_amount(ware_0));
+    }
+}

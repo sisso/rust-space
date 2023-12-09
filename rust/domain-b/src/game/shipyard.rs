@@ -235,7 +235,7 @@ impl Shipyard {
 //
 //         // create new objects
 //         for obj in produced_fleets {
-//             entities.build_entity().with(obj, &mut new_objects).build();
+//             entities.build_entity().insert(obj, &mut new_objects).id();
 //         }
 //     }
 // }
@@ -442,7 +442,7 @@ impl Shipyard {
 //             world.register::<Label>();
 //             world.register::<HasDocking>();
 //
-//             let ware_id = world.create_entity().with(Label::from("ore")).build();
+//             let ware_id = world.spawn_empty().insert(Label::from("ore")).id();
 //             let new_obj = Loader::new_ship(2.0, "fleet".to_string())
 //                 .with_command(Command::mine())
 //                 .with_production_cost(TOTAL_WORK, vec![WareAmount::new(ware_id, REQUIRE_CARGO)]);
@@ -477,12 +477,12 @@ impl Shipyard {
 //
 //             let shipyard_id = world
 //                 .create_entity()
-//                 .with(Label::from("shipyard"))
-//                 .with(cargo)
-//                 .with(shipyard.clone())
-//                 .with(HasDocking::default())
-//                 .with(TradeOrders::default())
-//                 .build();
+//                 .insert(Label::from("shipyard"))
+//                 .insert(cargo)
+//                 .insert(shipyard.clone())
+//                 .insert(HasDocking::default())
+//                 .insert(TradeOrders::default())
+//                 .id();
 //             log::trace!("creating shipyard {:?} {:?}", shipyard_id, shipyard);
 //
 //             (shipyard_id, ware_id, prefab_id)

@@ -74,16 +74,6 @@ pub struct Game {
     pub scheduler: Schedule,
 }
 
-// // TODO: merge into game
-// pub struct GameInitContext {
-//     pub world: World,
-//     pub scheduler: Schedule,
-// }
-//
-// pub trait RequireInitializer {
-//     fn init(context: &mut GameInitContext);
-// }
-
 impl Game {
     pub fn new() -> Self {
         let mut game = Game {
@@ -110,6 +100,8 @@ impl Game {
         // after
         game.scheduler
             .add_systems(locations::update_entity_per_sector_index.in_set(SystemSeq::After));
+        game.scheduler
+            .add_systems(wares::system_cargo_distribution.in_set(SystemSeq::After));
 
         // // // initialize all
         // // let mut init_ctx = GameInitContext {

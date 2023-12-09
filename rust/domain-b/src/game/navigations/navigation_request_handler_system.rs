@@ -98,19 +98,19 @@ mod test {
     fn setup_station_and_asteroid(world: &mut World, sectors: &SectorScenery) -> (Entity, Entity) {
         let asteroid = world
             .create_entity()
-            .with(LocationSpace {
+            .insert(LocationSpace {
                 pos: P2::X,
                 sector_id: sectors.sector_1,
             })
-            .build();
+            .id();
 
         let station = world
             .create_entity()
-            .with(LocationSpace {
+            .insert(LocationSpace {
                 pos: P2::ZERO,
                 sector_id: sectors.sector_0,
             })
-            .build();
+            .id();
 
         (station, asteroid)
     }
@@ -123,14 +123,14 @@ mod test {
 
             let miner = world
                 .create_entity()
-                .with(LocationSpace {
+                .insert(LocationSpace {
                     pos: P2::ZERO,
                     sector_id: sector_scenery.sector_0,
                 })
-                .with(NavRequest::MoveToTarget {
+                .insert(NavRequest::MoveToTarget {
                     target_id: asteroid,
                 })
-                .build();
+                .id();
 
             (asteroid, miner)
         });
@@ -157,11 +157,11 @@ mod test {
     //
     //         let miner = world
     //             .create_entity()
-    //             .with(LocationDocked { parent_id: station })
-    //             .with(NavRequest::MoveToTarget {
+    //             .insert(LocationDocked { parent_id: station })
+    //             .insert(NavRequest::MoveToTarget {
     //                 target_id: asteroid,
     //             })
-    //             .build();
+    //             .id();
     //
     //         (asteroid, miner)
     //     });
@@ -184,21 +184,21 @@ mod test {
     //
     //         let miner = world
     //             .create_entity()
-    //             .with(LocationSpace {
+    //             .insert(LocationSpace {
     //                 sector_id: sector_scenery.sector_0,
     //                 pos: P2::X,
     //             })
-    //             .with(LocationOrbit {
+    //             .insert(LocationOrbit {
     //                 parent_id: asteroid_id,
     //                 distance: 0.0,
     //                 start_time: Default::default(),
     //                 start_angle: 0.0,
     //                 speed: Speed(0.0),
     //             })
-    //             .with(NavRequest::MoveToTarget {
+    //             .insert(NavRequest::MoveToTarget {
     //                 target_id: station_id,
     //             })
-    //             .build();
+    //             .id();
     //
     //         (asteroid_id, miner)
     //     });
@@ -227,22 +227,22 @@ mod test {
     //         let sector_scenery = setup_sector_scenery(world);
     //         let asteroid_id = world
     //             .create_entity()
-    //             .with(LocationSpace {
+    //             .insert(LocationSpace {
     //                 pos: P2::X,
     //                 sector_id: sector_scenery.sector_1,
     //             })
-    //             .build();
+    //             .id();
     //
     //         let miner = world
     //             .create_entity()
-    //             .with(LocationSpace {
+    //             .insert(LocationSpace {
     //                 sector_id: sector_scenery.sector_0,
     //                 pos: P2::ZERO,
     //             })
-    //             .with(NavRequest::OrbitTarget {
+    //             .insert(NavRequest::OrbitTarget {
     //                 target_id: asteroid_id,
     //             })
-    //             .build();
+    //             .id();
     //
     //         (asteroid_id, miner)
     //     });

@@ -112,22 +112,22 @@ mod test {
     #[test]
     fn test_move_to_system_should_move_to_target() {
         let (world, entity) = test_system(ActionMoveToSystem, |world| {
-            let sector_0 = world.create_entity().build();
+            let sector_0 = world.spawn_empty().id();
 
             world.insert(DeltaTime(1.0));
 
             let entity = world
                 .create_entity()
-                .with(ActionActive(Action::MoveTo {
+                .insert(ActionActive(Action::MoveTo {
                     pos: Position::new(2.0, 0.0),
                 }))
-                .with(ActionMoveTo)
-                .with(LocationSpace {
+                .insert(ActionMoveTo)
+                .insert(LocationSpace {
                     pos: Position::ZERO,
                     sector_id: sector_0,
                 })
-                .with(Moveable { speed: Speed(1.0) })
-                .build();
+                .insert(Moveable { speed: Speed(1.0) })
+                .id();
 
             entity
         });
@@ -142,22 +142,22 @@ mod test {
     #[test]
     fn test_move_to_system_should_stop_on_arrival() {
         let (world, entity) = test_system(ActionMoveToSystem, |world| {
-            let sector_0 = world.create_entity().build();
+            let sector_0 = world.spawn_empty().id();
 
             world.insert(DeltaTime(1.0));
 
             let entity = world
                 .create_entity()
-                .with(ActionActive(Action::MoveTo {
+                .insert(ActionActive(Action::MoveTo {
                     pos: Position::new(2.0, 0.0),
                 }))
-                .with(ActionMoveTo)
-                .with(LocationSpace {
+                .insert(ActionMoveTo)
+                .insert(LocationSpace {
                     pos: Position::new(1.0, 0.0),
                     sector_id: sector_0,
                 })
-                .with(Moveable { speed: Speed(1.5) })
-                .build();
+                .insert(Moveable { speed: Speed(1.5) })
+                .id();
 
             entity
         });
@@ -174,36 +174,36 @@ mod test {
         // create world
         let mut world = World::new();
         let mut dispatcher = DispatcherBuilder::new()
-            .with(ActionMoveToSystem, "test", &[])
-            .build();
+            .insert(ActionMoveToSystem, "test", &[])
+            .id();
         dispatcher.setup(&mut world);
 
         // add entities
-        let sector_0 = world.create_entity().build();
+        let sector_0 = world.spawn_empty().id();
 
         world.insert(DeltaTime(1.0));
 
         let target = world
             .create_entity()
-            .with(LocationSpace {
+            .insert(LocationSpace {
                 pos: Position::new(2.0, 0.0),
                 sector_id: sector_0,
             })
-            .build();
+            .id();
 
         let entity = world
             .create_entity()
-            .with(ActionActive(Action::MoveToTargetPos {
+            .insert(ActionActive(Action::MoveToTargetPos {
                 target_id: target,
                 last_position: None,
             }))
-            .with(ActionMoveTo)
-            .with(LocationSpace {
+            .insert(ActionMoveTo)
+            .insert(LocationSpace {
                 pos: Position::new(0.0, 0.0),
                 sector_id: sector_0,
             })
-            .with(Moveable { speed: Speed(1.0) })
-            .build();
+            .insert(Moveable { speed: Speed(1.0) })
+            .id();
 
         // run once
         dispatcher.dispatch(&world);

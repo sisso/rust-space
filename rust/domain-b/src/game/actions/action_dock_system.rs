@@ -82,26 +82,26 @@ mod test {
         let (world, (entity, station_id)) = test_system(DockSystem, |world| {
             let station_position = Position::ZERO;
 
-            let sector_0 = world.create_entity().build();
+            let sector_0 = world.spawn_empty().id();
 
             let station = world
                 .create_entity()
-                .with(LocationSpace {
+                .insert(LocationSpace {
                     pos: station_position,
                     sector_id: sector_0,
                 })
-                .with(HasDocking::default())
-                .build();
+                .insert(HasDocking::default())
+                .id();
 
             let entity = world
                 .create_entity()
-                .with(ActionActive(Action::Dock { target_id: station }))
-                .with(ActionDock)
-                .with(LocationSpace {
+                .insert(ActionActive(Action::Dock { target_id: station }))
+                .insert(ActionDock)
+                .insert(LocationSpace {
                     pos: station_position,
                     sector_id: sector_0,
                 })
-                .build();
+                .id();
 
             (entity, station)
         });

@@ -272,30 +272,30 @@ mod test {
     fn create_asteroid(world: &mut World, location: LocationSpace, ware_id: WareId) -> ObjId {
         world
             .create_entity()
-            .with(location)
-            .with(Extractable {
+            .insert(location)
+            .insert(Extractable {
                 ware_id,
                 accessibility: 1.0,
             })
-            .build()
+            .id()
     }
 
     fn create_miner(world: &mut World, docked_at: ObjId) -> ObjId {
         world
             .create_entity()
-            .with(LocationDocked {
+            .insert(LocationDocked {
                 parent_id: docked_at,
             })
-            .with(Command::mine())
-            .with(Cargo::new(100))
-            .build()
+            .insert(Command::mine())
+            .insert(Cargo::new(100))
+            .id()
     }
 
     /// Setup a asteroid in sector 0, a mine station in sector 1, a miner docked in the station
     fn setup_scenery(world: &mut World) -> SceneryResult {
         let sector_scenery = test_scenery::setup_sector_scenery(world);
 
-        let ware_id = world.create_entity().with(Label::from("ore")).build();
+        let ware_id = world.spawn_empty().insert(Label::from("ore")).id();
 
         let asteroid = create_asteroid(
             world,
@@ -311,15 +311,15 @@ mod test {
 
         let station_id = world
             .create_entity()
-            .with(Label::from("station"))
-            .with(LocationSpace {
+            .insert(Label::from("station"))
+            .insert(LocationSpace {
                 pos: V2::new(0.0, 0.0),
                 sector_id: sector_scenery.sector_0,
             })
-            .with(HasDocking::default())
-            .with(Cargo::new(1000))
-            .with(orders)
-            .build();
+            .insert(HasDocking::default())
+            .insert(Cargo::new(1000))
+            .insert(orders)
+            .id();
 
         let miner_id = create_miner(world, station_id);
 

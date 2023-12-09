@@ -87,25 +87,25 @@ mod test {
     #[test]
     fn test_undock_system_should_undock_if_docked() {
         let (world, (fleet_id, station_id)) = test_system(UndockSystem, |world| {
-            let sector_id = world.create_entity().build();
+            let sector_id = world.spawn_empty().id();
 
             let station_id = world
                 .create_entity()
-                .with(LocationSpace {
+                .insert(LocationSpace {
                     pos: Position::new(0.0, 0.0),
                     sector_id: sector_id,
                 })
-                .with(HasDocking::default())
-                .build();
+                .insert(HasDocking::default())
+                .id();
 
             let fleet_id = world
                 .create_entity()
-                .with(ActionActive(Action::Undock))
-                .with(ActionUndock)
-                .with(LocationDocked {
+                .insert(ActionActive(Action::Undock))
+                .insert(ActionUndock)
+                .insert(LocationDocked {
                     parent_id: station_id,
                 })
-                .build();
+                .id();
 
             // update station docking
             world
@@ -142,17 +142,17 @@ mod test {
     #[test]
     fn test_undock_system_should_ignore_undock_if_not_docked() {
         let (world, entity) = test_system(UndockSystem, |world| {
-            let sector_id = world.create_entity().build();
+            let sector_id = world.spawn_empty().id();
 
             let entity = world
                 .create_entity()
-                .with(ActionActive(Action::Undock))
-                .with(ActionUndock)
-                .with(LocationSpace {
+                .insert(ActionActive(Action::Undock))
+                .insert(ActionUndock)
+                .insert(LocationSpace {
                     pos: Position::new(0.0, 0.0),
                     sector_id,
                 })
-                .build();
+                .id();
 
             entity
         });

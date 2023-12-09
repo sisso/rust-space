@@ -109,29 +109,29 @@ mod test {
     #[test]
     fn test_get_into_orbit() {
         let (world, (obj_id, asteroid_id)) = test_system(ActionsSystem, |world| {
-            let sector_id = world.create_entity().build();
+            let sector_id = world.spawn_empty().id();
 
             world.insert(TotalTime(2.0));
 
             let asteroid_id = world
                 .create_entity()
-                .with(LocationSpace {
+                .insert(LocationSpace {
                     pos: P2::ZERO,
                     sector_id,
                 })
-                .build();
+                .id();
 
             let entity = world
                 .create_entity()
-                .with(ActionActive(Action::Orbit {
+                .insert(ActionActive(Action::Orbit {
                     target_id: asteroid_id,
                 }))
-                .with(ActionGeneric {})
-                .with(LocationSpace {
+                .insert(ActionGeneric {})
+                .insert(LocationSpace {
                     pos: P2::X,
                     sector_id,
                 })
-                .build();
+                .id();
 
             (entity, asteroid_id)
         });
@@ -155,30 +155,30 @@ mod test {
     #[test]
     fn test_do_not_orbit_if_different_sector() {
         let (world, (obj_id,)) = test_system(ActionsSystem, |world| {
-            let sector_id_0 = world.create_entity().build();
-            let sector_id_1 = world.create_entity().build();
+            let sector_id_0 = world.spawn_empty().id();
+            let sector_id_1 = world.spawn_empty().id();
 
             world.insert(TotalTime(2.0));
 
             let asteroid_id = world
                 .create_entity()
-                .with(LocationSpace {
+                .insert(LocationSpace {
                     pos: P2::ZERO,
                     sector_id: sector_id_0,
                 })
-                .build();
+                .id();
 
             let entity = world
                 .create_entity()
-                .with(ActionActive(Action::Orbit {
+                .insert(ActionActive(Action::Orbit {
                     target_id: asteroid_id,
                 }))
-                .with(ActionGeneric {})
-                .with(LocationSpace {
+                .insert(ActionGeneric {})
+                .insert(LocationSpace {
                     pos: P2::X,
                     sector_id: sector_id_1,
                 })
-                .build();
+                .id();
 
             (entity,)
         });
@@ -192,34 +192,34 @@ mod test {
     #[test]
     fn test_do_not_orbit_if_is_docked() {
         let (world, (obj_id,)) = test_system(ActionsSystem, |world| {
-            let sector_id = world.create_entity().build();
+            let sector_id = world.spawn_empty().id();
 
             world.insert(TotalTime(2.0));
 
             let asteroid_id = world
                 .create_entity()
-                .with(LocationSpace {
+                .insert(LocationSpace {
                     pos: P2::ZERO,
                     sector_id: sector_id,
                 })
-                .build();
+                .id();
 
-            let station_id = world.create_entity().build();
+            let station_id = world.spawn_empty().id();
 
             let entity = world
                 .create_entity()
-                .with(ActionActive(Action::Orbit {
+                .insert(ActionActive(Action::Orbit {
                     target_id: asteroid_id,
                 }))
-                .with(ActionGeneric {})
-                .with(LocationSpace {
+                .insert(ActionGeneric {})
+                .insert(LocationSpace {
                     pos: P2::X,
                     sector_id: sector_id,
                 })
-                .with(LocationDocked {
+                .insert(LocationDocked {
                     parent_id: station_id,
                 })
-                .build();
+                .id();
 
             (entity,)
         });
@@ -233,28 +233,28 @@ mod test {
     #[test]
     fn test_do_deorbit() {
         let (world, (obj_id,)) = test_system(ActionsSystem, |world| {
-            let sector_id = world.create_entity().build();
+            let sector_id = world.spawn_empty().id();
 
             world.insert(TotalTime(2.0));
 
             let asteroid_id = world
                 .create_entity()
-                .with(LocationSpace {
+                .insert(LocationSpace {
                     pos: P2::ZERO,
                     sector_id: sector_id,
                 })
-                .build();
+                .id();
 
             let entity = world
                 .create_entity()
-                .with(ActionActive(Action::Deorbit {}))
-                .with(ActionGeneric {})
-                .with(LocationSpace {
+                .insert(ActionActive(Action::Deorbit {}))
+                .insert(ActionGeneric {})
+                .insert(LocationSpace {
                     pos: P2::X,
                     sector_id: sector_id,
                 })
-                .with(LocationOrbit::new(asteroid_id))
-                .build();
+                .insert(LocationOrbit::new(asteroid_id))
+                .id();
 
             (entity,)
         });
@@ -268,27 +268,27 @@ mod test {
     #[test]
     fn test_do_deorbit_if_not_orbiting() {
         let (world, (obj_id, _asteroid_id)) = test_system(ActionsSystem, |world| {
-            let sector_id = world.create_entity().build();
+            let sector_id = world.spawn_empty().id();
 
             world.insert(TotalTime(2.0));
 
             let asteroid_id = world
                 .create_entity()
-                .with(LocationSpace {
+                .insert(LocationSpace {
                     pos: P2::ZERO,
                     sector_id: sector_id,
                 })
-                .build();
+                .id();
 
             let entity = world
                 .create_entity()
-                .with(ActionActive(Action::Deorbit {}))
-                .with(ActionGeneric {})
-                .with(LocationSpace {
+                .insert(ActionActive(Action::Deorbit {}))
+                .insert(ActionGeneric {})
+                .insert(LocationSpace {
                     pos: P2::X,
                     sector_id: sector_id,
                 })
-                .build();
+                .id();
 
             (entity, asteroid_id)
         });

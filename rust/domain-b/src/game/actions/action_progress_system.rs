@@ -50,10 +50,10 @@ mod test {
             world.insert(TotalTime(1.0));
             world
                 .create_entity()
-                .with(ActionProgress {
+                .insert(ActionProgress {
                     complete_time: TotalTime(2.0),
                 })
-                .build()
+                .id()
         });
 
         assert!(world.read_storage::<ActionProgress>().get(entity).is_some());
@@ -65,10 +65,10 @@ mod test {
             world.insert(TotalTime(1.0));
             world
                 .create_entity()
-                .with(ActionProgress {
+                .insert(ActionProgress {
                     complete_time: TotalTime(0.5),
                 })
-                .build()
+                .id()
         });
 
         assert!(world.read_storage::<ActionProgress>().get(entity).is_none());

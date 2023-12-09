@@ -107,17 +107,17 @@ mod test {
     ) -> Entity {
         let entity = world
             .create_entity()
-            .with(ActionActive(Action::Jump {
+            .insert(ActionActive(Action::Jump {
                 jump_id: scenery.jump_0_to_1,
             }))
-            .with(ActionJump {
+            .insert(ActionJump {
                 complete_time: jump_time,
             })
-            .with(LocationSpace {
+            .insert(LocationSpace {
                 pos: scenery.jump_0_to_1_pos,
                 sector_id: scenery.sector_0,
             })
-            .build();
+            .id();
         entity
     }
 

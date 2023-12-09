@@ -174,26 +174,26 @@ pub struct Navigations;
 //
 //         let starting_station_id = world
 //             .create_entity()
-//             .with(LocationSpace {
+//             .insert(LocationSpace {
 //                 sector_id: scn.sector_0,
 //                 pos: P2::new(0.0, 0.0),
 //             })
-//             .build();
+//             .id();
 //
 //         let target_station_id = world
 //             .create_entity()
-//             .with(LocationSpace {
+//             .insert(LocationSpace {
 //                 sector_id: scn.sector_1,
 //                 pos: P2::new(1.0, 0.0),
 //             })
-//             .build();
+//             .id();
 //
 //         let fleet_id = world
 //             .create_entity()
-//             .with(LocationDocked {
+//             .insert(LocationDocked {
 //                 parent_id: starting_station_id,
 //             })
-//             .build();
+//             .id();
 //
 //         let entities = world.entities();
 //         let sectors = world.read_storage::<Sector>();
@@ -251,39 +251,39 @@ pub struct Navigations;
 //         world.register::<Sector>();
 //         world.register::<Jump>();
 //
-//         let sector_id = world.create_entity().build();
+//         let sector_id = world.spawn_empty().id();
 //
 //         let starting_asteroid_id = world
 //             .create_entity()
-//             .with(LocationSpace {
+//             .insert(LocationSpace {
 //                 sector_id: sector_id,
 //                 pos: P2::new(0.0, 0.0),
 //             })
-//             .build();
+//             .id();
 //
 //         let target_asteroid_pos = P2::new(1.0, 0.0);
 //         let target_asteroid_id = world
 //             .create_entity()
-//             .with(LocationSpace {
+//             .insert(LocationSpace {
 //                 sector_id: sector_id,
 //                 pos: target_asteroid_pos,
 //             })
-//             .build();
+//             .id();
 //
 //         let fleet_id = world
 //             .create_entity()
-//             .with(LocationSpace {
+//             .insert(LocationSpace {
 //                 pos: P2::new(0.0, 0.0),
 //                 sector_id: sector_id,
 //             })
-//             .with(LocationOrbit {
+//             .insert(LocationOrbit {
 //                 parent_id: starting_asteroid_id,
 //                 distance: 0.0,
 //                 start_time: Default::default(),
 //                 start_angle: 0.0,
 //                 speed: Speed(0.0),
 //             })
-//             .build();
+//             .id();
 //
 //         let entities = world.entities();
 //         let sectors = world.read_storage::<Sector>();

@@ -57,11 +57,11 @@ mod test {
     #[test]
     fn test_navigation_move_to_system_should_complete_when_path_is_empty() {
         let (world, (entity, _target)) = test_system(NavigationSystem, |world| {
-            let target_id = world.create_entity().build();
+            let target_id = world.spawn_empty().id();
 
             let entity = world
                 .create_entity()
-                .with(Navigation {
+                .insert(Navigation {
                     request: NavRequest::MoveToPos {
                         sector_id: target_id,
                         pos: V2::ZERO,
@@ -70,7 +70,7 @@ mod test {
                         path: Default::default(),
                     },
                 })
-                .build();
+                .id();
 
             (entity, target_id)
         });

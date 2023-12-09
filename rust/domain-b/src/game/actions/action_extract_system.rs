@@ -117,27 +117,27 @@ mod test {
     fn test_extraction() {
         let mut ts = TestSystemRunner::new(ActionExtractSystem);
 
-        let ware_id = ts.world.create_entity().build();
+        let ware_id = ts.world.spawn_empty().id();
 
         let asteroid_id = ts
             .world
             .create_entity()
-            .with(Extractable {
+            .insert(Extractable {
                 ware_id,
                 accessibility: 1.0,
             })
-            .build();
+            .id();
 
         let fleet_id = ts
             .world
             .create_entity()
-            .with(ActionActive(Action::Extract {
+            .insert(ActionActive(Action::Extract {
                 target_id: asteroid_id,
                 ware_id,
             }))
-            .with(ActionExtract::default())
-            .with(Cargo::new(5))
-            .build();
+            .insert(ActionExtract::default())
+            .insert(Cargo::new(5))
+            .id();
 
         // first tick, it should be not enough to generate one resource
         ts.tick_timed(DeltaTime(0.5));
