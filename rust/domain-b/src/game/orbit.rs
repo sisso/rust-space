@@ -2,6 +2,7 @@ use crate::game::locations::{LocationOrbit, LocationSpace};
 use crate::game::objects::ObjId;
 use crate::game::utils::{Speed, TotalTime};
 use bevy_ecs::prelude::*;
+use bevy_ecs::system::RunSystemOnce;
 use commons::math;
 use commons::math::{Distance, Rad, P2};
 use std::collections::HashMap;
@@ -9,11 +10,8 @@ use std::collections::HashMap;
 pub struct Orbits;
 
 impl Orbits {
-    // id_map is mapping a giving astro index to a world entity
     pub fn update_orbits(world: &mut World) {
-        // let mut system = OrbitalPosSystem;
-        // system.run_now(world);
-        todo!("system not implemented")
+        world.run_system_once(system_compute_orbits);
     }
 }
 
@@ -35,7 +33,7 @@ pub fn compute_orbit_local_pos(
 /// updates.
 fn compute_orbital_pos(
     cache: &mut HashMap<ObjId, LocationSpace>,
-    query: &Query<(ObjId, &LocationSpace, Option<&LocationOrbit>)>,
+    query: &Query<(Entity, &LocationSpace, Option<&LocationOrbit>)>,
     time: TotalTime,
     id: ObjId,
 ) -> Result<LocationSpace, &'static str> {
@@ -85,194 +83,175 @@ fn compute_orbital_pos(
     Ok(pos)
 }
 
-// pub fn update_orbits_for_new_objects(input: In<Vec<ObjId>>, query: Query) {}
+pub fn system_compute_orbits(
+    total_time: Res<TotalTime>,
+    mut query: Query<(Entity, &mut LocationSpace, Option<&LocationOrbit>)>,
+) {
+    log::trace!("running");
 
-// pub struct OrbitalPosSystem;
-//
-// impl<'a> System<'a> for OrbitalPosSystem {
-//     type SystemData = (
-//         Entities<'a>,
-//         ReadExpect<'a, TotalTime>,
-//         WriteStorage<'a, LocationSpace>,
-//         ReadStorage<'a, LocationOrbit>,
-//     );
-//
-//     fn run(&mut self, (entities, time, mut locations_space, orbits): Self::SystemData) {
-//         log::trace!("running");
-//
-//         let mut cache: HashMap<ObjId, LocationSpace> = Default::default();
-//         let mut updates = vec![];
-//
-//         let current_time = *time;
-//
-//         for (obj_id, _) in (&entities, &orbits).join() {
-//             let pos = match compute_orbital_pos(
-//                 &mut cache,
-//                 &locations_space,
-//                 &orbits,
-//                 current_time,
-//                 obj_id,
-//             ) {
-//                 Ok(pos) => pos,
-//                 Err(err_msg) => {
-//                     log::warn!("{:?} fail to generate orbiting by {}", obj_id, err_msg);
-//                     continue;
-//                 }
-//             };
-//
-//             updates.push((
-//                 obj_id,
-//                 LocationSpace {
-//                     pos: pos.pos,
-//                     sector_id: pos.sector_id,
-//                 },
-//             ));
-//         }
-//
-//         let loc_space = &mut locations_space;
-//         for (obj_id, location) in updates {
-//             log::trace!("{:?} updating orbit location to {:?}", obj_id, location);
-//             loc_space.insert(obj_id, location).unwrap();
-//         }
-//     }
-// }
-//
-// #[cfg(test)]
-// mod test {
-//     use crate::game::locations::{LocationOrbit, LocationSpace};
-//     use crate::game::objects::ObjId;
-//     use crate::game::orbit::OrbitalPosSystem;
-//     use crate::test::TestSystemRunner;
-//     use crate::game::utils::{Position, Speed, TotalTime};
-//     use bevy_ecs::prelude::*;
-//     use commons::math::{deg_to_rads, P2};
-//     use specs::World;
-//     use specs::{Builder, Entity, WorldExt};
-//
-//     #[test]
-//     fn test_orbits_system_should_resolve_positions() {
-//         let (world, result) = crate::test::test_system(OrbitalPosSystem, move |world| {
-//             world.insert(TotalTime(0.0));
-//             create_system_1(world)
-//         });
-//
-//         let (star_id, planet1_id, planet2_id, planet2moon1_id, station_id) = result;
-//         let locations = world.read_storage::<LocationSpace>();
-//
-//         let get_pos = |id: Entity| -> Position { locations.get(id).unwrap().pos };
-//
-//         assert!(Position::ZERO.abs_diff_eq(get_pos(star_id), 0.01));
-//         assert!(Position::new(1.0, 0.0).abs_diff_eq(get_pos(planet1_id), 0.01));
-//         assert!(Position::new(0.0, 1.0).abs_diff_eq(get_pos(planet2_id), 0.01));
-//         assert!(Position::new(0.0, 1.5).abs_diff_eq(get_pos(planet2moon1_id), 0.01));
-//         assert!(Position::new(0.25, 1.5).abs_diff_eq(get_pos(station_id), 0.01));
-//     }
-//
-//     #[test]
-//     fn test_orbits_system_should_move_over_time() {
-//         fn fetch_positions(world: &World, star_id: ObjId) -> Vec<P2> {
-//             (&world.entities(), &world.read_component::<LocationSpace>())
-//                 .join()
-//                 .filter(|(id, _)| *id != star_id)
-//                 .map(|(_, l)| l.pos)
-//                 .collect()
-//         }
-//
-//         let mut runner = TestSystemRunner::new(OrbitalPosSystem);
-//         runner.world.insert(TotalTime(0.0));
-//         let (star_id, _, _, _, _) = create_system_1(&mut runner.world);
-//         runner.tick();
-//
-//         let positions0 = fetch_positions(&runner.world, star_id);
-//
-//         runner.world.insert(TotalTime(30.0));
-//         runner.tick();
-//
-//         let positions1 = fetch_positions(&runner.world, star_id);
-//
-//         for (a, b) in positions0.into_iter().zip(positions1.into_iter()) {
-//             assert_ne!(a, b);
-//         }
-//     }
-//
-//     fn create_system_1(world: &mut World) -> (Entity, Entity, Entity, Entity, Entity) {
-//         let now = *world.read_resource::<TotalTime>();
-//         let sector_id = world.create_entity().build();
-//
-//         let star_id = world
-//             .create_entity()
-//             .with(LocationSpace {
-//                 pos: Position::ZERO,
-//                 sector_id,
-//             })
-//             .build();
-//
-//         let planet1_id = world
-//             .create_entity()
-//             .with(LocationSpace {
-//                 pos: Position::ZERO,
-//                 sector_id,
-//             })
-//             .with(LocationOrbit {
-//                 parent_id: star_id,
-//                 distance: 1.0,
-//                 start_time: now,
-//                 start_angle: 0.0,
-//                 speed: Speed(500.0),
-//             })
-//             .build();
-//
-//         let planet2_id = world
-//             .create_entity()
-//             .with(LocationSpace {
-//                 pos: Position::ZERO,
-//                 sector_id,
-//             })
-//             .with(LocationOrbit {
-//                 parent_id: star_id,
-//                 distance: 1.0,
-//                 start_time: now,
-//                 start_angle: deg_to_rads(90.0),
-//                 speed: Speed(500.0),
-//             })
-//             .build();
-//
-//         let planet2_moon1_id = world
-//             .create_entity()
-//             .with(LocationSpace {
-//                 pos: Position::ZERO,
-//                 sector_id,
-//             })
-//             .with(LocationOrbit {
-//                 parent_id: planet2_id,
-//                 distance: 0.5,
-//                 start_angle: deg_to_rads(90.0),
-//                 start_time: now,
-//                 speed: Speed(500.0),
-//             })
-//             .build();
-//
-//         let station_id = world
-//             .create_entity()
-//             .with(LocationSpace {
-//                 pos: Position::ZERO,
-//                 sector_id,
-//             })
-//             .with(LocationOrbit {
-//                 parent_id: planet2_moon1_id,
-//                 distance: 0.25,
-//                 start_angle: deg_to_rads(0.0),
-//                 start_time: now,
-//                 speed: Speed(500.0),
-//             })
-//             .build();
-//
-//         (
-//             star_id,
-//             planet1_id,
-//             planet2_id,
-//             planet2_moon1_id,
-//             station_id,
-//         )
-//     }
-// }
+    let mut cache: HashMap<ObjId, LocationSpace> = Default::default();
+    let mut updates = vec![];
+    let current_time = *total_time;
+    let read_query = query.to_readonly();
+
+    for (obj_id, _, _) in &query {
+        let pos = match compute_orbital_pos(&mut cache, &read_query, current_time, obj_id) {
+            Ok(pos) => pos,
+            Err(err_msg) => {
+                log::warn!("{:?} fail to generate orbiting by {}", obj_id, err_msg);
+                continue;
+            }
+        };
+
+        updates.push((
+            obj_id,
+            LocationSpace {
+                pos: pos.pos,
+                sector_id: pos.sector_id,
+            },
+        ));
+    }
+
+    for (obj_id, location) in updates {
+        log::trace!("{:?} updating orbit location to {:?}", obj_id, location);
+        *query.get_mut(obj_id).expect("obj_id not found to update").1 = location;
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::game::locations::{LocationOrbit, LocationSpace};
+    use crate::game::objects::ObjId;
+    use crate::game::utils::{Position, Speed, TotalTime};
+    use bevy_ecs::prelude::*;
+    use bevy_ecs::system::{RunSystemOnce, SystemState};
+    use commons::math::{deg_to_rads, P2};
+
+    #[test]
+    fn test_orbits_system_should_resolve_positions() {
+        let mut world = World::new();
+        world.insert_resource(TotalTime(0.0));
+        let (star_id, planet1_id, planet2_id, planet2moon1_id, station_id) =
+            create_system_1(&mut world);
+        world.run_system_once(super::system_compute_orbits);
+
+        let get_pos = |id: Entity| -> Position { world.get::<LocationSpace>(id).unwrap().pos };
+
+        assert!(Position::ZERO.abs_diff_eq(get_pos(star_id), 0.01));
+        assert!(Position::new(1.0, 0.0).abs_diff_eq(get_pos(planet1_id), 0.01));
+        assert!(Position::new(0.0, 1.0).abs_diff_eq(get_pos(planet2_id), 0.01));
+        assert!(Position::new(0.0, 1.5).abs_diff_eq(get_pos(planet2moon1_id), 0.01));
+        assert!(Position::new(0.25, 1.5).abs_diff_eq(get_pos(station_id), 0.01));
+    }
+
+    #[test]
+    fn test_orbits_system_should_move_over_time() {
+        fn fetch_positions(world: &mut World, star_id: ObjId) -> Vec<P2> {
+            let mut system_state: SystemState<Query<(Entity, &LocationSpace)>> =
+                SystemState::new(world);
+            let query = system_state.get(world);
+            query
+                .iter()
+                .filter(|(id, _)| *id != star_id)
+                .map(|(_, l)| l.pos)
+                .collect()
+        }
+
+        let mut world = World::new();
+        world.insert_resource(TotalTime(0.0));
+        let (star_id, planet1_id, planet2_id, planet2moon1_id, station_id) =
+            create_system_1(&mut world);
+        world.run_system_once(super::system_compute_orbits);
+
+        let positions0 = fetch_positions(&mut world, star_id);
+
+        world.insert_resource(TotalTime(30.0));
+        world.run_system_once(super::system_compute_orbits);
+
+        let positions1 = fetch_positions(&mut world, star_id);
+        for (a, b) in positions0.into_iter().zip(positions1.into_iter()) {
+            assert_ne!(a, b);
+        }
+    }
+
+    fn create_system_1(world: &mut World) -> (Entity, Entity, Entity, Entity, Entity) {
+        let now = world.get_resource::<TotalTime>().unwrap().clone();
+        let sector_id = world.spawn_empty().id();
+
+        let star_id = world
+            .spawn_empty()
+            .insert(LocationSpace {
+                pos: Position::ZERO,
+                sector_id,
+            })
+            .id();
+
+        let planet1_id = world
+            .spawn_empty()
+            .insert(LocationSpace {
+                pos: Position::ZERO,
+                sector_id,
+            })
+            .insert(LocationOrbit {
+                parent_id: star_id,
+                distance: 1.0,
+                start_time: now,
+                start_angle: 0.0,
+                speed: Speed(500.0),
+            })
+            .id();
+
+        let planet2_id = world
+            .spawn_empty()
+            .insert(LocationSpace {
+                pos: Position::ZERO,
+                sector_id,
+            })
+            .insert(LocationOrbit {
+                parent_id: star_id,
+                distance: 1.0,
+                start_time: now,
+                start_angle: deg_to_rads(90.0),
+                speed: Speed(500.0),
+            })
+            .id();
+
+        let planet2_moon1_id = world
+            .spawn_empty()
+            .insert(LocationSpace {
+                pos: Position::ZERO,
+                sector_id,
+            })
+            .insert(LocationOrbit {
+                parent_id: planet2_id,
+                distance: 0.5,
+                start_angle: deg_to_rads(90.0),
+                start_time: now,
+                speed: Speed(500.0),
+            })
+            .id();
+
+        let station_id = world
+            .spawn_empty()
+            .insert(LocationSpace {
+                pos: Position::ZERO,
+                sector_id,
+            })
+            .insert(LocationOrbit {
+                parent_id: planet2_moon1_id,
+                distance: 0.25,
+                start_angle: deg_to_rads(0.0),
+                start_time: now,
+                speed: Speed(500.0),
+            })
+            .id();
+
+        (
+            star_id,
+            planet1_id,
+            planet2_id,
+            planet2_moon1_id,
+            station_id,
+        )
+    }
+}
