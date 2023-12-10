@@ -90,7 +90,7 @@ mod test {
             let sector_id = world.spawn_empty().id();
 
             let station_id = world
-                .create_entity()
+                .spawn_empty()
                 .insert(LocationSpace {
                     pos: Position::new(0.0, 0.0),
                     sector_id: sector_id,
@@ -99,7 +99,7 @@ mod test {
                 .id();
 
             let fleet_id = world
-                .create_entity()
+                .spawn_empty()
                 .insert(ActionActive(Action::Undock))
                 .insert(ActionUndock)
                 .insert(LocationDocked {
@@ -145,7 +145,7 @@ mod test {
             let sector_id = world.spawn_empty().id();
 
             let entity = world
-                .create_entity()
+                .spawn_empty()
                 .insert(ActionActive(Action::Undock))
                 .insert(ActionUndock)
                 .insert(LocationSpace {

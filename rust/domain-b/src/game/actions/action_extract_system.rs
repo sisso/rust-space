@@ -121,7 +121,7 @@ mod test {
 
         let asteroid_id = ts
             .world
-            .create_entity()
+            .spawn_empty()
             .insert(Extractable {
                 ware_id,
                 accessibility: 1.0,
@@ -130,7 +130,7 @@ mod test {
 
         let fleet_id = ts
             .world
-            .create_entity()
+            .spawn_empty()
             .insert(ActionActive(Action::Extract {
                 target_id: asteroid_id,
                 ware_id,

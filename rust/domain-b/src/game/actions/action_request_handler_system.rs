@@ -84,7 +84,7 @@ mod test {
     fn test_action_request() {
         let (world, entity) = test_system(ActionRequestHandlerSystem, |world| {
             let entity = world
-                .create_entity()
+                .spawn_empty()
                 .insert(ActionRequest(Action::Undock))
                 .id();
 

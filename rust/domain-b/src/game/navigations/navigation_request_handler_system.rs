@@ -9,95 +9,79 @@ use crate::game::SYSTEM_TIMEOUT;
 /// Setup navigation for the request
 /// - check for inconsistencies
 ///
-pub struct NavRequestHandlerSystem;
+fn system_navigation_request(
+    mut commands: Commands,
+    query: Query<(Entity, &NavRequest)>,
+    query_entity: Query<(Option<&LocationDocked>, Option<&LocationOrbit>)>,
+    query_locations: Query<(Entity, Option<&LocationSpace>, Option<&LocationDocked>)>,
+    query_sectors: Query<&Sector>,
+    query_jumps: Query<(&Jump, &LocationSpace)>,
+) {
+    log::trace!("running");
 
-#[derive(SystemData)]
-pub struct NavRequestHandlerData<'a> {
-    entities: Entities<'a>,
-    sectors: ReadStorage<'a, Sector>,
-    jumps: ReadStorage<'a, Jump>,
-    locations: ReadStorage<'a, LocationSpace>,
-    locations_docked: ReadStorage<'a, LocationDocked>,
-    locations_orbit: ReadStorage<'a, LocationOrbit>,
-    requests: WriteStorage<'a, NavRequest>,
-    navigation: WriteStorage<'a, Navigation>,
-}
+    let mut processed_requests = vec![];
 
-impl<'a> System<'a> for NavRequestHandlerSystem {
-    fn run(&mut self, mut data: NavRequestHandlerData) {
-        log::trace!("running");
+    // timeout navigation handling if take more time that expected
+    let timeout = commons::TimeDeadline::new(SYSTEM_TIMEOUT);
 
-        let mut processed_requests = vec![];
+    for (id, request) in &query {
+        processed_requests.push(id);
 
-        // timeout navigation handling if take more time that expected
-        let timeout = commons::TimeDeadline::new(SYSTEM_TIMEOUT);
-
-        for (id, request) in (&*data.entities, &data.requests).join() {
-            processed_requests.push(id);
-
-            let plan = match create_plan(
-                &data.entities,
-                &data.sectors,
-                &data.jumps,
-                &data.locations,
-                &data.locations_docked,
-                &data.locations_orbit,
-                id,
-                request,
-            ) {
-                Ok(plan) => plan,
-                Err(err) => {
-                    log::warn!(
-                        "{:?} fail to generate navigation plan for {:?}: {}",
-                        id,
-                        request,
-                        err
-                    );
-                    continue;
-                }
-            };
-
-            log::debug!(
-                "{:?} handle navigation to {:?} by the plan {:?}",
-                id,
-                request,
-                plan,
-            );
-
-            data.navigation
-                .insert(
+        let plan = match create_plan(
+            &query_entity,
+            &query_locations,
+            &query_sectors,
+            &query_jumps,
+            id,
+            request,
+        ) {
+            Ok(plan) => plan,
+            Err(err) => {
+                log::warn!(
+                    "{:?} fail to generate navigation plan for {:?}: {}",
                     id,
-                    Navigation {
-                        request: request.clone(),
-                        plan,
-                    },
-                )
-                .unwrap();
-
-            if timeout.is_timeout() {
-                log::warn!("navigation request timeout");
-                break;
+                    request,
+                    err
+                );
+                continue;
             }
-        }
+        };
 
-        let request_storage = &mut data.requests;
-        for e in processed_requests {
-            request_storage.remove(e).unwrap();
+        log::debug!(
+            "{:?} handle navigation to {:?} by the plan {:?}",
+            id,
+            request,
+            plan,
+        );
+
+        commands.entity(id).insert(Navigation {
+            request: request.clone(),
+            plan,
+        });
+
+        if timeout.is_timeout() {
+            log::warn!("navigation request timeout");
+            break;
         }
     }
 
-    type SystemData = NavRequestHandlerData<'a>;
+    for obj_id in processed_requests {
+        commands
+            .get_entity(obj_id)
+            .expect("processed obj not found")
+            .remove::<NavRequest>();
+    }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
     use crate::game::sectors::test_scenery::*;
-    use crate::test::test_system;
+    use bevy_ecs::system::RunSystemOnce;
 
     fn setup_station_and_asteroid(world: &mut World, sectors: &SectorScenery) -> (Entity, Entity) {
         let asteroid = world
-            .create_entity()
+            .spawn_empty()
             .insert(LocationSpace {
                 pos: P2::X,
                 sector_id: sectors.sector_1,
@@ -105,7 +89,7 @@ mod test {
             .id();
 
         let station = world
-            .create_entity()
+            .spawn_empty()
             .insert(LocationSpace {
                 pos: P2::ZERO,
                 sector_id: sectors.sector_0,
@@ -117,26 +101,25 @@ mod test {
 
     #[test]
     fn test_nav_request_handler_should_create_navigation_from_requests() {
-        let (world, (asteroid_id, miner)) = test_system(NavRequestHandlerSystem, |world| {
-            let sector_scenery = crate::game::sectors::test_scenery::setup_sector_scenery(world);
-            let (_station, asteroid) = setup_station_and_asteroid(world, &sector_scenery);
+        let mut world = World::new();
 
-            let miner = world
-                .create_entity()
-                .insert(LocationSpace {
-                    pos: P2::ZERO,
-                    sector_id: sector_scenery.sector_0,
-                })
-                .insert(NavRequest::MoveToTarget {
-                    target_id: asteroid,
-                })
-                .id();
+        let sector_scenery = setup_sector_scenery(&mut world);
+        let (_station_id, asteroid_id) = setup_station_and_asteroid(&mut world, &sector_scenery);
 
-            (asteroid, miner)
-        });
+        let miner_id = world
+            .spawn_empty()
+            .insert(LocationSpace {
+                pos: P2::ZERO,
+                sector_id: sector_scenery.sector_0,
+            })
+            .insert(NavRequest::MoveToTarget {
+                target_id: asteroid_id,
+            })
+            .id();
 
-        let nav_storage = world.read_component::<Navigation>();
-        let nav = nav_storage.get(miner).unwrap();
+        world.run_system_once(system_navigation_request);
+
+        let nav = world.get::<Navigation>(miner_id).unwrap();
         assert_eq!(
             nav.request,
             NavRequest::MoveToTarget {
@@ -144,9 +127,7 @@ mod test {
             }
         );
 
-        let nav_request_storage = world.read_component::<NavRequest>();
-        let nav_request = nav_request_storage.get(miner);
-        assert!(nav_request.is_none());
+        assert!(world.get::<NavRequest>(miner_id).is_none());
     }
 
     // #[test]
@@ -156,7 +137,7 @@ mod test {
     //         let (station, asteroid) = setup_station_and_asteroid(world, &sector_scenery);
     //
     //         let miner = world
-    //             .create_entity()
+    //             .spawn_empty()
     //             .insert(LocationDocked { parent_id: station })
     //             .insert(NavRequest::MoveToTarget {
     //                 target_id: asteroid,
@@ -183,7 +164,7 @@ mod test {
     //         let (station_id, asteroid_id) = setup_station_and_asteroid(world, &sector_scenery);
     //
     //         let miner = world
-    //             .create_entity()
+    //             .spawn_empty()
     //             .insert(LocationSpace {
     //                 sector_id: sector_scenery.sector_0,
     //                 pos: P2::X,
@@ -226,7 +207,7 @@ mod test {
     //     let (world, (asteroid_id, miner_id)) = test_system(NavRequestHandlerSystem, |world| {
     //         let sector_scenery = setup_sector_scenery(world);
     //         let asteroid_id = world
-    //             .create_entity()
+    //             .spawn_empty()
     //             .insert(LocationSpace {
     //                 pos: P2::X,
     //                 sector_id: sector_scenery.sector_1,
@@ -234,7 +215,7 @@ mod test {
     //             .id();
     //
     //         let miner = world
-    //             .create_entity()
+    //             .spawn_empty()
     //             .insert(LocationSpace {
     //                 sector_id: sector_scenery.sector_0,
     //                 pos: P2::ZERO,

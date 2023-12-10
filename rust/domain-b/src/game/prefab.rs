@@ -2,9 +2,7 @@ use crate::game::code;
 use crate::game::code::HasCode;
 use crate::game::new_obj::NewObj;
 use crate::game::objects::ObjId;
-use bevy_ecs::bundle::DynamicBundle;
 use bevy_ecs::prelude::*;
-use bevy_ecs::system::RunSystemOnce;
 
 pub type PrefabId = ObjId;
 

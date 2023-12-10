@@ -114,7 +114,7 @@ mod test {
             world.insert(TotalTime(2.0));
 
             let asteroid_id = world
-                .create_entity()
+                .spawn_empty()
                 .insert(LocationSpace {
                     pos: P2::ZERO,
                     sector_id,
@@ -122,7 +122,7 @@ mod test {
                 .id();
 
             let entity = world
-                .create_entity()
+                .spawn_empty()
                 .insert(ActionActive(Action::Orbit {
                     target_id: asteroid_id,
                 }))
@@ -161,7 +161,7 @@ mod test {
             world.insert(TotalTime(2.0));
 
             let asteroid_id = world
-                .create_entity()
+                .spawn_empty()
                 .insert(LocationSpace {
                     pos: P2::ZERO,
                     sector_id: sector_id_0,
@@ -169,7 +169,7 @@ mod test {
                 .id();
 
             let entity = world
-                .create_entity()
+                .spawn_empty()
                 .insert(ActionActive(Action::Orbit {
                     target_id: asteroid_id,
                 }))
@@ -197,7 +197,7 @@ mod test {
             world.insert(TotalTime(2.0));
 
             let asteroid_id = world
-                .create_entity()
+                .spawn_empty()
                 .insert(LocationSpace {
                     pos: P2::ZERO,
                     sector_id: sector_id,
@@ -207,7 +207,7 @@ mod test {
             let station_id = world.spawn_empty().id();
 
             let entity = world
-                .create_entity()
+                .spawn_empty()
                 .insert(ActionActive(Action::Orbit {
                     target_id: asteroid_id,
                 }))
@@ -238,7 +238,7 @@ mod test {
             world.insert(TotalTime(2.0));
 
             let asteroid_id = world
-                .create_entity()
+                .spawn_empty()
                 .insert(LocationSpace {
                     pos: P2::ZERO,
                     sector_id: sector_id,
@@ -246,7 +246,7 @@ mod test {
                 .id();
 
             let entity = world
-                .create_entity()
+                .spawn_empty()
                 .insert(ActionActive(Action::Deorbit {}))
                 .insert(ActionGeneric {})
                 .insert(LocationSpace {
@@ -273,7 +273,7 @@ mod test {
             world.insert(TotalTime(2.0));
 
             let asteroid_id = world
-                .create_entity()
+                .spawn_empty()
                 .insert(LocationSpace {
                     pos: P2::ZERO,
                     sector_id: sector_id,
@@ -281,7 +281,7 @@ mod test {
                 .id();
 
             let entity = world
-                .create_entity()
+                .spawn_empty()
                 .insert(ActionActive(Action::Deorbit {}))
                 .insert(ActionGeneric {})
                 .insert(LocationSpace {

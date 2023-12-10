@@ -49,7 +49,7 @@ mod test {
         let (world, entity) = test_system(ActionProgressSystem, |world| {
             world.insert(TotalTime(1.0));
             world
-                .create_entity()
+                .spawn_empty()
                 .insert(ActionProgress {
                     complete_time: TotalTime(2.0),
                 })
@@ -64,7 +64,7 @@ mod test {
         let (world, entity) = test_system(ActionProgressSystem, |world| {
             world.insert(TotalTime(1.0));
             world
-                .create_entity()
+                .spawn_empty()
                 .insert(ActionProgress {
                     complete_time: TotalTime(0.5),
                 })

@@ -99,7 +99,6 @@ pub fn system_factory(
 mod test {
     use super::*;
     use crate::game::wares::Volume;
-    use crate::test::init_trace_log;
     use bevy_ecs::system::RunSystemOnce;
 
     const REQUIRE_ORE: Volume = 10;
@@ -150,7 +149,6 @@ mod test {
 
     #[test]
     fn test_factory_system_should_produce() {
-        init_trace_log().unwrap();
         run_factory(0, 0, 9.0, Some(8.0), None, 0, 0, PRODUCED_PLATE);
     }
 

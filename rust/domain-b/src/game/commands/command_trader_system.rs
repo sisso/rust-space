@@ -381,7 +381,7 @@ mod test {
 
     fn add_station(world: &mut World, sector_id: SectorId, orders: TradeOrders) -> ObjId {
         world
-            .create_entity()
+            .spawn_empty()
             .insert(LocationSpace {
                 pos: P2::ZERO,
                 sector_id,
@@ -394,7 +394,7 @@ mod test {
 
     fn add_trader(world: &mut World, sector_id: SectorId) -> ObjId {
         world
-            .create_entity()
+            .spawn_empty()
             .insert(LocationSpace {
                 pos: P2::ZERO,
                 sector_id,

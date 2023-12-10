@@ -106,7 +106,7 @@ mod test {
         jump_time: Option<TotalTime>,
     ) -> Entity {
         let entity = world
-            .create_entity()
+            .spawn_empty()
             .insert(ActionActive(Action::Jump {
                 jump_id: scenery.jump_0_to_1,
             }))

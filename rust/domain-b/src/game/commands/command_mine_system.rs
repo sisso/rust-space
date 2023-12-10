@@ -271,7 +271,7 @@ mod test {
 
     fn create_asteroid(world: &mut World, location: LocationSpace, ware_id: WareId) -> ObjId {
         world
-            .create_entity()
+            .spawn_empty()
             .insert(location)
             .insert(Extractable {
                 ware_id,
@@ -282,7 +282,7 @@ mod test {
 
     fn create_miner(world: &mut World, docked_at: ObjId) -> ObjId {
         world
-            .create_entity()
+            .spawn_empty()
             .insert(LocationDocked {
                 parent_id: docked_at,
             })
@@ -310,7 +310,7 @@ mod test {
         orders.add_request(TRADE_ORDER_ID_EXTRACTABLE, ware_id);
 
         let station_id = world
-            .create_entity()
+            .spawn_empty()
             .insert(Label::from("station"))
             .insert(LocationSpace {
                 pos: V2::new(0.0, 0.0),

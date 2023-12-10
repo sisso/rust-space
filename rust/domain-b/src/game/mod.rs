@@ -4,25 +4,11 @@ use bevy_ecs::prelude::*;
 use bevy_ecs::system::RunSystemOnce;
 use itertools::Itertools;
 
-use crate::game::actions::Actions;
-use crate::game::astrobody::AstroBodies;
-use crate::game::commands::FleetCommands;
 use crate::game::events::{GEvent, GEvents};
-use crate::game::factory::Factory;
-use crate::game::fleets::Fleet;
 use crate::game::loader::Loader;
-use crate::game::locations::Locations;
-use crate::game::navigations::Navigations;
-use crate::game::orbit::Orbits;
-use crate::game::order::TradeOrders;
-use crate::game::sectors::Sectors;
-use crate::game::shipyard::Shipyard;
-use crate::game::station::Stations;
 use crate::game::utils::{DeltaTime, TotalTime};
-use crate::game::wares::Wares;
 
 use self::new_obj::NewObj;
-use self::save::{Load, Save};
 
 pub mod actions;
 pub mod astrobody;
@@ -47,7 +33,6 @@ pub mod orbit;
 pub mod order;
 pub mod prefab;
 pub mod production_cost;
-pub mod save;
 pub mod sceneries;
 pub mod scenery_random;
 pub mod sectors;
@@ -153,10 +138,6 @@ impl Game {
         // instantiate new objects
         self.world.run_system_once(Self::tick_new_objects_system);
     }
-
-    pub fn save(&self, _save: &mut impl Save) {}
-
-    pub fn load(&mut self, _load: &mut impl Load) {}
 
     pub fn reindex_sectors(&mut self) {
         log::trace!("reindex_sectors");

@@ -169,12 +169,12 @@ impl Locations {
 
     /// same as resolve_space_position, but receive a world and the storages are fetched from it
     pub fn resolve_space_position(
-        obj_id: ObjId,
         query: &Query<(Entity, Option<&LocationSpace>, Option<&LocationDocked>)>,
+        obj_id: ObjId,
     ) -> Option<LocationSpace> {
         match query.get(obj_id).ok()? {
             (_, Some(space), _) => Some(space.clone()),
-            (_, _, Some(docked)) => Self::resolve_space_position(docked.parent_id, query),
+            (_, _, Some(docked)) => Self::resolve_space_position(query, docked.parent_id),
             _ => None,
         }
     }

@@ -114,14 +114,20 @@ impl FindPathParams {
 }
 
 pub fn find_path(
-    params: In<FindPathParams>,
+    In(params): In<FindPathParams>,
     sectors: Query<&Sector>,
     jumps: Query<(&Jump, &LocationSpace)>,
 ) -> Option<Vec<PathLeg>> {
+    find_path_raw(&sectors, &jumps, params)
+}
+
+pub fn find_path_raw(
+    sectors: &Query<&Sector>,
+    jumps: &Query<(&Jump, &LocationSpace)>,
+    params: FindPathParams,
+) -> Option<Vec<PathLeg>> {
     use itertools::Itertools;
     let start = Instant::now();
-
-    let params = params.0;
 
     if params.from == params.to {
         return Some(vec![]);

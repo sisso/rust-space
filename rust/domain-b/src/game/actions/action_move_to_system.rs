@@ -117,7 +117,7 @@ mod test {
             world.insert(DeltaTime(1.0));
 
             let entity = world
-                .create_entity()
+                .spawn_empty()
                 .insert(ActionActive(Action::MoveTo {
                     pos: Position::new(2.0, 0.0),
                 }))
@@ -147,7 +147,7 @@ mod test {
             world.insert(DeltaTime(1.0));
 
             let entity = world
-                .create_entity()
+                .spawn_empty()
                 .insert(ActionActive(Action::MoveTo {
                     pos: Position::new(2.0, 0.0),
                 }))
@@ -184,7 +184,7 @@ mod test {
         world.insert(DeltaTime(1.0));
 
         let target = world
-            .create_entity()
+            .spawn_empty()
             .insert(LocationSpace {
                 pos: Position::new(2.0, 0.0),
                 sector_id: sector_0,
@@ -192,7 +192,7 @@ mod test {
             .id();
 
         let entity = world
-            .create_entity()
+            .spawn_empty()
             .insert(ActionActive(Action::MoveToTargetPos {
                 target_id: target,
                 last_position: None,

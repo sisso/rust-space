@@ -85,7 +85,7 @@ mod test {
             let sector_0 = world.spawn_empty().id();
 
             let station = world
-                .create_entity()
+                .spawn_empty()
                 .insert(LocationSpace {
                     pos: station_position,
                     sector_id: sector_0,
@@ -94,7 +94,7 @@ mod test {
                 .id();
 
             let entity = world
-                .create_entity()
+                .spawn_empty()
                 .insert(ActionActive(Action::Dock { target_id: station }))
                 .insert(ActionDock)
                 .insert(LocationSpace {
