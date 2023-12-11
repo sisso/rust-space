@@ -4,6 +4,7 @@ use itertools::Itertools;
 
 use crate::game::events::{GEvent, GEvents};
 use crate::game::loader::Loader;
+use crate::game::locations::EntityPerSectorIndex;
 use crate::game::utils::{DeltaTime, TotalTime};
 
 use self::new_obj::NewObj;
@@ -79,6 +80,7 @@ impl Game {
         game.world.insert_resource(TotalTime(0.0));
         game.world.insert_resource(GEvents::default());
         game.world.init_resource::<Events<GEvent>>();
+        game.world.insert_resource(EntityPerSectorIndex::new());
 
         // after
         game.scheduler
