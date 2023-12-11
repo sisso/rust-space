@@ -7,7 +7,6 @@ use super::objects::*;
 use super::sectors::*;
 use crate::game::utils::*;
 
-// use crate::game::locations::index_per_sector_system::*;
 use crate::game::dock::HasDocking;
 use crate::game::extractables::Extractable;
 
@@ -199,19 +198,16 @@ impl Locations {
     //     }
     // }
 
-    // pub fn is_docked_at<D1>(
-    //     locations_docked: &Storage<LocationDocked, D1>,
-    //     obj_id: ObjId,
-    //     target_id: ObjId,
-    // ) -> bool
-    // where
-    //     D1: Deref<Target = MaskedStorage<LocationDocked>>,
-    // {
-    //     locations_docked
-    //         .get(obj_id)
-    //         .map(|docked| docked.parent_id == target_id)
-    //         .unwrap_or(false)
-    // }
+    pub fn is_docked_at(
+        query_locations: &Query<(Entity, Option<&LocationSpace>, Option<&LocationDocked>)>,
+        obj_id: ObjId,
+        target_id: ObjId,
+    ) -> bool {
+        query_locations
+            .get_component::<LocationDocked>(obj_id)
+            .map(|value| value.parent_id == target_id)
+            .unwrap_or(false)
+    }
 }
 
 pub fn force_update_locations_index(world: &mut World) {

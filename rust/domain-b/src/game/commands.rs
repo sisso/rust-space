@@ -10,14 +10,14 @@ use super::actions::*;
 use super::objects::*;
 use super::sectors::*;
 
-// use crate::game::commands::command_trader_system::CommandTradeSystem;
 use crate::game::dock::HasDocking;
 use crate::game::order::TradeOrders;
 use crate::game::utils::TotalTime;
-// use command_mine_system::*;
+use command_mine_system::*;
+use command_trader_system::*;
 
-// pub mod command_mine_system;
-// pub mod command_trader_system;
+pub mod command_mine_system;
+pub mod command_trader_system;
 
 #[derive(Debug, Clone)]
 pub struct MineState {
@@ -74,6 +74,13 @@ impl Command {
         }
     }
 
+    pub fn as_mine_mut(&mut self) -> Option<&mut MineState> {
+        match self {
+            Command::Mine(state) => Some(state),
+            _ => None,
+        }
+    }
+
     pub fn trade() -> Command {
         Command::Trade(Default::default())
     }
@@ -86,7 +93,7 @@ impl FleetCommands {}
 pub fn search_orders_target(
     sectors_index: &EntityPerSectorIndex,
     sector_id: SectorId,
-    orders: Query<&TradeOrders>,
+    orders: &Query<&TradeOrders>,
     wares_filter: Option<&Vec<WareId>>,
     already_targeting: Vec<ObjId>,
     to_pickup: bool,

@@ -1,7 +1,6 @@
 use crate::game::events::{GEvent, GEvents};
 use bevy_ecs::prelude::*;
-use bevy_ecs::system::{Command, CommandQueue, SystemParam, SystemState};
-use space_galaxy::system_generator::GenerateError::Generic;
+use bevy_ecs::system::{Command, CommandQueue, SystemParam};
 
 pub trait WorldExt {
     fn run_commands<T, F>(&mut self, f: F) -> T

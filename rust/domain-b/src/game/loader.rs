@@ -10,11 +10,12 @@ use commons;
 use commons::math;
 use commons::math::{Distance, Rad, P2, P2I};
 
+use crate::game::actions::Action;
 use crate::game::astrobody::{AstroBody, AstroBodyKind};
 use crate::game::bevy_utils::CommandSendEvent;
 use crate::game::building_site::BuildingSite;
 use crate::game::code::{Code, HasCode};
-use crate::game::commands::Command;
+use crate::game::commands::{Command, TradeState};
 use crate::game::dock::HasDocking;
 use crate::game::events::{EventKind, GEvent, GEvents};
 use crate::game::extractables::Extractable;
@@ -22,6 +23,7 @@ use crate::game::factory::{Factory, Receipt};
 use crate::game::fleets::Fleet;
 use crate::game::label::Label;
 use crate::game::locations::{LocationDocked, LocationOrbit, LocationSpace, Moveable};
+use crate::game::navigations::{NavRequest, Navigation, NavigationPlan};
 use crate::game::new_obj::NewObj;
 use crate::game::objects::ObjId;
 use crate::game::orbit::Orbits;
@@ -31,7 +33,9 @@ use crate::game::sectors::{Jump, JumpId, Sector, SectorId};
 use crate::game::shipyard::{ProductionOrder, Shipyard};
 use crate::game::station::Station;
 use crate::game::utils::{DeltaTime, Speed, TotalTime, V2};
-use crate::game::wares::{CargoDistributionDirty, Ware, WareAmount, WareId, WaresByCode};
+use crate::game::wares::{
+    Cargo, CargoDistributionDirty, Volume, Ware, WareAmount, WareId, WaresByCode,
+};
 use crate::game::{bevy_utils, conf, prefab};
 
 /// AKA commands editor
@@ -526,6 +530,102 @@ impl Loader {
         let speed = math::map_value(radius, 1.0, 10.0, base_speed * 1.5, base_speed * 0.1);
         // log::info!("{:?} radius {:?} speed {:?}", obj_id, radius, speed);
         Speed(speed)
+    }
+
+    pub fn get_nav_request_dock_at(world: &World, ship_id: ObjId) -> ObjId {
+        match world.get::<NavRequest>(ship_id) {
+            Some(NavRequest::MoveAndDockAt { target_id }) => return *target_id,
+
+            other => panic!("unexpected nav_request {:?}", other),
+        };
+    }
+
+    pub fn assert_nav_request_dock_at(world: &World, ship_id: ObjId, expected_target_id: ObjId) {
+        match world.get::<NavRequest>(ship_id) {
+            Some(NavRequest::MoveAndDockAt { target_id }) if *target_id == expected_target_id => {
+                return
+            }
+
+            other => panic!("unexpected nav_request {:?}", other),
+        };
+    }
+
+    pub fn assert_no_nav_request(world: &World, ship_id: ObjId) {
+        match world.get::<NavRequest>(ship_id) {
+            None => return,
+            other => panic!("unexpected nav_request {:?}", other),
+        };
+    }
+
+    pub fn assert_command_trade_idle(world: &World, id: ObjId) {
+        match world.get::<Command>(id) {
+            Some(Command::Trade(TradeState::Idle)) => {}
+            other => {
+                panic!("expected trade idle but found {:?} for {:?}", other, id);
+            }
+        }
+    }
+
+    pub fn assert_command_trade_delay(world: &World, id: ObjId) {
+        match world.get::<Command>(id) {
+            Some(Command::Trade(TradeState::Delay { .. })) => {}
+            other => {
+                panic!("expected trade idle but found {:?} for {:?}", other, id);
+            }
+        }
+    }
+
+    pub fn set_docked_at(world: &mut World, ship_id: ObjId, target_id: ObjId) {
+        let mut entity = world.get_entity_mut(ship_id).unwrap();
+        entity.insert(LocationDocked {
+            parent_id: target_id,
+        });
+        entity.remove::<LocationOrbit>();
+        entity.remove::<LocationSpace>();
+    }
+
+    pub fn add_cargo(world: &mut World, obj_id: ObjId, ware_id: WareId, amount: Volume) {
+        world
+            .get_mut::<Cargo>(obj_id)
+            .unwrap()
+            .add(ware_id, amount)
+            .unwrap();
+    }
+
+    pub fn clear_cargo(world: &mut World, obj_id: ObjId) {
+        world.get_mut::<Cargo>(obj_id).unwrap().clear();
+    }
+
+    pub fn assert_cargo(world: &World, obj_id: ObjId, ware_id: WareId, expected_amount: Volume) {
+        let volume = *&world.get::<Cargo>(obj_id).unwrap().get_amount(ware_id);
+        assert_eq!(expected_amount, volume);
+    }
+
+    pub fn set_active_navigation(world: &mut World, ship_id: ObjId) {
+        world.get_entity_mut(ship_id).unwrap().insert(Navigation {
+            request: NavRequest::MoveToTarget { target_id: ship_id },
+            plan: NavigationPlan {
+                path: [Action::MoveToTargetPos {
+                    target_id: ship_id,
+                    last_position: None,
+                }]
+                .into(),
+            },
+        });
+    }
+
+    pub fn get_active_command(world: &World, ship_id: ObjId) -> Option<Command> {
+        world.get::<Command>(ship_id).cloned()
+    }
+
+    pub fn set_active_command(world: &mut World, ship_id: ObjId, command: Command) {
+        world.get_entity_mut(ship_id).unwrap().insert(command);
+    }
+
+    pub fn set_cargo_to_max(world: &mut World, obj_id: ObjId, ware_id: ObjId) -> Volume {
+        let cargo = &mut world.get_mut::<Cargo>(obj_id).unwrap();
+        let available = cargo.free_volume(ware_id).unwrap_or(0);
+        cargo.add_to_max(ware_id, available)
     }
 }
 

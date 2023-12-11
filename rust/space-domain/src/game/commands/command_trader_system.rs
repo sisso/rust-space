@@ -643,7 +643,7 @@ mod test {
     }
 
     #[test]
-    fn command_trade_when_empty_and_delay_is_complete_should_not_pick_new_target() {
+    fn command_trade_when_empty_and_delay_is_complete_should_pick_new_target() {
         let (world, scenery) = test_system(CommandTradeSystem, |world| {
             let scenery = setup_scenery(world);
             world.insert(TotalTime(1.1));
