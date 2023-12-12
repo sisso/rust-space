@@ -1,92 +1,65 @@
 use bevy_ecs::prelude::*;
 
 use super::*;
-use crate::game::events::{Event, EventKind, Events};
-use crate::game::locations::LocationSpace;
+use crate::game::events::{CommandSendEvent, EventKind, GEvent};
+use crate::game::locations::{LocationDocked, LocationSpace};
 use crate::game::sectors::Jump;
-use std::borrow::BorrowMut;
 
 pub struct ActionJumpSystem;
 
-#[derive(SystemData)]
-pub struct ActionJumpData<'a> {
-    entities: Entities<'a>,
-    total_time: Read<'a, TotalTime>,
-    // sectors: Read<'a, Sectors>,
-    actions: WriteStorage<'a, ActionActive>,
-    actions_jump: WriteStorage<'a, ActionJump>,
-    locations_space: WriteStorage<'a, LocationSpace>,
-    jumps: ReadStorage<'a, Jump>,
-    events: Write<'a, Events>,
-}
+pub fn system_jump(
+    mut commands: Commands,
+    total_time: Res<TotalTime>,
+    mut query: Query<(Entity, &ActionActive, &mut ActionJump)>,
+    query_locations: Query<(Entity, Option<&LocationSpace>, Option<&LocationDocked>)>,
+    query_jumps: Query<&Jump>,
+) {
+    log::trace!("running");
 
-impl<'a> System<'a> for ActionJumpSystem {
-    type SystemData = ActionJumpData<'a>;
+    let total_time = *total_time;
 
-    fn run(&mut self, mut data: ActionJumpData) {
-        log::trace!("running");
-
-        let total_time: TotalTime = *data.total_time;
-
-        let mut completed = vec![];
-
-        for (entity, action, action_jump) in
-            (&*data.entities, &data.actions, &mut data.actions_jump).join()
-        {
-            let jump_id = match action.get_action() {
-                Action::Jump { jump_id } => jump_id.clone(),
-                other => {
-                    log::warn!(
-                        "{:?} has jump action component but action {:?} is not jump",
-                        entity,
-                        other,
-                    );
-                    continue;
-                }
-            };
-
-            match action_jump.complete_time {
-                Some(value) if value.is_before(total_time) => {
-                    completed.push((entity, jump_id));
-                }
-                Some(_) => {
-                    log::trace!("{:?} jumping", entity);
-                }
-                None => {
-                    log::debug!("{:?} start to jump", entity);
-                    action_jump.complete_time = Some(total_time.add(ACTION_JUMP_TOTAL_TIME));
-                }
+    for (obj_id, action, mut action_jump) in &mut query {
+        let jump_id = match action.get_action() {
+            Action::Jump { jump_id } => jump_id.clone(),
+            other => {
+                log::warn!(
+                    "{:?} has jump action component but action {:?} is not jump",
+                    obj_id,
+                    other,
+                );
+                continue;
             }
-        }
+        };
 
-        let actions = data.actions.borrow_mut();
-        let actions_jump = data.actions_jump.borrow_mut();
-        let events = data.events.borrow_mut();
+        match action_jump.complete_time {
+            Some(value) if value.is_before(total_time) => {
+                let jump = query_jumps.get(jump_id).unwrap();
 
-        for (entity, jump_id) in completed {
-            let jump = data.jumps.get(jump_id).unwrap();
+                log::debug!(
+                    "{:?} jump complete to sector {:?} at position {:?}",
+                    obj_id,
+                    jump.target_sector_id,
+                    jump.target_pos,
+                );
 
-            log::debug!(
-                "{:?} jump complete to sector {:?} at position {:?}",
-                entity,
-                jump.target_sector_id,
-                jump.target_pos,
-            );
-
-            data.locations_space
-                .borrow_mut()
-                .insert(
-                    entity,
-                    LocationSpace {
+                commands
+                    .entity(obj_id)
+                    .insert(LocationSpace {
                         pos: jump.target_pos,
                         sector_id: jump.target_sector_id,
-                    },
-                )
-                .unwrap();
+                    })
+                    .remove::<ActionActive>()
+                    .remove::<ActionJump>();
 
-            actions.remove(entity).unwrap();
-            actions_jump.remove(entity).unwrap();
-            events.push(Event::new(entity, EventKind::Jump));
+                commands.add(CommandSendEvent::from(GEvent::new(obj_id, EventKind::Jump)));
+            }
+            Some(_) => {
+                log::trace!("{:?} jumping", obj_id);
+            }
+            None => {
+                log::debug!("{:?} start to jump", obj_id);
+                action_jump.complete_time = Some(total_time.add(ACTION_JUMP_TOTAL_TIME));
+            }
         }
     }
 }
@@ -122,19 +95,17 @@ mod test {
     }
 
     fn assert_jumped(world: &World, sector_scenery: &SectorScenery, entity: Entity) {
-        assert!(world.read_storage::<ActionActive>().get(entity).is_none());
-        assert!(world.read_storage::<ActionJump>().get(entity).is_none());
-        let storage = world.read_storage::<LocationSpace>();
-        let location = storage.get(entity).unwrap();
+        assert!(world.get::<ActionActive>(entity).is_none());
+        assert!(world.get::<ActionJump>(entity).is_none());
+        let location = world.get::<LocationSpace>(entity).unwrap();
         assert_eq!(location.sector_id, sector_scenery.sector_1);
         assert_v2(location.pos, sector_scenery.jump_1_to_0_pos);
     }
 
     fn assert_not_jumped(world: &World, sector_scenery: &SectorScenery, entity: Entity) {
-        assert!(world.read_storage::<ActionActive>().get(entity).is_some());
-        assert!(world.read_storage::<ActionJump>().get(entity).is_some());
-        let storage = world.read_storage::<LocationSpace>();
-        let location = storage.get(entity).unwrap();
+        assert!(world.get::<ActionActive>(entity).is_some());
+        assert!(world.get::<ActionJump>(entity).is_some());
+        let location = world.get::<LocationSpace>(entity).unwrap();
         assert_eq!(location.sector_id, sector_scenery.sector_0);
         assert_v2(location.pos, sector_scenery.jump_0_to_1_pos);
     }
@@ -143,9 +114,9 @@ mod test {
     fn test_jump_system_should_set_total_time_if_not_defined() {
         let initial_time = TotalTime(1.0);
 
-        let (world, (entity, sector_scenery)) = test_system(ActionJumpSystem, |world| {
+        let (world, (entity, sector_scenery)) = test_system(system_jump, |world| {
             let sectors_scenery = test_scenery::setup_sector_scenery(world);
-            world.insert(initial_time);
+            world.insert_resource(initial_time);
             (
                 create_jump_entity(world, &sectors_scenery, None),
                 sectors_scenery,
@@ -154,8 +125,7 @@ mod test {
 
         assert_not_jumped(&world, &sector_scenery, entity);
 
-        let storage = world.read_storage::<ActionJump>();
-        let action = storage.get(entity).unwrap();
+        let action = world.get::<ActionJump>(entity).unwrap();
         assert_eq!(
             action.complete_time.unwrap().as_f64(),
             initial_time.add(ACTION_JUMP_TOTAL_TIME).as_f64()
@@ -164,9 +134,9 @@ mod test {
 
     #[test]
     fn test_jump_system_should_take_time() {
-        let (world, (entity, sector_scenery)) = test_system(ActionJumpSystem, |world| {
+        let (world, (entity, sector_scenery)) = test_system(system_jump, |world| {
             let sectors_scenery = test_scenery::setup_sector_scenery(world);
-            world.insert(TotalTime(1.0));
+            world.insert_resource(TotalTime(1.0));
             (
                 create_jump_entity(world, &sectors_scenery, Some(TotalTime(1.5))),
                 sectors_scenery,
@@ -178,9 +148,9 @@ mod test {
 
     #[test]
     fn test_jump_system_should_jump() {
-        let (world, (entity, sector_scenery)) = test_system(ActionJumpSystem, |world| {
+        let (world, (entity, sector_scenery)) = test_system(system_jump, |world| {
             let sectors_scenery = test_scenery::setup_sector_scenery(world);
-            world.insert(TotalTime(1.0));
+            world.insert_resource(TotalTime(1.0));
             (
                 create_jump_entity(world, &sectors_scenery, Some(TotalTime(0.5))),
                 sectors_scenery,

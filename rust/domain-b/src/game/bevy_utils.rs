@@ -20,22 +20,3 @@ impl WorldExt for World {
         result
     }
 }
-
-pub struct CommandSendEvent {
-    pub event: GEvent,
-}
-
-impl Command for CommandSendEvent {
-    fn apply(self, world: &mut World) {
-        world
-            .get_resource_mut::<GEvents>()
-            .expect("events not found in resources")
-            .push(self.event);
-    }
-}
-
-impl From<GEvent> for CommandSendEvent {
-    fn from(event: GEvent) -> Self {
-        CommandSendEvent { event }
-    }
-}

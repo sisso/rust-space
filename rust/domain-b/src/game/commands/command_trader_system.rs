@@ -440,8 +440,8 @@ mod test {
         let mut world = World::new();
         let scenery = setup_scenery(&mut world);
 
-        world.run_system_once(system_tarde);
-        world.run_system_once(system_tarde);
+        world.run_system_once(system_command_trade);
+        world.run_system_once(system_command_trade);
 
         Loader::assert_nav_request_dock_at(&world, scenery.trader_id, scenery.producer_station_id);
     }
@@ -452,7 +452,7 @@ mod test {
         let scenery = setup_scenery(&mut world);
         Loader::clear_cargo(&mut world, scenery.producer_station_id);
 
-        world.run_system_once(system_tarde);
+        world.run_system_once(system_command_trade);
 
         Loader::assert_command_trade_delay(&world, scenery.trader_id);
     }
@@ -474,7 +474,7 @@ mod test {
             }),
         );
 
-        world.run_system_once(system_tarde);
+        world.run_system_once(system_command_trade);
 
         Loader::assert_command_trade_idle(&world, scenery.trader_id);
     }
@@ -486,7 +486,7 @@ mod test {
 
         Loader::set_active_navigation(&mut world, scenery.trader_id);
 
-        world.run_system_once(system_tarde);
+        world.run_system_once(system_command_trade);
 
         Loader::assert_no_nav_request(&world, scenery.trader_id);
     }
@@ -504,7 +504,7 @@ mod test {
             }),
         );
 
-        world.run_system_once(system_tarde);
+        world.run_system_once(system_command_trade);
 
         Loader::assert_command_trade_delay(&world, scenery.trader_id);
         Loader::assert_no_nav_request(&world, scenery.trader_id);
@@ -525,11 +525,11 @@ mod test {
         );
 
         // back to idle
-        world.run_system_once(system_tarde);
+        world.run_system_once(system_command_trade);
         // choose target
-        world.run_system_once(system_tarde);
+        world.run_system_once(system_command_trade);
         // create nav request
-        world.run_system_once(system_tarde);
+        world.run_system_once(system_command_trade);
 
         Loader::assert_nav_request_dock_at(&world, scenery.trader_id, scenery.producer_station_id);
     }
@@ -541,8 +541,8 @@ mod test {
 
         Loader::set_docked_at(&mut world, scenery.trader_id, scenery.producer_station_id);
 
-        world.run_system_once(system_tarde);
-        world.run_system_once(system_tarde);
+        world.run_system_once(system_command_trade);
+        world.run_system_once(system_command_trade);
 
         Loader::assert_cargo(&world, scenery.trader_id, scenery.ware0_id, SHIP_CARGO);
         Loader::assert_cargo(
@@ -579,8 +579,8 @@ mod test {
             10,
         );
 
-        world.run_system_once(system_tarde);
-        world.run_system_once(system_tarde);
+        world.run_system_once(system_command_trade);
+        world.run_system_once(system_command_trade);
 
         Loader::assert_cargo(&world, scenery.trader_id, scenery.ware0_id, 10);
         Loader::assert_cargo(&world, scenery.trader_id, scenery.ware1_id, 10);
@@ -595,9 +595,9 @@ mod test {
         Loader::add_cargo(&mut world, scenery.trader_id, scenery.ware0_id, SHIP_CARGO);
 
         // back to idle
-        world.run_system_once(system_tarde);
+        world.run_system_once(system_command_trade);
         // create navigation
-        world.run_system_once(system_tarde);
+        world.run_system_once(system_command_trade);
 
         Loader::assert_nav_request_dock_at(&world, scenery.trader_id, scenery.consumer_station_id);
     }
@@ -618,11 +618,11 @@ mod test {
         Loader::add_cargo(&mut world, scenery.trader_id, scenery.ware0_id, SHIP_CARGO);
 
         // back to idle
-        world.run_system_once(system_tarde);
+        world.run_system_once(system_command_trade);
         // choose target
-        world.run_system_once(system_tarde);
+        world.run_system_once(system_command_trade);
         // create navigation
-        world.run_system_once(system_tarde);
+        world.run_system_once(system_command_trade);
 
         Loader::assert_nav_request_dock_at(&world, scenery.trader_id, scenery.consumer_station_id);
     }
@@ -635,7 +635,7 @@ mod test {
         Loader::add_cargo(&mut world, scenery.trader_id, scenery.ware0_id, SHIP_CARGO);
         Loader::set_active_navigation(&mut world, scenery.trader_id);
 
-        world.run_system_once(system_tarde);
+        world.run_system_once(system_command_trade);
 
         Loader::assert_no_nav_request(&world, scenery.trader_id);
     }
@@ -655,8 +655,8 @@ mod test {
         );
         Loader::set_docked_at(&mut world, scenery.trader_id, scenery.consumer_station_id);
 
-        world.run_system_once(system_tarde);
-        world.run_system_once(system_tarde);
+        world.run_system_once(system_command_trade);
+        world.run_system_once(system_command_trade);
 
         let command = Loader::get_active_command(&world, scenery.trader_id).unwrap();
         match command {
@@ -674,8 +674,8 @@ mod test {
         Loader::add_cargo(&mut world, scenery.trader_id, scenery.ware0_id, SHIP_CARGO);
         Loader::set_docked_at(&mut world, scenery.trader_id, scenery.consumer_station_id);
 
-        world.run_system_once(system_tarde);
-        world.run_system_once(system_tarde);
+        world.run_system_once(system_command_trade);
+        world.run_system_once(system_command_trade);
 
         Loader::assert_cargo(&world, scenery.trader_id, scenery.ware0_id, 0);
         Loader::assert_cargo(
@@ -709,7 +709,7 @@ mod test {
             STATION_CARGO,
         );
 
-        world.run_system_once(system_tarde);
+        world.run_system_once(system_command_trade);
 
         Loader::assert_cargo(&world, scenery.trader_id, scenery.ware0_id, SHIP_CARGO);
         Loader::assert_cargo(
@@ -735,7 +735,7 @@ mod test {
             STATION_CARGO,
         );
 
-        world.run_system_once(system_tarde);
+        world.run_system_once(system_command_trade);
 
         Loader::assert_command_trade_idle(&world, scenery.trader_id);
         Loader::assert_cargo(&world, scenery.trader_id, scenery.ware0_id, 0);
@@ -757,8 +757,8 @@ mod test {
         Loader::add_cargo(&mut world, scenery.trader_id, scenery.ware1_id, 1);
         Loader::add_cargo(&mut world, scenery.trader_id, scenery.ware2_id, 1);
 
-        world.run_system_once(system_tarde);
-        world.run_system_once(system_tarde);
+        world.run_system_once(system_command_trade);
+        world.run_system_once(system_command_trade);
 
         Loader::assert_cargo(&world, scenery.trader_id, scenery.ware0_id, 0);
         Loader::assert_cargo(&world, scenery.trader_id, scenery.ware1_id, 0);
@@ -783,8 +783,8 @@ mod test {
             .resource_mut::<EntityPerSectorIndex>()
             .add_stations(scenery.sector_id, station_id_2);
 
-        world.run_system_once(system_tarde);
-        world.run_system_once(system_tarde);
+        world.run_system_once(system_command_trade);
+        world.run_system_once(system_command_trade);
 
         let mut targets = vec![
             Loader::get_nav_request_dock_at(&world, scenery.trader_id),

@@ -106,6 +106,22 @@ impl Game {
             .add_systems(orbit::system_compute_orbits.in_set(SystemSeq::Changes));
         game.scheduler
             .add_systems(wares::system_cargo_distribution.in_set(SystemSeq::Changes));
+        game.scheduler
+            .add_systems(actions::action_dock_system::system_dock.in_set(SystemSeq::Changes));
+        game.scheduler
+            .add_systems(actions::action_extract_system::system_extract.in_set(SystemSeq::Changes));
+        game.scheduler
+            .add_systems(actions::action_jump_system::system_jump.in_set(SystemSeq::Changes));
+        game.scheduler
+            .add_systems(actions::action_move_to_system::system_move.in_set(SystemSeq::Changes));
+        game.scheduler.add_systems(
+            actions::action_request_handler_system::system_action_request
+                .in_set(SystemSeq::Changes),
+        );
+        game.scheduler
+            .add_systems(actions::action_undock_system::system_undock.in_set(SystemSeq::Changes));
+        game.scheduler
+            .add_systems(actions::actions_system::system_actions.in_set(SystemSeq::Changes));
         // after
         game.scheduler
             .add_systems(locations::update_entity_per_sector_index.in_set(SystemSeq::After));

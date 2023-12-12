@@ -92,7 +92,7 @@ impl Shipyard {
     }
 }
 
-enum ProductionResult {
+pub enum ProductionResult {
     NotProducing,
     Completed(PrefabId),
     Producing,

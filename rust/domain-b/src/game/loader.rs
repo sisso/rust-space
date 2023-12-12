@@ -12,12 +12,11 @@ use commons::math::{Distance, Rad, P2, P2I};
 
 use crate::game::actions::Action;
 use crate::game::astrobody::{AstroBody, AstroBodyKind};
-use crate::game::bevy_utils::CommandSendEvent;
 use crate::game::building_site::BuildingSite;
 use crate::game::code::{Code, HasCode};
 use crate::game::commands::{Command, TradeState};
 use crate::game::dock::HasDocking;
-use crate::game::events::{EventKind, GEvent, GEvents};
+use crate::game::events::{CommandSendEvent, EventKind, GEvent, GEvents};
 use crate::game::extractables::Extractable;
 use crate::game::factory::{Factory, Receipt};
 use crate::game::fleets::Fleet;

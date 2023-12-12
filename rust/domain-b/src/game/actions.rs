@@ -9,26 +9,18 @@ use bevy_ecs::prelude::*;
 use commons::math::P2;
 
 use super::objects::ObjId;
-// use crate::game::actions::action_dock_system::DockSystem;
-// use crate::game::actions::action_extract_system::ActionExtractSystem;
-// use crate::game::actions::action_jump_system::ActionJumpSystem;
-// use crate::game::actions::action_move_to_system::ActionMoveToSystem;
-// use crate::game::actions::action_progress_system::ActionProgressSystem;
-// use crate::game::actions::action_request_handler_system::ActionRequestHandlerSystem;
-// use crate::game::actions::action_undock_system::UndockSystem;
-// use crate::game::actions::actions_system::ActionsSystem;
 use crate::game::sectors::JumpId;
 use crate::game::utils::{DeltaTime, TotalTime};
 use crate::game::wares::WareId;
 
-// mod action_dock_system;
-// mod action_extract_system;
-// mod action_jump_system;
-// mod action_move_to_system;
-// mod action_progress_system;
-// mod action_request_handler_system;
-// mod action_undock_system;
-// mod actions_system;
+pub mod action_dock_system;
+pub mod action_extract_system;
+pub mod action_jump_system;
+pub mod action_move_to_system;
+pub mod action_progress_system;
+pub mod action_request_handler_system;
+pub mod action_undock_system;
+pub mod actions_system;
 
 pub const ACTION_JUMP_TOTAL_TIME: DeltaTime = DeltaTime(2.0);
 
