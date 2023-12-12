@@ -399,7 +399,16 @@ impl Loader {
 
         let entity = builder.id();
 
-        log::debug!("add_object {:?} from {:?}", entity, new_obj);
+        log::debug!(
+            "{:?} {:?} add_object: {:?}",
+            entity,
+            new_obj
+                .label
+                .as_ref()
+                .map(|l| l.as_str())
+                .unwrap_or("unknown"),
+            new_obj
+        );
 
         commands.add(CommandSendEvent::from(GEvent::new(entity, EventKind::Add)));
 
@@ -626,6 +635,12 @@ impl Loader {
         let cargo = &mut world.get_mut::<Cargo>(obj_id).unwrap();
         let available = cargo.free_volume(ware_id).unwrap_or(0);
         cargo.add_to_max(ware_id, available)
+    }
+
+    pub fn count_by_component<T: Component>(world: &mut World) -> usize {
+        let mut ss: SystemState<Query<&T>> = SystemState::new(world);
+        let mut query = ss.get(world);
+        query.iter().count()
     }
 }
 

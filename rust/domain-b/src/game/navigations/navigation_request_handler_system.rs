@@ -9,7 +9,7 @@ use crate::game::SYSTEM_TIMEOUT;
 /// Setup navigation for the request
 /// - check for inconsistencies
 ///
-fn system_navigation_request(
+pub fn system_navigation_request(
     mut commands: Commands,
     query: Query<(Entity, &NavRequest)>,
     query_entity: Query<(Option<&LocationDocked>, Option<&LocationOrbit>)>,

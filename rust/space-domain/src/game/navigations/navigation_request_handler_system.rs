@@ -149,7 +149,7 @@ mod test {
         assert!(nav_request.is_none());
     }
 
-    // #[test]
+    // #[tests]
     // fn test_nav_request_handler_should_create_navigation_from_requests_when_docked() {
     //     let (world, (asteroid_id, miner_id)) = test_system(NavRequestHandlerSystem, |world| {
     //         let sector_scenery = setup_sector_scenery(world);
@@ -176,7 +176,7 @@ mod test {
     //     );
     // }
     //
-    // #[test]
+    // #[tests]
     // fn test_nav_request_handler_should_remove_orbiting_before_move() {
     //     let (world, (asteroid_id, miner_id)) = test_system(NavRequestHandlerSystem, |world| {
     //         let sector_scenery = setup_sector_scenery(world);
@@ -221,7 +221,7 @@ mod test {
     //     );
     // }
     //
-    // #[test]
+    // #[tests]
     // fn test_nav_request_handler_should_navigate_to_orbit() {
     //     let (world, (asteroid_id, miner_id)) = test_system(NavRequestHandlerSystem, |world| {
     //         let sector_scenery = setup_sector_scenery(world);

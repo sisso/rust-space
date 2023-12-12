@@ -15,9 +15,7 @@ use commons::unwrap_or_continue;
 use rand::RngCore;
 use std::borrow::{Borrow, BorrowMut};
 
-pub struct CommandTradeSystem;
-
-fn system_tarde(
+pub fn system_command_trade(
     total_time: Res<TotalTime>,
     sectors_index: Res<EntityPerSectorIndex>,
     mut commands: Commands,

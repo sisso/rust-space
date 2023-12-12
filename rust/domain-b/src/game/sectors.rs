@@ -41,9 +41,7 @@ impl Sector {
 
 pub struct Sectors;
 
-pub fn update_sectors_index_from_world(world: &World) {}
-
-fn update_sectors_index(
+pub fn system_update_sectors_index(
     jumps: Query<(Entity, &Jump, &LocationSpace), Changed<Jump>>,
     mut sectors: Query<&mut Sector>,
 ) {
@@ -283,7 +281,7 @@ mod test {
     use super::test_scenery::setup_sector_scenery;
 
     use crate::game::sectors::{
-        update_sectors_index, FindPathParams, Jump, PathLeg, Sector, SectorId,
+        system_update_sectors_index, FindPathParams, Jump, PathLeg, Sector, SectorId,
     };
 
     use bevy_ecs::prelude::*;
@@ -340,7 +338,7 @@ mod test {
         let p2 = P2I::new(31, 45);
 
         crate::game::scenery_random::generate_sectors(&mut world, size, 13801247937784236795);
-        world.run_system_once(update_sectors_index);
+        world.run_system_once(system_update_sectors_index);
 
         let from = world
             .run_system_once_with(p1, super::get_sector_by_coords)
@@ -461,7 +459,7 @@ pub mod test_scenery {
             })
             .id();
 
-        world.run_system_once(update_sectors_index);
+        world.run_system_once(system_update_sectors_index);
 
         SectorScenery {
             sector_0,

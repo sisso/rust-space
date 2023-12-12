@@ -329,7 +329,7 @@ mod test {
         );
     }
 
-    // #[test]
+    // #[tests]
     // pub fn test_grid_raytrace() {
     //     let mut grid = Grid::<i32>::new(4, 2);
     //

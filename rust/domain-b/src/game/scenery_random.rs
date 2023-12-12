@@ -132,7 +132,7 @@ pub fn generate_sectors(world: &mut World, size: (usize, usize), seed: u64) {
         }
     });
 
-    sectors::update_sectors_index_from_world(world);
+    world.run_system_once(sectors::system_update_sectors_index);
 }
 
 fn add_bodies_to_sectors(

@@ -1,6 +1,5 @@
 use bevy_ecs::prelude::*;
 use bevy_ecs::system::RunSystemOnce;
-use itertools::Itertools;
 
 use crate::game::events::{GEvent, GEvents};
 use crate::game::loader::Loader;
@@ -82,39 +81,38 @@ impl Game {
         game.world.init_resource::<Events<GEvent>>();
         game.world.insert_resource(EntityPerSectorIndex::new());
 
+        // ai
+        game.scheduler.add_systems(
+            commands::command_mine_system::system_command_mine.in_set(SystemSeq::Changes),
+        );
+        game.scheduler.add_systems(
+            commands::command_trader_system::system_command_trade.in_set(SystemSeq::Changes),
+        );
+        // changes
+        game.scheduler
+            .add_systems(building_site::system_building_site.in_set(SystemSeq::Changes));
+        game.scheduler.add_systems(
+            navigations::navigation_system::system_navigation.in_set(SystemSeq::Changes),
+        );
+        game.scheduler.add_systems(
+            navigations::navigation_request_handler_system::system_navigation_request
+                .in_set(SystemSeq::Changes),
+        );
+        game.scheduler
+            .add_systems(factory::system_factory.in_set(SystemSeq::Changes));
+        game.scheduler
+            .add_systems(shipyard::system_shipyard.in_set(SystemSeq::Changes));
+        game.scheduler
+            .add_systems(orbit::system_compute_orbits.in_set(SystemSeq::Changes));
+        game.scheduler
+            .add_systems(wares::system_cargo_distribution.in_set(SystemSeq::Changes));
         // after
         game.scheduler
             .add_systems(locations::update_entity_per_sector_index.in_set(SystemSeq::After));
         game.scheduler
             .add_systems(wares::system_cargo_distribution.in_set(SystemSeq::After));
-
-        // // // initialize all
-        // // let mut init_ctx = GameInitContext {
-        // //     world: World::new(),
-        // //     scheduler,
-        // // };
-        //
-        // init_ctx.world.insert_resource(TotalTime(0.0));
-        // init_ctx.world.init_resource::<Events<GEvent>>();
-
-        // initializations
-        // Sectors::init(&mut init_ctx);
-        // Locations::init(&mut init_ctx);
-        // Actions::init(&mut init_ctx);
-        // FleetCommands::init(&mut init_ctx);
-        // Navigations::init(&mut init_ctx);
-        // Shipyard::init(&mut init_ctx);
-        // Factory::init(&mut init_ctx);
-        // TradeOrders::init(&mut init_ctx);
-        // Stations::init(&mut init_ctx);
-        // Fleet::init(&mut init_ctx);
-        // AstroBodies::init(&mut init_ctx);
-        // Wares::init(&mut init_ctx);
-        // Orbits::init(&mut init_ctx);
-        //
-        // init_ctx
-        //     .scheduler
-        //     .add_systems(building_site::BuildingSystem);
+        game.scheduler
+            .add_systems(sectors::system_update_sectors_index.in_set(SystemSeq::After));
 
         game
     }
@@ -141,7 +139,8 @@ impl Game {
 
     pub fn reindex_sectors(&mut self) {
         log::trace!("reindex_sectors");
-        sectors::update_sectors_index_from_world(&self.world);
+        self.world
+            .run_system_once(sectors::system_update_sectors_index);
         locations::force_update_locations_index(&mut self.world)
     }
 

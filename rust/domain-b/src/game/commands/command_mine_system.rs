@@ -26,7 +26,7 @@ pub struct CommandMineSystem;
 /// - deliver cargo
 ///
 ///
-fn system_command_mine(
+pub fn system_command_mine(
     mut commands: Commands,
     mut query: Query<
         (Entity, Option<&LocationOrbit>, &mut Command),

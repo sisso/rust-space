@@ -6,7 +6,7 @@ use super::*;
 ///
 /// Execute actions for each NavigationMoveto without Action
 ///
-fn system_navigation(
+pub fn system_navigation(
     mut commands: Commands,
     mut query: Query<(Entity, &mut Navigation), Without<ActionActive>>,
 ) {

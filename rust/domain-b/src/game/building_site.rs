@@ -18,7 +18,7 @@ pub struct BuildingSite {
 
 /// check if all required wares in building site is in place, if so, create the new prafabe in
 /// same location and destroy teh building site.
-fn system_building_site(
+pub fn system_building_site(
     mut commands: Commands,
     mut query: Query<(Entity, &LocationSpace, &BuildingSite, &mut Cargo)>,
     query_prefabs: Query<&Prefab>,

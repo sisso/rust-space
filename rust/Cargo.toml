@@ -15,5 +15,5 @@ resolver="2"
 #[profile.dev]
 #opt-level = 3
 #
-#[profile.test]
+#[profile.tests]
 #opt-level = 3

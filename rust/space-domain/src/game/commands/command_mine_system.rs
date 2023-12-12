@@ -324,7 +324,7 @@ mod test {
         let miner_id = create_miner(world, station_id);
 
         // inject objects into the location index
-        // TODO: how to test it easy?
+        // TODO: how to tests it easy?
         let mut entities_per_sector = EntityPerSectorIndex::new();
         entities_per_sector.add_stations(sector_scenery.sector_0, station_id);
         entities_per_sector.add_extractable(sector_scenery.sector_0, asteroid);
@@ -565,7 +565,7 @@ mod test {
                 }
 
                 // update index
-                // TODO: how to test it easy without manually manipulating the index?
+                // TODO: how to tests it easy without manually manipulating the index?
                 let index = &mut world.write_resource::<EntityPerSectorIndex>();
                 index.add_extractable(scenery.sector_scenery.sector_1, asteroid_1);
                 index.add_extractable(scenery.sector_scenery.sector_1, asteroid_2);

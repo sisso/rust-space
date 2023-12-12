@@ -100,7 +100,7 @@ enum ProductionResult {
 
 /// automatically produce one of available fleets at random, once all resources are in place, create
 /// a new fleet and start the process
-fn system_shipyard(
+pub fn system_shipyard(
     mut commands: Commands,
     delta_time: Res<DeltaTime>,
     query_prefabs: Query<(Entity, &Prefab)>,

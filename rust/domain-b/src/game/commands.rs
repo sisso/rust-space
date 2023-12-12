@@ -10,11 +10,8 @@ use super::actions::*;
 use super::objects::*;
 use super::sectors::*;
 
-use crate::game::dock::HasDocking;
 use crate::game::order::TradeOrders;
 use crate::game::utils::TotalTime;
-use command_mine_system::*;
-use command_trader_system::*;
 
 pub mod command_mine_system;
 pub mod command_trader_system;

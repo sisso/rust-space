@@ -43,7 +43,7 @@ impl<'a> TestSystemRunner<'a> {
         SystemType: for<'c> System<'c> + Send + 'a,
     {
         let mut world = World::new();
-        let mut dispatcher = DispatcherBuilder::new().with(system, "test", &[]).build();
+        let mut dispatcher = DispatcherBuilder::new().with(system, "tests", &[]).build();
         dispatcher.setup(&mut world);
         TestSystemRunner { world, dispatcher }
     }

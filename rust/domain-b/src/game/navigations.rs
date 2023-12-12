@@ -10,8 +10,8 @@ use crate::game::sectors;
 use commons::math::P2;
 use std::collections::VecDeque;
 
-mod navigation_request_handler_system;
-mod navigation_system;
+pub mod navigation_request_handler_system;
+pub mod navigation_system;
 
 ///
 /// Systems:

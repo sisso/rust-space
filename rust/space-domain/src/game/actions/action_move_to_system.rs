@@ -173,7 +173,7 @@ mod test {
         // create world
         let mut world = World::new();
         let mut dispatcher = DispatcherBuilder::new()
-            .with(ActionMoveToSystem, "test", &[])
+            .with(ActionMoveToSystem, "tests", &[])
             .build();
         dispatcher.setup(&mut world);
 
