@@ -1,7 +1,7 @@
 use bevy_ecs::prelude::*;
 use std::borrow::BorrowMut;
 
-use bevy_ecs::system::{RunSystemOnce, SystemState};
+use bevy_ecs::system::RunSystemOnce;
 use commons::math::{IntoP2Ext, P2, P2I};
 use std::time::Instant;
 

@@ -393,7 +393,7 @@ pub fn system_cargo_distribution(
                 let prefab_wares: Vec<_> = query_prefabs
                     .iter()
                     .filter(|(_, p)| p.shipyard)
-                    .flat_map(|(id, p)| {
+                    .flat_map(|(_id, p)| {
                         p.obj
                             .production_cost
                             .iter()

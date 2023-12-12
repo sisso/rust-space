@@ -3,7 +3,7 @@ use bevy_ecs::prelude::*;
 use super::super::locations::*;
 use super::*;
 
-use crate::game::events::{CommandSendEvent, EventKind, GEvent, GEvents};
+use crate::game::events::{CommandSendEvent, EventKind, GEvent};
 
 use crate::game::dock::HasDocking;
 
@@ -51,6 +51,7 @@ pub fn system_dock(
 mod test {
     use super::*;
     use crate::game::dock::HasDocking;
+    use crate::game::events::GEvents;
     use bevy_ecs::system::RunSystemOnce;
 
     use crate::game::utils::Position;

@@ -1,7 +1,5 @@
 use crate::game::commands::{Command, TradeState};
-use crate::game::locations::{
-    EntityPerSectorIndex, LocationDocked, LocationSpace, Locations, SectorDistanceIndex,
-};
+use crate::game::locations::{EntityPerSectorIndex, LocationDocked, LocationSpace, Locations};
 use crate::game::navigations::{NavRequest, Navigation};
 use crate::game::objects::ObjId;
 use crate::game::order::TradeOrders;
@@ -13,7 +11,6 @@ use crate::game::utils;
 use bevy_ecs::prelude::*;
 use commons::unwrap_or_continue;
 use rand::RngCore;
-use std::borrow::{Borrow, BorrowMut};
 
 pub fn system_command_trade(
     total_time: Res<TotalTime>,

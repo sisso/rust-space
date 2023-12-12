@@ -16,7 +16,7 @@ pub struct Prefab {
 }
 
 pub fn find_prefab_by_code(
-    input: In<(String)>,
+    input: In<String>,
     query_codes: Query<(Entity, &HasCode)>,
     query_prefabs: Query<&Prefab>,
 ) -> Option<Prefab> {

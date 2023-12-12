@@ -1,7 +1,6 @@
 use bevy_ecs::prelude::*;
 
 use super::*;
-use crate::game::dock::HasDocking;
 use crate::game::extractables::Extractable;
 use crate::game::locations::{EntityPerSectorIndex, LocationDocked, LocationOrbit, LocationSpace};
 use crate::game::navigations::{NavRequest, Navigation};
@@ -141,7 +140,14 @@ pub fn system_command_mine(
                         .sector_id;
 
                     let target_id =
-                        search_mine_target(&sector_index, &already_targets, id, sector_id);
+                        match search_mine_target(&sector_index, &already_targets, sector_id) {
+                            Some(target_id) => target_id,
+                            None => {
+                                log::debug!("{:?} fail to find any target to mine, ignoring", id);
+                                continue;
+                            }
+                        };
+
                     command.mine_target_id = Some(target_id);
                     command.deliver_target_id = None;
 
@@ -200,9 +206,8 @@ pub fn system_command_mine(
 fn search_mine_target(
     sectors_index: &EntityPerSectorIndex,
     already_targets: &HashMap<ObjId, u32>,
-    _entity: Entity,
     sector_id: SectorId,
-) -> ObjId {
+) -> Option<ObjId> {
     // find nearest extractable
     let mut candidates = sectors_index
         .search_nearest_extractable(sector_id)
@@ -216,13 +221,13 @@ fn search_mine_target(
     candidates.sort_by_key(|(score, _id)| *score);
 
     // search first
-    let (_score, target_id) = candidates.iter().next().expect("target mine not found");
-    *target_id
+    candidates.iter().next().map(|(_, target_id)| *target_id)
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::game::dock::HasDocking;
     use crate::game::label::Label;
     use crate::game::loader::Loader;
     use crate::game::order::TRADE_ORDER_ID_EXTRACTABLE;

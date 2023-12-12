@@ -7,9 +7,9 @@ use crate::game::sectors::SectorId;
 use crate::game::shipyard::{ProductionOrder, Shipyard};
 use crate::game::utils::{DeltaTime, V2};
 use crate::game::wares::{WareAmount, WareId};
-use crate::game::{code, sectors, wares, Game};
+use crate::game::{code, sectors, Game};
 use bevy_ecs::prelude::*;
-use bevy_ecs::system::{RunSystemOnce, SystemState};
+use bevy_ecs::system::RunSystemOnce;
 use commons::math::P2I;
 
 pub struct BasicScenery {

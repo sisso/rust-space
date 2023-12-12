@@ -47,7 +47,7 @@ pub const SYSTEM_TIMEOUT: std::time::Duration = std::time::Duration::from_millis
 #[derive(SystemSet, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum SystemSeq {
     Before,
-    AI,
+    Ai,
     Changes,
     After,
 }
@@ -68,7 +68,7 @@ impl Game {
         game.scheduler.configure_sets(
             (
                 SystemSeq::Before,
-                SystemSeq::AI,
+                SystemSeq::Ai,
                 SystemSeq::Changes,
                 SystemSeq::After,
             )
@@ -82,11 +82,10 @@ impl Game {
         game.world.insert_resource(EntityPerSectorIndex::new());
 
         // ai
+        game.scheduler
+            .add_systems(commands::command_mine_system::system_command_mine.in_set(SystemSeq::Ai));
         game.scheduler.add_systems(
-            commands::command_mine_system::system_command_mine.in_set(SystemSeq::Changes),
-        );
-        game.scheduler.add_systems(
-            commands::command_trader_system::system_command_trade.in_set(SystemSeq::Changes),
+            commands::command_trader_system::system_command_trade.in_set(SystemSeq::Ai),
         );
         // changes
         game.scheduler
@@ -129,6 +128,8 @@ impl Game {
             .add_systems(wares::system_cargo_distribution.in_set(SystemSeq::After));
         game.scheduler
             .add_systems(sectors::system_update_sectors_index.in_set(SystemSeq::After));
+        game.scheduler
+            .add_systems(system_tick_new_objects.in_set(SystemSeq::After));
 
         game
     }
@@ -136,21 +137,19 @@ impl Game {
     pub fn tick(&mut self, delta_time: DeltaTime) {
         // update time
         self.world.insert_resource(delta_time);
-        let total_time = self.world.get_resource_mut::<TotalTime>().unwrap();
-        total_time.add(delta_time);
-        log::trace!(
-            "tick delta {} total {}",
-            delta_time.as_f32(),
-            total_time.as_f64(),
-        );
-        drop(total_time);
+        {
+            let mut total_time = self.world.get_resource::<TotalTime>().unwrap();
+            let total_time = total_time.add(delta_time);
+            log::trace!(
+                "tick delta {} total {}",
+                delta_time.as_f32(),
+                total_time.as_f64(),
+            );
+            self.world.insert_resource(total_time);
+        }
 
         // update systems
-        // self.dispatcher.dispatch(&mut self.world);
-        // apply all lazy updates
-        // self.world.maintain();
-        // instantiate new objects
-        self.world.run_system_once(Self::tick_new_objects_system);
+        self.scheduler.run(&mut self.world);
     }
 
     pub fn reindex_sectors(&mut self) {
@@ -158,13 +157,6 @@ impl Game {
         self.world
             .run_system_once(sectors::system_update_sectors_index);
         locations::force_update_locations_index(&mut self.world)
-    }
-
-    fn tick_new_objects_system(mut commands: Commands, query: Query<(Entity, &NewObj)>) {
-        for (obj_id, new_obj) in &query {
-            Loader::add_object(&mut commands, new_obj);
-            commands.entity(obj_id).despawn();
-        }
     }
 
     pub fn debug_dump(&mut self) {
@@ -179,5 +171,17 @@ impl Game {
         }
 
         self.world.run_system_once(dump);
+    }
+}
+
+fn system_tick_new_objects(mut commands: Commands, query: Query<(Entity, &NewObj)>) {
+    for (obj_id, new_obj) in &query {
+        log::info!(
+            "using deperected new object creation for {:?} {:?}",
+            obj_id,
+            new_obj
+        );
+        Loader::add_object(&mut commands, new_obj);
+        commands.entity(obj_id).despawn();
     }
 }

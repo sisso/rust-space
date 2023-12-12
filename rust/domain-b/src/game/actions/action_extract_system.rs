@@ -88,11 +88,10 @@ mod test {
     use super::*;
     use crate::game::utils::DeltaTime;
     use crate::game::wares::Volume;
-    use crate::test::{init_trace_log, TestSystemRunner};
+    use crate::test::TestSystemRunner;
 
     #[test]
     fn test_extraction() {
-        init_trace_log().unwrap();
         let mut ts = TestSystemRunner::new(system_extract);
 
         let ware_id = ts.world.spawn_empty().id();
