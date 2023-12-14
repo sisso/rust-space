@@ -11,7 +11,7 @@ pub fn system_jump(
     mut commands: Commands,
     total_time: Res<TotalTime>,
     mut query: Query<(Entity, &ActionActive, &mut ActionJump)>,
-    query_locations: Query<(Entity, Option<&LocationSpace>, Option<&LocationDocked>)>,
+    _query_locations: Query<(Entity, Option<&LocationSpace>, Option<&LocationDocked>)>,
     query_jumps: Query<&Jump>,
 ) {
     log::trace!("running");

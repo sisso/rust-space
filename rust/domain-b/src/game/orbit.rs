@@ -160,7 +160,7 @@ mod test {
 
         let mut world = World::new();
         world.insert_resource(TotalTime(0.0));
-        let (star_id, planet1_id, planet2_id, planet2moon1_id, station_id) =
+        let (star_id, _planet1_id, _planet2_id, _planet2moon1_id, _station_id) =
             create_system_1(&mut world);
         world.run_system_once(super::system_compute_orbits);
 

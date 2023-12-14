@@ -1,9 +1,9 @@
 use crate::game::loader::Loader;
 use bevy_ecs::prelude::*;
 use rand::Rng;
-use std::ops::Not;
 
-use crate::game::new_obj::NewObj;
+
+
 use crate::game::order::{TradeOrders, TRADE_ORDER_ID_SHIPYARD};
 use crate::game::prefab::{Prefab, PrefabId};
 use crate::game::utils::DeltaTime;
@@ -113,7 +113,7 @@ pub fn system_shipyard(
     // collect all prefabs as candidates for random production
     let prefabs_candidates: Vec<_> = query_prefabs.iter().filter(|(_, p)| p.shipyard).collect();
 
-    for (shipyard_id, mut shipyard, mut trade_order, mut cargo) in &mut query {
+    for (shipyard_id, mut shipyard, trade_order, mut cargo) in &mut query {
         let mut trade_order = match trade_order {
             Some(to) => to,
             None => {

@@ -1,5 +1,5 @@
 use bevy_ecs::prelude::*;
-use std::borrow::BorrowMut;
+
 
 use bevy_ecs::system::RunSystemOnce;
 use commons::math::{IntoP2Ext, P2, P2I};
@@ -281,13 +281,13 @@ mod test {
     use super::test_scenery::setup_sector_scenery;
 
     use crate::game::sectors::{
-        system_update_sectors_index, FindPathParams, Jump, PathLeg, Sector, SectorId,
+        system_update_sectors_index, FindPathParams, PathLeg, SectorId,
     };
 
     use bevy_ecs::prelude::*;
 
-    use crate::game::events::{GEvent, GEvents};
-    use crate::game::locations::LocationSpace;
+    use crate::game::events::{GEvents};
+    
     use bevy_ecs::system::RunSystemOnce;
     use commons::math::P2I;
     use std::time::Instant;
@@ -384,7 +384,7 @@ mod test {
 
 pub mod test_scenery {
     use super::*;
-    use crate::game::label::Label;
+    
 
     #[derive(Debug)]
     pub struct SectorScenery {

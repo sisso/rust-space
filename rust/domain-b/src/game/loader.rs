@@ -638,7 +638,7 @@ impl Loader {
 
     pub fn count_by_component<T: Component>(world: &mut World) -> usize {
         let mut ss: SystemState<Query<&T>> = SystemState::new(world);
-        let mut query = ss.get(world);
+        let query = ss.get(world);
         query.iter().count()
     }
 }

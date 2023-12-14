@@ -95,7 +95,7 @@ pub fn system_move(
 
 #[cfg(test)]
 mod test {
-    use super::super::*;
+    
     use super::*;
     use crate::game::utils::{Position, Speed};
     use crate::test::{assert_v2, test_system, TestSystemRunner};
