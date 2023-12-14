@@ -138,7 +138,7 @@ impl Game {
         // update time
         self.world.insert_resource(delta_time);
         {
-            let mut total_time = self.world.get_resource::<TotalTime>().unwrap();
+            let total_time = self.world.get_resource::<TotalTime>().unwrap();
             let total_time = total_time.add(delta_time);
             log::trace!(
                 "tick delta {} total {}",

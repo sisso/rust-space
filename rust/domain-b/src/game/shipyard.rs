@@ -384,7 +384,7 @@ mod test {
         // search for added object
         let mut ss: SystemState<Query<&LocationDocked, (With<Fleet>, With<Command>)>> =
             SystemState::new(world);
-        let mut query = ss.get(world);
+        let query = ss.get(world);
         let docked = query.iter().next().expect("fleet not found");
         assert_eq!(shipyard_id, docked.parent_id);
     }

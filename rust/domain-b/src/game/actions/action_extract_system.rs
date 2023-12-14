@@ -61,18 +61,21 @@ pub fn system_extract(
         };
 
         let amount_added = cargo.add_to_max(ware_id, amount_extracted);
+        let is_full = cargo.is_full();
         log::trace!(
-                "{:?} extracted {:?}, acc {:?}, total extracted {:?} with volume of {:?} and rest of {:?}, cargo now is {:?}/{:?}",
+                "{:?} extracted {:?}, acc {:?}, total extracted {:?} with volume of {:?} and rest of {:?}, added {:?}, cargo now is {:?}/{:?}",
                 obj_id,
                 ware_id,
                 previous_rest_acc,
                 production,
                 amount_extracted,
                 action_extract.rest_acc,
+                amount_added,
                 cargo.get_current_volume(),
                 cargo.get_max(),
             );
-        if amount_added < amount_extracted {
+
+        if is_full {
             log::debug!("{:?} cargo is full, stopping to extract", obj_id);
             commands
                 .entity(obj_id)

@@ -138,13 +138,13 @@ pub fn create_plan(
     match request {
         NavRequest::MoveToTarget { target_id } => path.push_back(Action::MoveToTargetPos {
             target_id: *target_id,
-            last_position: None,
+            last_position: Some(to_location.pos),
         }),
         NavRequest::MoveToPos { pos, .. } => path.push_back(Action::MoveTo { pos: *pos }),
         NavRequest::MoveAndDockAt { target_id } => {
             path.push_back(Action::MoveToTargetPos {
                 target_id: *target_id,
-                last_position: None,
+                last_position: Some(to_location.pos),
             });
             path.push_back(Action::Dock {
                 target_id: *target_id,
@@ -153,7 +153,7 @@ pub fn create_plan(
         NavRequest::OrbitTarget { target_id } => {
             path.push_back(Action::MoveToTargetPos {
                 target_id: *target_id,
-                last_position: None,
+                last_position: Some(to_location.pos),
             });
             path.push_back(Action::Orbit {
                 target_id: *target_id,

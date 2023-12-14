@@ -16,7 +16,7 @@ pub fn system_command_trade(
     total_time: Res<TotalTime>,
     sectors_index: Res<EntityPerSectorIndex>,
     mut commands: Commands,
-    query: Query<(Entity, &Command), Without<Navigation>>,
+    query: Query<(Entity, &Command), (Without<Navigation>, Without<NavRequest>)>,
     query_locations: Query<(Entity, Option<&LocationSpace>, Option<&LocationDocked>)>,
     mut query_cargos: Query<&mut Cargo>,
     query_orders: Query<&TradeOrders>,
@@ -257,6 +257,7 @@ pub fn system_command_trade(
                     transfer,
                     target_id,
                 );
+                back_to_idle.push(id);
             }
         } else {
             log::debug!(
@@ -296,6 +297,7 @@ pub fn system_command_trade(
                     transfer,
                     target_id,
                 );
+                back_to_idle.push(id);
             }
         } else {
             log::debug!(

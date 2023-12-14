@@ -29,7 +29,12 @@ pub fn system_command_mine(
     mut commands: Commands,
     mut query: Query<
         (Entity, Option<&LocationOrbit>, &mut Command),
-        (Without<Navigation>, Without<ActionExtract>),
+        (
+            Without<Navigation>,
+            Without<ActionExtract>,
+            Without<NavRequest>,
+            Without<ActionRequest>,
+        ),
     >,
     query_locations: Query<(Entity, Option<&LocationSpace>, Option<&LocationDocked>)>,
     query_extractables: Query<(Entity, &Extractable, &LocationSpace)>,

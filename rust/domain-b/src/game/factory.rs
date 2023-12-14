@@ -87,7 +87,7 @@ pub fn system_factory(
                         factory.production_time = Some(end_time);
                     }
                     Err(err) => {
-                        log::trace!("{entity:?} factory fail to remove cargo by {err:?}, skipping");
+                        log::trace!("{entity:?} factory skipping production by {err:?}");
                     }
                 }
             }

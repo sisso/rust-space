@@ -86,6 +86,7 @@ fn compute_orbital_pos(
 pub fn system_compute_orbits(
     total_time: Res<TotalTime>,
     mut query: Query<(Entity, &mut LocationSpace, Option<&LocationOrbit>)>,
+    query_orbits: Query<Entity, With<LocationOrbit>>,
 ) {
     log::trace!("running");
 
@@ -94,7 +95,7 @@ pub fn system_compute_orbits(
     let current_time = *total_time;
     let read_query = query.to_readonly();
 
-    for (obj_id, _, _) in &query {
+    for obj_id in &query_orbits {
         let pos = match compute_orbital_pos(&mut cache, &read_query, current_time, obj_id) {
             Ok(pos) => pos,
             Err(err_msg) => {
