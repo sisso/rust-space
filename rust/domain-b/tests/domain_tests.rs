@@ -1,6 +1,7 @@
 extern crate domain_b;
 
 use domain_b::game::commands::Command;
+use std::time;
 
 use bevy_ecs::prelude::*;
 use bevy_ecs::system::SystemState;
@@ -117,6 +118,16 @@ fn test_load_random_scenery() {
             params: cfg.params,
         },
     );
+
+    // let start = time::Instant::now();
+    //
+    // // simulate tickets
+    // for _ in 0..5_000 {
+    //     game.tick(DeltaTime(0.1));
+    // }
+    //
+    // let end = time::Instant::now();
+    // println!("{:?}", end - start);
 }
 
 #[test]

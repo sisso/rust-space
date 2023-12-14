@@ -16,6 +16,7 @@ use space_domain::utils::{DeltaTime, Speed};
 use specs::prelude::*;
 use specs::WorldExt;
 use std::borrow::Borrow;
+use std::time;
 
 #[test]
 fn test_game_should_mine_and_deliver_cargo_to_mothership_until_produce_a_new_ship() {
@@ -115,6 +116,16 @@ fn test_load_random_scenery() {
             params: cfg.params,
         },
     );
+
+    // let start = time::Instant::now();
+    //
+    // // simulate tickets
+    // for _ in 0..5_000 {
+    //     game.tick(DeltaTime(0.1));
+    // }
+    //
+    // let end = time::Instant::now();
+    // println!("{:?}", end - start);
 }
 
 #[test]
