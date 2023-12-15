@@ -1,12 +1,12 @@
 [workspace]
 members = [
   "commons",
-  "space-domain",
 #  "space-console",
   "space-2d-gui",
   "space-flap",
   "space-galaxy",
   "space-godot",
+  "space-domain"
 ]
 
 resolver="2"
@@ -14,5 +14,5 @@ resolver="2"
 #[profile.dev]
 #opt-level = 3
 #
-#[profile.test]
+#[profile.tests]
 #opt-level = 3

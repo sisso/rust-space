@@ -1,4 +1,4 @@
-use specs::prelude::*;
+use bevy_ecs::prelude::*;
 
 /// Other objects can dock in this object
 #[derive(Debug, Clone, Component, Default)]

@@ -1,5 +1,4 @@
-use crate::game::{GameInitContext, RequireInitializer};
-use specs::prelude::*;
+use bevy_ecs::prelude::*;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum AstroBodyKind {
@@ -13,9 +12,3 @@ pub struct AstroBody {
 }
 
 pub struct AstroBodies;
-
-impl RequireInitializer for AstroBodies {
-    fn init(context: &mut GameInitContext) {
-        context.world.register::<AstroBody>();
-    }
-}

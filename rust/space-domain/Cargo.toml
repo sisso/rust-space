@@ -1,8 +1,9 @@
 [package]
 name = "space-domain"
 version = "0.1.0"
-authors = []
 edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
 
@@ -12,8 +13,7 @@ serde = { version = "1.0", features = ["derive"] }
 rand = "0.8.4"
 commons = { version = "*", path = "../commons" }
 space-galaxy = {version = "*", path = "../space-galaxy" }
-specs = { version = "0.20.0", features = ["serde", "specs-derive", "shred-derive"] }
-rayon-core="1.9.1"
+bevy_ecs = {version = "0.12.1"}
 pathfinding = "2.2.2"
 itertools = "0.10"
 log="0.4.*"

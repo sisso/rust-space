@@ -1,21 +1,17 @@
 use std::collections::HashMap;
 
-use specs::prelude::*;
+use bevy_ecs::prelude::*;
 
-use crate::game::locations::{EntityPerSectorIndex, Locations, INDEX_SECTOR_SYSTEM};
+use crate::game::locations::{EntityPerSectorIndex, Locations};
 use crate::game::wares::{Cargos, WareId};
-use crate::utils::*;
 
 use super::actions::*;
 
 use super::objects::*;
 use super::sectors::*;
 
-use crate::game::commands::command_trader_system::CommandTradeSystem;
-use crate::game::dock::HasDocking;
 use crate::game::order::TradeOrders;
-use crate::game::{GameInitContext, RequireInitializer};
-use command_mine_system::*;
+use crate::game::utils::TotalTime;
 
 pub mod command_mine_system;
 pub mod command_trader_system;
@@ -75,33 +71,26 @@ impl Command {
         }
     }
 
+    pub fn as_mine_mut(&mut self) -> Option<&mut MineState> {
+        match self {
+            Command::Mine(state) => Some(state),
+            _ => None,
+        }
+    }
+
     pub fn trade() -> Command {
         Command::Trade(Default::default())
     }
 }
 
-pub struct Commands;
+pub struct FleetCommands;
 
-impl RequireInitializer for Commands {
-    fn init(context: &mut GameInitContext) {
-        context.world.register::<HasDocking>();
-
-        context
-            .dispatcher
-            .add(CommandMineSystem, "command_mine", &[INDEX_SECTOR_SYSTEM]);
-
-        context
-            .dispatcher
-            .add(CommandTradeSystem, "command_trade", &[INDEX_SECTOR_SYSTEM]);
-    }
-}
-
-impl Commands {}
+impl FleetCommands {}
 
 pub fn search_orders_target(
     sectors_index: &EntityPerSectorIndex,
     sector_id: SectorId,
-    orders: &ReadStorage<TradeOrders>,
+    orders: &Query<&TradeOrders>,
     wares_filter: Option<&Vec<WareId>>,
     already_targeting: Vec<ObjId>,
     to_pickup: bool,
@@ -121,7 +110,7 @@ pub fn search_orders_target(
 
     let candidates = sectors_index.search_nearest_stations(sector_id).flat_map(
         |(_sector_id, distance, obj_id)| {
-            let order = orders.get(obj_id).map(|orders| {
+            let order = orders.get(obj_id).ok().map(|orders| {
                 if to_pickup {
                     orders.is_provide()
                 } else {
@@ -142,7 +131,7 @@ pub fn search_orders_target(
         },
     );
 
-    match crate::utils::next_lower(candidates) {
+    match crate::game::utils::next_lower(candidates) {
         Some(target_id) => {
             let wares = {
                 let orders = orders.get(target_id).unwrap();

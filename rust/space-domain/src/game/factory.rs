@@ -1,7 +1,6 @@
+use crate::game::utils::{DeltaTime, TotalTime};
 use crate::game::wares::{Cargo, WareAmount, WareId};
-use crate::game::{GameInitContext, RequireInitializer};
-use crate::utils::{DeltaTime, TotalTime};
-use specs::prelude::*;
+use bevy_ecs::prelude::*;
 
 #[derive(Debug, Clone)]
 pub struct Receipt {
@@ -43,72 +42,52 @@ impl Factory {
     }
 }
 
-impl RequireInitializer for Factory {
-    fn init(context: &mut GameInitContext) {
-        context.dispatcher.add(FactorySystem, "factory_system", &[]);
-    }
-}
+pub fn system_factory(
+    total_time: Res<TotalTime>,
+    mut query: Query<(Entity, &mut Cargo, &mut Factory)>,
+) {
+    log::trace!("running");
 
-pub struct FactorySystem;
+    let total_time = *total_time;
 
-impl<'a> System<'a> for FactorySystem {
-    type SystemData = (
-        Read<'a, TotalTime>,
-        Entities<'a>,
-        WriteStorage<'a, Cargo>,
-        WriteStorage<'a, Factory>,
-    );
-
-    fn run(&mut self, data: Self::SystemData) {
-        log::trace!("running");
-
-        let (total_time, entities, mut cargos, mut factories) = data;
-
-        let total_time = *total_time;
-
-        for (entity, cargo, factory) in (&*entities, &mut cargos, &mut factories).join() {
-            match factory.production_time {
-                Some(time) if total_time.is_after(time) => {
-                    // production ready
-                    match cargo.add_all_or_none(&factory.production.output) {
-                        Ok(()) => {
-                            log::debug!(
-                                "{:?} factory complete production, adding cargo: {:?}",
-                                entity,
-                                &factory.production.output,
-                            );
-                            factory.production_time = None;
-                        }
-                        Err(err) => {
-                            log::warn!(
-                                "{:?} factory complete production, but fail to add cargo by {:?}",
-                                entity,
-                                err
-                            );
-                        }
+    for (entity, mut cargo, mut factory) in &mut query {
+        match factory.production_time {
+            Some(time) if total_time.is_after(time) => {
+                // production ready
+                match cargo.add_all_or_none(&factory.production.output) {
+                    Ok(()) => {
+                        log::debug!(
+                            "{:?} factory complete production, adding cargo: {:?}",
+                            entity,
+                            &factory.production.output,
+                        );
+                        factory.production_time = None;
+                    }
+                    Err(err) => {
+                        log::warn!(
+                            "{:?} factory complete production, but fail to add cargo by {:?}",
+                            entity,
+                            err
+                        );
                     }
                 }
+            }
 
-                Some(_time) => {
-                    // producing
-                    log::trace!("{:?} factory producing", entity);
-                }
+            Some(_time) => {
+                // producing
+                log::trace!("{:?} factory producing", entity);
+            }
 
-                None => {
-                    // check if have enough cargo to start a new production
-                    match cargo.remove_all_or_none(&factory.production.input) {
-                        Ok(()) => {
-                            let end_time = total_time.add(factory.production.time);
-                            log::trace!(
-                                "{entity:?} factory start production, ends at {end_time:?}"
-                            );
-                            factory.production_time = Some(end_time);
-                        }
-                        Err(err) => {
-                            log::trace!(
-                                "{entity:?} factory fail to remove cargo by {err:?}, skipping"
-                            );
-                        }
+            None => {
+                // check if have enough cargo to start a new production
+                match cargo.remove_all_or_none(&factory.production.input) {
+                    Ok(()) => {
+                        let end_time = total_time.add(factory.production.time);
+                        log::trace!("{entity:?} factory start production, ends at {end_time:?}");
+                        factory.production_time = Some(end_time);
+                    }
+                    Err(err) => {
+                        log::trace!("{entity:?} factory skipping production by {err:?}");
                     }
                 }
             }
@@ -120,8 +99,7 @@ impl<'a> System<'a> for FactorySystem {
 mod test {
     use super::*;
     use crate::game::wares::Volume;
-
-    use crate::test::test_system;
+    use bevy_ecs::system::RunSystemOnce;
 
     const REQUIRE_ORE: Volume = 10;
     const REQUIRE_ENERGY: Volume = 100;
@@ -189,48 +167,55 @@ mod test {
         _expected_energy: Volume,
         expected_plates: Volume,
     ) {
-        let (world, (entity, plate_id)) = test_system(FactorySystem, move |world| {
-            let ore_id = world.create_entity().build();
-            let energy_id = world.create_entity().build();
-            let plate_id = world.create_entity().build();
+        let mut world = World::new();
 
-            let production = Receipt {
-                label: "ore processing".to_string(),
-                input: vec![
-                    WareAmount::new(ore_id, REQUIRE_ORE),
-                    WareAmount::new(energy_id, REQUIRE_ENERGY),
-                ],
-                output: vec![WareAmount::new(plate_id, PRODUCED_PLATE)],
-                time: DeltaTime(PRODUCTION_TIME),
-            };
+        let ore_id = world.spawn_empty().id();
+        let energy_id = world.spawn_empty().id();
+        let plate_id = world.spawn_empty().id();
 
-            let mut cargo = Cargo::new(TOTAL_CARGO);
-            cargo.add(ore_id, ore_volume).expect("fail to add ore");
-            cargo
-                .add(energy_id, energy_volume)
-                .expect("fail to add energy");
+        let production = Receipt {
+            label: "ore processing".to_string(),
+            input: vec![
+                WareAmount::new(ore_id, REQUIRE_ORE),
+                WareAmount::new(energy_id, REQUIRE_ENERGY),
+            ],
+            output: vec![WareAmount::new(plate_id, PRODUCED_PLATE)],
+            time: DeltaTime(PRODUCTION_TIME),
+        };
 
-            world.insert(TotalTime(total_time));
+        let mut cargo = Cargo::new(TOTAL_CARGO);
+        cargo.add(ore_id, ore_volume).expect("fail to add ore");
+        cargo
+            .add(energy_id, energy_volume)
+            .expect("fail to add energy");
 
-            let entity = world
-                .create_entity()
-                .with(cargo)
-                .with(Factory {
-                    production,
-                    production_time: production_time.map(|time| TotalTime(time)),
-                })
-                .build();
+        world.insert_resource(TotalTime(total_time));
 
-            (entity, plate_id)
-        });
+        let obj_id = world
+            .spawn_empty()
+            .insert(cargo)
+            .insert(Factory {
+                production,
+                production_time: production_time.map(|time| TotalTime(time)),
+            })
+            .id();
 
-        let cargo = world.read_storage::<Cargo>().get(entity).unwrap().clone();
-        assert_eq!(cargo.get_amount(plate_id), expected_plates);
+        world.run_system_once(super::system_factory);
 
-        let factory = world.read_storage::<Factory>().get(entity).unwrap().clone();
+        let entity_ref = world.get_entity(obj_id).unwrap();
+
+        let cargo = entity_ref.get::<Cargo>().unwrap().clone();
         assert_eq!(
+            expected_plates,
+            cargo.get_amount(plate_id),
+            "fail on cargo amount for plate_id"
+        );
+
+        let factory = entity_ref.get::<Factory>().unwrap().clone();
+        assert_eq!(
+            expect_produce_at,
             factory.production_time.map(|i| i.as_f64()),
-            expect_produce_at
+            "fail for production time"
         );
     }
 }

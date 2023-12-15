@@ -1,17 +1,14 @@
-mod index_per_sector_system;
-
+use bevy_ecs::prelude::*;
+use bevy_ecs::system::RunSystemOnce;
 use commons::math::{Distance, Rad, P2};
-use specs::prelude::*;
-use specs::storage::MaskedStorage;
 use std::collections::HashMap;
-use std::ops::Deref;
 
 use super::objects::*;
 use super::sectors::*;
-use crate::utils::*;
+use crate::game::utils::*;
 
-use crate::game::locations::index_per_sector_system::*;
-use crate::game::{GameInitContext, RequireInitializer};
+use crate::game::dock::HasDocking;
+use crate::game::extractables::Extractable;
 
 #[derive(Debug, Clone, Copy, Component)]
 pub struct LocationSpace {
@@ -28,6 +25,7 @@ pub struct LocationOrbit {
     pub speed: Speed,
 }
 
+// TODO: move to orbits
 impl LocationOrbit {
     pub fn new(target_id: ObjId) -> Self {
         LocationOrbit {
@@ -54,8 +52,14 @@ pub trait SectorDistanceIndex {
     fn distance(&self, a: SectorId, b: SectorId) -> u32;
 }
 
-// TODO: make more flexible, like tags?
-#[derive(Clone, Debug, Default, Component)]
+/// Index entities to provide fast look up. This system is update on end of tick, so is expected
+/// to provide outdated data during a run.
+/// - what ships are in sector 0?
+/// - what is nearest asteroid from sector 2?
+/// - tags?
+/// - space partition?
+/// - collision prediction?
+#[derive(Clone, Debug, Default, Resource)]
 pub struct EntityPerSectorIndex {
     pub index: HashMap<SectorId, Vec<ObjId>>,
     pub index_extractables: HashMap<SectorId, Vec<ObjId>>,
@@ -136,17 +140,7 @@ impl EntityPerSectorIndex {
     }
 }
 
-pub const INDEX_SECTOR_SYSTEM: &str = "index_sector";
-
 pub struct Locations {}
-
-impl RequireInitializer for Locations {
-    fn init(context: &mut GameInitContext) {
-        context
-            .dispatcher
-            .add(IndexPerSectorSystem, INDEX_SECTOR_SYSTEM, &[]);
-    }
-}
 
 impl Locations {
     pub fn new() -> Self {
@@ -165,61 +159,78 @@ impl Locations {
         }
     }
 
-    pub fn is_near_from_storage(
-        locations: &ReadStorage<LocationSpace>,
-        obj_a: ObjId,
-        obj_b: ObjId,
-    ) -> bool {
-        let pos_a = locations.get(obj_a);
-        let pos_b = locations.get(obj_b);
-        Locations::is_near_maybe(pos_a, pos_b)
+    pub fn is_near_from_storage(world: &World, obj_a: ObjId, obj_b: ObjId) -> bool {
+        Locations::is_near_maybe(
+            world.get::<LocationSpace>(obj_a),
+            world.get::<LocationSpace>(obj_b),
+        )
+    }
+
+    pub fn get_location_space(world: &World, obj_id: ObjId) -> Option<LocationSpace> {
+        world.get::<LocationSpace>(obj_id).cloned()
+    }
+
+    pub fn resolve_space_position_system(
+        In(obj_id): In<ObjId>,
+        query: Query<(Entity, Option<&LocationSpace>, Option<&LocationDocked>)>,
+    ) -> Option<LocationSpace> {
+        Self::resolve_space_position(&query, obj_id)
     }
 
     /// same as resolve_space_position, but receive a world and the storages are fetched from it
-    pub fn resolve_space_position_from_world(
-        world: &World,
+    pub fn resolve_space_position(
+        query: &Query<(Entity, Option<&LocationSpace>, Option<&LocationDocked>)>,
         obj_id: ObjId,
     ) -> Option<LocationSpace> {
-        let loc_space = world.read_storage::<LocationSpace>();
-        let loc_docked = world.read_storage::<LocationDocked>();
-        Locations::resolve_space_position(&loc_space, &loc_docked, obj_id)
-    }
-
-    /// recursive search through docked entities until find what space position entity is at
-    pub fn resolve_space_position<'a, D1, D2>(
-        locations_space: &Storage<'a, LocationSpace, D1>,
-        locations_docked: &Storage<'a, LocationDocked, D2>,
-        obj_id: ObjId,
-    ) -> Option<LocationSpace>
-    where
-        D1: Deref<Target = MaskedStorage<LocationSpace>>,
-        D2: Deref<Target = MaskedStorage<LocationDocked>>,
-    {
-        match (locations_space.get(obj_id), locations_docked.get(obj_id)) {
-            (Some(at_space), _) => Some(at_space.clone()),
-            (_, Some(docked)) => {
-                Self::resolve_space_position(locations_space, locations_docked, docked.parent_id)
-            }
+        match query.get(obj_id).ok()? {
+            (_, Some(space), _) => Some(space.clone()),
+            (_, _, Some(docked)) => Self::resolve_space_position(query, docked.parent_id),
             _ => None,
         }
     }
 
-    pub fn is_docked_at<D1>(
-        locations_docked: &Storage<LocationDocked, D1>,
+    pub fn is_docked_at(
+        query_locations: &Query<(Entity, Option<&LocationSpace>, Option<&LocationDocked>)>,
         obj_id: ObjId,
         target_id: ObjId,
-    ) -> bool
-    where
-        D1: Deref<Target = MaskedStorage<LocationDocked>>,
-    {
-        locations_docked
-            .get(obj_id)
-            .map(|docked| docked.parent_id == target_id)
+    ) -> bool {
+        query_locations
+            .get_component::<LocationDocked>(obj_id)
+            .map(|value| value.parent_id == target_id)
             .unwrap_or(false)
     }
 }
 
-pub fn update_locations_index(world: &World) {
-    let mut system = index_per_sector_system::IndexPerSectorSystem {};
-    system.run_now(world);
+pub fn force_update_locations_index(world: &mut World) {
+    world.run_system_once(update_entity_per_sector_index);
+}
+
+pub fn update_entity_per_sector_index(
+    mut index: ResMut<EntityPerSectorIndex>,
+    query: Query<(
+        Entity,
+        &LocationSpace,
+        Option<&Extractable>,
+        Option<&HasDocking>,
+    )>,
+) {
+    log::trace!("running");
+    index.clear();
+
+    for (obj_id, location, maybe_extratable, maybe_docking) in &query {
+        let sector_id = location.sector_id;
+
+        // log::trace!("indexing {:?} at {:?}", entity, sector_id);
+        index.add(sector_id, obj_id);
+
+        if maybe_extratable.is_some() {
+            // log::trace!("indexing extractable {:?} at {:?}", entity, sector_id);
+            index.add_extractable(sector_id, obj_id);
+        }
+
+        if maybe_docking.is_some() {
+            // log::trace!("indexing stations {:?} at {:?}", entity, sector_id);
+            index.add_stations(sector_id, obj_id);
+        }
+    }
 }

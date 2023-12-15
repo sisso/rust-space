@@ -1,5 +1,4 @@
-use crate::game::{GameInitContext, RequireInitializer};
-use specs::prelude::*;
+use bevy_ecs::prelude::*;
 
 #[derive(Clone, Debug, Component)]
 pub struct Station {}
@@ -11,9 +10,3 @@ impl Station {
 }
 
 pub struct Stations;
-
-impl RequireInitializer for Stations {
-    fn init(context: &mut GameInitContext) {
-        context.world.register::<Station>();
-    }
-}

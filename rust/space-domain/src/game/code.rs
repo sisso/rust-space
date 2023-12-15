@@ -1,4 +1,4 @@
-use specs::prelude::*;
+use bevy_ecs::prelude::*;
 
 pub type Code = String;
 pub type CodeRef = str;
@@ -24,13 +24,16 @@ impl HasCode {
     }
 }
 
-pub fn get_entity_by_code(world: &World, code: &CodeRef) -> Option<Entity> {
-    find(&world.entities(), &world.read_storage(), code)
-}
+// pub fn get_entity_by_code(world: &mut World, code: &CodeRef) -> Option<Entity> {
+//     world.run_system_once_with(code, find)
+// }
 
-pub fn find(entities: &Entities, codes: &ReadStorage<'_, HasCode>, code: &str) -> Option<Entity> {
-    (entities, codes)
-        .join()
-        .find(|(_, c)| c.code.eq_ignore_ascii_case(code))
+pub fn find_entity_by_code(
+    In(code): In<String>,
+    query: Query<(Entity, &HasCode)>,
+) -> Option<Entity> {
+    query
+        .iter()
+        .find(|(_, c)| c.code.eq_ignore_ascii_case(code.as_str()))
         .map(|(e, _)| e)
 }

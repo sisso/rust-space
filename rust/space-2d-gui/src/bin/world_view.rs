@@ -96,11 +96,18 @@ impl State {
             return Ok(());
         };
 
-        self.draw_sector(ctx, canvas, screen_size, fleet.get_sector_id())
+        self.draw_sector(
+            ctx,
+            canvas,
+            screen_size,
+            fleet
+                .get_sector_id()
+                .expect("probably broken during migration"),
+        )
     }
 
     fn draw_sector(
-        &self,
+        &mut self,
         ctx: &mut Context,
         canvas: &mut Canvas,
         screen_size: (f32, f32),
@@ -156,7 +163,7 @@ impl State {
 
             let color = Self::resolve_color(&obj);
 
-            let coords = obj.get_coords().into();
+            let coords = obj.get_coords().expect("todo migration").into();
             let w = point_to_screen(&self.sector_view_transform, coords);
             canvas.draw(&planet_circle, DrawParam::new().dest(w).color(color));
         }
@@ -415,15 +422,15 @@ impl State {
     fn select_nearest_in_fleet_sector(&mut self, mouse_pos: P2, fleet_id: Id) {
         self.game
             .get_obj_coords(fleet_id)
-            .map(|coords| coords.get_sector_id())
+            .and_then(|coords| coords.get_sector_id())
             .into_iter()
             .for_each(|sector_id| self.select_nearest_in_sector(mouse_pos, sector_id));
     }
 
     fn select_nearest_in_sector(&mut self, mouse_pos: P2, sector_id: Id) {
         let local_pos = screen_to_point(&self.sector_view_transform, mouse_pos);
-        self.selected_object = search_nearest_object_in_sector(&self.game, sector_id, local_pos)
-            .and_then(|id| {
+        self.selected_object =
+            search_nearest_object_in_sector(&mut self.game, sector_id, local_pos).and_then(|id| {
                 let data = self.game.get_obj(id)?;
                 let desc = self
                     .game
@@ -435,7 +442,7 @@ impl State {
 }
 
 fn search_nearest_object_in_sector(
-    game: &space_flap::SpaceGame,
+    game: &mut space_flap::SpaceGame,
     sector_id: space_flap::Id,
     pos: P2,
 ) -> Option<space_flap::Id> {
@@ -449,7 +456,7 @@ fn search_nearest_object_in_sector(
             continue;
         }
 
-        let ipos = coords.get_coords();
+        let ipos = coords.get_coords().expect("todo migration");
         let delta = P2::new(ipos.0, ipos.1) - pos;
         let distance_sqr = delta.length_squared();
 
@@ -549,15 +556,16 @@ fn sector_text(sd: &space_flap::SectorData) -> String {
 fn fleet_text(sectors: &Vec<SectorData>, d: &space_flap::ObjData) -> String {
     let sector_index = sectors
         .iter()
-        .position(|s| s.get_id() == d.get_sector_id())
+        .position(|s| s.get_id() == d.get_sector_id().expect("todo migration"))
         .map(|id| format!("{}", id))
         .unwrap_or("None".to_string());
 
+    let coords = d.get_coords().expect("todo mingration");
     format!(
         "{} {}/{:.1},{:.1}",
         d.get_id(),
         sector_index,
-        d.get_coords().0,
-        d.get_coords().1
+        coords.0,
+        coords.1
     )
 }

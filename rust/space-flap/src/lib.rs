@@ -6,13 +6,16 @@ use std::cell::RefCell;
 use std::path::PathBuf;
 use std::rc::Rc;
 
+use bevy_ecs::prelude::*;
+use bevy_ecs::system::SystemState;
+use env_logger::TimestampPrecision::Seconds;
 use itertools::{cloned, Itertools};
-use specs::prelude::*;
 
 use commons::math::P2;
 pub use models::*;
 use space_domain::game::actions::{Action, ActionActive, Actions};
 use space_domain::game::astrobody::{AstroBodies, AstroBody, AstroBodyKind};
+use space_domain::game::bevy_utils::WorldExt;
 use space_domain::game::conf::BlueprintCode;
 use space_domain::game::dock::HasDocking;
 use space_domain::game::extractables::Extractable;
@@ -32,7 +35,6 @@ use space_domain::game::station::Station;
 use space_domain::game::wares::{Cargo, Ware, WareId};
 use space_domain::game::{events, scenery_random, shipyard};
 use space_domain::game::{loader, Game};
-use space_domain::utils::TotalTime;
 use utils::*;
 
 pub mod models;
@@ -105,7 +107,9 @@ impl SpaceGame {
             .expect("fail to read config file");
 
         let mut game = Game::new();
-        loader::load_prefabs(&mut game.world, &cfg.prefabs);
+        game.world.run_commands(|mut commands| {
+            loader::load_prefabs(&mut commands, &cfg.prefabs);
+        });
         scenery_random::load_random(
             &mut game,
             &scenery_random::RandomMapCfg {
@@ -123,32 +127,27 @@ impl SpaceGame {
         }
     }
 
-    pub fn list_at_sector(&self, sector_id: Id) -> Vec<Id> {
-        let g = self.game.borrow();
-
-        let entities = g.world.entities();
-
-        let e_sector = decode_entity_and_get(&g, sector_id).unwrap();
-
-        let locations = g.world.read_storage::<LocationSpace>();
-        let mut result = vec![];
-        for (e, l) in (&entities, &locations).join() {
-            if l.sector_id == e_sector {
-                result.push(encode_entity(e));
-            }
-        }
-        result
+    fn decode_id(&self, id: Id) -> Option<Entity> {
+        decode_entity_and_get(&self.game.borrow(), id)
     }
 
-    pub fn get_sectors(&self) -> Vec<SectorData> {
-        let g = self.game.borrow();
+    pub fn list_at_sector(&mut self, sector_id: Id) -> Vec<Id> {
+        let sector_id = self.decode_id(sector_id).expect("invalid sector id");
+        self.game
+            .borrow_mut()
+            .list_at_sector(sector_id)
+            .into_iter()
+            .map(|id| encode_entity(id))
+            .collect()
+    }
 
-        let entities = g.world.entities();
-        let sectors = g.world.read_storage::<Sector>();
-        let labels = g.world.read_storage::<Label>();
+    pub fn get_sectors(&mut self) -> Vec<SectorData> {
+        let mut g = self.game.borrow_mut();
+        let mut ss: SystemState<Query<(Entity, &Sector, &Label)>> = SystemState::new(&mut g.world);
+        let query = ss.get(&mut g.world);
 
         let mut r = vec![];
-        for (e, s, l) in (&entities, &sectors, &labels).join() {
+        for (e, s, l) in &query {
             r.push(SectorData {
                 id: encode_entity(e),
                 coords: (s.coords.x, s.coords.y),
@@ -158,14 +157,13 @@ impl SpaceGame {
         r
     }
 
-    pub fn list_jumps(&self) -> Vec<JumpData> {
-        let g = self.game.borrow();
-
-        let entities = g.world.entities();
-        let jumps = g.world.read_storage::<Jump>();
+    pub fn list_jumps(&mut self) -> Vec<JumpData> {
+        let mut g = self.game.borrow_mut();
+        let mut ss: SystemState<Query<(Entity, &Jump)>> = SystemState::new(&mut g.world);
+        let query = ss.get(&mut g.world);
 
         let mut r = vec![];
-        for (e, _) in (&entities, &jumps).join() {
+        for (e, _) in &query {
             r.push(JumpData {
                 entity: e,
                 game: self.game.clone(),
@@ -174,59 +172,48 @@ impl SpaceGame {
         r
     }
 
-    pub fn get_jump(&self, id: Id) -> Option<JumpData> {
+    pub fn get_jump(&mut self, id: Id) -> Option<JumpData> {
         let g = self.game.borrow();
         let e = decode_entity_and_get(&g, id)?;
-        let jumps = g.world.read_storage::<Jump>();
-        let jump = jumps.get(e)?;
+        let jump = g.world.get::<Jump>(e)?;
         Some(JumpData {
             entity: e,
             game: self.game.clone(),
         })
     }
 
-    pub fn get_label(&self, id: Id) -> Option<String> {
+    pub fn get_label(&mut self, id: Id) -> Option<String> {
         self.game
             .borrow()
             .world
-            .read_storage::<Label>()
-            .get(decode_entity_and_get(&self.game.borrow(), id)?)
+            .get::<Label>(decode_entity_and_get(&self.game.borrow(), id)?)
             .map(|l| l.label.clone())
     }
 
-    pub fn get_fleets(&self) -> Vec<ObjData> {
-        let g = self.game.borrow();
+    pub fn get_fleets(&mut self) -> Vec<ObjData> {
+        let mut g = self.game.borrow_mut();
+        let mut ss: SystemState<
+            Query<(
+                Entity,
+                &Fleet,
+                Option<&LocationSpace>,
+                Option<&LocationDocked>,
+            )>,
+        > = SystemState::new(&mut g.world);
 
-        let entities = g.world.entities();
-        let locations = g.world.read_storage::<LocationSpace>();
-        let docked = g.world.read_storage::<LocationDocked>();
-        let stations = g.world.read_storage::<Station>();
-        let jumps = g.world.read_storage::<Jump>();
-        let fleets = g.world.read_storage::<Fleet>();
+        let mut ss_locations: SystemState<
+            Query<(Entity, Option<&LocationSpace>, Option<&LocationDocked>)>,
+        > = SystemState::new(&mut g.world);
+
+        let query = ss.get(&g.world);
+        let query_locations = ss_locations.get(&g.world);
 
         let mut r = vec![];
-        for (id, flt, st, j, l, d) in (
-            &entities,
-            &fleets,
-            stations.maybe(),
-            jumps.maybe(),
-            locations.maybe(),
-            docked.maybe(),
-        )
-            .join()
-        {
-            let ls = match Locations::resolve_space_position(&locations, &docked, id) {
-                Some(l) => l,
-                None => {
-                    log::warn!("fail to resolve position for {:?}", id);
-                    continue;
-                }
-            };
-
+        for (id, flt, l, d) in &query {
             let kind = ObjKind {
                 fleet: true,
-                jump: j.is_some(),
-                station: st.is_some(),
+                jump: false,
+                station: false,
                 asteroid: false,
                 astro: false,
                 astro_star: false,
@@ -236,8 +223,7 @@ impl SpaceGame {
 
             r.push(ObjData {
                 id,
-                coords: ls.pos,
-                sector_id: ls.sector_id,
+                location: l.cloned(),
                 docked: d.map(|i| i.parent_id),
                 kind: kind,
                 orbit: None,
@@ -245,17 +231,6 @@ impl SpaceGame {
             });
         }
         r
-    }
-
-    pub fn get_sector(&self, index: Id) -> SectorData {
-        // let ss = self.game.world.read_storage::<Sector>();
-        // let id = self.game.world.entities().borrow().entity(index);
-        // let sector = ss.borrow().get(id).expect("sector by index not found");
-        // SectorData {
-        //     index: index,
-        //     coords: (sector.coords.x, sector.coords.y),
-        // }
-        todo!()
     }
 
     pub fn update(&mut self, delta: f32) {
@@ -267,55 +242,68 @@ impl SpaceGame {
             .game
             .borrow_mut()
             .world
-            .fetch_mut::<events::Events>()
+            .resource_mut::<events::GEvents>()
             .take();
         events.into_iter().map(|i| EventData { event: i }).collect()
     }
 
     pub fn get_obj(&self, id: Id) -> Option<ObjData> {
         let g = self.game.borrow();
-        let entities = g.world.entities();
-        let e = decode_entity_and_get(&g, id)?;
+        let obj_id = decode_entity_and_get(&g, id)?;
+        let entity = g.world.get_entity(obj_id)?;
 
-        let locations = g.world.read_storage::<LocationSpace>();
-        let astros = g.world.read_storage::<AstroBody>();
-        let orbits = g.world.read_storage::<LocationOrbit>();
-        let loc_docked = g.world.read_storage::<LocationDocked>();
+        // let mut ss: SystemState<
+        //     Query<(
+        //         Entity,
+        //         Option<&Fleet>,
+        //         Option<&Jump>,
+        //         Option<&Station>,
+        //         Option<&Extractable>,
+        //         Option<&Factory>,
+        //         Option<&AstroBody>,
+        //         Option<&Shipyard>,
+        //     )>,
+        // > = SystemState::new(&mut g.world);
+        // let query = ss.get(&mut g.world);
+        //
+        // let locations = g.world.read_storage::<LocationSpace>();
+        // let astros = g.world.read_storage::<AstroBody>();
+        // let orbits = g.world.read_storage::<LocationOrbit>();
+        // let loc_docked = g.world.read_storage::<LocationDocked>();
 
-        let ls = Locations::resolve_space_position(&locations, &loc_docked, e)?;
-        let ab = astros.get(e);
-        let orbit = orbits.get(e);
-        let docked = loc_docked.get(e);
+        let ls = entity.get::<LocationSpace>();
+        let ab = entity.get::<AstroBody>();
+        let orbit = entity.get::<LocationOrbit>();
+        let docked = entity.get::<LocationDocked>();
 
         let kind = ObjKind {
-            fleet: g.world.read_storage::<Fleet>().contains(e),
-            jump: g.world.read_storage::<Jump>().contains(e),
-            station: g.world.read_storage::<Station>().contains(e),
-            asteroid: g.world.read_storage::<Extractable>().contains(e),
+            fleet: entity.get::<Fleet>().is_some(),
+            jump: entity.get::<Jump>().is_some(),
+            station: entity.get::<Station>().is_some(),
+            asteroid: entity.get::<Extractable>().is_some(),
             astro: ab.is_some(),
             astro_star: ab.map(|ab| ab.kind == AstroBodyKind::Star).unwrap_or(false),
-            factory: g.world.read_storage::<Factory>().contains(e),
-            shipyard: g.world.read_storage::<Shipyard>().contains(e),
+            factory: entity.get::<Factory>().is_some(),
+            shipyard: entity.get::<Shipyard>().is_some(),
         };
 
-        let orbit_data = orbit.map(|o| {
-            let parent_pos = locations.get(o.parent_id).unwrap();
-            ObjOrbitData {
+        let orbit_data = orbit.and_then(|o| {
+            let parent_pos = g.world.get::<LocationSpace>(o.parent_id)?;
+            let od = ObjOrbitData {
                 radius: o.distance,
                 parent_pos: parent_pos.pos,
-            }
+            };
+            Some(od)
         });
 
-        let orders = g.world.read_storage::<TradeOrders>();
-        let trade_orders = orders
-            .get(e)
+        let trade_orders = entity
+            .get::<TradeOrders>()
             .map(|o| new_trader_orders(o))
             .unwrap_or_default();
 
         let obj = ObjData {
-            id: e,
-            coords: ls.pos,
-            sector_id: ls.sector_id,
+            id: obj_id,
+            location: ls.cloned(),
             docked: docked.map(|d| d.parent_id),
             kind: kind,
             orbit: orbit_data,
@@ -327,13 +315,11 @@ impl SpaceGame {
 
     pub fn get_obj_desc(&self, id: Id) -> Option<ObjDesc> {
         let g = self.game.borrow();
-        let entities = g.world.entities();
-        let e = decode_entity_and_get(&g, id)?;
+        let obj_id = decode_entity_and_get(&g, id)?;
+        let entity = g.world.get_entity(obj_id)?;
 
-        let docked_fleets = g
-            .world
-            .read_storage::<HasDocking>()
-            .get(e)
+        let docked_fleets = entity
+            .get::<HasDocking>()
             .map(|has_dock| {
                 has_dock
                     .docked
@@ -345,26 +331,18 @@ impl SpaceGame {
 
         let desc = ObjDesc {
             id: id,
-            label: g
-                .world
-                .read_storage::<Label>()
-                .get(e)
+            label: entity
+                .get::<Label>()
                 .map(|i| i.label.clone())
                 .unwrap_or_else(|| "unknown".to_string()),
-            extractable: g
-                .world
-                .read_storage::<Extractable>()
-                .get(e)
-                .map(|ext| ext.ware_id),
-            action: g
-                .world
-                .read_storage::<ActionActive>()
-                .get(e)
+            extractable: entity.get::<Extractable>().map(|ext| ext.ware_id),
+            action: entity
+                .get::<ActionActive>()
                 .map(|action| action.get_action().clone()),
-            nav_move_to: g.world.read_storage::<Navigation>().get(e).cloned(),
-            cargo: g.world.read_storage::<Cargo>().get(e).cloned(),
-            factory: g.world.read_storage::<Factory>().get(e).cloned(),
-            shipyard: g.world.read_storage::<Shipyard>().get(e).cloned(),
+            nav_move_to: entity.get::<Navigation>().cloned(),
+            cargo: entity.get::<Cargo>().cloned(),
+            factory: entity.get::<Factory>().cloned(),
+            shipyard: entity.get::<Shipyard>().cloned(),
             docked_fleets,
         };
 
@@ -374,72 +352,73 @@ impl SpaceGame {
     pub fn get_obj_coords(&self, id: Id) -> Option<ObjCoords> {
         let game = self.game.borrow();
         let e = decode_entity_and_get(&game, id)?;
-        let loc_spce = game.world.read_storage::<LocationSpace>();
-        let loc_docked = game.world.read_storage::<LocationDocked>();
-        let ls = Locations::resolve_space_position(&loc_spce, &loc_docked, e)?;
-        let is_docked = loc_docked.get(e).is_some();
+        let location = game.world.get::<LocationSpace>(e);
+        let loc_docked = game.world.get::<LocationDocked>(e);
         Some(ObjCoords {
-            location: ls,
-            is_docked,
+            location: location.cloned(),
+            is_docked: loc_docked.is_some(),
         })
     }
 
-    pub fn list_wares(&self) -> Vec<WareData> {
-        let game = self.game.borrow();
-        let entities = game.world.entities();
-        let labels = game.world.read_storage::<Label>();
-        let wares = game.world.read_storage::<Ware>();
+    pub fn list_wares(&mut self) -> Vec<WareData> {
+        let mut g = self.game.borrow_mut();
+        let mut ss: SystemState<Query<(Entity, &Label, &Ware)>> = SystemState::new(&mut g.world);
+        let query = ss.get(&mut g.world);
 
-        (&entities, &labels, &wares)
-            .join()
-            .map(|(e, l, _)| WareData {
-                id: encode_entity(e),
-                label: l.label.clone(),
+        query
+            .iter()
+            .map(|(id, label, ware)| WareData {
+                id: encode_entity(id),
+                label: label.label.clone(),
             })
             .collect()
     }
 
-    pub fn list_building_sites_prefabs(&self) -> Vec<PrefabData> {
-        let game = self.game.borrow();
-        let entities = game.world.entities();
-        let labels = game.world.read_storage::<Label>();
-        let prefabs = game.world.read_storage::<Prefab>();
+    pub fn list_building_prefabs(&mut self) -> Vec<PrefabData> {
+        let mut g = self.game.borrow_mut();
+        let mut ss: SystemState<Query<(Entity, &Label, &Prefab)>> = SystemState::new(&mut g.world);
+        let query = ss.get(&mut g.world);
 
-        (&entities, &labels, &prefabs)
-            .join()
-            .filter(|(_, _, p)| p.build_site)
-            .map(|(e, l, _p)| PrefabData {
-                id: encode_entity(e),
-                label: l.label.clone(),
+        query
+            .iter()
+            .map(|(id, label, prefab)| PrefabData {
+                id: encode_entity(id),
+                label: label.label.clone(),
+
+                shipyard: prefab.shipyard,
+                building_site: prefab.build_site,
             })
             .collect()
     }
 
-    pub fn list_building_shipyard_prefabs(&self) -> Vec<PrefabData> {
-        let game = self.game.borrow();
-        let entities = game.world.entities();
-        let labels = game.world.read_storage::<Label>();
-        let prefabs = game.world.read_storage::<Prefab>();
-
-        (&entities, &labels, &prefabs)
-            .join()
-            .filter(|(_, _, p)| p.shipyard)
-            .map(|(e, l, _p)| PrefabData {
-                id: encode_entity(e),
-                label: l.label.clone(),
-            })
+    pub fn list_building_sites_prefabs(&mut self) -> Vec<PrefabData> {
+        self.list_building_prefabs()
+            .into_iter()
+            .filter(|i| i.building_site)
             .collect()
     }
 
-    pub fn new_building_plot(&self, plot_id: u64, sector_id: u64, pos_x: f32, pos_y: f32) -> u64 {
+    pub fn list_building_shipyard_prefabs(&mut self) -> Vec<PrefabData> {
+        self.list_building_prefabs()
+            .into_iter()
+            .filter(|i| i.shipyard)
+            .collect()
+    }
+
+    pub fn new_building_plot(
+        &mut self,
+        plot_id: u64,
+        sector_id: u64,
+        pos_x: f32,
+        pos_y: f32,
+    ) -> u64 {
         let mut game = self.game.borrow_mut();
         let plot_id = dbg!(decode_entity_and_get(&game, plot_id).unwrap());
         let sector_id = decode_entity_and_get(&game, sector_id).unwrap();
 
         let prod_cost = game
             .world
-            .read_storage::<Prefab>()
-            .get(plot_id)
+            .get::<Prefab>(plot_id)
             .expect("prefab not found")
             .obj
             .production_cost
@@ -449,7 +428,9 @@ impl SpaceGame {
 
         let new_obj = Loader::new_station_building_site(plot_id, prod_cost)
             .at_position(sector_id, P2::new(pos_x, pos_y));
-        let obj_id = Loader::add_object(&mut game.world, &new_obj);
+        let obj_id = game
+            .world
+            .run_commands(|mut commands| Loader::add_object(&mut commands, &new_obj));
         encode_entity(obj_id)
     }
 
@@ -458,14 +439,16 @@ impl SpaceGame {
         let obj_id = decode_entity_and_get(&self.game.borrow(), obj_id).unwrap();
 
         let mut game = self.game.borrow_mut();
-
-        let mut shipyards = game.world.write_storage::<Shipyard>();
-        let prefabs = game.world.read_storage::<Prefab>();
-
-        let prefab = prefabs.get(prefab_id).unwrap();
+        let prefab = game
+            .world
+            .get::<Prefab>(prefab_id)
+            .expect("prefab not found");
         assert!(prefab.shipyard);
 
-        let mut shipyard = shipyards.get_mut(obj_id).unwrap();
+        let mut shipyard = game
+            .world
+            .get_mut::<Shipyard>(obj_id)
+            .expect("shipyard not found");
         shipyard.set_production_order(shipyard::ProductionOrder::Next(prefab_id));
         log::debug!("{:?} set production order to {:?}", obj_id, prefab_id);
     }
@@ -494,11 +477,8 @@ fn new_trader_orders(o: &TradeOrders) -> Vec<ObjTradeOrder> {
 
 #[cfg(test)]
 mod test {
+    use space_domain::game::utils::{MIN_DISTANCE, V2};
     use std::num::NonZeroI32;
-
-    use specs::world::Generation;
-
-    use space_domain::utils::{MIN_DISTANCE, MIN_DISTANCE_SQR, V2};
 
     use super::*;
     #[test]
@@ -529,7 +509,8 @@ mod test {
         for f in f1 {
             for f2 in &f2 {
                 if f.id == f2.id {
-                    let changed = V2::distance(f.coords, f2.coords) > MIN_DISTANCE;
+                    let changed = V2::distance(f.location.unwrap().pos, f2.location.unwrap().pos)
+                        > MIN_DISTANCE;
                     if f.kind.fleet && changed {
                         changed_pos += 1;
                     } else if f.kind.station && changed {
@@ -550,26 +531,26 @@ mod test {
 
         let mut w = World::new();
         for _ in 0..100 {
-            w.create_entity().build();
+            w.spawn_empty().id();
         }
 
         for _ in 0..9 {
-            let e = w.create_entity().build();
-            w.delete_entity(e).unwrap();
+            let e = w.spawn_empty().id();
+            w.despawn(e);
         }
 
-        let e = w.create_entity().build();
-        assert_eq!(100, e.id());
-        assert_eq!(10, e.gen().id());
+        let e = w.spawn_empty().id();
+        assert_eq!(100, e.index());
+        assert_eq!(10, e.generation());
 
         let v = proper_encode_entity(e);
         log::info!("encoded {v}");
         let (id, gen) = proper_decode_entity(v);
         log::info!("decoded {id} {gen}");
 
-        assert_eq!(e.id(), id);
+        assert_eq!(e.index(), id);
         assert_eq!(100, id);
-        assert_eq!(e.gen().id(), gen);
+        assert_eq!(e.generation(), gen);
         assert_eq!(10, gen);
     }
 
@@ -581,26 +562,26 @@ mod test {
 
         let mut w = World::new();
         for _ in 0..100 {
-            w.create_entity().build();
+            w.spawn_empty().id();
         }
 
         for _ in 0..9 {
-            let e = w.create_entity().build();
-            w.delete_entity(e).unwrap();
+            let e = w.spawn_empty().id();
+            w.despawn(e);
         }
 
-        let e = w.create_entity().build();
-        assert_eq!(100, e.id());
-        assert_eq!(10, e.gen().id());
+        let e = w.spawn_empty().id();
+        assert_eq!(100, e.index());
+        assert_eq!(10, e.generation());
 
         let v = encode_entity(e);
         log::info!("encoded {v}");
         let (id, gen) = decode_entity(v);
         log::info!("decoded {id} {gen}");
 
-        assert_eq!(e.id(), id);
+        assert_eq!(e.index(), id);
         assert_eq!(100, id);
-        assert_eq!(e.gen().id(), gen);
+        assert_eq!(e.generation(), gen);
         assert_eq!(10, gen);
     }
 }

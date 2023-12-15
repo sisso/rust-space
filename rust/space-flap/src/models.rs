@@ -2,8 +2,8 @@ use std::cell::RefCell;
 use std::fmt::format;
 use std::rc::Rc;
 
-use specs::prelude::*;
-use specs::Entity;
+use bevy_ecs::prelude::*;
+use bevy_ecs::system::RunSystemOnce;
 
 use commons::math::P2;
 use space_domain::game::actions::Action;
@@ -61,17 +61,17 @@ impl ObjOrbitData {
 
 #[derive(Clone, Debug)]
 pub struct ObjCoords {
-    pub(crate) location: LocationSpace,
+    pub(crate) location: Option<LocationSpace>,
     pub(crate) is_docked: bool,
 }
 
 impl ObjCoords {
-    pub fn get_sector_id(&self) -> Id {
-        encode_entity(self.location.sector_id)
+    pub fn get_sector_id(&self) -> Option<Id> {
+        self.location.map(|l| encode_entity(l.sector_id))
     }
 
-    pub fn get_coords(&self) -> (f32, f32) {
-        (self.location.pos.x, self.location.pos.y)
+    pub fn get_coords(&self) -> Option<(f32, f32)> {
+        self.location.map(|l| (l.pos.x, l.pos.y))
     }
 
     pub fn is_docked(&self) -> bool {
@@ -82,8 +82,7 @@ impl ObjCoords {
 #[derive(Clone, Debug)]
 pub struct ObjData {
     pub(crate) id: Entity,
-    pub(crate) coords: P2,
-    pub(crate) sector_id: Entity,
+    pub(crate) location: Option<LocationSpace>,
     pub(crate) docked: Option<Entity>,
     pub(crate) kind: ObjKind,
     pub(crate) orbit: Option<ObjOrbitData>,
@@ -103,12 +102,12 @@ impl ObjData {
         self.docked.map(|e| encode_entity(e))
     }
 
-    pub fn get_sector_id(&self) -> Id {
-        encode_entity(self.sector_id)
+    pub fn get_sector_id(&self) -> Option<Id> {
+        self.location.map(|l| encode_entity(l.sector_id))
     }
 
-    pub fn get_coords(&self) -> (f32, f32) {
-        (self.coords.x, self.coords.y)
+    pub fn get_coords(&self) -> Option<(f32, f32)> {
+        self.location.map(|l| (l.pos.x, l.pos.y))
     }
 
     pub fn get_orbit(&self) -> Option<ObjOrbitData> {
@@ -318,27 +317,36 @@ impl JumpData {
 
     pub fn get_sector_id(&self) -> Id {
         let g = self.game.borrow();
-        let loc = Locations::resolve_space_position_from_world(&g.world, self.entity);
+        let loc = Locations::get_location_space(&g.world, self.entity);
         encode_entity(loc.unwrap().sector_id)
     }
 
     pub fn get_coords(&self) -> (f32, f32) {
         let g = self.game.borrow();
-        let loc = Locations::resolve_space_position_from_world(&g.world, self.entity);
+        let loc = Locations::get_location_space(&g.world, self.entity);
         let pos = loc.unwrap().pos;
         (pos.x, pos.y)
     }
 
     pub fn get_to_sector_id(&self) -> Id {
-        let g = self.game.borrow();
-        let jumps = g.world.read_storage::<Jump>();
-        encode_entity((&jumps).get(self.entity).unwrap().target_sector_id)
+        let id = self
+            .game
+            .borrow()
+            .world
+            .get::<Jump>(self.entity)
+            .unwrap()
+            .target_sector_id;
+        encode_entity(id)
     }
 
     pub fn get_to_coords(&self) -> (f32, f32) {
-        let g = self.game.borrow();
-        let jumps = g.world.read_storage::<Jump>();
-        let pos = (&jumps).get(self.entity).unwrap().target_pos;
+        let pos = self
+            .game
+            .borrow()
+            .world
+            .get::<Jump>(self.entity)
+            .unwrap()
+            .target_pos;
         (pos.x, pos.y)
     }
 }
@@ -396,7 +404,7 @@ impl WareData {
 
 #[derive(Debug)]
 pub struct EventData {
-    pub(crate) event: events::Event,
+    pub(crate) event: events::GEvent,
 }
 
 impl EventData {
@@ -421,6 +429,8 @@ impl EventData {
 pub struct PrefabData {
     pub(crate) id: Id,
     pub(crate) label: String,
+    pub(crate) shipyard: bool,
+    pub(crate) building_site: bool,
 }
 
 impl PrefabData {

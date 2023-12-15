@@ -10,7 +10,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 space-domain = { version = "*", path = "../space-domain" }
 commons = { version = "*", path = "../commons" }
-specs = { version = "0.20.0", features = ["serde", "specs-derive", "shred-derive"] }
 env_logger = "0.8"
 log = "0.4"
 itertools = "0.10"
+bevy_ecs = {version = "0.12.1"}
