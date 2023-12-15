@@ -1,8 +1,7 @@
+use bevy_ecs::prelude::*;
 use itertools::Itertools;
-use specs::prelude::*;
 
 use crate::game::wares::WareId;
-use crate::game::{GameInitContext, RequireInitializer};
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct TradeOrderId(u16);
@@ -134,11 +133,5 @@ impl TradeOrders {
         self.provided
             .retain(|(i_order_id, _)| *i_order_id == order_id);
         log::debug!("trade order updated by remove_by_id {:?}", self);
-    }
-}
-
-impl RequireInitializer for TradeOrders {
-    fn init(context: &mut GameInitContext) {
-        context.world.register::<TradeOrders>();
     }
 }

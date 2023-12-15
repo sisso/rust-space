@@ -1,4 +1,4 @@
-use specs::prelude::*;
+use bevy_ecs::prelude::*;
 
 use crate::game::building_site::BuildingSite;
 use crate::game::production_cost::ProductionCost;
@@ -11,9 +11,9 @@ use crate::game::locations::*;
 use crate::game::objects::ObjId;
 use crate::game::sectors::*;
 use crate::game::shipyard::Shipyard;
+use crate::game::utils::*;
 use crate::game::wares::{Cargo, Volume, WareAmount};
 use crate::game::work::WorkUnit;
-use crate::utils::*;
 
 #[derive(Debug, Clone, Component, Default)]
 pub struct NewObj {

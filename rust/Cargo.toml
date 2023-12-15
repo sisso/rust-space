@@ -1,13 +1,12 @@
 [workspace]
 members = [
   "commons",
-  "space-domain",
 #  "space-console",
   "space-2d-gui",
   "space-flap",
   "space-galaxy",
   "space-godot",
-  "domain-b"
+  "space-domain"
 ]
 
 resolver="2"

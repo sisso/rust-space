@@ -12,7 +12,7 @@ use crate::{main_gui, sector_view};
 pub enum StateScreen {
     Sector(Id),
     SectorPlot { sector_id: Id, plot_id: Id },
-    Obj(Id),
+    Obj { sector_id: Id, obj_id: Id },
 }
 
 impl StateScreen {}
@@ -56,7 +56,7 @@ impl Runtime {
             // .filter(Some("space_domain::game::loader"), log::LevelFilter::Trace)
             .init();
 
-        let game = SpaceGame::new(vec![
+        let mut game = SpaceGame::new(vec![
             "--size-xy".to_string(),
             "2,1".to_string(),
             "--fleets".to_string(),
@@ -86,14 +86,7 @@ impl Runtime {
     fn get_current_sector_id(&self) -> Id {
         match &self.screen {
             StateScreen::Sector(sector_id) => *sector_id,
-            StateScreen::Obj(id) => {
-                let sector_id = self
-                    .game
-                    .get_obj_coords(*id)
-                    .map(|coords| coords.get_sector_id());
-
-                return sector_id.expect("selected object has no sector_id");
-            }
+            StateScreen::Obj { sector_id, .. } => *sector_id,
             StateScreen::SectorPlot { sector_id, .. } => *sector_id,
         }
     }
@@ -118,12 +111,20 @@ impl Runtime {
             self.screen = StateScreen::Sector(sector_id);
         } else if let Some(fleet_id) = clicked_fleet_id {
             // when click on a fleet, start to follow that fleet
+            let sector_id = self
+                .game
+                .get_obj_coords(fleet_id)
+                .and_then(|i| i.get_sector_id())
+                .unwrap_or(self.get_current_sector_id());
 
             // sometimes fleet is docked, we didn't handle it properly (I think)
             self.sector_view
                 .bind_mut()
                 .set_state(sector_view::SectorViewState::None);
-            self.screen = StateScreen::Obj(fleet_id);
+            self.screen = StateScreen::Obj {
+                obj_id: fleet_id,
+                sector_id: sector_id,
+            };
         } else if let Some(prefab_id) = clicked_selected_action {
             let r = self.set_shipyard_production(prefab_id);
             godot_print!("set shipyard prefab_id {:?}: {:?}", prefab_id, r);
@@ -162,8 +163,13 @@ impl Runtime {
                 }
             }
         } else if let Some(id) = sector_selected_id {
+            let sector_id = self.get_current_sector_id();
+
             // when has on a obj in the sector already selected
-            self.screen = StateScreen::Obj(id);
+            self.screen = StateScreen::Obj {
+                sector_id: sector_id,
+                obj_id: id,
+            }
         }
 
         // update time
@@ -186,35 +192,44 @@ impl Runtime {
     }
 
     pub fn refresh_sector_view(&mut self) {
-        match &self.screen {
+        match self.screen.clone() {
             StateScreen::Sector(sector_id) => {
                 self.sector_view
                     .bind_mut()
-                    .refresh(generate_sectorview_updates(&self.game, *sector_id));
+                    .refresh(generate_sectorview_updates(&mut self.game, sector_id));
                 self.gui
                     .bind_mut()
                     .show_selected_object(main_gui::Description::None);
             }
-            StateScreen::Obj(id) => {
-                let sector_id = self
+            StateScreen::Obj { sector_id, obj_id } => {
+                let obj_sector_id = self
                     .game
-                    .get_obj_coords(*id)
-                    .map(|coords| coords.get_sector_id());
+                    .get_obj_coords(obj_id)
+                    .and_then(|coords| coords.get_sector_id());
 
-                if let Some(sector_id) = sector_id {
-                    self.sector_view
-                        .bind_mut()
-                        .refresh(generate_sectorview_updates(&self.game, sector_id));
-                }
-                let desc = self.describe_obj(*id);
+                let sector_id = if let Some(obj_sector_id) = obj_sector_id {
+                    self.screen = StateScreen::Obj {
+                        sector_id: obj_sector_id,
+                        obj_id,
+                    };
+                    obj_sector_id
+                } else {
+                    sector_id
+                };
+
+                self.sector_view
+                    .bind_mut()
+                    .refresh(generate_sectorview_updates(&mut self.game, sector_id));
+
+                let desc = self.describe_obj(obj_id);
                 self.gui.bind_mut().show_selected_object(desc);
             }
 
             StateScreen::SectorPlot { sector_id, plot_id } => {
-                let updates = generate_sectorview_updates(&self.game, *sector_id);
+                let updates = generate_sectorview_updates(&mut self.game, sector_id);
                 self.sector_view.bind_mut().refresh(updates);
 
-                let describe_plot = describe_plot(&self.game, *plot_id);
+                let describe_plot = describe_plot(&self.game, plot_id);
 
                 let mut gui = self.gui.bind_mut();
                 gui.show_selected_plot_desc(describe_plot);
@@ -279,7 +294,7 @@ impl Runtime {
         self.sector_view.bind_mut().recenter();
     }
 
-    pub fn describe_obj(&self, id: Id) -> Description {
+    pub fn describe_obj(&mut self, id: Id) -> Description {
         let data = self.game.get_obj(id);
         let desc = self.game.get_obj_desc(id);
         let jump_target = self
@@ -385,7 +400,7 @@ impl Runtime {
     fn set_shipyard_production(&mut self, prefab_id: Id) -> Option<()> {
         // double check selected entity is a shipyard
         let obj_id = match &self.screen {
-            StateScreen::Obj(id) => *id,
+            StateScreen::Obj { obj_id, .. } => *obj_id,
             _ => return None,
         };
         let dsc = self.game.get_obj_desc(obj_id)?;
@@ -474,7 +489,10 @@ fn get_kind_str(data: &ObjData) -> &str {
     }
 }
 
-pub fn generate_sectorview_updates(game: &SpaceGame, sector_id: Id) -> Vec<sector_view::Update> {
+pub fn generate_sectorview_updates(
+    game: &mut SpaceGame,
+    sector_id: Id,
+) -> Vec<sector_view::Update> {
     let mut updates = vec![];
 
     let list = game
@@ -485,7 +503,7 @@ pub fn generate_sectorview_updates(game: &SpaceGame, sector_id: Id) -> Vec<secto
     for data in list {
         updates.push(sector_view::Update::Obj {
             id: data.get_id(),
-            pos: data.get_coords().into(),
+            pos: data.get_coords().expect("todo mingration").into(),
             kind: sector_view::ObjKind {
                 fleet: data.is_fleet(),
                 jump: data.is_jump(),
@@ -499,7 +517,7 @@ pub fn generate_sectorview_updates(game: &SpaceGame, sector_id: Id) -> Vec<secto
         if let Some(orbit) = data.get_orbit() {
             updates.push(sector_view::Update::Orbit {
                 id: data.get_id(),
-                pos: data.get_coords().into(),
+                pos: data.get_coords().expect("todo mingration").into(),
                 parent_pos: orbit.get_parent_pos().into(),
                 radius: orbit.get_radius(),
             })

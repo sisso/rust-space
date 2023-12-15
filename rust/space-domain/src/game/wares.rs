@@ -2,9 +2,8 @@ use crate::game::code::HasCode;
 use crate::game::factory::Factory;
 use crate::game::prefab::Prefab;
 use crate::game::shipyard::Shipyard;
-use crate::game::GameInitContext;
+use bevy_ecs::prelude::*;
 use log;
-use specs::prelude::*;
 use std::collections::HashMap;
 
 use super::objects::ObjId;
@@ -25,29 +24,18 @@ pub struct Ware;
 pub struct Wares;
 
 impl Wares {
-    pub fn init(ctx: &mut GameInitContext) {
-        ctx.world.register::<Ware>();
-        ctx.world.register::<Cargo>();
-        ctx.world.register::<CargoDistributionDirty>();
-        ctx.dispatcher.add(
-            CargoDistributionDirtySystem {},
-            "cargo_distribution_dirty",
-            &[],
-        );
+    pub fn list_wares_by_code(query: Query<(Entity, With<Ware>, &HasCode)>) -> WaresByCode {
+        let mut map: HashMap<String, Entity> = Default::default();
+        for (e, code) in Self::list_wares(query) {
+            map.insert(code, e);
+        }
+        WaresByCode::from(map)
     }
 
-    pub fn list_wares_by_code(world: &World) -> WaresByCode {
-        WaresByCode::new(world)
-    }
-
-    pub fn list_wares(world: &World) -> Vec<(Entity, String)> {
-        (
-            &world.entities(),
-            &world.read_storage::<Ware>(),
-            &world.read_storage::<HasCode>(),
-        )
-            .join()
-            .map(|(e, _, c)| (e, c.code.clone()))
+    pub fn list_wares(query: Query<(Entity, With<Ware>, &HasCode)>) -> Vec<(Entity, String)> {
+        query
+            .iter()
+            .map(|(id, _, code)| (id, code.code.clone()))
             .collect()
     }
 }
@@ -88,30 +76,11 @@ impl VecWareAmount for Vec<WareAmount> {
     }
 }
 
-pub fn find_ware_by_code(world: &World, code: &str) -> Option<Entity> {
-    (
-        &world.entities(),
-        &world.read_storage::<Ware>(),
-        &world.read_storage::<HasCode>(),
-    )
-        .join()
-        .find(|(_, _, c)| c.code.eq_ignore_ascii_case(code))
-        .map(|(e, _, _)| e)
-}
-
 pub struct WaresByCode {
     map: HashMap<String, Entity>,
 }
 
 impl WaresByCode {
-    pub fn new(world: &World) -> Self {
-        let mut map: HashMap<String, Entity> = Default::default();
-        for (e, code) in Wares::list_wares(world) {
-            map.insert(code, e);
-        }
-        Self { map }
-    }
-
     pub fn get(&self, code: &str) -> Option<Entity> {
         self.map.get(code).cloned()
     }
@@ -354,7 +323,7 @@ pub struct Cargos;
 
 impl Cargos {
     pub fn move_only(
-        cargos: &mut WriteStorage<Cargo>,
+        cargos: &mut Query<&mut Cargo>,
         from_id: ObjId,
         to_id: ObjId,
         wares: &Vec<WareId>,
@@ -362,16 +331,12 @@ impl Cargos {
         Cargos::move_impl(cargos, from_id, to_id, Some(wares))
     }
 
-    pub fn move_all(
-        cargos: &mut WriteStorage<Cargo>,
-        from_id: ObjId,
-        to_id: ObjId,
-    ) -> CargoTransfer {
+    pub fn move_all(cargos: &mut Query<&mut Cargo>, from_id: ObjId, to_id: ObjId) -> CargoTransfer {
         Cargos::move_impl(cargos, from_id, to_id, None)
     }
 
     fn move_impl(
-        cargos: &mut WriteStorage<Cargo>,
+        cargos: &mut Query<&mut Cargo>,
         from_id: ObjId,
         to_id: ObjId,
         wares: Option<&Vec<WareId>>,
@@ -390,78 +355,62 @@ impl Cargos {
             wares,
         );
 
-        let cargo_from = cargos.get_mut(from_id).expect("Entity cargo not found");
+        let mut cargo_from = cargos.get_mut(from_id).expect("Entity cargo not found");
         transfer
-            .apply_move_from(cargo_from)
+            .apply_move_from(&mut cargo_from)
             .expect("To remove wares to be transfer");
 
-        let cargo_to = cargos.get_mut(to_id).expect("Deliver cargo not found");
+        let mut cargo_to = cargos.get_mut(to_id).expect("Deliver cargo not found");
         transfer
-            .apply_move_to(cargo_to)
+            .apply_move_to(&mut cargo_to)
             .expect("To add wares to be transfer");
 
         transfer
     }
 }
 
-pub struct CargoDistributionDirtySystem {}
+pub fn system_cargo_distribution(
+    mut commands: Commands,
+    mut query: Query<
+        (Entity, &mut Cargo, Option<&Factory>, Option<&Shipyard>),
+        With<CargoDistributionDirty>,
+    >,
+    query_prefabs: Query<(Entity, &Prefab)>,
+) {
+    log::trace!("running CargoDistributionDirtySystem");
 
-impl<'a> System<'a> for CargoDistributionDirtySystem {
-    type SystemData = (
-        Entities<'a>,
-        WriteStorage<'a, Cargo>,
-        WriteStorage<'a, CargoDistributionDirty>,
-        ReadStorage<'a, Factory>,
-        ReadStorage<'a, Shipyard>,
-        ReadStorage<'a, Prefab>,
-    );
+    let mut shipyard_caching = None;
 
-    fn run(
-        &mut self,
-        (entities, mut cargos, mut cargos_dirty, factories, shipyards, prefabs): Self::SystemData,
-    ) {
-        log::trace!("running CargoDistributionDirtySystem");
-
-        let mut shipyard_caching = None;
-
-        // update cargos giving others component requirements
-        for (e, c, _, f, s) in (
-            &entities,
-            &mut cargos,
-            &cargos_dirty,
-            factories.maybe(),
-            shipyards.maybe(),
-        )
-            .join()
-        {
-            let mut wares = vec![];
-            if let Some(f) = f {
-                wares.extend(f.get_cargos_allocation());
+    // update cargos giving others component requirements
+    for (obj_id, mut cargo, maybe_factory, maybe_shipyard) in &mut query {
+        let mut wares = vec![];
+        if let Some(f) = maybe_factory {
+            wares.extend(f.get_cargos_allocation());
+        }
+        if let Some(_) = maybe_shipyard {
+            if shipyard_caching.is_none() {
+                // collect all wares used for ship production
+                let prefab_wares: Vec<_> = query_prefabs
+                    .iter()
+                    .filter(|(_, p)| p.shipyard)
+                    .flat_map(|(_id, p)| {
+                        p.obj
+                            .production_cost
+                            .iter()
+                            .flat_map(|pc| &pc.cost)
+                            .map(|c| c.ware_id)
+                    })
+                    .collect();
+                shipyard_caching = Some(prefab_wares);
             }
-            if let Some(_) = s {
-                if shipyard_caching.is_none() {
-                    let prefab_wares: Vec<_> = (&prefabs,)
-                        .join()
-                        .filter(|(p,)| p.shipyard)
-                        .flat_map(|(p,)| {
-                            p.obj
-                                .production_cost
-                                .iter()
-                                .flat_map(|pc| &pc.cost)
-                                .map(|c| c.ware_id)
-                        })
-                        .collect();
-                    shipyard_caching = Some(prefab_wares);
-                }
-                wares.extend(shipyard_caching.as_ref().unwrap().iter());
-            }
-
-            log::debug!("update {e:?} cargo wares to {wares:?}");
-            c.set_whitelist(wares);
+            wares.extend(shipyard_caching.as_ref().unwrap().iter());
         }
 
+        log::debug!("update {obj_id:?} cargo wares to {wares:?}");
+        cargo.set_whitelist(wares);
+
         // remove dirty flag
-        cargos_dirty.clear();
+        commands.entity(obj_id).remove::<CargoDistributionDirty>();
     }
 }
 
@@ -471,9 +420,9 @@ mod test {
 
     fn create_wares() -> (WareId, WareId, WareId) {
         let mut world = World::new();
-        let ware_0 = world.create_entity().build();
-        let ware_1 = world.create_entity().build();
-        let ware_2 = world.create_entity().build();
+        let ware_0 = world.spawn_empty().id();
+        let ware_1 = world.spawn_empty().id();
+        let ware_2 = world.spawn_empty().id();
         (ware_0, ware_1, ware_2)
     }
 

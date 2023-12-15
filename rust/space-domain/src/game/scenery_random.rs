@@ -1,18 +1,18 @@
+use crate::game::bevy_utils::WorldExt;
 use crate::game::extractables::Extractable;
 use crate::game::loader::Loader;
 use crate::game::locations::LocationOrbit;
 use crate::game::orbit::Orbits;
-use crate::game::sectors::Sector;
 use crate::game::shipyard::Shipyard;
+use crate::game::utils::TotalTime;
 use crate::game::wares::Wares;
 use crate::game::{conf, loader, sectors, shipyard, Game};
-use crate::utils::TotalTime;
+use bevy_ecs::prelude::*;
+use bevy_ecs::system::{RunSystemOnce, SystemState};
 use commons::math::{P2, P2I, V2, V2I};
 use commons::unwrap_or_continue;
 use rand::prelude::*;
 use space_galaxy::system_generator;
-use specs::prelude::*;
-use specs::World;
 use std::collections::HashSet;
 
 pub enum InitialCondition {
@@ -52,29 +52,39 @@ pub fn load_random(game: &mut Game, cfg: &RandomMapCfg) {
 
         // find shipyards
         {
-            let entities = world.entities();
-            let shipyard_storage = world.read_storage::<Shipyard>();
-            for (e, _) in (&entities, &shipyard_storage).join() {
-                shipyards.push(e);
-            }
+            let mut st: SystemState<Query<(Entity, With<Shipyard>)>> = SystemState::new(world);
+            let query = st.get(world);
+            shipyards.extend(query.iter().map(|(id, _)| id));
         }
 
-        // add mandatory ships
-        let shipyard = *commons::prob::select(&mut rng, &shipyards).unwrap();
-        Loader::add_ship_miner(world, shipyard, 0.75, format!("miner-{}", 0));
-        let shipyard = *commons::prob::select(&mut rng, &shipyards).unwrap();
-        Loader::add_ship_trader(world, shipyard, 1.0, format!("trader-{}", 0));
-
-        for i in 0..cfg.fleets {
+        game.world.run_commands(|mut commands| {
+            // add mandatory ships
             let shipyard = *commons::prob::select(&mut rng, &shipyards).unwrap();
-            let choose = rng.gen_range(0..=1);
-            let code = i + 2;
-            if choose == 0 {
-                Loader::add_ship_miner(world, shipyard, 0.75, format!("miner-{}", code));
-            } else {
-                Loader::add_ship_trader(world, shipyard, 1.0, format!("trader-{}", code));
+            Loader::add_ship_miner(&mut commands, shipyard, 0.75, format!("miner-{}", 0));
+            let shipyard = *commons::prob::select(&mut rng, &shipyards).unwrap();
+            Loader::add_ship_trader(&mut commands, shipyard, 1.0, format!("trader-{}", 0));
+
+            for i in 0..cfg.fleets {
+                let shipyard = *commons::prob::select(&mut rng, &shipyards).unwrap();
+                let choose = rng.gen_range(0..=1);
+                let code = i + 2;
+                if choose == 0 {
+                    Loader::add_ship_miner(
+                        &mut commands,
+                        shipyard,
+                        0.75,
+                        format!("miner-{}", code),
+                    );
+                } else {
+                    Loader::add_ship_trader(
+                        &mut commands,
+                        shipyard,
+                        1.0,
+                        format!("trader-{}", code),
+                    );
+                }
             }
-        }
+        });
     }
 
     // update index
@@ -89,35 +99,40 @@ pub fn generate_sectors(world: &mut World, size: (usize, usize), seed: u64) {
         size: (size.0 as i32, size.1 as i32),
     });
 
-    // add sectors
-    for s in &galaxy.sectors.list {
-        let pos = P2I::new(s.coords.x, s.coords.y);
-        let sector_id =
-            Loader::add_sector(world, pos, format!("sector {} {}", s.coords.x, s.coords.y));
-        sectors_by_index.push((sector_id, pos));
-    }
-    // add portals
-    let mut cached: HashSet<(usize, usize)> = Default::default();
-
-    for j in &galaxy.jumps {
-        if !cached.insert((j.sector_a, j.sector_b)) {
-            continue;
+    world.run_commands(|mut commands| {
+        // add sectors
+        for s in &galaxy.sectors.list {
+            let pos = P2I::new(s.coords.x, s.coords.y);
+            let sector_id = Loader::add_sector(
+                &mut commands,
+                pos,
+                format!("sector {} {}", s.coords.x, s.coords.y),
+            );
+            sectors_by_index.push((sector_id, pos));
         }
+        // add portals
+        let mut cached: HashSet<(usize, usize)> = Default::default();
 
-        if !cached.insert((j.sector_b, j.sector_a)) {
-            continue;
+        for j in &galaxy.jumps {
+            if !cached.insert((j.sector_a, j.sector_b)) {
+                continue;
+            }
+
+            if !cached.insert((j.sector_b, j.sector_a)) {
+                continue;
+            }
+
+            Loader::add_jump(
+                &mut commands,
+                sectors_by_index[j.sector_a].0,
+                j.pos_a.into(),
+                sectors_by_index[j.sector_b].0,
+                j.pos_b.into(),
+            );
         }
+    });
 
-        Loader::add_jump(
-            world,
-            sectors_by_index[j.sector_a].0,
-            j.pos_a.into(),
-            sectors_by_index[j.sector_b].0,
-            j.pos_b.into(),
-        );
-    }
-
-    sectors::update_sectors_index(world);
+    world.run_system_once(sectors::system_update_sectors_index);
 }
 
 fn add_bodies_to_sectors(
@@ -126,9 +141,9 @@ fn add_bodies_to_sectors(
     universe_cfg: &system_generator::UniverseCfg,
 ) {
     let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
-
-    let sectors_id = sectors::list(world);
-    let wares = Wares::list_wares_by_code(world);
+    let total_time = *world.resource::<TotalTime>();
+    let sectors_id = world.run_system_once(sectors::list);
+    let wares = world.run_system_once(Wares::list_wares_by_code);
 
     for sector_id in sectors_id {
         let system = system_generator::new_system(&universe_cfg, rng.gen());
@@ -139,7 +154,7 @@ fn add_bodies_to_sectors(
             let maybe_obj_id = match &body.desc {
                 system_generator::BodyDesc::Star { .. } => {
                     let new_obj = Loader::new_star(sector_id);
-                    Some(Loader::add_object(world, &new_obj))
+                    Some(Loader::add_object_from_world(world, &new_obj))
                 }
                 system_generator::BodyDesc::AsteroidField { resources } => {
                     let maybe_ware_id = resources
@@ -161,7 +176,7 @@ fn add_bodies_to_sectors(
                             ware_id,
                             accessibility: 1.0,
                         });
-                        Some(Loader::add_object(world, &new_obj))
+                        Some(Loader::add_object_from_world(world, &new_obj))
                     } else {
                         log::warn!("fail to create asteroid field {:?}", body);
                         None
@@ -169,15 +184,11 @@ fn add_bodies_to_sectors(
                 }
                 system_generator::BodyDesc::Planet(_) => {
                     let new_obj = Loader::new_planet(sector_id);
-                    Some(Loader::add_object(world, &new_obj))
+                    Some(Loader::add_object_from_world(world, &new_obj))
                 }
             };
             new_bodies.push((maybe_obj_id, body));
         }
-
-        // update orbits
-        let total_time = *world.read_resource::<TotalTime>();
-        let mut orbits = world.write_storage::<LocationOrbit>();
 
         for (obj_id, body) in &new_bodies {
             let obj_id = unwrap_or_continue!(obj_id);
@@ -215,7 +226,11 @@ fn add_bodies_to_sectors(
                 body.distance,
                 speed.0
             );
-            orbits.insert(*obj_id, orbit).unwrap();
+
+            world
+                .get_entity_mut(*obj_id)
+                .expect("obj_id not found")
+                .insert(orbit);
         }
     }
 
@@ -234,18 +249,18 @@ fn add_stations_random(
     add_stations_minimal(world, rng.next_u64(), params);
 
     // compute number of stations to add
-    let sectors_list = sectors::list(world);
+    let sectors_list = world.run_system_once(sectors::list);
     let total_stations: f32 = station_per_sector_density * sectors_list.len() as f32;
     let total_solar = (total_stations / 3.0) as i32;
     let total_factory = (total_stations / 3.0) as i32;
     let total_shipyard = (total_stations / 10.0) as i32;
 
     let shipyard_new_obj =
-        Loader::new_by_prefab_code(world, params.prefab_station_shipyard.as_str())
+        Loader::new_by_prefab_code(world, params.prefab_station_shipyard.clone())
             .expect("fail to new shipyard");
-    let factory_new_obj = Loader::new_by_prefab_code(world, params.prefab_station_factory.as_str())
+    let factory_new_obj = Loader::new_by_prefab_code(world, params.prefab_station_factory.clone())
         .expect("fail to new factory");
-    let solar_new_obj = Loader::new_by_prefab_code(world, params.prefab_station_solar.as_str())
+    let solar_new_obj = Loader::new_by_prefab_code(world, params.prefab_station_solar.clone())
         .expect("fail to new solar");
 
     for (mut new_obj, count) in [
@@ -266,8 +281,7 @@ fn add_stations_random(
                 shipyard.set_production_order(shipyard::ProductionOrder::Random);
             });
 
-            let obj_id = Loader::add_object(world, &new_obj);
-
+            let obj_id = Loader::add_object_from_world(world, &new_obj);
             _ = loader::set_orbit_random_body(world, obj_id, rng.next_u64());
         }
     }
@@ -279,18 +293,15 @@ fn add_mothership(world: &mut World, seed: u64, params: &conf::Params) {
     let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
 
     // get first sector
-    let sector_id = sectors::get_sector_by_coords(
-        &world.entities(),
-        &world.read_storage::<Sector>(),
-        V2I::new(0, 0),
-    )
-    .expect("no sector found");
+    let sector_id = world
+        .run_system_once_with(V2I::new(0, 0), sectors::get_sector_by_coords)
+        .expect("sector not found at coords");
 
     // add shipyard
-    let new_obj = Loader::new_by_prefab_code(world, params.prefab_mothership.as_str())
+    let new_obj = Loader::new_by_prefab_code(world, params.prefab_mothership.clone())
         .expect("fail to create mothership")
         .at_position(sector_id, V2::ZERO);
-    let obj_id = Loader::add_object(world, &new_obj);
+    let obj_id = Loader::add_object_from_world(world, &new_obj);
     _ = loader::set_orbit_random_body(world, obj_id, rng.next_u64());
 }
 
@@ -298,32 +309,29 @@ fn add_stations_minimal(world: &mut World, seed: u64, params: &conf::Params) {
     let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
 
     // get first sector
-    let sector_id = sectors::get_sector_by_coords(
-        &world.entities(),
-        &world.read_storage::<Sector>(),
-        V2I::new(0, 0),
-    )
-    .expect("no sector found");
+    let sector_id = world
+        .run_system_once_with(V2I::new(0, 0), sectors::get_sector_by_coords)
+        .expect("sector not found at coords");
 
     // add shipyard
-    let new_obj = Loader::new_by_prefab_code(world, params.prefab_station_shipyard.as_str())
+    let new_obj = Loader::new_by_prefab_code(world, params.prefab_station_shipyard.clone())
         .expect("fail to new shipyard")
         .at_position(sector_id, V2::ZERO);
-    let obj_id = Loader::add_object(world, &new_obj);
+    let obj_id = Loader::add_object_from_world(world, &new_obj);
     _ = loader::set_orbit_random_body(world, obj_id, rng.next_u64());
 
     // factory
-    let new_obj = Loader::new_by_prefab_code(world, params.prefab_station_factory.as_str())
+    let new_obj = Loader::new_by_prefab_code(world, params.prefab_station_factory.clone())
         .expect("fail to new factory")
         .at_position(sector_id, V2::ZERO);
-    let obj_id = Loader::add_object(world, &new_obj);
+    let obj_id = Loader::add_object_from_world(world, &new_obj);
     _ = loader::set_orbit_random_body(world, obj_id, rng.next_u64());
 
     // solar
-    let new_obj = Loader::new_by_prefab_code(world, params.prefab_station_solar.as_str())
+    let new_obj = Loader::new_by_prefab_code(world, params.prefab_station_solar.clone())
         .expect("fail to new solar")
         .at_position(sector_id, V2::ZERO);
-    let obj_id = Loader::add_object(world, &new_obj);
+    let obj_id = Loader::add_object_from_world(world, &new_obj);
     _ = loader::set_orbit_random_body(world, obj_id, rng.next_u64());
 }
 
@@ -342,7 +350,8 @@ mod test {
         let cfg = conf::load_str(&file).expect("fail to read config file");
 
         let mut game = Game::new();
-        loader::load_prefabs(&mut game.world, &cfg.prefabs);
+        game.world
+            .run_commands(|mut commands| loader::load_prefabs(&mut commands, &cfg.prefabs));
 
         let rcfg = RandomMapCfg {
             size: (3, 3),
