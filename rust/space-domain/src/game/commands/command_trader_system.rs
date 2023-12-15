@@ -314,12 +314,12 @@ pub fn system_command_trade(
 
     // switch back to idle
     for obj_id in back_to_idle {
-        log::info!("{:?} command set to trade idle", obj_id);
+        log::trace!("{:?} command set to trade idle", obj_id);
         commands.entity(obj_id).insert(Command::trade());
     }
 
     for obj_id in discard_cargo {
-        log::info!("{:?} discarding cargo", obj_id);
+        log::warn!("{:?} discarding cargo", obj_id);
         if let Some(mut cargo) = query_cargos.get_mut(obj_id).ok() {
             cargo.clear()
         }
@@ -339,11 +339,9 @@ mod test {
     use crate::game::utils::TotalTime;
     use crate::game::wares::{Cargo, Volume, WareId};
 
-    
     use crate::game::loader::Loader;
     use bevy_ecs::system::RunSystemOnce;
     use commons::math::P2;
-    
 
     const STATION_CARGO: Volume = 2000;
     const SHIP_CARGO: Volume = 500;
