@@ -1,8 +1,11 @@
+use crate::game::save::MapEntity;
 use crate::game::utils::{DeltaTime, TotalTime};
 use crate::game::wares::{Cargo, WareAmount, WareId};
 use bevy_ecs::prelude::*;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Receipt {
     pub label: String,
     pub input: Vec<WareAmount>,
@@ -20,7 +23,14 @@ impl Receipt {
     }
 }
 
-#[derive(Debug, Clone, Component)]
+impl MapEntity for Receipt {
+    fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
+        self.input.map_entity(entity_map);
+        self.output.map_entity(entity_map);
+    }
+}
+
+#[derive(Debug, Clone, Component, Serialize, Deserialize)]
 pub struct Factory {
     pub production: Receipt,
     pub production_time: Option<TotalTime>,
@@ -39,6 +49,12 @@ impl Factory {
         result.extend(self.production.input.iter().map(|i| i.ware_id));
         result.extend(self.production.output.iter().map(|i| i.ware_id));
         result
+    }
+}
+
+impl MapEntity for Factory {
+    fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
+        self.production.map_entity(entity_map);
     }
 }
 

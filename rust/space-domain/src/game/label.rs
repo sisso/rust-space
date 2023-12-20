@@ -1,6 +1,7 @@
 use bevy_ecs::prelude::*;
+use serde::{Deserialize, Serialize};
 
-#[derive(Component)]
+#[derive(Debug, Clone, Component, Serialize, Deserialize)]
 pub struct Label {
     pub label: String,
 }

@@ -1,9 +1,12 @@
+use crate::game::save::MapEntity;
 use bevy_ecs::prelude::*;
 use itertools::Itertools;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 use crate::game::wares::WareId;
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TradeOrderId(u16);
 
 pub const TRADE_ORDER_ID_SHIPYARD: TradeOrderId = TradeOrderId(0);
@@ -11,7 +14,7 @@ pub const TRADE_ORDER_ID_FACTORY: TradeOrderId = TradeOrderId(1);
 pub const TRADE_ORDER_ID_EXTRACTABLE: TradeOrderId = TradeOrderId(2);
 pub const TRADE_ORDER_ID_BUILDING_SITE: TradeOrderId = TradeOrderId(3);
 
-#[derive(Clone, Debug, Component, Default, PartialEq)]
+#[derive(Clone, Debug, Component, Default, PartialEq, Serialize, Deserialize)]
 pub struct TradeOrders {
     provided: Vec<(TradeOrderId, WareId)>,
     requested: Vec<(TradeOrderId, WareId)>,
@@ -133,5 +136,16 @@ impl TradeOrders {
         self.provided
             .retain(|(i_order_id, _)| *i_order_id == order_id);
         log::debug!("trade order updated by remove_by_id {:?}", self);
+    }
+}
+
+impl MapEntity for TradeOrders {
+    fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
+        self.provided
+            .iter_mut()
+            .for_each(|i| i.1.map_entity(entity_map));
+        self.requested
+            .iter_mut()
+            .for_each(|i| i.1.map_entity(entity_map));
     }
 }

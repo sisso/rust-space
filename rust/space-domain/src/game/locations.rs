@@ -1,6 +1,6 @@
 use bevy_ecs::prelude::*;
-use bevy_ecs::system::RunSystemOnce;
 use commons::math::{Distance, Rad, P2};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 use super::objects::*;
@@ -9,20 +9,33 @@ use crate::game::utils::*;
 
 use crate::game::dock::HasDocking;
 use crate::game::extractables::Extractable;
+use crate::game::save::MapEntity;
 
-#[derive(Debug, Clone, Copy, Component)]
+#[derive(Debug, Clone, Component, Serialize, Deserialize)]
 pub struct LocationSpace {
     pub pos: P2,
     pub sector_id: SectorId,
 }
 
-#[derive(Debug, Clone, Copy, Component)]
+impl MapEntity for LocationSpace {
+    fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
+        self.sector_id = entity_map[&self.sector_id];
+    }
+}
+
+#[derive(Debug, Clone, Component, Serialize, Deserialize)]
 pub struct LocationOrbit {
     pub parent_id: Entity,
     pub distance: Distance,
     pub start_time: TotalTime,
     pub start_angle: Rad,
     pub speed: Speed,
+}
+
+impl MapEntity for LocationOrbit {
+    fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
+        self.parent_id = entity_map[&self.parent_id];
+    }
 }
 
 // TODO: move to orbits
@@ -38,12 +51,18 @@ impl LocationOrbit {
     }
 }
 
-#[derive(Clone, Debug, Copy, Component)]
+#[derive(Debug, Clone, Component, Serialize, Deserialize)]
 pub struct LocationDocked {
     pub parent_id: ObjId,
 }
 
-#[derive(Debug, Clone, Component)]
+impl MapEntity for LocationDocked {
+    fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
+        self.parent_id = entity_map[&self.parent_id];
+    }
+}
+
+#[derive(Debug, Clone, Component, Serialize, Deserialize)]
 pub struct Moveable {
     pub speed: Speed,
 }
@@ -199,10 +218,6 @@ impl Locations {
             .map(|value| value.parent_id == target_id)
             .unwrap_or(false)
     }
-}
-
-pub fn force_update_locations_index(world: &mut World) {
-    world.run_system_once(update_entity_per_sector_index);
 }
 
 pub fn update_entity_per_sector_index(

@@ -4,6 +4,7 @@ pub mod asciicolors;
 pub mod csv;
 pub mod grid;
 pub mod hocon;
+pub mod jsons;
 pub mod lineboundbox;
 pub mod math;
 pub mod prob;

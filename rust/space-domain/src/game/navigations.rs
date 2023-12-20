@@ -6,9 +6,11 @@ use crate::game::sectors::{FindPathParams, Jump, Sector, SectorId};
 use bevy_ecs::prelude::*;
 
 use crate::game::locations::{LocationDocked, LocationOrbit, LocationSpace, Locations};
+use crate::game::save::MapEntity;
 use crate::game::sectors;
 use commons::math::P2;
-use std::collections::VecDeque;
+use serde::{Deserialize, Serialize};
+use std::collections::{HashMap, VecDeque};
 
 pub mod navigation_request_handler_system;
 pub mod navigation_system;
@@ -19,18 +21,42 @@ pub mod navigation_system;
 /// - execute navigation by create actions
 ///
 
-#[derive(Debug, Clone, Component)]
+#[derive(Debug, Clone, Component, Serialize, Deserialize)]
 pub struct Navigation {
     pub request: NavRequest,
     pub plan: NavigationPlan,
 }
 
-#[derive(Debug, Clone, Component, PartialEq)]
+impl Navigation {
+    pub fn take_next(&mut self) -> Option<Action> {
+        self.plan.path.pop_front()
+    }
+}
+
+impl MapEntity for Navigation {
+    fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
+        self.request.map_entity(entity_map);
+        self.plan.map_entity(entity_map);
+    }
+}
+
+#[derive(Debug, Clone, Component, PartialEq, Serialize, Deserialize)]
 pub enum NavRequest {
     OrbitTarget { target_id: ObjId },
     MoveToTarget { target_id: ObjId },
     MoveAndDockAt { target_id: ObjId },
     MoveToPos { sector_id: SectorId, pos: P2 },
+}
+
+impl MapEntity for NavRequest {
+    fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
+        match self {
+            NavRequest::OrbitTarget { target_id } => target_id.map_entity(entity_map),
+            NavRequest::MoveToTarget { target_id } => target_id.map_entity(entity_map),
+            NavRequest::MoveAndDockAt { target_id } => target_id.map_entity(entity_map),
+            NavRequest::MoveToPos { sector_id, .. } => sector_id.map_entity(entity_map),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -41,7 +67,7 @@ pub enum PlanTarget {
     Orbit(ObjId),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NavigationPlan {
     pub path: VecDeque<Action>,
 }
@@ -52,9 +78,9 @@ impl NavigationPlan {
     }
 }
 
-impl Navigation {
-    pub fn take_next(&mut self) -> Option<Action> {
-        self.plan.path.pop_front()
+impl MapEntity for NavigationPlan {
+    fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
+        self.path.iter_mut().for_each(|i| i.map_entity(entity_map));
     }
 }
 

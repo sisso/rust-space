@@ -79,7 +79,7 @@ mod test {
             .insert(ActionActive(Action::Dock {
                 target_id: station_id,
             }))
-            .insert(ActionDock)
+            .insert(ActionDock::default())
             .insert(LocationSpace {
                 pos: station_position,
                 sector_id: sector_0,

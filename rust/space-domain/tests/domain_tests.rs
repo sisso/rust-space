@@ -1,6 +1,8 @@
 extern crate space_domain;
 
 use space_domain::game::commands::Command;
+use std::fs::File;
+use std::io::Write;
 
 use bevy_ecs::prelude::*;
 use bevy_ecs::system::SystemState;
@@ -8,6 +10,7 @@ use commons::math::P2;
 use space_domain::game;
 use space_domain::game::bevy_utils::WorldExt;
 use space_domain::game::building_site::BuildingSite;
+use space_domain::game::game::Game;
 use space_domain::game::label::Label;
 use space_domain::game::loader::Loader;
 use space_domain::game::sceneries;
@@ -15,7 +18,7 @@ use space_domain::game::scenery_random::{InitialCondition, RandomMapCfg};
 use space_domain::game::station::Station;
 use space_domain::game::utils::{DeltaTime, Speed};
 use space_domain::game::wares::WareAmount;
-use space_domain::game::Game;
+use space_domain::test::init_trace_log;
 
 #[test]
 fn test_game_should_mine_and_deliver_cargo_to_mothership_until_produce_a_new_ship() {
@@ -156,6 +159,43 @@ fn test_mining_on_high_speed_with_orbiting_objects() {
         }
     }
     panic!("fail to create a fleet on timer end")
+}
+
+#[test]
+fn test_save() {
+    // init_trace_log().unwrap();
+
+    let mut game = Game::new();
+    _ = sceneries::load_basic_mothership_scenery(&mut game);
+
+    let delta = DeltaTime(1.0);
+    for tick in 0..500 {
+        log::trace!("running tick {:?} -----------------------", tick);
+
+        game.tick(delta);
+        if count_commands(&mut game) > 1 {
+            return;
+        }
+
+        let data = game.serialize();
+
+        // File::create(format!("/tmp/rust-space-save-{}.json", tick))
+        //     .unwrap()
+        //     .write_all(data.as_bytes())
+        //     .unwrap();
+
+        game = Game::load(data).expect("fail to load data");
+    }
+
+    // write final state to disk
+    let data = game.serialize();
+
+    // File::create("/tmp/rust-space-save.json")
+    //     .unwrap()
+    //     .write_all(data.as_bytes())
+    //     .unwrap();
+
+    panic!("max tickets completed without desired result");
 }
 
 fn tick_eventually(game: &mut Game, expected_check: fn(game: &mut Game) -> bool) {

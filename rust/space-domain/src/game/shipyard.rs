@@ -1,25 +1,32 @@
 use crate::game::loader::Loader;
 use bevy_ecs::prelude::*;
 use rand::Rng;
-
-
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 use crate::game::order::{TradeOrders, TRADE_ORDER_ID_SHIPYARD};
 use crate::game::prefab::{Prefab, PrefabId};
+use crate::game::save::MapEntity;
 use crate::game::utils::DeltaTime;
 use crate::game::wares::{Cargo, VecWareAmount};
 use crate::game::work::WorkUnit;
 
 /// keep state of shipyard production in progress, when pending_work is <= zero, the prefab is
 /// created
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct ShipyardProduction {
     pending_work: WorkUnit,
     prefab_id: PrefabId,
 }
 
+impl MapEntity for ShipyardProduction {
+    fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
+        self.prefab_id = entity_map[&self.prefab_id];
+    }
+}
+
 /// Configure a shipyard what to produce
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum ProductionOrder {
     /// nothing should be produce
     None,
@@ -40,8 +47,22 @@ impl ProductionOrder {
     }
 }
 
+impl MapEntity for ProductionOrder {
+    fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
+        match self {
+            ProductionOrder::Next(prefab_id) => {
+                prefab_id.map_entity(entity_map);
+            }
+            ProductionOrder::RandomSelected(prefab_id) => {
+                prefab_id.map_entity(entity_map);
+            }
+            _ => {}
+        }
+    }
+}
+
 /// shipyard are attached to stations and can building ships
-#[derive(Debug, Clone, Component)]
+#[derive(Debug, Clone, Component, Serialize, Deserialize)]
 pub struct Shipyard {
     pub production: WorkUnit,
     production_order: ProductionOrder,
@@ -89,6 +110,13 @@ impl Shipyard {
         } else {
             ProductionResult::Producing
         }
+    }
+}
+
+impl MapEntity for Shipyard {
+    fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
+        self.production_order.map_entity(entity_map);
+        self.current_production.map_entity(entity_map);
     }
 }
 

@@ -25,11 +25,11 @@ pub fn system_action_request(
 
         // update action
         let _ = match action {
-            Action::Undock {} => entity.insert(ActionUndock),
+            Action::Undock {} => entity.insert(ActionUndock::default()),
             Action::Jump { .. } => entity.insert(ActionJump::new()),
-            Action::Dock { .. } => entity.insert(ActionDock),
-            Action::MoveTo { .. } => entity.insert(ActionMoveTo),
-            Action::MoveToTargetPos { .. } => entity.insert(ActionMoveTo),
+            Action::Dock { .. } => entity.insert(ActionDock::default()),
+            Action::MoveTo { .. } => entity.insert(ActionMoveTo::default()),
+            Action::MoveToTargetPos { .. } => entity.insert(ActionMoveTo::default()),
             Action::Extract { .. } => entity.insert(ActionExtract::default()),
             _ => entity.insert(ActionGeneric {}),
         };

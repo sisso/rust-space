@@ -147,7 +147,6 @@
 //
 //         let show_sector_time = Instant::now();
 //
-//         // TODO: move it to own class
 //         let now = show_sector_time;
 //         let delta = now - start;
 //         if delta < time_rate {

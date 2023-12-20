@@ -1,30 +1,45 @@
 use bevy_ecs::prelude::*;
-
+use std::collections::HashMap;
 
 use bevy_ecs::system::RunSystemOnce;
 use commons::math::{IntoP2Ext, P2, P2I};
+use serde::{Deserialize, Serialize};
 use std::time::Instant;
 
 use crate::game::locations::LocationSpace;
 use crate::game::objects::ObjId;
+use crate::game::save::MapEntity;
 use crate::game::utils::*;
 
-#[derive(Clone, Debug, Component)]
+pub type JumpId = Entity;
+pub type SectorId = Entity;
+
+#[derive(Debug, Clone, Component, Serialize, Deserialize)]
 pub struct Jump {
     pub target_sector_id: SectorId,
     pub target_pos: P2,
 }
 
-pub type JumpId = Entity;
-pub type SectorId = Entity;
+impl MapEntity for Jump {
+    fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
+        self.target_sector_id.map_entity(entity_map);
+    }
+}
 
-#[derive(Clone, Debug, Component)]
+#[derive(Debug, Clone, Component, Serialize, Deserialize)]
 pub struct JumpCache {
     pub jump_id: Entity,
     pub to_sector: Entity,
 }
 
-#[derive(Clone, Debug, Component)]
+impl MapEntity for JumpCache {
+    fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
+        self.jump_id.map_entity(entity_map);
+        self.to_sector.map_entity(entity_map);
+    }
+}
+
+#[derive(Debug, Clone, Component, Serialize, Deserialize)]
 pub struct Sector {
     pub coords: P2I,
     pub jumps_cache: Option<Vec<JumpCache>>,
@@ -35,6 +50,16 @@ impl Sector {
         Sector {
             coords,
             jumps_cache: None,
+        }
+    }
+}
+
+impl MapEntity for Sector {
+    fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
+        if let Some(jc) = &mut self.jumps_cache {
+            for i in jc {
+                i.map_entity(entity_map);
+            }
         }
     }
 }
@@ -280,14 +305,12 @@ pub fn list(query: Query<(Entity, With<Sector>)>) -> Vec<Entity> {
 mod test {
     use super::test_scenery::setup_sector_scenery;
 
-    use crate::game::sectors::{
-        system_update_sectors_index, FindPathParams, PathLeg, SectorId,
-    };
+    use crate::game::sectors::{system_update_sectors_index, FindPathParams, PathLeg, SectorId};
 
     use bevy_ecs::prelude::*;
 
-    use crate::game::events::{GEvents};
-    
+    use crate::game::events::GEvents;
+
     use bevy_ecs::system::RunSystemOnce;
     use commons::math::P2I;
     use std::time::Instant;
@@ -384,7 +407,6 @@ mod test {
 
 pub mod test_scenery {
     use super::*;
-    
 
     #[derive(Debug)]
     pub struct SectorScenery {

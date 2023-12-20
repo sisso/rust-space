@@ -2,8 +2,8 @@ use bevy_ecs::prelude::*;
 
 use super::super::locations::*;
 use super::*;
+use crate::game::game::SYSTEM_TIMEOUT;
 use crate::game::sectors::{Jump, Sector};
-use crate::game::SYSTEM_TIMEOUT;
 
 ///
 /// Setup navigation for the request

@@ -1,4 +1,5 @@
 use bevy_ecs::prelude::*;
+use serde::{Deserialize, Serialize};
 
 pub type Code = String;
 pub type CodeRef = str;
@@ -7,7 +8,7 @@ pub type CodeRef = str;
 ///
 /// It is "unique" but no constraint is enforced
 // TODO: enforce uniqueness
-#[derive(Component)]
+#[derive(Debug, Clone, Component, Serialize, Deserialize)]
 pub struct HasCode {
     pub code: Code,
 }

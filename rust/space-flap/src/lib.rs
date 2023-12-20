@@ -3,38 +3,34 @@
 extern crate core;
 
 use std::cell::RefCell;
-use std::path::PathBuf;
 use std::rc::Rc;
 
 use bevy_ecs::prelude::*;
 use bevy_ecs::system::SystemState;
-use env_logger::TimestampPrecision::Seconds;
-use itertools::{cloned, Itertools};
+use itertools::Itertools;
 
 use commons::math::P2;
 pub use models::*;
-use space_domain::game::actions::{Action, ActionActive, Actions};
-use space_domain::game::astrobody::{AstroBodies, AstroBody, AstroBodyKind};
+use space_domain::game::actions::ActionActive;
+use space_domain::game::astrobody::{AstroBody, AstroBodyKind};
 use space_domain::game::bevy_utils::WorldExt;
-use space_domain::game::conf::BlueprintCode;
 use space_domain::game::dock::HasDocking;
 use space_domain::game::extractables::Extractable;
 use space_domain::game::factory::Factory;
 use space_domain::game::fleets::Fleet;
+use space_domain::game::game::Game;
 use space_domain::game::label::Label;
+use space_domain::game::loader;
 use space_domain::game::loader::Loader;
-use space_domain::game::locations::{LocationDocked, LocationOrbit, LocationSpace, Locations};
+use space_domain::game::locations::{LocationDocked, LocationOrbit, LocationSpace};
 use space_domain::game::navigations::Navigation;
-use space_domain::game::objects::ObjId;
 use space_domain::game::order::TradeOrders;
 use space_domain::game::prefab::Prefab;
-use space_domain::game::production_cost::ProductionCost;
 use space_domain::game::sectors::{Jump, Sector};
 use space_domain::game::shipyard::Shipyard;
 use space_domain::game::station::Station;
-use space_domain::game::wares::{Cargo, Ware, WareId};
+use space_domain::game::wares::{Cargo, Ware};
 use space_domain::game::{events, scenery_random, shipyard};
-use space_domain::game::{loader, Game};
 use utils::*;
 
 pub mod models;
@@ -477,10 +473,8 @@ fn new_trader_orders(o: &TradeOrders) -> Vec<ObjTradeOrder> {
 
 #[cfg(test)]
 mod test {
-    use space_domain::game::utils::{MIN_DISTANCE, V2};
-    use std::num::NonZeroI32;
-
     use super::*;
+    use space_domain::game::utils::{MIN_DISTANCE, V2};
     #[test]
     fn test_arguments() {
         env_logger::builder()

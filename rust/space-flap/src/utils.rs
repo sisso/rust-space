@@ -1,6 +1,6 @@
 use crate::Id;
 use bevy_ecs::prelude::*;
-use space_domain::game::Game;
+use space_domain::game::game::Game;
 
 // real encoding of a entity
 pub(crate) fn proper_encode_entity(entity: Entity) -> u64 {

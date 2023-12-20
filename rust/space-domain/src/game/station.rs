@@ -1,6 +1,7 @@
 use bevy_ecs::prelude::*;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Component)]
+#[derive(Debug, Clone, Component, Serialize, Deserialize)]
 pub struct Station {}
 
 impl Station {

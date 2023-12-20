@@ -39,7 +39,7 @@ fn compute_orbital_pos(
 ) -> Result<LocationSpace, &'static str> {
     // check if is already cached
     if let Some(pos) = cache.get(&id) {
-        return Ok(*pos);
+        return Ok(pos.clone());
     }
 
     let (_, loc_space, orbit) = query.get(id).map_err(|_| "obj_id not found")?;
@@ -75,12 +75,12 @@ fn compute_orbital_pos(
         time,
     );
 
-    let pos = LocationSpace {
+    let location = LocationSpace {
         pos: parent_pos.pos + local_pos,
         sector_id: parent_pos.sector_id,
     };
-    cache.insert(id, pos);
-    Ok(pos)
+    cache.insert(id, location.clone());
+    Ok(location)
 }
 
 pub fn system_compute_orbits(

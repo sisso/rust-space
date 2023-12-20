@@ -1,12 +1,13 @@
 use crate::game::bevy_utils::WorldExt;
 use crate::game::extractables::Extractable;
+use crate::game::game::Game;
 use crate::game::loader::Loader;
 use crate::game::locations::LocationOrbit;
 use crate::game::orbit::Orbits;
 use crate::game::shipyard::Shipyard;
 use crate::game::utils::TotalTime;
 use crate::game::wares::Wares;
-use crate::game::{conf, loader, sectors, shipyard, Game};
+use crate::game::{conf, loader, sectors, shipyard};
 use bevy_ecs::prelude::*;
 use bevy_ecs::system::{RunSystemOnce, SystemState};
 use commons::math::{P2, P2I, V2, V2I};

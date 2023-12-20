@@ -95,7 +95,7 @@ pub fn system_move(
 
 #[cfg(test)]
 mod test {
-    
+
     use super::*;
     use crate::game::utils::{Position, Speed};
     use crate::test::{assert_v2, test_system, TestSystemRunner};
@@ -112,7 +112,7 @@ mod test {
                 .insert(ActionActive(Action::MoveTo {
                     pos: Position::new(2.0, 0.0),
                 }))
-                .insert(ActionMoveTo)
+                .insert(ActionMoveTo::default())
                 .insert(LocationSpace {
                     pos: Position::ZERO,
                     sector_id: sector_0,
@@ -141,7 +141,7 @@ mod test {
                 .insert(ActionActive(Action::MoveTo {
                     pos: Position::new(2.0, 0.0),
                 }))
-                .insert(ActionMoveTo)
+                .insert(ActionMoveTo::default())
                 .insert(LocationSpace {
                     pos: Position::new(1.0, 0.0),
                     sector_id: sector_0,
@@ -184,7 +184,7 @@ mod test {
                 target_id,
                 last_position: None,
             }))
-            .insert(ActionMoveTo)
+            .insert(ActionMoveTo::default())
             .insert(LocationSpace {
                 pos: Position::new(0.0, 0.0),
                 sector_id: sector_0,

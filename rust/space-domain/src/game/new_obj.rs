@@ -1,4 +1,6 @@
 use bevy_ecs::prelude::*;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 use crate::game::building_site::BuildingSite;
 use crate::game::production_cost::ProductionCost;
@@ -9,13 +11,14 @@ use crate::game::extractables::Extractable;
 use crate::game::factory::Factory;
 use crate::game::locations::*;
 use crate::game::objects::ObjId;
+use crate::game::save::MapEntity;
 use crate::game::sectors::*;
 use crate::game::shipyard::Shipyard;
 use crate::game::utils::*;
 use crate::game::wares::{Cargo, Volume, WareAmount};
 use crate::game::work::WorkUnit;
 
-#[derive(Debug, Clone, Component, Default)]
+#[derive(Debug, Clone, Component, Default, Serialize, Deserialize)]
 pub struct NewObj {
     pub speed: Option<Speed>,
     pub cargo: Option<Cargo>,
@@ -184,5 +187,23 @@ impl NewObj {
     pub fn with_production_cost(mut self, work: WorkUnit, cost: Vec<WareAmount>) -> Self {
         self.production_cost = Some(ProductionCost { work, cost });
         self
+    }
+}
+
+impl MapEntity for NewObj {
+    fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
+        self.cargo.map_entity(entity_map);
+        self.extractable.map_entity(entity_map);
+        self.location_space.map_entity(entity_map);
+        self.location_docked.map_entity(entity_map);
+        self.jump_to
+            .iter_mut()
+            .for_each(|i| i.0.map_entity(entity_map));
+        self.command.map_entity(entity_map);
+        self.shipyard.map_entity(entity_map);
+        self.factory.map_entity(entity_map);
+        self.location_orbit.map_entity(entity_map);
+        self.building_site.map_entity(entity_map);
+        self.production_cost.map_entity(entity_map);
     }
 }

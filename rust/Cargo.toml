@@ -2,14 +2,15 @@
 members = [
   "commons",
 #  "space-console",
-  "space-2d-gui",
-  "space-flap",
-  "space-galaxy",
-  "space-godot",
-  "space-domain"
+#  "space-2d-gui",
+#  "space-flap",
+#  "space-galaxy",
+#  "space-godot",
+  "space-domain",
+  "space-domain-macros"
 ]
 
-resolver="2"
+#resolver="2"
 
 #[profile.dev]
 #opt-level = 3

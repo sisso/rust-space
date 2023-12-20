@@ -1,8 +1,12 @@
 use crate::game::objects::ObjId;
+use crate::game::save::MapEntity;
+use bevy_ecs::entity::Entity;
 use bevy_ecs::prelude::{Event, World};
 use bevy_ecs::system::{Command, Resource};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum EventKind {
     Add,
     Move,
@@ -13,7 +17,7 @@ pub enum EventKind {
     Orbit,
 }
 
-#[derive(Debug, Clone, Copy, Event)]
+#[derive(Debug, Clone, Event, Serialize, Deserialize)]
 pub struct GEvent {
     pub id: ObjId,
     pub kind: EventKind,
@@ -25,7 +29,13 @@ impl GEvent {
     }
 }
 
-#[derive(Resource, Debug)]
+impl MapEntity for GEvent {
+    fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
+        self.id.map_entity(entity_map);
+    }
+}
+
+#[derive(Resource, Debug, Serialize, Deserialize, Clone)]
 pub struct GEvents {
     queue: Vec<GEvent>,
 }
@@ -45,6 +55,16 @@ impl GEvents {
 
     pub fn take(&mut self) -> Vec<GEvent> {
         std::mem::replace(&mut self.queue, vec![])
+    }
+
+    pub fn list(&self) -> &Vec<GEvent> {
+        &self.queue
+    }
+}
+
+impl MapEntity for GEvents {
+    fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
+        self.queue.map_entity(entity_map);
     }
 }
 

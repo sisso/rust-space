@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use bevy_ecs::prelude::*;
+use serde::{Deserialize, Serialize};
 
 use crate::game::locations::{EntityPerSectorIndex, Locations};
 use crate::game::wares::{Cargos, WareId};
@@ -11,15 +12,23 @@ use super::objects::*;
 use super::sectors::*;
 
 use crate::game::order::TradeOrders;
+use crate::game::save::MapEntity;
 use crate::game::utils::TotalTime;
 
 pub mod command_mine_system;
 pub mod command_trader_system;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MineState {
     mine_target_id: Option<ObjId>,
     deliver_target_id: Option<ObjId>,
+}
+
+impl MapEntity for MineState {
+    fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
+        self.mine_target_id.map_entity(entity_map);
+        self.deliver_target_id.map_entity(entity_map);
+    }
 }
 
 impl Default for MineState {
@@ -31,7 +40,7 @@ impl Default for MineState {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TradeState {
     Idle,
     PickUp {
@@ -53,7 +62,21 @@ impl Default for TradeState {
     }
 }
 
-#[derive(Clone, Debug, Component)]
+impl MapEntity for TradeState {
+    fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
+        match self {
+            TradeState::PickUp { target_id, .. } => {
+                target_id.map_entity(entity_map);
+            }
+            TradeState::Deliver { target_id, .. } => {
+                target_id.map_entity(entity_map);
+            }
+            _ => {}
+        }
+    }
+}
+
+#[derive(Debug, Clone, Component, Serialize, Deserialize)]
 pub enum Command {
     Mine(MineState),
     Trade(TradeState),
@@ -80,6 +103,15 @@ impl Command {
 
     pub fn trade() -> Command {
         Command::Trade(Default::default())
+    }
+}
+
+impl MapEntity for Command {
+    fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
+        match self {
+            Command::Mine(state) => state.map_entity(entity_map),
+            Command::Trade(state) => state.map_entity(entity_map),
+        }
     }
 }
 

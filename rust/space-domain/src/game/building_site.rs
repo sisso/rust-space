@@ -1,8 +1,11 @@
 use crate::game::loader::Loader;
 use crate::game::locations::LocationSpace;
 use crate::game::prefab::{Prefab, PrefabId};
+use crate::game::save::MapEntity;
 use crate::game::wares::{Cargo, WareAmount};
 use bevy_ecs::prelude::*;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 /// place in space where some prefab is building, once all input resources are there, the prefab is
 /// created and the building site removed.
@@ -10,10 +13,17 @@ use bevy_ecs::prelude::*;
 /// it should create income order
 ///
 /// expected components: Cargo, Location
-#[derive(Clone, Debug, Component)]
+#[derive(Debug, Clone, Component, Serialize, Deserialize)]
 pub struct BuildingSite {
     pub prefab_id: PrefabId,
     pub input: Vec<WareAmount>,
+}
+
+impl MapEntity for BuildingSite {
+    fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
+        self.prefab_id = entity_map[&self.prefab_id];
+        self.input.map_entity(entity_map);
+    }
 }
 
 /// check if all required wares in building site is in place, if so, create the new prafabe in

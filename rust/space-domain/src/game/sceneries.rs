@@ -1,13 +1,14 @@
 use crate::game::bevy_utils::WorldExt;
 use crate::game::commands::Command;
 use crate::game::factory::Receipt;
+use crate::game::game::Game;
 use crate::game::loader::Loader;
 use crate::game::objects::ObjId;
 use crate::game::sectors::SectorId;
 use crate::game::shipyard::{ProductionOrder, Shipyard};
 use crate::game::utils::{DeltaTime, V2};
 use crate::game::wares::{WareAmount, WareId};
-use crate::game::{code, sectors, Game};
+use crate::game::{code, sectors};
 use bevy_ecs::prelude::*;
 use bevy_ecs::system::RunSystemOnce;
 use commons::math::P2I;
@@ -56,6 +57,9 @@ pub trait BuilderBuild: BuilderStep {
         for task in self.get_tasks() {
             task.apply(game, &mut rs);
         }
+
+        game.reindex_sectors();
+
         rs
     }
 }

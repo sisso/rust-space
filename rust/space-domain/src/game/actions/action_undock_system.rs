@@ -55,7 +55,7 @@ pub fn system_undock(
 
 #[cfg(test)]
 mod test {
-    
+
     use super::*;
 
     use crate::game::utils::Position;
@@ -78,7 +78,7 @@ mod test {
             let fleet_id = world
                 .spawn_empty()
                 .insert(ActionActive(Action::Undock))
-                .insert(ActionUndock)
+                .insert(ActionUndock::default())
                 .insert(LocationDocked {
                     parent_id: station_id,
                 })
@@ -120,7 +120,7 @@ mod test {
             let entity = world
                 .spawn_empty()
                 .insert(ActionActive(Action::Undock))
-                .insert(ActionUndock)
+                .insert(ActionUndock::default())
                 .insert(LocationSpace {
                     pos: Position::new(0.0, 0.0),
                     sector_id,

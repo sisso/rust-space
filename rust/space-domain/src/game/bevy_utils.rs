@@ -1,5 +1,5 @@
 use bevy_ecs::prelude::*;
-use bevy_ecs::system::{Command, CommandQueue, SystemParam};
+use bevy_ecs::system::CommandQueue;
 
 pub trait WorldExt {
     fn run_commands<T, F>(&mut self, f: F) -> T

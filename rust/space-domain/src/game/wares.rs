@@ -1,10 +1,12 @@
 use crate::game::code::HasCode;
 use crate::game::factory::Factory;
 use crate::game::prefab::Prefab;
+use crate::game::save::MapEntity;
 use crate::game::shipyard::Shipyard;
 use bevy_ecs::prelude::*;
 use log;
-use std::collections::HashMap;
+use serde::{Deserialize, Serialize};
+use std::collections::{HashMap, HashSet};
 
 use super::objects::ObjId;
 
@@ -18,7 +20,7 @@ pub type ResourceAccessibility = f32;
 /** amount of resources extracted per second */
 pub type ResourceExtraction = f32;
 
-#[derive(Debug, Clone, Component)]
+#[derive(Debug, Clone, Component, Serialize, Deserialize)]
 pub struct Ware;
 
 pub struct Wares;
@@ -40,7 +42,7 @@ impl Wares {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct WareAmount {
     pub ware_id: WareId,
     pub amount: Volume,
@@ -57,6 +59,12 @@ impl WareAmount {
 
     pub fn get_amount(&self) -> Volume {
         self.amount
+    }
+}
+
+impl MapEntity for WareAmount {
+    fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
+        self.ware_id = entity_map[&self.ware_id];
     }
 }
 
@@ -102,7 +110,7 @@ pub enum CargoError {
     NotEnoughSpace,
 }
 
-#[derive(Debug, Clone, Component, Default)]
+#[derive(Debug, Clone, Component, Default, Serialize, Deserialize)]
 pub struct Cargo {
     max_volume: Volume,
     current_volume: Volume,
@@ -269,6 +277,17 @@ impl Cargo {
     }
 }
 
+impl MapEntity for Cargo {
+    fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
+        for ware in &mut self.wares {
+            ware.map_entity(entity_map);
+        }
+        for ware in &mut self.whitelist {
+            ware.map_entity(entity_map);
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct CargoTransfer {
     pub moved: Vec<WareAmount>,
@@ -383,7 +402,7 @@ pub fn system_cargo_distribution(
 
     // update cargos giving others component requirements
     for (obj_id, mut cargo, maybe_factory, maybe_shipyard) in &mut query {
-        let mut wares = vec![];
+        let mut wares = HashSet::new();
         if let Some(f) = maybe_factory {
             wares.extend(f.get_cargos_allocation());
         }
@@ -407,7 +426,7 @@ pub fn system_cargo_distribution(
         }
 
         log::debug!("update {obj_id:?} cargo wares to {wares:?}");
-        cargo.set_whitelist(wares);
+        cargo.set_whitelist(wares.into_iter().collect());
 
         // remove dirty flag
         commands.entity(obj_id).remove::<CargoDistributionDirty>();
