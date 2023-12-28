@@ -2,8 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use godot::engine::global::MouseButton;
 use godot::engine::{
-    global, Control, ControlVirtual, Engine, InputEvent, InputEventMouseButton,
-    InputEventMouseMotion,
+    global, Control, Engine, IControl, InputEvent, InputEventMouseButton, InputEventMouseMotion,
 };
 use godot::prelude::*;
 
@@ -335,7 +334,7 @@ impl SectorView {
 }
 
 #[godot_api]
-impl ControlVirtual for SectorView {
+impl IControl for SectorView {
     fn init(base: Base<Control>) -> Self {
         if Engine::singleton().is_editor_hint() {
         } else {
@@ -383,13 +382,13 @@ impl ControlVirtual for SectorView {
     }
 
     fn gui_input(&mut self, event: Gd<InputEvent>) {
-        let maybe_mouse_down: Option<Gd<InputEventMouseButton>> = event.clone().try_cast();
-        if let Some(mouse_down) = maybe_mouse_down {
+        let maybe_mouse_down: Result<Gd<InputEventMouseButton>, _> = event.clone().try_cast();
+        if let Ok(mouse_down) = maybe_mouse_down {
             self.handle_mouse_down(mouse_down);
         }
 
-        let maybe_mouse_move: Option<Gd<InputEventMouseMotion>> = event.try_cast();
-        if let Some(mouse_move) = maybe_mouse_move {
+        let maybe_mouse_move: Result<Gd<InputEventMouseMotion>, _> = event.try_cast();
+        if let Ok(mouse_move) = maybe_mouse_move {
             self.handle_mouse_move(mouse_move);
         }
     }

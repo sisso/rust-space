@@ -3,17 +3,20 @@
 extern crate core;
 
 use std::cell::RefCell;
+use std::path::{Path, PathBuf};
 use std::rc::Rc;
+use std::time::SystemTime;
 
 use bevy_ecs::prelude::*;
 use bevy_ecs::system::SystemState;
 use itertools::Itertools;
 
-use commons::math::P2;
+use commons::math::{P2, V2I};
 pub use models::*;
 use space_domain::game::actions::ActionActive;
 use space_domain::game::astrobody::{AstroBody, AstroBodyKind};
 use space_domain::game::bevy_utils::WorldExt;
+use space_domain::game::conf::Conf;
 use space_domain::game::dock::HasDocking;
 use space_domain::game::extractables::Extractable;
 use space_domain::game::factory::Factory;
@@ -26,6 +29,7 @@ use space_domain::game::locations::{LocationDocked, LocationOrbit, LocationSpace
 use space_domain::game::navigations::Navigation;
 use space_domain::game::order::TradeOrders;
 use space_domain::game::prefab::Prefab;
+use space_domain::game::save_manager::SaveManager;
 use space_domain::game::sectors::{Jump, Sector};
 use space_domain::game::shipyard::Shipyard;
 use space_domain::game::station::Station;
@@ -36,91 +40,89 @@ use utils::*;
 pub mod models;
 mod utils;
 
-// EOF models
+pub struct SpaceGameParams {
+    pub galaxy_size: V2I,
+    pub extra_fleets: usize,
+    pub seed: u64,
+    pub continue_latest_save: bool,
+    pub save_path: Option<PathBuf>,
+}
 
+impl Default for SpaceGameParams {
+    fn default() -> Self {
+        Self {
+            galaxy_size: V2I::new(2, 2),
+            extra_fleets: 2,
+            seed: 0,
+            continue_latest_save: false,
+            save_path: None,
+        }
+    }
+}
+
+/// high level API for the game
 pub struct SpaceGame {
     game: Rc<RefCell<Game>>,
+    saves_manager: Option<SaveManager>,
 }
 
 impl SpaceGame {
-    pub fn new(args: Vec<String>) -> Self {
-        let mut size: (usize, usize) = (2, 2);
-        let mut fleets = 10;
-        let mut stations = 4;
-        let mut seed = 0;
-
-        for mut pair in &args.iter().chunks(2) {
-            let k = pair.next().unwrap();
-            let v = pair.next().unwrap();
-            log::info!("checking {}/{}", k, v);
-            match k.as_str() {
-                "--size" => match v.parse::<usize>() {
-                    Ok(v) => {
-                        log::info!("set size to {},{}", v, v);
-                        size = (v, v);
-                    }
-                    Err(e) => {
-                        panic!("invalid argument {}={}", k, v);
-                    }
-                },
-                "--size-xy" => {
-                    let values = v.split(",").collect::<Vec<_>>();
-                    if values.len() != 2 {
-                        panic!("invalid argument {}={}, size-xy should contain 2 numbers separated by comma ,", k, v)
-                    }
-
-                    let x = values[0].parse::<usize>().expect("invalid argument");
-                    let y = values[1].parse::<usize>().expect("invalid argument");
-
-                    log::info!("set size to {},{}", x, y);
-                    size = (x, y);
+    pub fn new(params: SpaceGameParams) -> Self {
+        let (saves, game) = if let Some(buffer) = &params.save_path {
+            // initialize saves manager if a path is provided an try to load latest game
+            let saves = SaveManager::new(buffer).expect("fail to initialize save game manager");
+            let game = if params.continue_latest_save {
+                if let Ok(Some(last_save)) = saves.get_last() {
+                    let last_save_data = saves
+                        .read(&last_save.filename)
+                        .expect("fail to read save file");
+                    log::info!("continue from latest save game {}", last_save.filename);
+                    Game::load_from_string(last_save_data).expect("fail to read save game")
+                } else {
+                    log::info!("no latest save game found, starting a new game");
+                    Self::start_new_game(&params)
                 }
-                "--fleets" => match v.parse::<usize>() {
-                    Ok(v) => {
-                        log::info!("set fleet to {}", v);
-                        fleets = v
-                    }
-                    Err(e) => {
-                        panic!("invalid argument {}={}", k, v);
-                    }
-                },
-                "--seed" => match v.parse::<u64>() {
-                    Ok(v) => {
-                        log::info!("set seed to {}", v);
-                        seed = v
-                    }
-                    Err(e) => {
-                        panic!("invalid argument {}={}", k, v);
-                    }
-                },
-                _ => panic!("unknown argument {}={}", k, v),
-            }
-        }
+            } else {
+                log::info!("starting enw game");
+                Self::start_new_game(&params)
+            };
 
+            (Some(saves), game)
+        } else {
+            log::info!("no save game manager configured, starting new game");
+            (None, Self::start_new_game(&params))
+        };
+
+        SpaceGame {
+            game: Rc::new(RefCell::new(game)),
+            saves_manager: saves,
+        }
+    }
+
+    fn start_new_game(params: &SpaceGameParams) -> Game {
         log::debug!("loading configuration file");
         let system_generator_conf = include_str!("../../data/game.conf");
         let cfg = space_domain::game::conf::load_str(system_generator_conf)
             .expect("fail to read config file");
 
         let mut game = Game::new();
+
         game.world.run_commands(|mut commands| {
             loader::load_prefabs(&mut commands, &cfg.prefabs);
         });
         scenery_random::load_random(
             &mut game,
             &scenery_random::RandomMapCfg {
-                size: size,
-                seed: seed,
-                fleets: fleets,
+                size: (params.galaxy_size.x as usize, params.galaxy_size.y as usize),
+                seed: params.seed,
+                fleets: params.extra_fleets,
                 universe_cfg: cfg.system_generator.unwrap(),
                 initial_condition: scenery_random::InitialCondition::Minimal,
                 params: cfg.params,
             },
         );
 
-        SpaceGame {
-            game: Rc::new(RefCell::new(game)),
-        }
+        game
     }
 
     fn decode_id(&self, id: Id) -> Option<Entity> {
@@ -231,6 +233,15 @@ impl SpaceGame {
 
     pub fn update(&mut self, delta: f32) {
         self.game.borrow_mut().tick(delta.into());
+
+        if let Some(saves) = &mut self.saves_manager {
+            let current_tick = self.game.borrow().get_tick();
+            if current_tick % 1000 == 0 {
+                log::info!("autosaving...");
+                let data = self.game.borrow_mut().save_to_string();
+                saves.write(&format!("save_{}", current_tick), data);
+            }
+        }
     }
 
     pub fn take_events(&mut self) -> Vec<EventData> {
@@ -448,6 +459,18 @@ impl SpaceGame {
         shipyard.set_production_order(shipyard::ProductionOrder::Next(prefab_id));
         log::debug!("{:?} set production order to {:?}", obj_id, prefab_id);
     }
+
+    pub fn save(&mut self) -> Result<(), &'static str> {
+        let data = self.game.borrow_mut().save_to_string();
+        let timestamp = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .expect("fail to read now timestamp");
+        let save_name = format!("{}", timestamp.as_secs_f32());
+        self.saves_manager
+            .as_ref()
+            .expect("can not save without initialize save game manager")
+            .write(&save_name, data)
+    }
 }
 
 fn new_trader_orders(o: &TradeOrders) -> Vec<ObjTradeOrder> {
@@ -477,52 +500,62 @@ mod test {
     use space_domain::game::utils::{MIN_DISTANCE, V2};
     #[test]
     fn test_arguments() {
-        env_logger::builder()
-            .filter(None, log::LevelFilter::Trace)
-            .try_init();
-
-        let mut sg = SpaceGame::new(vec!["--size-xy".into(), "2,1".into()]);
+        let mut params = SpaceGameParams::default();
+        params.galaxy_size = V2I::new(2, 1);
+        let mut sg = SpaceGame::new(params);
     }
 
     #[test]
-    fn test_v2_distance() {
+    fn test_with_default_configuration_fleets_move_around() {
         env_logger::builder()
             .filter(None, log::LevelFilter::Trace)
-            .try_init();
+            .init();
 
-        let mut sg = SpaceGame::new(vec![]);
-        let f1 = sg.get_fleets();
+        let mut sg = SpaceGame::new(Default::default());
 
+        // get initial fleets positions
+        let mut fleets_original = sg.get_fleets();
+
+        // wait until any fleet has position, as they started docked
         for _ in 0..100 {
             sg.update(1.0);
+            fleets_original = sg.get_fleets();
+            if fleets_original.iter().any(|f| f.location.is_some()) {
+                break;
+            }
         }
 
-        let f2 = sg.get_fleets();
+        // keep updating until fleet move a distance
         let mut changed_pos = 0;
+        'out: for _ in 0..100 {
+            sg.update(1.0);
 
-        for f in f1 {
-            for f2 in &f2 {
-                if f.id == f2.id {
-                    let changed = V2::distance(f.location.unwrap().pos, f2.location.unwrap().pos)
-                        > MIN_DISTANCE;
-                    if f.kind.fleet && changed {
-                        changed_pos += 1;
-                    } else if f.kind.station && changed {
-                        panic!("station should not move on {:?}", f);
+            let fleets = sg.get_fleets();
+            // check if they move
+            for f1 in &fleets_original {
+                for f2 in &fleets {
+                    if f1.id == f2.id && f1.location.is_some() && f2.location.is_some() {
+                        let changed = V2::distance(
+                            f1.location.as_ref().unwrap().pos,
+                            f2.location.as_ref().unwrap().pos,
+                        ) > MIN_DISTANCE;
+                        if f1.kind.fleet && changed {
+                            changed_pos += 1;
+                            break 'out;
+                        } else if f1.kind.station && changed {
+                            panic!("station should not move on {:?}", f1);
+                        }
                     }
                 }
             }
         }
 
+        // get fleet positions
         assert!(changed_pos > 0);
     }
 
     #[test]
     fn test_proper_encode_decode_entity() {
-        env_logger::builder()
-            .filter(None, log::LevelFilter::Trace)
-            .try_init();
-
         let mut w = World::new();
         for _ in 0..100 {
             w.spawn_empty().id();
@@ -535,7 +568,7 @@ mod test {
 
         let e = w.spawn_empty().id();
         assert_eq!(100, e.index());
-        assert_eq!(10, e.generation());
+        assert_eq!(9, e.generation());
 
         let v = proper_encode_entity(e);
         log::info!("encoded {v}");
@@ -545,15 +578,11 @@ mod test {
         assert_eq!(e.index(), id);
         assert_eq!(100, id);
         assert_eq!(e.generation(), gen);
-        assert_eq!(10, gen);
+        assert_eq!(9, gen);
     }
 
     #[test]
     fn test_encode_decode_entity() {
-        env_logger::builder()
-            .filter(None, log::LevelFilter::Trace)
-            .try_init();
-
         let mut w = World::new();
         for _ in 0..100 {
             w.spawn_empty().id();
@@ -566,7 +595,7 @@ mod test {
 
         let e = w.spawn_empty().id();
         assert_eq!(100, e.index());
-        assert_eq!(10, e.generation());
+        assert_eq!(9, e.generation());
 
         let v = encode_entity(e);
         log::info!("encoded {v}");
@@ -576,6 +605,6 @@ mod test {
         assert_eq!(e.index(), id);
         assert_eq!(100, id);
         assert_eq!(e.generation(), gen);
-        assert_eq!(10, gen);
+        assert_eq!(9, gen);
     }
 }

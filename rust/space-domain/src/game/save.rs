@@ -20,7 +20,7 @@ use crate::game::production_cost::ProductionCost;
 use crate::game::sectors::{Jump, Sector};
 use crate::game::shipyard::Shipyard;
 use crate::game::station::Station;
-use crate::game::utils::TotalTime;
+use crate::game::utils::{Tick, TotalTime};
 use crate::game::wares::{Cargo, Ware};
 use bevy_ecs::prelude::*;
 use commons::jsons::JsonValueExtra;
@@ -117,6 +117,7 @@ impl MapEntity for ObjData {
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct SaveData {
+    pub tick: Tick,
     pub total_time: TotalTime,
     pub events: GEvents,
     pub objects: Vec<ObjData>,
@@ -133,6 +134,7 @@ pub fn save_world(world: &mut World) -> String {
     log::trace!("saving world");
 
     let mut save_data = SaveData::default();
+    save_data.tick = *world.resource::<Tick>();
     save_data.total_time = *world.resource::<TotalTime>();
     save_data.events = world.resource::<GEvents>().clone();
 
@@ -182,6 +184,7 @@ pub fn load_world(world: &mut World, save_data: String) {
 
     // insert resources
     log::trace!("loading resources");
+    world.insert_resource(data.tick);
     world.insert_resource(data.total_time);
     world.insert_resource(data.events);
 
@@ -206,7 +209,6 @@ mod test {
     use crate::test::assert_v2;
     use bevy_ecs::entity::Entity;
     use bevy_ecs::prelude::World;
-    use itertools::assert_equal;
     use log::LevelFilter;
 
     #[test]

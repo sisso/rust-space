@@ -1,7 +1,7 @@
 use bevy_ecs::prelude::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub enum AstroBodyKind {
     Star,
     Planet,

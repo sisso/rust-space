@@ -23,6 +23,7 @@ pub mod order;
 pub mod prefab;
 pub mod production_cost;
 pub mod save;
+pub mod save_manager;
 pub mod sceneries;
 pub mod scenery_random;
 pub mod sectors;

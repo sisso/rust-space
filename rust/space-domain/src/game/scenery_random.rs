@@ -164,8 +164,8 @@ fn add_bodies_to_sectors(
                             let ware_id = wares.get(body_resource.resource.as_str());
                             if ware_id.is_none() {
                                 log::warn!(
-                                    "asteroid resource {:?} is not a ware, ignoring",
-                                    body_resource.resource
+                                    "could not find ware with name {:?} to be used as asteroid resources on {:?}",
+                                    body_resource.resource, body_resource
                                 );
                             }
                             ware_id

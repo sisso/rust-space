@@ -34,6 +34,19 @@ impl Speed {
 
 pub type Seconds = DeltaTime;
 
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Resource, Default)]
+pub struct Tick(u64);
+
+impl Tick {
+    pub fn increment(&mut self) {
+        self.0 += 1;
+    }
+
+    pub fn value(&self) -> u64 {
+        self.0
+    }
+}
+
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Resource)]
 pub struct DeltaTime(pub f32);
 

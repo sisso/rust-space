@@ -1,5 +1,4 @@
 use crate::utils;
-use godot::engine::Node2DVirtual;
 use godot::prelude::*;
 use godot::sys;
 
@@ -21,7 +20,7 @@ impl AstroModel {
 }
 
 #[godot_api]
-impl Node2DVirtual for AstroModel {
+impl INode2D for AstroModel {
     fn init(base: Base<Node2D>) -> Self {
         Self {
             color: crate::utils::color_white(),
@@ -53,7 +52,7 @@ impl OrbitModel {
 }
 
 #[godot_api]
-impl Node2DVirtual for OrbitModel {
+impl INode2D for OrbitModel {
     fn init(base: Base<Node2D>) -> Self {
         Self {
             color: crate::utils::color_white(),
@@ -91,7 +90,7 @@ impl SelectedModel {
 }
 
 #[godot_api]
-impl Node2DVirtual for SelectedModel {
+impl INode2D for SelectedModel {
     fn init(base: Base<Node2D>) -> Self {
         Self {
             color: utils::color_white(),

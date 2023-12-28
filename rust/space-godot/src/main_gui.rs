@@ -1,7 +1,7 @@
 use crate::game_api_runtime::TimeSpeed;
 use crate::utils::clear;
 use godot::engine::{
-    Button, Container, Engine, GridContainer, ItemList, Label, RichTextLabel, ScrollBar,
+    Button, Container, Engine, GridContainer, IButton, ItemList, Label, RichTextLabel, ScrollBar,
     TabContainer, TextEdit, Texture2D,
 };
 use godot::prelude::*;
@@ -69,7 +69,7 @@ impl MainGui {
         let container = self.get_selected_actions_container();
         let children = container.get_children();
         for node in children.iter_shared() {
-            if let Some(button) = node.try_cast::<Button>() {
+            if let Ok(button) = node.try_cast::<Button>() {
                 if button.is_pressed() {
                     let id: i64 = button.get_meta("id".into()).to();
                     let id = id as Id;
@@ -93,7 +93,7 @@ impl MainGui {
         let container = self.get_fleets_container();
         let children = container.get_children();
         for (i, node) in children.iter_shared().enumerate() {
-            if let Some(button) = node.try_cast::<Button>() {
+            if let Ok(button) = node.try_cast::<Button>() {
                 if button.is_pressed() {
                     return self.buttons_fleets.get(i).copied();
                 }
@@ -135,10 +135,10 @@ impl MainGui {
             .get_node_as::<Label>("TabContainer/Main/TimeLabel");
 
         if value == 0 {
-            label.set_text(format!("Time: paused").into());
+            label.set_text("Time: paused".into());
             TimeSpeed::Pause
         } else if value == 2 {
-            label.set_text(format!("Time: normal").into());
+            label.set_text("Time: normal".into());
             TimeSpeed::Normal
         } else {
             let value = if value == 1 {
@@ -157,7 +157,7 @@ impl MainGui {
         let container = self.get_sectors_container();
         let children = container.get_children();
         for (i, node) in children.iter_shared().enumerate() {
-            if let Some(button) = node.try_cast::<Button>() {
+            if let Ok(button) = node.try_cast::<Button>() {
                 if button.is_pressed() {
                     return self.buttons_sectors.get(i).copied();
                 }
@@ -181,7 +181,7 @@ impl MainGui {
             button.set_text(le.label.into());
             button.connect(
                 "button_down".into(),
-                Callable::from_object_method(self.base.clone(), "on_click_sector"),
+                Callable::from_object_method(&self.base, "on_click_sector"),
             );
             grid.add_child(button.upcast());
             self.buttons_sectors.push(le.id);
@@ -219,7 +219,7 @@ impl MainGui {
             button.set_text(fleet.label.into());
             button.connect(
                 "pressed".into(),
-                Callable::from_object_method(self.base.clone(), "on_click_fleet"),
+                Callable::from_object_method(&self.base, "on_click_fleet"),
             );
             grid.add_child(button.upcast());
             self.buttons_fleets.push(fleet.id);
@@ -331,7 +331,7 @@ impl MainGui {
             button.set_text(label.into());
             button.connect(
                 "button_down".into(),
-                Callable::from_object_method(self.base.clone(), "on_click_selected_action"),
+                Callable::from_object_method(&self.base, "on_click_selected_action"),
             );
             button.set_meta("id".into(), Variant::from(id as i64));
             container.add_child(button.upcast());
@@ -340,7 +340,7 @@ impl MainGui {
 }
 
 #[godot_api]
-impl Node2DVirtual for MainGui {
+impl INode2D for MainGui {
     fn init(base: Base<Node2D>) -> Self {
         let gui = Self {
             base,
@@ -367,17 +367,17 @@ impl Node2DVirtual for MainGui {
             let mut plot_button = self.get_plot_button();
             plot_button.connect(
                 "pressed".into(),
-                Callable::from_object_method(self.base.clone(), "on_click_plot"),
+                Callable::from_object_method(&self.base, "on_click_plot"),
             );
 
             let mut tab_container = self.get_main_container();
             tab_container.connect(
                 "mouse_entered".into(),
-                Callable::from_object_method(self.base.clone(), "on_mouse_entered"),
+                Callable::from_object_method(&self.base, "on_mouse_entered"),
             );
             tab_container.connect(
                 "mouse_exited".into(),
-                Callable::from_object_method(self.base.clone(), "on_mouse_exited"),
+                Callable::from_object_method(&self.base, "on_mouse_exited"),
             );
         }
     }

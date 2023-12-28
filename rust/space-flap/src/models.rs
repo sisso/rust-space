@@ -64,11 +64,11 @@ pub struct ObjCoords {
 
 impl ObjCoords {
     pub fn get_sector_id(&self) -> Option<Id> {
-        self.location.map(|l| encode_entity(l.sector_id))
+        self.location.as_ref().map(|l| encode_entity(l.sector_id))
     }
 
     pub fn get_coords(&self) -> Option<(f32, f32)> {
-        self.location.map(|l| (l.pos.x, l.pos.y))
+        self.location.as_ref().map(|l| (l.pos.x, l.pos.y))
     }
 
     pub fn is_docked(&self) -> bool {
@@ -100,11 +100,11 @@ impl ObjData {
     }
 
     pub fn get_sector_id(&self) -> Option<Id> {
-        self.location.map(|l| encode_entity(l.sector_id))
+        self.location.as_ref().map(|l| encode_entity(l.sector_id))
     }
 
     pub fn get_coords(&self) -> Option<(f32, f32)> {
-        self.location.map(|l| (l.pos.x, l.pos.y))
+        self.location.as_ref().map(|l| (l.pos.x, l.pos.y))
     }
 
     pub fn get_orbit(&self) -> Option<ObjOrbitData> {

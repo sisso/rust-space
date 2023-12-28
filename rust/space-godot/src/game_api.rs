@@ -1,5 +1,5 @@
 use godot::bind::{godot_api, GodotClass};
-use godot::engine::{Engine, Node, NodeExt, NodeVirtual};
+use godot::engine::{Engine, INode, Node, NodeExt};
 use godot::obj::Base;
 use godot::prelude::*;
 
@@ -53,7 +53,7 @@ impl GameApi {
 }
 
 #[godot_api]
-impl NodeVirtual for GameApi {
+impl INode for GameApi {
     fn init(base: Base<Node>) -> Self {
         if Engine::singleton().is_editor_hint() {
             GameApi {

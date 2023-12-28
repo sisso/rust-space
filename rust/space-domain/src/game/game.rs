@@ -6,7 +6,7 @@ use crate::game::locations::{
 use crate::game::new_obj::NewObj;
 use crate::game::objects::ObjId;
 use crate::game::sectors::SectorId;
-use crate::game::utils::{DeltaTime, TotalTime};
+use crate::game::utils::{DeltaTime, Tick, TotalTime};
 use crate::game::{
     actions, building_site, commands, factory, label, locations, navigations, orbit, save, sectors,
     shipyard, wares,
@@ -32,6 +32,7 @@ pub struct Game {
 
 impl Game {
     pub fn new() -> Self {
+        log::trace!("new game");
         let mut game = Game {
             world: World::new(),
             scheduler: Schedule::default(),
@@ -53,6 +54,7 @@ impl Game {
         game.world.insert_resource(GEvents::default());
         game.world.init_resource::<Events<GEvent>>();
         game.world.insert_resource(EntityPerSectorIndex::new());
+        game.world.insert_resource(Tick::default());
 
         // ai
         game.scheduler
@@ -105,7 +107,8 @@ impl Game {
         game
     }
 
-    pub fn load(data: String) -> Result<Game, &'static str> {
+    pub fn load_from_string(data: String) -> Result<Game, &'static str> {
+        log::trace!("load game");
         let mut game = Game::new();
         save::load_world(&mut game.world, data);
         game.reindex_sectors();
@@ -113,6 +116,9 @@ impl Game {
     }
 
     pub fn tick(&mut self, delta_time: DeltaTime) {
+        // update tick
+        self.world.get_resource_mut::<Tick>().unwrap().increment();
+
         // update time
         self.world.insert_resource(delta_time);
         {
@@ -128,6 +134,10 @@ impl Game {
 
         // update systems
         self.scheduler.run(&mut self.world);
+    }
+
+    pub fn get_tick(&self) -> u64 {
+        self.world.get_resource::<Tick>().unwrap().value()
     }
 
     pub fn reindex_sectors(&mut self) {
@@ -169,7 +179,7 @@ impl Game {
             .run_system_once_with(obj_id, Locations::resolve_space_position_system)
     }
 
-    pub fn serialize(&mut self) -> String {
+    pub fn save_to_string(&mut self) -> String {
         save::save_world(&mut self.world)
     }
 }

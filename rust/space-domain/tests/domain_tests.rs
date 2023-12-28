@@ -177,18 +177,18 @@ fn test_save() {
             return;
         }
 
-        let data = game.serialize();
+        let data = game.save_to_string();
 
         // File::create(format!("/tmp/rust-space-save-{}.json", tick))
         //     .unwrap()
         //     .write_all(data.as_bytes())
         //     .unwrap();
 
-        game = Game::load(data).expect("fail to load data");
+        game = Game::load_from_string(data).expect("fail to load data");
     }
 
     // write final state to disk
-    let data = game.serialize();
+    let data = game.save_to_string();
 
     // File::create("/tmp/rust-space-save.json")
     //     .unwrap()

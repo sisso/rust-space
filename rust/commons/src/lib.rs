@@ -2,6 +2,7 @@ use std::time::{Duration, Instant};
 
 pub mod asciicolors;
 pub mod csv;
+pub mod fs;
 pub mod grid;
 pub mod hocon;
 pub mod jsons;

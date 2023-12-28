@@ -1,7 +1,6 @@
 use crate::game::events::GEvents;
 use crate::game::utils::{DeltaTime, TotalTime, MIN_DISTANCE, V2};
 use bevy_ecs::prelude::*;
-use log::SetLoggerError;
 
 pub fn assert_v2(value: V2, expected: V2) {
     let distance = (value - expected).length();
@@ -13,10 +12,10 @@ pub fn assert_v2(value: V2, expected: V2) {
     }
 }
 
-pub fn init_trace_log() -> Result<(), SetLoggerError> {
+pub fn init_trace_log() {
     env_logger::builder()
         .filter(None, log::LevelFilter::Trace)
-        .try_init()
+        .init();
 }
 
 pub struct TestSystemRunner {

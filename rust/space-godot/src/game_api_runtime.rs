@@ -1,8 +1,12 @@
+use commons::math::V2I;
 use godot::log::{godot_print, godot_warn};
 use godot::obj::Gd;
 use log::LevelFilter;
+use std::path::PathBuf;
 
-use space_flap::{Id, ObjAction, ObjActionKind, ObjCargo, ObjData, SpaceGame, WareData};
+use space_flap::{
+    Id, ObjAction, ObjActionKind, ObjCargo, ObjData, SpaceGame, SpaceGameParams, WareData,
+};
 
 use crate::main_gui::{Description, LabeledId, MainGui};
 use crate::sector_view::SectorView;
@@ -56,14 +60,18 @@ impl Runtime {
             // .filter(Some("space_domain::game::loader"), log::LevelFilter::Trace)
             .init();
 
-        let mut game = SpaceGame::new(vec![
-            "--size-xy".to_string(),
-            "2,1".to_string(),
-            "--fleets".to_string(),
-            "0".to_string(),
-            "--seed".to_string(),
-            "1".to_string(),
-        ]);
+        let save_dir = PathBuf::from("/tmp/rust-space");
+        if !save_dir.exists() {
+            std::fs::create_dir_all(&save_dir).expect("fail to create save dir");
+        }
+
+        let mut params = SpaceGameParams::default();
+        params.galaxy_size = V2I::new(2, 1);
+        params.extra_fleets = 0;
+        params.continue_latest_save = true;
+        params.save_path = Some(save_dir);
+
+        let mut game = SpaceGame::new(params);
 
         let sector_id = game
             .get_sectors()
@@ -92,6 +100,8 @@ impl Runtime {
     }
 
     pub fn tick(&mut self, delta_seconds: f64) {
+        log::trace!("tick");
+
         // process inputs
         let sector_selected_id = self.sector_view.bind_mut().take_selected_id();
         let building_plot_position = self.sector_view.bind_mut().take_build_plot();
