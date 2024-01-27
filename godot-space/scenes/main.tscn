@@ -1,0 +1,22 @@
+[gd_scene load_steps=3 format=3 uid="uid://bim2u567p5gx"]
+
+[ext_resource type="Script" path="res://src/controller.gd" id="1_r0rn1"]
+[ext_resource type="PackedScene" uid="uid://drf48083o2j5x" path="res://scenes/main_gui.tscn" id="2_ay072"]
+
+[node name="controller" type="Node2D" node_paths=PackedStringArray("game_api", "gui")]
+script = ExtResource("1_r0rn1")
+log_level = 1
+game_api = NodePath("game_api")
+gui = NodePath("main_gui")
+save_path = "/tmp/space"
+
+[node name="game_api" type="GameApi" parent="."]
+
+[node name="main_gui" parent="." instance=ExtResource("2_ay072")]
+
+[connection signal="on_change_speed" from="main_gui" to="." method="_on_main_gui_on_change_speed"]
+[connection signal="on_click_fleet_button" from="main_gui" to="." method="_on_main_gui_on_click_fleet_button"]
+[connection signal="on_click_object_at_sector_view" from="main_gui" to="." method="_on_main_gui_on_click_object_at_sector_view"]
+[connection signal="on_click_sector_button" from="main_gui" to="." method="_on_main_gui_on_click_sector_button"]
+[connection signal="on_click_start_building" from="main_gui" to="." method="_on_main_gui_on_click_start_building"]
+[connection signal="on_set_shipyard_building_order" from="main_gui" to="." method="_on_main_gui_on_set_shipyard_building_order"]

@@ -1,7 +1,7 @@
 use crate::game::loader::Loader;
 use crate::game::locations::LocationSpace;
 use crate::game::prefab::{Prefab, PrefabId};
-use crate::game::save::MapEntity;
+use crate::game::save::LoadingMapEntity;
 use crate::game::wares::{Cargo, WareAmount};
 use bevy_ecs::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -19,7 +19,7 @@ pub struct BuildingSite {
     pub input: Vec<WareAmount>,
 }
 
-impl MapEntity for BuildingSite {
+impl LoadingMapEntity for BuildingSite {
     fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
         self.prefab_id = entity_map[&self.prefab_id];
         self.input.map_entity(entity_map);

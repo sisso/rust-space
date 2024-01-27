@@ -1,7 +1,7 @@
 use crate::game::code::HasCode;
 use crate::game::factory::Factory;
 use crate::game::prefab::Prefab;
-use crate::game::save::MapEntity;
+use crate::game::save::LoadingMapEntity;
 use crate::game::shipyard::Shipyard;
 use bevy_ecs::prelude::*;
 use log;
@@ -62,7 +62,7 @@ impl WareAmount {
     }
 }
 
-impl MapEntity for WareAmount {
+impl LoadingMapEntity for WareAmount {
     fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
         self.ware_id = entity_map[&self.ware_id];
     }
@@ -277,7 +277,7 @@ impl Cargo {
     }
 }
 
-impl MapEntity for Cargo {
+impl LoadingMapEntity for Cargo {
     fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
         for ware in &mut self.wares {
             ware.map_entity(entity_map);

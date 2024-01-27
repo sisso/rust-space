@@ -9,7 +9,7 @@ use crate::game::utils::*;
 
 use crate::game::dock::HasDocking;
 use crate::game::extractables::Extractable;
-use crate::game::save::MapEntity;
+use crate::game::save::LoadingMapEntity;
 
 #[derive(Debug, Clone, Component, Serialize, Deserialize)]
 pub struct LocationSpace {
@@ -17,7 +17,7 @@ pub struct LocationSpace {
     pub sector_id: SectorId,
 }
 
-impl MapEntity for LocationSpace {
+impl LoadingMapEntity for LocationSpace {
     fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
         self.sector_id = entity_map[&self.sector_id];
     }
@@ -32,7 +32,7 @@ pub struct LocationOrbit {
     pub speed: Speed,
 }
 
-impl MapEntity for LocationOrbit {
+impl LoadingMapEntity for LocationOrbit {
     fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
         self.parent_id = entity_map[&self.parent_id];
     }
@@ -56,7 +56,7 @@ pub struct LocationDocked {
     pub parent_id: ObjId,
 }
 
-impl MapEntity for LocationDocked {
+impl LoadingMapEntity for LocationDocked {
     fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
         self.parent_id = entity_map[&self.parent_id];
     }

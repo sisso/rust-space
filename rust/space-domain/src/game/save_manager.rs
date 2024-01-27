@@ -44,7 +44,7 @@ impl SaveManager {
 
     pub fn write(&self, file_name: &str, data: String) -> Result<(), &'static str> {
         let path = self.path.join(file_name);
-        log::trace!("writting {:?}", path);
+        log::trace!("writing {:?}", path);
         map_err(
             std::fs::write(path, data.as_bytes()),
             "fail to write save file",

@@ -2,7 +2,7 @@ use crate::game::code;
 use crate::game::code::HasCode;
 use crate::game::new_obj::NewObj;
 use crate::game::objects::ObjId;
-use crate::game::save::MapEntity;
+use crate::game::save::LoadingMapEntity;
 use bevy_ecs::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -27,7 +27,7 @@ pub fn find_prefab_by_code(
     query_prefabs.get(prefab_id).ok().cloned()
 }
 
-impl MapEntity for Prefab {
+impl LoadingMapEntity for Prefab {
     fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
         self.obj.map_entity(entity_map);
     }

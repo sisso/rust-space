@@ -1,7 +1,6 @@
 mod game_api;
-mod game_api_runtime;
+mod godot_utils;
 mod graphics;
-mod main_gui;
 mod sector_view;
 mod utils;
 

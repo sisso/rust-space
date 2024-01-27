@@ -1,0 +1,27 @@
+[gd_scene load_steps=4 format=3 uid="uid://ddr02an8jihyo"]
+
+[ext_resource type="Script" path="res://src/sectorview/sector_view.gd" id="1_xwfw1"]
+[ext_resource type="Script" path="res://src/sectorview/sector_view_distance_indicator.gd" id="3_epqoo"]
+[ext_resource type="Script" path="res://src/utils/camera_pan.gd" id="5_6j4cq"]
+
+[node name="SectorView" type="Node2D"]
+script = ExtResource("1_xwfw1")
+prefab_marker = "scenes/sector_view/generic_marker.tscn"
+prefab_orbit = "scenes/sector_view/generic_orbit.tscn"
+prefab_building_cursor = "scenes/sector_view/cursor_building.tscn"
+max_click_pixel_distance = 100.0
+
+[node name="camera" type="Camera2D" parent="."]
+script = ExtResource("5_6j4cq")
+
+[node name="distance_markers" type="Node2D" parent="."]
+script = ExtResource("3_epqoo")
+color = Color(1, 1, 1, 0.117647)
+distance_per_mark = 100.0
+total_marks = 5
+
+[node name="objects" type="Node2D" parent="."]
+
+[node name="cursors" type="Node2D" parent="."]
+
+[connection signal="on_click_position" from="camera" to="." method="_on_camera_on_click_position"]

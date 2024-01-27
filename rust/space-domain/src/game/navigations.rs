@@ -6,7 +6,7 @@ use crate::game::sectors::{FindPathParams, Jump, Sector, SectorId};
 use bevy_ecs::prelude::*;
 
 use crate::game::locations::{LocationDocked, LocationOrbit, LocationSpace, Locations};
-use crate::game::save::MapEntity;
+use crate::game::save::LoadingMapEntity;
 use crate::game::sectors;
 use commons::math::P2;
 use serde::{Deserialize, Serialize};
@@ -33,7 +33,7 @@ impl Navigation {
     }
 }
 
-impl MapEntity for Navigation {
+impl LoadingMapEntity for Navigation {
     fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
         self.request.map_entity(entity_map);
         self.plan.map_entity(entity_map);
@@ -48,7 +48,7 @@ pub enum NavRequest {
     MoveToPos { sector_id: SectorId, pos: P2 },
 }
 
-impl MapEntity for NavRequest {
+impl LoadingMapEntity for NavRequest {
     fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
         match self {
             NavRequest::OrbitTarget { target_id } => target_id.map_entity(entity_map),
@@ -78,7 +78,7 @@ impl NavigationPlan {
     }
 }
 
-impl MapEntity for NavigationPlan {
+impl LoadingMapEntity for NavigationPlan {
     fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
         self.path.iter_mut().for_each(|i| i.map_entity(entity_map));
     }

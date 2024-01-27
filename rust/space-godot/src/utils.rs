@@ -1,93 +1,83 @@
-use commons::math::V2;
+use crate::game_api::Id;
+use godot::engine::class_macros::inherits_transitive_VisualShaderNodeColorFunc;
 use godot::prelude::*;
+use space_domain::game::game::Game;
+use space_domain::game::objects::ObjId;
 
-pub fn clear<T>(container: Gd<T>)
-where
-    T: Inherits<Node>,
-{
-    let mut container = container.upcast();
+// real encoding of a entity
+pub fn proper_encode_entity(entity: ObjId) -> u64 {
+    let high: u32 = entity.index();
+    let low: u32 = entity.generation();
 
-    for c in container.get_children().iter_shared() {
-        let mut n = c.cast::<Node>();
-        container.remove_child(n.clone());
-        n.queue_free();
+    let encoded: u64 = (high as u64) << 32 | (low as u64);
+    return encoded;
+}
+
+// real decoding of a entity
+pub fn proper_decode_entity(value: u64) -> (u32, u32) {
+    let high = (value >> 32) as u32;
+    let low = (value & 0xffffffff) as u32;
+    (high, low)
+}
+
+// pretty but broken encode of entity
+pub fn encode_entity(entity: ObjId) -> i64 {
+    let high = entity.generation() as i64 * 1_000_000;
+    let low = entity.index() as i64;
+    return high + low;
+}
+
+// pretty but broken decode of entity
+pub fn decode_entity(value: i64) -> (u32, u32) {
+    let high = value / 1_000_000;
+    let low = value % 1_000_000;
+    (low as u32, high as u32)
+}
+
+pub fn try_decode_entity_and_get(g: &Game, id: Id) -> Option<ObjId> {
+    let (index, egen) = decode_entity(id);
+    let entities = g.world.entities();
+    match entities.resolve_from_id(index) {
+        Some(e) if e.generation() == egen => Some(e),
+        Some(e) => {
+            log::warn!(
+                "get_obj for {}/{} fail, entity has generation {}",
+                index,
+                egen,
+                e.generation()
+            );
+            return None;
+        }
+        None => {
+            log::warn!("get_obj for {}/{} fail, entity not found", index, egen,);
+            return None;
+        }
     }
 }
 
-pub fn color_black() -> Color {
-    Color::from_rgba8(0, 0, 0, 255)
+pub fn decode_entity_and_get(g: &Game, id: Id) -> ObjId {
+    try_decode_entity_and_get(g, id).expect("invalid i")
 }
 
-pub fn color_blue() -> Color {
-    Color::from_rgba8(0, 0, 170, 255)
-}
-
-pub fn color_green() -> Color {
-    Color::from_rgba8(0, 170, 0, 255)
-}
-
-pub fn color_cyan() -> Color {
-    Color::from_rgba8(0, 170, 170, 255)
-}
-
-pub fn color_red() -> Color {
-    Color::from_rgba8(170, 0, 0, 255)
-}
-
-pub fn color_magenta() -> Color {
-    Color::from_rgba8(170, 0, 170, 255)
-}
-
-pub fn color_brown() -> Color {
-    Color::from_rgba8(170, 85, 0, 255)
-}
-
-pub fn color_light_gray() -> Color {
-    Color::from_rgba8(170, 170, 170, 255)
-}
-
-pub fn color_dark_gray() -> Color {
-    Color::from_rgba8(85, 85, 85, 255)
-}
-
-pub fn color_bright_blue() -> Color {
-    Color::from_rgba8(85, 85, 255, 255)
-}
-
-pub fn color_bright_green() -> Color {
-    Color::from_rgba8(85, 255, 85, 255)
-}
-
-pub fn color_bright_cyan() -> Color {
-    Color::from_rgba8(85, 255, 255, 255)
-}
-
-pub fn color_bright_red() -> Color {
-    Color::from_rgba8(255, 85, 85, 255)
-}
-
-pub fn color_bright_magenta() -> Color {
-    Color::from_rgba8(255, 85, 255, 255)
-}
-
-pub fn color_yellow() -> Color {
-    Color::from_rgba8(255, 255, 85, 255)
-}
-
-pub fn color_white() -> Color {
-    Color::from_rgba8(255, 255, 255, 255)
-}
-
-pub trait V2Vec {
-    fn as_vector2(&self) -> Vector2;
-}
-
-impl V2Vec for V2 {
-    fn as_vector2(&self) -> Vector2 {
-        v2vec(self)
+/// convert into godot variant but flatten the first dictionary to remove classname unique field
+pub fn to_godot_flat<T: ToGodot>(value: T) -> Variant {
+    let variant = value.to_variant();
+    match variant.get_type() {
+        VariantType::Dictionary => {
+            let mut dict = variant.to::<Dictionary>();
+            assert_eq!(dict.len(), 1, "variant must have at least one field");
+            let key = dict.keys_array().get(0);
+            let value = dict.get(key).expect("key must exist");
+            value
+        }
+        _ => panic!("variant must be a dictionary"),
     }
 }
 
-pub fn v2vec(vec: &V2) -> Vector2 {
-    Vector2::new(vec.x, vec.y)
+pub fn to_godot_flat_option<T: ToGodot>(value: Option<T>) -> Variant {
+    if let Some(value) = value {
+        to_godot_flat(value)
+    } else {
+        Variant::nil()
+    }
 }

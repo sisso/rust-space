@@ -1,0 +1,87 @@
+[gd_scene format=3 uid="uid://ubow7cbsbbsg"]
+
+[node name="TestUi" type="Node2D"]
+
+[node name="Control" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_vertical = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Control"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+
+[node name="TopPanel" type="ColorRect" parent="Control/VBoxContainer"]
+layout_mode = 2
+color = Color(0.831373, 0.313726, 0.847059, 1)
+
+[node name="HBox" type="HBoxContainer" parent="Control/VBoxContainer/TopPanel"]
+layout_mode = 2
+offset_top = 4.0
+offset_right = 1202.0
+offset_bottom = 35.0
+
+[node name="Button" type="Button" parent="Control/VBoxContainer/TopPanel/HBox"]
+layout_mode = 2
+text = "Button"
+
+[node name="Button2" type="Button" parent="Control/VBoxContainer/TopPanel/HBox"]
+layout_mode = 2
+text = "Button"
+
+[node name="Button3" type="Button" parent="Control/VBoxContainer/TopPanel/HBox"]
+layout_mode = 2
+text = "Button"
+
+[node name="Button4" type="Button" parent="Control/VBoxContainer/TopPanel/HBox"]
+layout_mode = 2
+text = "Button"
+
+[node name="HBoxContainer" type="HBoxContainer" parent="Control/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="LeftPanel" type="ColorRect" parent="Control/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 0
+color = Color(0, 0.639216, 0.792157, 1)
+
+[node name="LeftPanel" type="VBoxContainer" parent="Control/VBoxContainer/HBoxContainer/LeftPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -104.0
+offset_right = -42.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Button" type="Button" parent="Control/VBoxContainer/HBoxContainer/LeftPanel/LeftPanel"]
+layout_mode = 2
+text = "Button"
+
+[node name="Button2" type="Button" parent="Control/VBoxContainer/HBoxContainer/LeftPanel/LeftPanel"]
+layout_mode = 2
+text = "Button"
+
+[node name="Button3" type="Button" parent="Control/VBoxContainer/HBoxContainer/LeftPanel/LeftPanel"]
+layout_mode = 2
+text = "Button"
+
+[node name="Button4" type="Button" parent="Control/VBoxContainer/HBoxContainer/LeftPanel/LeftPanel"]
+layout_mode = 2
+text = "Button"
+
+[node name="GameArea" type="ColorRect" parent="Control/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+color = Color(1, 1, 0, 1)

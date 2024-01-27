@@ -1,3 +1,4 @@
+use godot::builtin::meta::GodotConvert;
 use std::collections::{HashMap, HashSet};
 
 use godot::engine::global::MouseButton;
@@ -7,18 +8,18 @@ use godot::engine::{
 use godot::prelude::*;
 
 use commons::math::V2;
-use space_flap::Id;
+use space_domain::game::objects::ObjId;
 
+use crate::godot_utils;
+use crate::godot_utils::V2Vec;
 use crate::graphics::{AstroModel, OrbitModel, SelectedModel};
-use crate::utils;
-use crate::utils::V2Vec;
 
 const MODEL_SCALE: f32 = 0.1;
 
 #[derive(Debug, PartialEq)]
 pub enum SectorViewState {
     None,
-    Selected(Id),
+    Selected(ObjId),
     Plotting,
 }
 
@@ -47,19 +48,29 @@ impl SectorViewState {
 #[class(base = Control)]
 pub struct SectorView {
     state: SectorViewState,
-    bodies_model: HashMap<Id, Gd<Node2D>>,
-    orbits_model: HashMap<Id, Gd<Node2D>>,
+    bodies_model: HashMap<ObjId, Gd<Node2D>>,
+    orbits_model: HashMap<ObjId, Gd<Node2D>>,
+
+    #[export]
     selected_model: Option<Gd<SelectedModel>>,
+
+    #[export]
     build_plot_model: Option<Gd<SelectedModel>>,
-    objects: Option<Gd<Node2D>>,
-    frame_selected_id: Option<Id>,
+
+    frame_selected_id: Option<ObjId>,
     frame_build_plot: Option<Vector2>,
+
+    #[export]
+    fake_data: bool,
+
+    #[export]
+    objects: Option<Gd<Node2D>>,
 
     #[base]
     base: Base<Control>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ObjKind {
     pub fleet: bool,
     pub jump: bool,
@@ -72,12 +83,12 @@ pub struct ObjKind {
 #[derive(Debug)]
 pub enum Update {
     Obj {
-        id: Id,
+        id: ObjId,
         pos: V2,
         kind: ObjKind,
     },
     Orbit {
-        id: Id,
+        id: ObjId,
         pos: V2,
         parent_pos: V2,
         radius: f32,
@@ -86,14 +97,14 @@ pub enum Update {
 
 #[godot_api]
 impl SectorView {
-    pub fn get_selected_id(&self) -> Option<Id> {
+    pub fn get_selected_id(&self) -> Option<ObjId> {
         match self.state {
             SectorViewState::Selected(id) => Some(id),
             _ => None,
         }
     }
 
-    pub fn take_selected_id(&mut self) -> Option<Id> {
+    pub fn take_selected_id(&mut self) -> Option<ObjId> {
         self.frame_selected_id.take()
     }
 
@@ -136,7 +147,7 @@ impl SectorView {
                             let model = new_orbit_model(
                                 format!("orbit of {:?}", id),
                                 radius,
-                                utils::color_white(),
+                                godot_utils::color_white(),
                                 parent_pos.as_vector2(),
                             );
                             self.objects
@@ -199,7 +210,7 @@ impl SectorView {
         }
     }
 
-    fn remove_missing(&mut self, current_entities: HashSet<Id>) {
+    fn remove_missing(&mut self, current_entities: HashSet<ObjId>) {
         // remove selected before the object get removed
         let will_remove_selected = self
             .get_selected_id()
@@ -245,7 +256,7 @@ impl SectorView {
             .set_scale(Vector2::new(50.0, 50.0))
     }
 
-    pub fn find_nearest(&self, local_pos: Vector2, min_distance: f32) -> Option<Id> {
+    pub fn find_nearest(&self, local_pos: Vector2, min_distance: f32) -> Option<ObjId> {
         let mut nid = None;
         let mut dist = min_distance;
         for (id, gd) in &self.bodies_model {
@@ -281,9 +292,11 @@ impl SectorView {
         }
 
         self.state = new_state;
+
+        log::debug!("updated state to {:?}", self.state);
     }
 
-    fn set_selected(&mut self, id: Option<Id>) {
+    fn set_selected(&mut self, id: Option<ObjId>) {
         // do nothing if is still same object
         if id == self.get_selected_id() {
             return;
@@ -296,6 +309,7 @@ impl SectorView {
             .get_parent()
             .map(|mut parent| {
                 let gd = self.selected_model.as_mut().unwrap().clone();
+                log::debug!("removing selected marker model");
                 parent.remove_child(gd.upcast())
             });
 
@@ -309,92 +323,36 @@ impl SectorView {
                     .add_child(self.selected_model.as_mut().unwrap().clone().upcast());
                 self.selected_model.as_mut().unwrap().show();
                 self.state = SectorViewState::Selected(id);
+                log::debug!("setting selected marker model to {:?}", id);
             } else {
                 godot_warn!("selected object {:?} has no model, ignoring", id);
                 self.selected_model.as_mut().unwrap().hide();
+                log::debug!("selected obj has no model {:?}, ignoring", id);
             }
         } else {
             // if none object was provided, hide it
             self.selected_model.as_mut().unwrap().hide();
             self.state = SectorViewState::None;
+            log::debug!("no selected id provided, hidding the marker");
         }
     }
 
     fn set_build_plot(&mut self, enabled: bool) {
         if enabled {
+            log::debug!("enabling plot build");
             if !self.build_plot_model.as_mut().unwrap().is_visible() {
+                log::debug!("showing plot build cursor");
                 self.build_plot_model.as_mut().unwrap().show();
             }
         } else {
+            log::debug!("disabling plot build");
             if self.build_plot_model.as_mut().unwrap().is_visible() {
+                log::debug!("hide plot build cursor");
                 self.build_plot_model.as_mut().unwrap().hide();
             }
         }
     }
-}
 
-#[godot_api]
-impl IControl for SectorView {
-    fn init(base: Base<Control>) -> Self {
-        if Engine::singleton().is_editor_hint() {
-        } else {
-        }
-
-        Self {
-            state: SectorViewState::None,
-            bodies_model: Default::default(),
-            orbits_model: Default::default(),
-            selected_model: None,
-            build_plot_model: None,
-            objects: None,
-            frame_build_plot: None,
-            frame_selected_id: None,
-            base,
-        }
-    }
-
-    fn ready(&mut self) {
-        if Engine::singleton().is_editor_hint() {
-            return;
-        }
-
-        let mut objects = self.base.get_node_as::<Node2D>("objects");
-
-        let mut selected_model = new_select_model("selected", utils::color_cyan(), false);
-        selected_model.hide();
-
-        let mut build_plot_model =
-            new_select_model("plot cursor", utils::color_bright_blue(), true);
-        build_plot_model.hide();
-        objects.add_child(build_plot_model.clone().upcast());
-
-        self.objects = Some(objects);
-        self.build_plot_model = Some(build_plot_model);
-        self.selected_model = Some(selected_model);
-    }
-
-    fn process(&mut self, delta: f64) {
-        if Engine::singleton().is_editor_hint() {
-            return;
-        }
-
-        self.process_input(delta);
-    }
-
-    fn gui_input(&mut self, event: Gd<InputEvent>) {
-        let maybe_mouse_down: Result<Gd<InputEventMouseButton>, _> = event.clone().try_cast();
-        if let Ok(mouse_down) = maybe_mouse_down {
-            self.handle_mouse_down(mouse_down);
-        }
-
-        let maybe_mouse_move: Result<Gd<InputEventMouseMotion>, _> = event.try_cast();
-        if let Ok(mouse_move) = maybe_mouse_move {
-            self.handle_mouse_move(mouse_move);
-        }
-    }
-}
-
-impl SectorView {
     fn to_local(&self, global_pos: Vector2) -> Vector2 {
         let mouse_local_pos = self.objects.as_ref().unwrap().to_local(global_pos);
         mouse_local_pos
@@ -411,18 +369,22 @@ impl SectorView {
         let is_right_button = mouse_down.get_button_index() == MouseButton::MOUSE_BUTTON_RIGHT;
         match &self.state {
             SectorViewState::Plotting { .. } if is_left_button => {
+                log::debug!("set plotting position to {:?}", local_mouse_pos);
                 self.frame_build_plot = Some(local_mouse_pos);
             }
             SectorViewState::Plotting { .. } if is_right_button => {
+                log::debug!("canceling plotting");
                 self.set_state(SectorViewState::None);
             }
             _ if is_left_button => {
                 let nearest_id = self.find_nearest(local_mouse_pos, 1.0);
                 if let Some(id) = nearest_id {
+                    log::debug!("set selected {:?}", id);
                     self.frame_selected_id = Some(id);
                     let new_state = SectorViewState::Selected(id);
                     self.set_state(new_state);
                 } else {
+                    log::debug!("set selected none");
                     self.set_state(SectorViewState::None);
                 }
             }
@@ -444,6 +406,65 @@ impl SectorView {
     }
 }
 
+#[godot_api]
+impl IControl for SectorView {
+    fn init(base: Base<Control>) -> Self {
+        Self {
+            state: SectorViewState::None,
+            bodies_model: Default::default(),
+            orbits_model: Default::default(),
+            selected_model: None,
+            build_plot_model: None,
+            objects: None,
+            frame_build_plot: None,
+            frame_selected_id: None,
+            fake_data: false,
+            base,
+        }
+    }
+
+    fn ready(&mut self) {
+        godot_print!("ready with fake data {:?}", self.fake_data);
+
+        let mut selected_model = new_select_model("selected", godot_utils::color_cyan(), false);
+        selected_model.hide();
+
+        let mut build_plot_model =
+            new_select_model("plot cursor", godot_utils::color_bright_blue(), true);
+        build_plot_model.hide();
+        self.objects
+            .as_mut()
+            .unwrap()
+            .add_child(build_plot_model.clone().upcast());
+
+        self.build_plot_model = Some(build_plot_model);
+        self.selected_model = Some(selected_model);
+    }
+
+    fn process(&mut self, delta: f64) {
+        if Engine::singleton().is_editor_hint() {
+            return;
+        }
+
+        self.process_input(delta);
+    }
+
+    fn gui_input(&mut self, event: Gd<InputEvent>) {
+        let maybe_mouse_down: Result<Gd<InputEventMouseButton>, _> = event.clone().try_cast();
+        log::trace!("get_input");
+        if let Ok(mouse_down) = maybe_mouse_down {
+            log::trace!("get_input mouse down");
+            self.handle_mouse_down(mouse_down);
+        }
+
+        let maybe_mouse_move: Result<Gd<InputEventMouseMotion>, _> = event.try_cast();
+        if let Ok(mouse_move) = maybe_mouse_move {
+            log::trace!("get_input mouse move");
+            self.handle_mouse_move(mouse_move);
+        }
+    }
+}
+
 /// when default_scale should be false when object will be child of an already scaled object
 fn new_select_model(name: &str, color: Color, default_scale: bool) -> Gd<SelectedModel> {
     let mut model: Gd<SelectedModel> = Gd::new_default();
@@ -459,34 +480,34 @@ fn new_select_model(name: &str, color: Color, default_scale: bool) -> Gd<Selecte
     model
 }
 
-fn resolve_model_for_kind(id: Id, pos: V2, kind: ObjKind) -> Gd<Node2D> {
-    let fleet_color = utils::color_red();
-    let astro_color = utils::color_green();
-    let jump_color = utils::color_blue();
-    let station_color = utils::color_light_gray();
+fn resolve_model_for_kind(id: ObjId, pos: V2, kind: ObjKind) -> Gd<Node2D> {
+    let fleet_color = godot_utils::color_red();
+    let astro_color = godot_utils::color_green();
+    let jump_color = godot_utils::color_blue();
+    let station_color = godot_utils::color_light_gray();
 
     if kind.fleet {
-        new_model(format!("Fleet {}", id), pos.as_vector2(), fleet_color)
+        new_model(format!("Fleet {:?}", id), pos.as_vector2(), fleet_color)
     } else if kind.jump {
-        new_model(format!("Jump {}", id), pos.as_vector2(), jump_color)
+        new_model(format!("Jump {:?}", id), pos.as_vector2(), jump_color)
     } else if kind.station {
-        new_model(format!("Station {}", id), pos.as_vector2(), station_color)
+        new_model(format!("Station {:?}", id), pos.as_vector2(), station_color)
     } else if kind.astro && kind.astro_star {
         new_model(
-            format!("Star {}", id),
+            format!("Star {:?}", id),
             pos.as_vector2(),
-            crate::utils::color_yellow(),
+            crate::godot_utils::color_yellow(),
         )
     } else if kind.astro {
-        new_model(format!("Astro {}", id), pos.as_vector2(), astro_color)
+        new_model(format!("Astro {:?}", id), pos.as_vector2(), astro_color)
     } else if kind.asteroid {
         new_model(
-            format!("Asteroid {}", id),
+            format!("Asteroid {:?}", id),
             pos.as_vector2(),
-            crate::utils::color_brown(),
+            crate::godot_utils::color_brown(),
         )
     } else {
-        new_model(format!("Unknown {}", id), pos.as_vector2(), astro_color)
+        new_model(format!("Unknown {:?}", id), pos.as_vector2(), astro_color)
     }
 }
 

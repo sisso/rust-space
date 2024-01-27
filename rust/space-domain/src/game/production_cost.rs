@@ -1,4 +1,4 @@
-use crate::game::save::MapEntity;
+use crate::game::save::LoadingMapEntity;
 use crate::game::wares::WareAmount;
 use crate::game::work::WorkUnit;
 use bevy_ecs::prelude::*;
@@ -12,7 +12,7 @@ pub struct ProductionCost {
     pub work: WorkUnit,
 }
 
-impl MapEntity for ProductionCost {
+impl LoadingMapEntity for ProductionCost {
     fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
         self.cost.map_entity(entity_map);
     }

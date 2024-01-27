@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3 uid="uid://dn3mdnl1hva51"]
+
+[ext_resource type="Script" path="res://src/sectorview/marker_orbit.gd" id="1_l6aqu"]
+
+[node name="generic_orbit" type="Node2D" node_paths=PackedStringArray("orbit_obj")]
+script = ExtResource("1_l6aqu")
+orbit_obj = NodePath("")

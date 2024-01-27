@@ -1,4 +1,4 @@
-use crate::game::save::MapEntity;
+use crate::game::save::LoadingMapEntity;
 use bevy_ecs::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -9,7 +9,7 @@ pub struct HasDocking {
     pub docked: Vec<Entity>,
 }
 
-impl MapEntity for HasDocking {
+impl LoadingMapEntity for HasDocking {
     fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
         self.docked
             .iter_mut()

@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 use crate::game::order::{TradeOrders, TRADE_ORDER_ID_SHIPYARD};
 use crate::game::prefab::{Prefab, PrefabId};
-use crate::game::save::MapEntity;
+use crate::game::save::LoadingMapEntity;
 use crate::game::utils::DeltaTime;
 use crate::game::wares::{Cargo, VecWareAmount};
 use crate::game::work::WorkUnit;
@@ -19,7 +19,7 @@ struct ShipyardProduction {
     prefab_id: PrefabId,
 }
 
-impl MapEntity for ShipyardProduction {
+impl LoadingMapEntity for ShipyardProduction {
     fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
         self.prefab_id = entity_map[&self.prefab_id];
     }
@@ -47,7 +47,7 @@ impl ProductionOrder {
     }
 }
 
-impl MapEntity for ProductionOrder {
+impl LoadingMapEntity for ProductionOrder {
     fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
         match self {
             ProductionOrder::Next(prefab_id) => {
@@ -113,7 +113,7 @@ impl Shipyard {
     }
 }
 
-impl MapEntity for Shipyard {
+impl LoadingMapEntity for Shipyard {
     fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
         self.production_order.map_entity(entity_map);
         self.current_production.map_entity(entity_map);

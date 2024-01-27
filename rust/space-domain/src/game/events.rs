@@ -1,5 +1,5 @@
 use crate::game::objects::ObjId;
-use crate::game::save::MapEntity;
+use crate::game::save::LoadingMapEntity;
 use bevy_ecs::entity::Entity;
 use bevy_ecs::prelude::{Event, World};
 use bevy_ecs::system::{Command, Resource};
@@ -29,7 +29,7 @@ impl GEvent {
     }
 }
 
-impl MapEntity for GEvent {
+impl LoadingMapEntity for GEvent {
     fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
         self.id.map_entity(entity_map);
     }
@@ -62,7 +62,7 @@ impl GEvents {
     }
 }
 
-impl MapEntity for GEvents {
+impl LoadingMapEntity for GEvents {
     fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
         self.queue.map_entity(entity_map);
     }

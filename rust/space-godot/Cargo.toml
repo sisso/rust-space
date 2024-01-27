@@ -8,17 +8,15 @@ crate-type = ["cdylib", "lib"]
 
 [dependencies]
 godot = { git = "https://github.com/godot-rust/gdext", rev = "c92de581da1cab8b49d8e7e822abd2055385ae24"}
-
+commons = { version = "*", path = "../commons" }
+space-domain = { version = "*", path = "../space-domain" }
+bevy_ecs = {version = "0.12.1"}
 mint = "0.5"
 glam =  { version = "0.23.0", features = ["mint", "serde", "approx"] }
 approx = "0.5.1"
 rand = "0.8.4"
-
+itertools = "0.10"
 env_logger = "0.10.0"
 log = "0.4"
-
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
-
-commons = { version = "*", path = "../commons" }
-space-flap = { version = "*", path = "../space-flap"}

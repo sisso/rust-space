@@ -1,4 +1,4 @@
-use crate::game::save::MapEntity;
+use crate::game::save::LoadingMapEntity;
 use crate::game::utils::{DeltaTime, TotalTime};
 use crate::game::wares::{Cargo, WareAmount, WareId};
 use bevy_ecs::prelude::*;
@@ -23,7 +23,7 @@ impl Receipt {
     }
 }
 
-impl MapEntity for Receipt {
+impl LoadingMapEntity for Receipt {
     fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
         self.input.map_entity(entity_map);
         self.output.map_entity(entity_map);
@@ -52,7 +52,7 @@ impl Factory {
     }
 }
 
-impl MapEntity for Factory {
+impl LoadingMapEntity for Factory {
     fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
         self.production.map_entity(entity_map);
     }

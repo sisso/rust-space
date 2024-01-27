@@ -28,11 +28,11 @@ use serde::{Deserialize, Serialize};
 use space_domain_macros::SaveData;
 use std::collections::HashMap;
 
-pub trait MapEntity {
+pub trait LoadingMapEntity {
     fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>);
 }
 
-impl<T: MapEntity> MapEntity for Option<T> {
+impl<T: LoadingMapEntity> LoadingMapEntity for Option<T> {
     fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
         if let Some(value) = self {
             value.map_entity(entity_map);
@@ -40,7 +40,7 @@ impl<T: MapEntity> MapEntity for Option<T> {
     }
 }
 
-impl<T: MapEntity> MapEntity for Vec<T> {
+impl<T: LoadingMapEntity> LoadingMapEntity for Vec<T> {
     fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
         for value in self {
             value.map_entity(entity_map);
@@ -48,7 +48,7 @@ impl<T: MapEntity> MapEntity for Vec<T> {
     }
 }
 
-impl MapEntity for Entity {
+impl LoadingMapEntity for Entity {
     fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
         *self = entity_map[self];
     }
@@ -91,7 +91,7 @@ pub struct ObjData {
     pub prefab: Option<Prefab>,
 }
 
-impl MapEntity for ObjData {
+impl LoadingMapEntity for ObjData {
     fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
         self.cargo.map_entity(entity_map);
         self.extractable.map_entity(entity_map);
@@ -123,7 +123,7 @@ pub struct SaveData {
     pub objects: Vec<ObjData>,
 }
 
-impl MapEntity for SaveData {
+impl LoadingMapEntity for SaveData {
     fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
         self.events.map_entity(entity_map);
         self.objects.map_entity(entity_map);

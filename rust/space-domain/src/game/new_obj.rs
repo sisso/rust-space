@@ -11,7 +11,7 @@ use crate::game::extractables::Extractable;
 use crate::game::factory::Factory;
 use crate::game::locations::*;
 use crate::game::objects::ObjId;
-use crate::game::save::MapEntity;
+use crate::game::save::LoadingMapEntity;
 use crate::game::sectors::*;
 use crate::game::shipyard::Shipyard;
 use crate::game::utils::*;
@@ -190,7 +190,7 @@ impl NewObj {
     }
 }
 
-impl MapEntity for NewObj {
+impl LoadingMapEntity for NewObj {
     fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
         self.cargo.map_entity(entity_map);
         self.extractable.map_entity(entity_map);

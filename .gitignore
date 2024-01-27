@@ -3,3 +3,4 @@
 .idea
 *.swp
 rust/space-flap/generated_dotnet/*
+tmp

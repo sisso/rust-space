@@ -1,4 +1,4 @@
-use crate::utils;
+use crate::godot_utils;
 use godot::prelude::*;
 use godot::sys;
 
@@ -13,7 +13,6 @@ pub struct AstroModel {
 
 #[godot_api]
 impl AstroModel {
-    #[func]
     pub fn set_color(&mut self, color: Color) {
         self.color = color;
     }
@@ -23,7 +22,7 @@ impl AstroModel {
 impl INode2D for AstroModel {
     fn init(base: Base<Node2D>) -> Self {
         Self {
-            color: crate::utils::color_white(),
+            color: crate::godot_utils::color_white(),
             base,
         }
     }
@@ -55,7 +54,7 @@ impl OrbitModel {
 impl INode2D for OrbitModel {
     fn init(base: Base<Node2D>) -> Self {
         Self {
-            color: crate::utils::color_white(),
+            color: crate::godot_utils::color_white(),
             base,
         }
     }
@@ -93,7 +92,7 @@ impl SelectedModel {
 impl INode2D for SelectedModel {
     fn init(base: Base<Node2D>) -> Self {
         Self {
-            color: utils::color_white(),
+            color: godot_utils::color_white(),
             base,
         }
     }

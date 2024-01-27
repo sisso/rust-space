@@ -12,7 +12,7 @@ use super::objects::*;
 use super::sectors::*;
 
 use crate::game::order::TradeOrders;
-use crate::game::save::MapEntity;
+use crate::game::save::LoadingMapEntity;
 use crate::game::utils::TotalTime;
 
 pub mod command_mine_system;
@@ -24,7 +24,7 @@ pub struct MineState {
     deliver_target_id: Option<ObjId>,
 }
 
-impl MapEntity for MineState {
+impl LoadingMapEntity for MineState {
     fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
         self.mine_target_id.map_entity(entity_map);
         self.deliver_target_id.map_entity(entity_map);
@@ -62,7 +62,7 @@ impl Default for TradeState {
     }
 }
 
-impl MapEntity for TradeState {
+impl LoadingMapEntity for TradeState {
     fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
         match self {
             TradeState::PickUp { target_id, .. } => {
@@ -106,7 +106,7 @@ impl Command {
     }
 }
 
-impl MapEntity for Command {
+impl LoadingMapEntity for Command {
     fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
         match self {
             Command::Mine(state) => state.map_entity(entity_map),

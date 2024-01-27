@@ -8,7 +8,7 @@ use std::time::Instant;
 
 use crate::game::locations::LocationSpace;
 use crate::game::objects::ObjId;
-use crate::game::save::MapEntity;
+use crate::game::save::LoadingMapEntity;
 use crate::game::utils::*;
 
 pub type JumpId = Entity;
@@ -20,7 +20,7 @@ pub struct Jump {
     pub target_pos: P2,
 }
 
-impl MapEntity for Jump {
+impl LoadingMapEntity for Jump {
     fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
         self.target_sector_id.map_entity(entity_map);
     }
@@ -32,7 +32,7 @@ pub struct JumpCache {
     pub to_sector: Entity,
 }
 
-impl MapEntity for JumpCache {
+impl LoadingMapEntity for JumpCache {
     fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
         self.jump_id.map_entity(entity_map);
         self.to_sector.map_entity(entity_map);
@@ -54,7 +54,7 @@ impl Sector {
     }
 }
 
-impl MapEntity for Sector {
+impl LoadingMapEntity for Sector {
     fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
         if let Some(jc) = &mut self.jumps_cache {
             for i in jc {

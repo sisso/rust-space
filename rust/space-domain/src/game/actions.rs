@@ -1,4 +1,4 @@
-use crate::game::save::MapEntity;
+use crate::game::save::LoadingMapEntity;
 ///
 /// Actions are setup by ActionRequest.
 ///
@@ -73,7 +73,7 @@ impl Action {
     }
 }
 
-impl MapEntity for Action {
+impl LoadingMapEntity for Action {
     fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
         match self {
             Action::Jump { jump_id } => {
@@ -97,13 +97,13 @@ impl MapEntity for Action {
     }
 }
 
-impl MapEntity for ActionRequest {
+impl LoadingMapEntity for ActionRequest {
     fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
         self.0.map_entity(entity_map);
     }
 }
 
-impl MapEntity for ActionActive {
+impl LoadingMapEntity for ActionActive {
     fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
         self.0.map_entity(entity_map);
     }

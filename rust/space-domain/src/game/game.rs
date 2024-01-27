@@ -1,21 +1,43 @@
+use crate::game::bevy_utils::WorldExt;
 use crate::game::events::{GEvent, GEvents};
+use crate::game::label::Label;
 use crate::game::loader::Loader;
 use crate::game::locations::{
     update_entity_per_sector_index, EntityPerSectorIndex, LocationSpace, Locations,
 };
 use crate::game::new_obj::NewObj;
 use crate::game::objects::ObjId;
-use crate::game::sectors::SectorId;
+use crate::game::sectors::{Sector, SectorId};
 use crate::game::utils::{DeltaTime, Tick, TotalTime};
+use crate::game::wares::WareAmount;
 use crate::game::{
-    actions, building_site, commands, factory, label, locations, navigations, orbit, save, sectors,
-    shipyard, wares,
+    actions, building_site, commands, conf, factory, label, loader, locations, navigations, orbit,
+    save, scenery_random, sectors, shipyard, wares,
 };
 use bevy_ecs::prelude::*;
+use bevy_ecs::query::QueryIter;
 use bevy_ecs::system::{RunSystemOnce, SystemState};
+use commons::math::V2I;
+use std::path::PathBuf;
 
 pub const FRAME_TIME: std::time::Duration = std::time::Duration::from_millis(17);
 pub const SYSTEM_TIMEOUT: std::time::Duration = std::time::Duration::from_millis(1);
+
+pub struct NewGameParams {
+    pub galaxy_size: V2I,
+    pub extra_fleets: usize,
+    pub seed: u64,
+}
+
+impl Default for NewGameParams {
+    fn default() -> Self {
+        Self {
+            galaxy_size: V2I::new(2, 2),
+            extra_fleets: 2,
+            seed: 0,
+        }
+    }
+}
 
 #[derive(SystemSet, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum SystemSeq {
@@ -31,7 +53,7 @@ pub struct Game {
 }
 
 impl Game {
-    pub fn new() -> Self {
+    pub fn empty() -> Self {
         log::trace!("new game");
         let mut game = Game {
             world: World::new(),
@@ -107,9 +129,36 @@ impl Game {
         game
     }
 
+    pub fn new(params: NewGameParams) -> Game {
+        log::info!("starting a new game");
+
+        let system_generator_conf = include_str!("../../../data/game.conf");
+        let cfg = conf::load_str(system_generator_conf).expect("fail to read config file");
+
+        let mut game = Game::empty();
+
+        game.world.run_commands(|mut commands| {
+            loader::load_prefabs(&mut commands, &cfg.prefabs);
+        });
+
+        scenery_random::load_random(
+            &mut game,
+            &scenery_random::RandomMapCfg {
+                size: (params.galaxy_size.x as usize, params.galaxy_size.y as usize),
+                seed: params.seed,
+                fleets: params.extra_fleets,
+                universe_cfg: cfg.system_generator.unwrap(),
+                initial_condition: scenery_random::InitialCondition::Minimal,
+                params: cfg.params,
+            },
+        );
+
+        game
+    }
+
     pub fn load_from_string(data: String) -> Result<Game, &'static str> {
         log::trace!("load game");
-        let mut game = Game::new();
+        let mut game = Game::empty();
         save::load_world(&mut game.world, data);
         game.reindex_sectors();
         Ok(game)
@@ -160,9 +209,32 @@ impl Game {
 
         self.world.run_system_once(dump);
     }
+
+    pub fn get_cargo_of(&mut self, obj_id: ObjId) -> Result<&Vec<WareAmount>, &'static str> {
+        let mut query = self.world.query::<&wares::Cargo>();
+        match query.get(&self.world, obj_id) {
+            Ok(cargo) => Ok(cargo.get_wares()),
+            Err(_) => Err("not found"),
+        }
+    }
+
+    pub fn get_ware_label(&mut self, ware_id: ObjId) -> Result<&Label, &'static str> {
+        let mut query = self.world.query::<&label::Label>();
+        match query.get(&self.world, ware_id) {
+            Ok(label) => Ok(label),
+            Err(_) => Err("not found"),
+        }
+    }
 }
 
 impl Game {
+    pub fn list_sectors(&mut self) -> Vec<(Entity, &Sector)> {
+        self.world
+            .query::<(Entity, &Sector)>()
+            .iter(&self.world)
+            .collect()
+    }
+
     pub fn list_at_sector(&mut self, sector_id: SectorId) -> Vec<Entity> {
         let mut ss: SystemState<Query<(Entity, &LocationSpace)>> =
             SystemState::new(&mut self.world);
@@ -181,6 +253,10 @@ impl Game {
 
     pub fn save_to_string(&mut self) -> String {
         save::save_world(&mut self.world)
+    }
+
+    pub fn take_events(&mut self) -> Vec<GEvent> {
+        self.world.resource_mut::<GEvents>().take()
     }
 }
 

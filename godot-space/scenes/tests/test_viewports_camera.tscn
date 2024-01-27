@@ -1,0 +1,90 @@
+[gd_scene load_steps=4 format=3 uid="uid://cabb070tcgdib"]
+
+[ext_resource type="Script" path="res://src/utils/camera_pan.gd" id="1_tgxk8"]
+[ext_resource type="Texture2D" uid="uid://vuk3w43xtsk5" path="res://icon.svg" id="2_8dn62"]
+[ext_resource type="Script" path="res://src/utils/labelposition.gd" id="3_laav7"]
+
+[node name="Node2D" type="Node2D"]
+
+[node name="Camera2D" type="Camera2D" parent="."]
+script = ExtResource("1_tgxk8")
+zoom_sensititvity = 1.0
+max_zoom = Vector2(10, 10)
+
+[node name="TextureRect" type="TextureRect" parent="."]
+offset_left = -520.0
+offset_top = -337.0
+offset_right = -392.0
+offset_bottom = -209.0
+texture = ExtResource("2_8dn62")
+
+[node name="TextureRect2" type="TextureRect" parent="."]
+offset_left = 358.0
+offset_top = 172.0
+offset_right = 486.0
+offset_bottom = 300.0
+texture = ExtResource("2_8dn62")
+
+[node name="TextureRect3" type="TextureRect" parent="."]
+offset_left = 165.0
+offset_top = -161.0
+offset_right = 293.0
+offset_bottom = -33.0
+texture = ExtResource("2_8dn62")
+
+[node name="TextureRect4" type="TextureRect" parent="."]
+offset_left = 574.0
+offset_top = -385.0
+offset_right = 702.0
+offset_bottom = -257.0
+texture = ExtResource("2_8dn62")
+
+[node name="TextureRect5" type="TextureRect" parent="."]
+offset_left = -627.0
+offset_top = 376.0
+offset_right = -499.0
+offset_bottom = 504.0
+texture = ExtResource("2_8dn62")
+
+[node name="Label3" type="Label" parent="."]
+offset_left = 1206.0
+offset_top = 810.0
+offset_right = 1289.0
+offset_bottom = 833.0
+scale = Vector2(3.72, 3.72)
+text = "(1206, 810)"
+script = ExtResource("3_laav7")
+
+[node name="Label4" type="Label" parent="."]
+offset_right = 83.0
+offset_bottom = 23.0
+scale = Vector2(3.72, 3.72)
+text = "(0, 0)"
+script = ExtResource("3_laav7")
+
+[node name="Label5" type="Label" parent="."]
+offset_left = -1197.0
+offset_top = -791.0
+offset_right = -1104.0
+offset_bottom = -768.0
+scale = Vector2(3.72, 3.72)
+text = "(-1197, -791)"
+script = ExtResource("3_laav7")
+
+[node name="Label6" type="Label" parent="."]
+offset_left = -1197.0
+offset_top = 810.0
+offset_right = -1104.0
+offset_bottom = 833.0
+scale = Vector2(3.72, 3.72)
+text = "(-1197, 810)"
+script = ExtResource("3_laav7")
+
+[node name="Label7" type="Label" parent="."]
+offset_left = 1206.0
+offset_top = -791.0
+offset_right = 1299.0
+offset_bottom = -768.0
+scale = Vector2(3.72, 3.72)
+text = "(1206, -791)"
+script = ExtResource("3_laav7")

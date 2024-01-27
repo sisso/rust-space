@@ -1,4 +1,4 @@
-use crate::game::save::MapEntity;
+use crate::game::save::LoadingMapEntity;
 use bevy_ecs::prelude::*;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
@@ -139,7 +139,7 @@ impl TradeOrders {
     }
 }
 
-impl MapEntity for TradeOrders {
+impl LoadingMapEntity for TradeOrders {
     fn map_entity(&mut self, entity_map: &HashMap<Entity, Entity>) {
         self.provided
             .iter_mut()

@@ -33,3 +33,4 @@ pub mod station;
 pub mod utils;
 pub mod wares;
 pub mod work;
+pub use bevy_ecs::entity::Entity;
