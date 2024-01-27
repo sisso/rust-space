@@ -201,6 +201,7 @@ render_target_update_mode = 4
 [node name="ShipyardOrdersPopup" type="Window" parent="." node_paths=PackedStringArray("buttons_container")]
 position = Vector2i(150, 120)
 size = Vector2i(900, 600)
+visible = false
 script = ExtResource("4_8g5ab")
 buttons_container = NodePath("PanelContainer/VBoxContainer/VBoxContainer")
 

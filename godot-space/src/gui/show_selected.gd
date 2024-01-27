@@ -41,6 +41,16 @@ func show_info(obj):
     else:
         self.shipyard_popup_button.hide()
 
+    var requesting_wares = obj.get_requesting_wares()
+    var providing_wares = obj.get_providing_wares()
+    if obj.get_requesting_wares().size() > 0 || obj.get_providing_wares().size() > 0:
+        desc += "\n"
+        desc += "trading: \n"
+        for ware in requesting_wares:
+            desc += "- requesting " + ware.get_label() + "\n"
+        for ware in providing_wares:
+            desc += "- providing " + ware.get_label() + "\n"
+
     $desc.text = desc
 
 

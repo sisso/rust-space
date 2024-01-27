@@ -1,5 +1,6 @@
 use super::shipyard_info::ShipyardInfo;
 use super::ware_amount_info::WareAmountInfo;
+use crate::game_api::label_info::LabelInfo;
 use crate::game_api::Id;
 use godot::prelude::*;
 
@@ -21,6 +22,8 @@ pub struct ObjExtendedInfo {
     pub command: String,
     pub action: String,
     pub cargo: Vec<WareAmountInfo>,
+    pub requesting_wares: Array<Gd<LabelInfo>>,
+    pub providing_wares: Array<Gd<LabelInfo>>,
 }
 
 #[godot_api]
@@ -93,5 +96,13 @@ impl ObjExtendedInfo {
     pub fn get_cargo(&self, index: i32) -> Gd<WareAmountInfo> {
         let wi = self.cargo[index as usize].clone();
         Gd::from_object(wi)
+    }
+    #[func]
+    pub fn get_requesting_wares(&self) -> Array<Gd<LabelInfo>> {
+        self.requesting_wares.clone()
+    }
+    #[func]
+    pub fn get_providing_wares(&self) -> Array<Gd<LabelInfo>> {
+        self.providing_wares.clone()
     }
 }

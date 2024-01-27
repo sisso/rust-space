@@ -28,6 +28,7 @@ use space_domain::game::label::Label;
 use space_domain::game::loader::Loader;
 use space_domain::game::locations::{LocationOrbit, LocationSpace};
 use space_domain::game::objects::ObjId;
+use space_domain::game::order::TradeOrders;
 use space_domain::game::prefab::Prefab;
 use space_domain::game::save_manager::SaveManager;
 use space_domain::game::sectors::{Jump, Sector};
@@ -101,6 +102,7 @@ impl GameRunning {
             .get_shipyard_info(obj_id)
             .map(|value| Gd::from_object(value));
         let cargo = self.list_cargo(obj_id);
+        let (requesting_wares, providing_wares) = self.list_requesting_and_providing_wares(obj_id);
 
         let mut query = self.game.world.query::<(
             &LocationSpace,
@@ -204,6 +206,8 @@ impl GameRunning {
             action,
             kind,
             cargo: cargo,
+            requesting_wares: requesting_wares,
+            providing_wares: providing_wares,
         };
 
         Some(info)
@@ -243,6 +247,41 @@ impl GameRunning {
 
     fn decode_entity_and_get(&mut self, id: Id) -> ObjId {
         decode_entity_and_get(&self.game, id)
+    }
+
+    // resolve the WareAmountInfo from a list of WareId
+    fn resolve_ware_amount_info(&mut self, ware_ids: &[ObjId]) -> Array<Gd<LabelInfo>> {
+        ware_ids
+            .iter()
+            .map(|ware_id| {
+                let label = self.game.get_ware_label(*ware_id).expect("ware not found");
+                let label_info = LabelInfo {
+                    id: encode_entity(*ware_id),
+                    label: label.label.clone(),
+                };
+                Gd::from_object(label_info)
+            })
+            .collect()
+    }
+
+    fn list_requesting_and_providing_wares(
+        &mut self,
+        obj_id: ObjId,
+    ) -> (Array<Gd<LabelInfo>>, Array<Gd<LabelInfo>>) {
+        let trade_orders = {
+            let mut query = self.game.world.query::<&TradeOrders>();
+            match query.get(&self.game.world, obj_id).ok() {
+                Some(value) => value.clone(),
+                None => {
+                    return (Array::new(), Array::new());
+                }
+            }
+        };
+
+        let requesting_wares = self.resolve_ware_amount_info(&trade_orders.wares_requests());
+        let providing_wares = self.resolve_ware_amount_info(&trade_orders.wares_provider());
+
+        (requesting_wares, providing_wares)
     }
 }
 
