@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3 uid="uid://bim2u567p5gx"]
 
 [ext_resource type="Script" path="res://src/controller.gd" id="1_r0rn1"]
-[ext_resource type="PackedScene" uid="uid://drf48083o2j5x" path="res://scenes/main_gui.tscn" id="2_ay072"]
+[ext_resource type="PackedScene" uid="uid://drf48083o2j5x" path="res://scenes/main_gui/main_gui.tscn" id="2_ay072"]
 
 [node name="controller" type="Node2D" node_paths=PackedStringArray("game_api", "gui")]
 script = ExtResource("1_r0rn1")

@@ -1,8 +1,8 @@
 [gd_scene load_steps=4 format=3 uid="uid://ddr02an8jihyo"]
 
-[ext_resource type="Script" path="res://src/sectorview/sector_view.gd" id="1_xwfw1"]
-[ext_resource type="Script" path="res://src/sectorview/sector_view_distance_indicator.gd" id="3_epqoo"]
-[ext_resource type="Script" path="res://src/utils/camera_pan.gd" id="5_6j4cq"]
+[ext_resource type="Script" path="res://src/sector_view/sector_view.gd" id="1_xwfw1"]
+[ext_resource type="Script" path="res://src/sector_view/sector_view_distance_indicator.gd" id="3_epqoo"]
+[ext_resource type="Script" path="res://src/sector_view/camera_pan.gd" id="5_6j4cq"]
 
 [node name="SectorView" type="Node2D"]
 script = ExtResource("1_xwfw1")

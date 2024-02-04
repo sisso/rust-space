@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://bs63qqxdn5i0l"]
 
-[ext_resource type="PackedScene" uid="uid://cabb070tcgdib" path="res://scenes/tests/test_viewports_camera.tscn" id="1_rc0i8"]
+[ext_resource type="PackedScene" uid="uid://cabb070tcgdib" path="res://tests/t001/test_viewports_camera.tscn" id="1_rc0i8"]
 
 [node name="TestViewports" type="Node2D"]
 

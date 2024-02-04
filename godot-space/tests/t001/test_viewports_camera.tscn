@@ -1,6 +1,6 @@
 [gd_scene load_steps=4 format=3 uid="uid://cabb070tcgdib"]
 
-[ext_resource type="Script" path="res://src/utils/camera_pan.gd" id="1_tgxk8"]
+[ext_resource type="Script" path="res://src/sector_view/camera_pan.gd" id="1_tgxk8"]
 [ext_resource type="Texture2D" uid="uid://vuk3w43xtsk5" path="res://icon.svg" id="2_8dn62"]
 [ext_resource type="Script" path="res://src/utils/labelposition.gd" id="3_laav7"]
 

@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3 uid="uid://b6op0b45eg75g"]
 
-[ext_resource type="Script" path="res://scenes/tests/test_main_gui.gd" id="1_cb1gk"]
-[ext_resource type="PackedScene" uid="uid://drf48083o2j5x" path="res://scenes/main_gui.tscn" id="2_lnamy"]
+[ext_resource type="Script" path="res://tests/t001/test_main_gui.gd" id="1_cb1gk"]
+[ext_resource type="PackedScene" uid="uid://drf48083o2j5x" path="res://scenes/main_gui/main_gui.tscn" id="2_lnamy"]
 
 [node name="TestMainGui" type="Node2D"]
 script = ExtResource("1_cb1gk")

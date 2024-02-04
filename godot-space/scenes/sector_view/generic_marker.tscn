@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://bfcmg5xxomt2f"]
 
-[ext_resource type="Script" path="res://src/sectorview/marker_generic.gd" id="1_7ranm"]
+[ext_resource type="Script" path="res://src/sector_view/marker_generic.gd" id="1_7ranm"]
 
 [node name="generic_marker" type="Node2D"]
 position = Vector2(95, 190)
