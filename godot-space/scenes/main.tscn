@@ -13,10 +13,3 @@ save_path = "/tmp/space"
 [node name="game_api" type="GameApi" parent="."]
 
 [node name="main_gui" parent="." instance=ExtResource("2_ay072")]
-
-[connection signal="on_change_speed" from="main_gui" to="." method="_on_main_gui_on_change_speed"]
-[connection signal="on_click_fleet_button" from="main_gui" to="." method="_on_main_gui_on_click_fleet_button"]
-[connection signal="on_click_object_at_sector_view" from="main_gui" to="." method="_on_main_gui_on_click_object_at_sector_view"]
-[connection signal="on_click_sector_button" from="main_gui" to="." method="_on_main_gui_on_click_sector_button"]
-[connection signal="on_click_start_building" from="main_gui" to="." method="_on_main_gui_on_click_start_building"]
-[connection signal="on_set_shipyard_building_order" from="main_gui" to="." method="_on_main_gui_on_set_shipyard_building_order"]

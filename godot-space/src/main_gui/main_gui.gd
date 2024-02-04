@@ -21,19 +21,51 @@ enum ScreenMode {
 @export var building_items: Array
 @export var speed: float = 1.0
 @export var previous_speed: float = 1.0
+@export var selected_sector_id: int = -1
+@export var selected_obj_id: int = -1
 
-signal on_click_fleet_button(id)
-signal on_click_sector_button(id)
+var game_api: Node
 
-signal on_click_object_at_sector_view(id)
+func _ready():
+    pass
 
-signal on_click_start_building(selected_id, pos)
+func _process(delta):
+    var events = self.game_api.take_events()
+    for e in events:
+        pass
+    self._refresh_sector_view()
 
-signal on_change_speed(new_speed)
+func init(game_api):
+    self.game_api = game_api
 
-signal on_set_shipyard_building_order(id, order_id)
+    var sectors = self.game_api.list_sectors()
+    self.selected_sector_id = sectors[0]["id"]
+    self.selected_obj_id = -1
+    self._refresh_gui()
 
-func set_sectors(sectors):
+func _refresh_gui():
+    self._set_sectors(self.game_api.list_sectors())
+    self._set_fleets(self.game_api.list_fleets())
+    self._set_buildings(self.game_api.list_buildings())
+    self._set_shipyard_prefabs(self.game_api.list_shipyards_prefabs())
+    self._refresh_sector_view()
+
+func _refresh_sector_view():
+    if self.selected_obj_id != -1:
+        var spos = self.game_api.resolve_space_position(self.selected_obj_id)
+        if spos != null:
+            self.selected_sector_id = spos["sector_id"]
+
+    var objs_id = self.game_api.list_at_sector(self.selected_sector_id)
+
+    var objects = []
+    for id in objs_id:
+        var info = self.game_api.describe_obj(id)
+        objects.push_back(info)
+
+    self._set_sector_objects(objects)
+
+func _set_sectors(sectors):
     print("refresh_sectors ", sectors)
     for b in self.sectors_container.get_children():
         self.sectors_container.remove_child(b)
@@ -45,7 +77,7 @@ func set_sectors(sectors):
         btn.pressed.connect(self._on_click_sector.bind(obj["id"]))
         self.sectors_container.add_child(btn)
 
-func set_fleets(fleets):
+func _set_fleets(fleets):
     print("refresh_fleets ", fleets)
     for b in self.fleets_container.get_children():
         self.fleets_container.remove_child(b)
@@ -60,10 +92,10 @@ func set_fleets(fleets):
         btn.pressed.connect(self._on_click_fleet.bind(id))
         self.fleets_container.add_child(btn)        
 
-func set_sector_objects(objects: Array):
+func _set_sector_objects(objects: Array):
     self.sectors_view.update_objects(objects)
 
-func set_buildings(list: Array):
+func _set_buildings(list: Array):
     self.building_items = list
     self._refresh_building_items()
     
@@ -75,10 +107,15 @@ func _refresh_building_items():
         item_list.add_item(i["label"])
 
 func _on_click_sector(id):
-    emit_signal("on_click_sector_button", id)
+    self.selected_sector_id = id
+    self.selected_obj_id = -1
+    self._refresh_sector_view()
+    self._center_camera()
 
 func _on_click_fleet(id):
-    emit_signal("on_click_fleet_button", id)
+    self.selected_obj_id = id
+    self._refresh_sector_view()
+    self._center_camera_at(self.selected_obj_id)
 
 func _set_panel(kind):
     self.fleets_container.visible = kind == "fleets"
@@ -92,14 +129,17 @@ func _on_click_fleets():
 func _on_click_sectors():
     self._set_panel("sectors")
 
-func center_camera_at(id):
+func _center_camera_at(id):
     self.sectors_view.center_camera_at(id)
     
-func center_camera():
+func _center_camera():
     self.sectors_view.center_camera()
 
 func _on_sector_view_on_click_object(id):
-    self.emit_signal("on_click_object_at_sector_view", id)
+    self.selected_obj_id = id
+    var desc = self.game_api.describe_obj(id)
+    var obj_desc = self.game_api.describe_obj(id)
+    self._show_obj_details(obj_desc)
 
 func _on_button_building_pressed():
     self._set_panel("building")
@@ -119,16 +159,20 @@ func _on_button_build_plot_pressed():
     self.screen_mode = ScreenMode.BUILDING
 
     var on_click_building_callback = func (pos):
-        emit_signal("on_click_start_building", selected_id, pos)        
+        if self.selected_sector_id == -1:
+            print("no sector_id selected, ignoring building")
+            return
+        print("sending new building site ", self.selected_sector_id, " ", selected_id, " ", pos)
+        self.game_api.new_building_site(self.selected_sector_id, pos, selected_id)
         self.sectors_view.clear_cursor()
-        self.set_building_panel_idle()
+        self._set_building_panel_idle()
 
     self.sectors_view.set_cursor_building(on_click_building_callback)
 
 func _on_button_cancel_building_plot_pressed():
-    self.set_building_panel_idle()
+    self._set_building_panel_idle()
     
-func set_building_panel_idle():
+func _set_building_panel_idle():
     self.building_panel.get_node("item_list").show()
     self.building_panel.get_node("button_build").show()
     self.building_panel.get_node("button_cancel").hide()
@@ -149,7 +193,7 @@ func _on_speed_selector_item_selected(index):
         6: self.speed = 5.0
         7: self.speed = 10.0
     
-    emit_signal("on_change_speed", self.speed)
+    self.game_api.set_speed(self.speed)
 
 func _unhandled_input(event):
     if event is InputEventKey:
@@ -168,12 +212,18 @@ func _on_button_4_pressed():
 func _on_selected_object_on_click_show_shipyard_orders(obj):
     shipyard_orders_popup.show_popup(obj)
 
-func set_shipyard_prefabs(prefabs):
+func _set_shipyard_prefabs(prefabs):
     self.shipyard_orders_popup.set_prefabs(prefabs)
 
 func _on_shipyard_orders_popup_on_set_shipyard_building_order(id, order_id):
-    emit_signal("on_set_shipyard_building_order", id, order_id)
+    self.selected_obj_id = id
+    if order_id == null:
+        self.game_api.cancel_shipyard_building_order(id)
+    else:
+        self.game_api.set_shipyard_building_order(id, order_id)
+    var obj_desc = self.game_api.describe_obj(id)
+    self.gui.show_obj_details(obj_desc)
 
-func show_obj_details(obj_desc):
+func _show_obj_details(obj_desc):
     self._set_panel("selected")
     self.selected_object_container.show_info(obj_desc)
