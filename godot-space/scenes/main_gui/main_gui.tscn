@@ -14,7 +14,7 @@ bg_color = Color(0, 0.639216, 0.937255, 1)
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_80pxr"]
 bg_color = Color(0, 0.0627451, 0.0627451, 1)
 
-[node name="MainGui" type="CanvasLayer" node_paths=PackedStringArray("sectors_container", "fleets_container", "sectors_view", "selected_object_container", "building_panel", "shipyard_orders_popup", "speed_label")]
+[node name="MainGui" type="CanvasLayer" node_paths=PackedStringArray("sectors_container", "fleets_container", "sectors_view", "selected_object_container", "building_panel", "shipyard_orders_popup", "speed_label", "speed_selector")]
 script = ExtResource("1_mmju6")
 sectors_container = NodePath("Control/VBoxContainer/HBoxContainer/LeftPanel/SectorsPanel")
 fleets_container = NodePath("Control/VBoxContainer/HBoxContainer/LeftPanel/FleetsPanel")
@@ -23,6 +23,13 @@ selected_object_container = NodePath("Control/VBoxContainer/HBoxContainer/LeftPa
 building_panel = NodePath("Control/VBoxContainer/HBoxContainer/LeftPanel/BuildingPanel")
 shipyard_orders_popup = NodePath("ShipyardOrdersPopup")
 speed_label = NodePath("Control/VBoxContainer/top_panels/FlowContainer/speed_label")
+speed_selector = NodePath("Control/VBoxContainer/top_panels/FlowContainer/speed_selector")
+screen_mode = null
+building_items = null
+speed_index = null
+pause_previous_speed_index = null
+selected_sector_id = null
+selected_obj_id = null
 
 [node name="Control" type="Control" parent="."]
 layout_mode = 3

@@ -1,14 +1,17 @@
-extends Node
-class_name ShowSelected
+class_name ShowSelected extends Node
 
 @export var shipyard_popup_button: Button
 
-var obj
+var obj_info_provider
 
 signal on_click_show_shipyard_orders(obj)
 
-func show_info(obj):
-    self.obj = obj
+func show_info(obj_info_provider):
+    self.obj_info_provider = obj_info_provider
+    self._refresh()
+
+func _refresh():
+    var obj = self.obj_info_provider.get_info()
     
     $label.text = str(obj.get_id()) + ": " + obj.get_label()
 
@@ -54,5 +57,13 @@ func show_info(obj):
     $desc.text = desc
 
 
+func _process(delta):
+    if self.obj_info_provider != null:
+        self._refresh()
+    else:
+        $label.text = ""
+        $desc.text = ""
+        self.shipyard_popup_button.hide()
+
 func _on_shipyard_popup_button_pressed():
-    emit_signal("on_click_show_shipyard_orders", self.obj)
+    emit_signal("on_click_show_shipyard_orders", self.obj_info_provider)

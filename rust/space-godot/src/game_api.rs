@@ -35,6 +35,7 @@ use space_domain::game::sectors::{Jump, Sector};
 use space_domain::game::shipyard;
 use space_domain::game::shipyard::Shipyard;
 use space_domain::game::station::Station;
+use space_domain::game::utils::TotalTime;
 use std::path::PathBuf;
 
 pub type Id = i64;
@@ -589,6 +590,15 @@ impl GameApi {
                 })
             })
             .collect()
+    }
+
+    #[func]
+    pub fn get_total_time(&mut self) -> f32 {
+        let mut game = &mut self.get_current().game;
+        game.world
+            .get_resource::<TotalTime>()
+            .expect("total time not found")
+            .as_f64() as f32
     }
 }
 
