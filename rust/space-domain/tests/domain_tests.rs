@@ -1,8 +1,6 @@
 extern crate space_domain;
 
 use space_domain::game::commands::Command;
-use std::fs::File;
-use std::io::Write;
 
 use bevy_ecs::prelude::*;
 use bevy_ecs::system::SystemState;
@@ -18,11 +16,10 @@ use space_domain::game::scenery_random::{InitialCondition, RandomMapCfg};
 use space_domain::game::station::Station;
 use space_domain::game::utils::{DeltaTime, Speed};
 use space_domain::game::wares::WareAmount;
-use space_domain::test::init_trace_log;
 
 #[test]
 fn test_game_should_mine_and_deliver_cargo_to_mothership_until_produce_a_new_ship() {
-    let mut game = Game::new();
+    let mut game = Game::new(Default::default());
     _ = sceneries::load_basic_mothership_scenery(&mut game);
     game.debug_dump();
 
@@ -31,7 +28,7 @@ fn test_game_should_mine_and_deliver_cargo_to_mothership_until_produce_a_new_shi
 
 #[test]
 fn test_game_should_mine_and_deliver_cargo_to_shipyard_until_produce_a_new_ship() {
-    let mut game = Game::new();
+    let mut game = Game::new(Default::default());
     sceneries::load_basic_scenery(&mut game);
     game.debug_dump();
 
@@ -44,7 +41,7 @@ fn count_commands(game: &mut Game) -> usize {
 
 #[test]
 fn test_construction_yard_should_be_build_by_miners_delivering_components() {
-    let mut game = Game::new();
+    let mut game = Game::new(Default::default());
     let bs = sceneries::load_minimum_scenery(&mut game);
 
     // add stations prefab
@@ -100,7 +97,7 @@ fn test_construction_yard_should_be_build_by_miners_delivering_components() {
 
 #[test]
 fn test_load_random_scenery() {
-    let mut game = Game::new();
+    let mut game = Game::new(Default::default());
 
     let path = "../data/game.conf";
     let content = std::fs::read_to_string(path).expect("fail to read config file");
@@ -134,7 +131,7 @@ fn test_load_random_scenery() {
 
 #[test]
 fn test_mining_on_high_speed_with_orbiting_objects() {
-    let mut game = Game::new();
+    let mut game = Game::new(Default::default());
 
     let rs = sceneries::load_basic_mothership_scenery(&mut game);
 
@@ -165,7 +162,7 @@ fn test_mining_on_high_speed_with_orbiting_objects() {
 fn test_save() {
     // init_trace_log().unwrap();
 
-    let mut game = Game::new();
+    let mut game = Game::new(Default::default());
     _ = sceneries::load_basic_mothership_scenery(&mut game);
 
     let delta = DeltaTime(1.0);

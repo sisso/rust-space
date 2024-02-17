@@ -19,7 +19,7 @@ impl<T: MapEntity> MapEntity for Option<T> {
 
 #[derive(Debug, Serialize, Deserialize, SaveData, Default)]
 struct Data {
-    index: Option<Entity>,
+    id: Option<Entity>,
     c1: Option<C1>,
     c2: Option<C2>,
     c3: Option<C3>,
@@ -62,7 +62,7 @@ pub fn save(world: &mut World) -> Vec<u8> {
     for e in world.query::<Entity>().iter(world) {
         log::trace!("saving {:?}", e);
         let mut data = Data::default();
-        data.index = Some(e);
+        data.id = Some(e);
 
         let entity = world.get_entity(e).unwrap();
         data.load_from(&entity);
@@ -87,14 +87,14 @@ pub fn load(world: &mut World, data: Vec<u8>) {
 
     for row in &table {
         let id = world.spawn_empty().id();
-        log::trace!("map {:?} -> {:?}", row.index, id);
-        entity_map.insert(row.index.unwrap(), id);
+        log::trace!("map {:?} -> {:?}", row.id, id);
+        entity_map.insert(row.id.unwrap(), id);
     }
 
     log::trace!("mapping call");
 
     for mut row in table {
-        let id = entity_map[&row.index.unwrap()];
+        let id = entity_map[&row.id.unwrap()];
 
         // map entities manually
         row.map_entity(&entity_map);

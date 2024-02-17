@@ -6,7 +6,6 @@ use crate::game::ship::ship_combat::CombatLog;
 
 use super::ship_internals::*;
 
-
 #[derive(Clone, Debug)]
 pub struct DamageToApply {
     pub attacker_id: ShipInstanceId,
@@ -253,7 +252,7 @@ fn ship_apply_hulldamage(
 
             let component = components.get(component_id);
             let total_component_width =
-                component.width * *ship.spec.components.get(component_id).unwrap();
+                component.size * *ship.spec.components.get(component_id).unwrap();
             let total_damage_percent = total_damage.0 as f32 / total_component_width as f32;
             let mut rng = rand::thread_rng();
             let chance = rng.gen::<f32>();

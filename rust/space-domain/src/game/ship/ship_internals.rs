@@ -1,6 +1,12 @@
+use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
 use crate::game::utils::Speed;
+
+#[derive(Deserialize, Debug, Clone, Serialize)]
+pub struct ShipComponentsConfig {
+    pub components: Vec<Component>,
+}
 
 #[derive(Clone, Debug)]
 pub struct Armor {
@@ -18,52 +24,52 @@ impl Armor {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
-pub enum ComponentType {
-    Engine,
-    PowerGenerator,
-    Quarter,
-    Engineer,
-    Bridge,
-    FuelTank,
-    Weapon,
-}
+// #[derive(Copy, Clone, Debug)]
+// pub enum ComponentType {
+//     Engine,
+//     PowerGenerator,
+//     Quarter,
+//     Engineer,
+//     Bridge,
+//     FuelTank,
+//     Weapon,
+// }
 
-#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Serialize, Deserialize)]
 pub struct ComponentId(pub u32);
 
-#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Serialize, Deserialize)]
 pub struct ShipInstanceId(pub u32);
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Serialize, Deserialize)]
 pub struct Damage(pub u32);
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Serialize, Deserialize)]
 pub struct Amount(pub u32);
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Serialize, Deserialize)]
 pub struct Hp(pub u32);
 
-#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Serialize, Deserialize)]
 pub struct ArmorIndex(pub u32);
 
 // TODO: width in meters? 10 meters per width? normal ship 19?
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Serialize, Deserialize)]
 pub struct Width(pub u32);
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Serialize, Deserialize)]
 pub struct Tons(pub u32);
 
-#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Serialize, Deserialize)]
 pub struct TeamId(pub u32);
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum WeaponDamageType {
     Explosive,
     Penetration,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Weapon {
     pub damage: Damage,
     pub reload: f32,
@@ -71,41 +77,47 @@ pub struct Weapon {
     pub damage_type: WeaponDamageType,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Component {
     pub id: ComponentId,
-    pub component_type: ComponentType,
+    // pub component_type: ComponentType,
+    #[serde(default)]
     pub weapon: Option<Weapon>,
+    #[serde(default)]
     pub thrust: f32,
+    #[serde(default)]
     pub weight: u32,
-    pub crew_require: f32,
-    pub crew_provide: f32,
-    pub power_require: f32,
-    pub power_generate: f32,
-    pub engineer_provide: f32,
-    pub engineer_require: f32,
+    #[serde(default)]
+    pub crew: f32,
+    #[serde(default)]
+    pub power: f32,
+    #[serde(default)]
+    pub engineer: f32,
+    #[serde(default)]
     pub fuel_consume: f32,
-    pub width: u32,
+    #[serde(default)]
+    pub size: u32,
+    #[serde(default)]
     pub fuel_hold: f32,
+    #[serde(default)]
+    pub bridge_power: f32,
 }
 
 impl Component {
-    pub fn new(id: ComponentId, component_type: ComponentType) -> Self {
+    // pub fn new(id: ComponentId, component_type: ComponentType) -> Self {
+    pub fn new(id: ComponentId) -> Self {
         Component {
             id,
-            component_type,
             weapon: None,
             thrust: 0.0,
             weight: 0,
-            crew_require: 0.0,
-            crew_provide: 0.0,
-            power_require: 0.0,
-            power_generate: 0.0,
-            engineer_provide: 0.0,
-            engineer_require: 0.0,
+            crew: 0.0,
+            power: 0.0,
+            engineer: 0.0,
             fuel_consume: 0.0,
-            width: 0,
+            size: 0,
             fuel_hold: 0.0,
+            bridge_power: 0.0,
         }
     }
 }
@@ -179,7 +191,7 @@ impl ShipSpec {
             let destroyed_amount = destroyed_components.get(id).unwrap_or(&Amount(0));
 
             weight += component.weight * amount;
-            width += component.width * amount;
+            width += component.size * amount;
 
             if destroyed_amount.0 >= *amount {
                 // all components from this category were destroyed
@@ -189,16 +201,13 @@ impl ShipSpec {
             let active_amount = *amount - destroyed_amount.0;
             let active_amount_f32 = active_amount as f32;
 
-            if let ComponentType::Bridge = component.component_type {
+            if component.bridge_power > 0.0 {
                 has_bridge = true;
             }
 
-            power += component.power_generate * active_amount_f32
-                - component.power_require * active_amount_f32;
-            crew += component.crew_provide * active_amount_f32
-                - component.crew_require * active_amount_f32;
-            engineer += component.engineer_provide * active_amount_f32
-                - component.engineer_require * active_amount_f32;
+            power += component.power * active_amount_f32;
+            crew += component.crew * active_amount_f32;
+            engineer += component.engineer * active_amount_f32;
             thrust += component.thrust * active_amount_f32;
         }
 
@@ -265,7 +274,7 @@ impl ShipSpec {
         let total = self
             .map_components(components)
             .iter()
-            .map(|(component, amount)| component.width * amount.0)
+            .map(|(component, amount)| component.size * amount.0)
             .sum();
 
         Hp(total)
@@ -295,7 +304,7 @@ impl ComponentTable {
             .iter()
             .map(|(id, amount)| {
                 let component = components.get(id);
-                let comp_width = component.width * *amount;
+                let comp_width = component.size * *amount;
                 (component.id, comp_width)
             })
             .collect();
@@ -396,10 +405,6 @@ impl Components {
         }
     }
 
-    //    pub fn next_id(&mut self) -> ComponentId {
-    //        ComponentId(self.next_id.next())
-    //    }
-
     pub fn add(&mut self, component: Component) {
         if self.index.contains_key(&component.id) {
             panic!();
@@ -434,11 +439,3 @@ pub struct ShipStats {
     pub thrust: f32,
     pub speed: Speed,
 }
-
-// fn round_width(value: f32) -> u32 {
-//     value.ceil() as u32
-// }
-//
-// fn round_weight(value: f32) -> u32 {
-//     value.ceil() as u32
-// }

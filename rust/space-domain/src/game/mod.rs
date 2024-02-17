@@ -5,6 +5,7 @@ pub mod building_site;
 pub mod code;
 pub mod commands;
 pub mod conf;
+pub mod data;
 pub mod dock;
 pub mod events;
 pub mod extractables;
@@ -33,4 +34,5 @@ pub mod station;
 pub mod utils;
 pub mod wares;
 pub mod work;
+
 pub use bevy_ecs::entity::Entity;

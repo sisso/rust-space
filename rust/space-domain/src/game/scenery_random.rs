@@ -339,6 +339,7 @@ fn add_stations_minimal(world: &mut World, seed: u64, params: &conf::Params) {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::game::game::NewGameParams;
 
     #[test]
     pub fn test_random_scenery() {
@@ -350,7 +351,7 @@ mod test {
         let file = std::fs::read_to_string(path).expect("fail to read config file");
         let cfg = conf::load_str(&file).expect("fail to read config file");
 
-        let mut game = Game::new();
+        let mut game = Game::empty();
         game.world
             .run_commands(|mut commands| loader::load_prefabs(&mut commands, &cfg.prefabs));
 
