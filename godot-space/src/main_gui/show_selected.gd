@@ -17,8 +17,10 @@ func _refresh():
 
     var desc = ""
     desc += "kind: " + obj.get_kind() + "\n"
-    desc += "command: " + obj.get_command() + "\n"
-    desc += "action: " + obj.get_action() + "\n"
+    if obj.get_command() != "":
+        desc += "command: " + obj.get_command() + "\n"
+    if obj.get_action() != "":
+        desc += "action: " + obj.get_action() + "\n"
 
     if obj.get_cargo_size() > 0:
         desc += "\n"
@@ -26,7 +28,14 @@ func _refresh():
         
         for i in range(obj.get_cargo_size()):
             var c = obj.get_cargo(i)
-            desc += "- " + c.get_label() + " ("+ str(c.get_id())+ "): " + str(c.get_amount())
+            desc += "- " + c.get_label() + " ("+ str(c.get_id())+ "): " + str(c.get_amount()) + "\n"
+
+    if obj.get_resources().size() > 0:
+        desc += "\n"
+        desc += "extractable resources:\n"
+
+        for i in obj.get_resources():
+            desc += "- " + i.get_label() + " ("+ str(i.get_id())+ ")" + "\n"
 
     if obj.get_shipyard() != null:
         desc += "\n"

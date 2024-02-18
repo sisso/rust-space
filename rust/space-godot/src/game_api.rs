@@ -104,6 +104,7 @@ impl GameRunning {
             .map(|value| Gd::from_object(value));
         let cargo = self.list_cargo(obj_id);
         let (requesting_wares, providing_wares) = self.list_requesting_and_providing_wares(obj_id);
+        let extractable_resources = self.list_extractable_resources(obj_id);
 
         let mut query = self.game.world.query::<(
             &LocationSpace,
@@ -209,6 +210,7 @@ impl GameRunning {
             cargo: cargo,
             requesting_wares: requesting_wares,
             providing_wares: providing_wares,
+            resources: extractable_resources,
         };
 
         Some(info)
@@ -283,6 +285,14 @@ impl GameRunning {
         let providing_wares = self.resolve_ware_amount_info(&trade_orders.wares_provider());
 
         (requesting_wares, providing_wares)
+    }
+
+    fn list_extractable_resources(&mut self, obj_id: ObjId) -> Array<Gd<LabelInfo>> {
+        let Some(extractable) = self.game.world.get::<Extractable>(obj_id) else {
+            return Array::new();
+        };
+
+        self.resolve_ware_amount_info(&[extractable.ware_id])
     }
 }
 

@@ -24,6 +24,7 @@ pub struct ObjExtendedInfo {
     pub cargo: Vec<WareAmountInfo>,
     pub requesting_wares: Array<Gd<LabelInfo>>,
     pub providing_wares: Array<Gd<LabelInfo>>,
+    pub resources: Array<Gd<LabelInfo>>,
 }
 
 #[godot_api]
@@ -104,5 +105,9 @@ impl ObjExtendedInfo {
     #[func]
     pub fn get_providing_wares(&self) -> Array<Gd<LabelInfo>> {
         self.providing_wares.clone()
+    }
+    #[func]
+    pub fn get_resources(&self) -> Array<Gd<LabelInfo>> {
+        self.resources.clone()
     }
 }
