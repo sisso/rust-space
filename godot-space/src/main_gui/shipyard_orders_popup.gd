@@ -29,6 +29,9 @@ func set_prefabs(prefabs):
         self.buttons_container.add_child(btn)
 
 func show_popup(obj):
+    if obj == null:
+        print("show popup with nil argument, ignoring")
+        return
     self.obj_id = obj.get_id()
     self.show()
 

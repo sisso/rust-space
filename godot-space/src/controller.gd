@@ -17,7 +17,7 @@ func _resolve_log_level() -> int:
     return 1
 
 @export var log_level: LogLevel
-@export var game_api: GameApi
+@export var game_api: Node
 @export var gui: MainGui
 @export var save_path: String
 
