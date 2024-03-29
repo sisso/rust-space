@@ -172,6 +172,6 @@ func _process(delta):
     if self.cursor != null:
         var mouse_pos = get_viewport().get_mouse_position()
         var local_pos = get_viewport_transform().inverse() * mouse_pos
-        # print("mouse pos: ", mouse_pos, " local pos: ", local_pos)
+        print("mouse pos: ", mouse_pos, " local pos: ", local_pos)
         self.cursor.position = local_pos
 #        self.cursor.z_index = 1000

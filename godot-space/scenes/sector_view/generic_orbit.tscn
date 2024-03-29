@@ -2,6 +2,5 @@
 
 [ext_resource type="Script" path="res://src/sector_view/marker_orbit.gd" id="1_l6aqu"]
 
-[node name="generic_orbit" type="Node2D" node_paths=PackedStringArray("orbit_obj")]
+[node name="generic_orbit" type="Node2D"]
 script = ExtResource("1_l6aqu")
-orbit_obj = NodePath("")

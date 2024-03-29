@@ -203,6 +203,7 @@ func _set_building_panel_idle():
     self.building_panel.get_node("button_build").show()
     self.building_panel.get_node("button_cancel").hide()
     self.screen_mode = ScreenMode.NORMAL
+    self.sectors_view.clear_cursor()
 
 
 func _on_speed_selector_item_selected(index):
