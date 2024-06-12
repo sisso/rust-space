@@ -24,12 +24,6 @@ building_panel = NodePath("Control/VBoxContainer/HBoxContainer/LeftPanel/Buildin
 shipyard_orders_popup = NodePath("ShipyardOrdersPopup")
 speed_label = NodePath("Control/VBoxContainer/top_panels/FlowContainer/speed_label")
 speed_selector = NodePath("Control/VBoxContainer/top_panels/FlowContainer/speed_selector")
-screen_mode = null
-building_items = null
-speed_index = null
-pause_previous_speed_index = null
-selected_sector_id = null
-selected_obj_id = null
 
 [node name="Control" type="Control" parent="."]
 layout_mode = 3

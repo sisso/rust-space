@@ -162,10 +162,7 @@ func _center_camera():
 
 func _on_sector_view_on_click_object(id):
     self.selected_obj_id = id
-
-    var provider = ObjInfoProvider.new()
-    provider.init(self.game_api, id)
-    self._show_obj_details(provider)
+    self._show_obj_details(id)
 
 func _on_button_building_pressed():
     self._set_panel("building")
@@ -241,9 +238,12 @@ func _on_shipyard_orders_popup_on_set_shipyard_building_order(id, order_id):
         self.game_api.cancel_shipyard_building_order(id)
     else:
         self.game_api.set_shipyard_building_order(id, order_id)
-    var obj_desc = self.game_api.describe_obj(id)
-    self.gui.show_obj_details(obj_desc)
 
-func _show_obj_details(obj_info_provider):
+    self._show_obj_details(id)
+
+func _show_obj_details(id):
     self._set_panel("selected")
-    self.selected_object_container.show_info(obj_info_provider)
+
+    var provider = ObjInfoProvider.new()
+    provider.init(self.game_api, id)
+    self.selected_object_container.show_info(provider)

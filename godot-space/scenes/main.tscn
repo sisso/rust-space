@@ -13,9 +13,3 @@ save_path = "/tmp/space"
 [node name="game_api" type="GameApi" parent="."]
 
 [node name="main_gui" parent="." instance=ExtResource("2_ay072")]
-screen_mode = 0
-building_items = []
-speed_index = 4.0
-pause_previous_speed_index = 4.0
-selected_sector_id = -1
-selected_obj_id = -1

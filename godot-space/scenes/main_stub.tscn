@@ -12,12 +12,6 @@ gui = NodePath("main_gui")
 save_path = "/tmp/space"
 
 [node name="main_gui" parent="." instance=ExtResource("2_bfkq2")]
-screen_mode = 0
-building_items = []
-speed_index = 4.0
-pause_previous_speed_index = 4.0
-selected_sector_id = -1
-selected_obj_id = -1
 
 [node name="game_api" type="Node" parent="."]
 script = ExtResource("3_23wkj")

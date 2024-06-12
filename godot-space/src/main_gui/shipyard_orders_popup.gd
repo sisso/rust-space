@@ -42,7 +42,6 @@ func _on_click_prefab(index):
     emit_signal("on_set_shipyard_building_order", self.obj_id, self.prefabs[index].get_id())
     self.hide()
 
-
 func _on_cancel_order_button_pressed():
     emit_signal("on_set_shipyard_building_order", self.obj_id, null)
     self.hide()
