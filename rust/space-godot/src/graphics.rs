@@ -1,15 +1,15 @@
 use crate::godot_utils;
-use godot::classes::{CanvasItem, ICanvasItem};
+use godot::classes::{INode2D, Node2D};
 use godot::prelude::*;
 use godot::sys;
 
 #[derive(GodotClass)]
-#[class(no_init, base=CanvasItem)]
+#[class(no_init, base=Node2D)]
 pub struct AstroModel {
     pub color: Color,
 
     #[base]
-    base: Base<CanvasItem>,
+    base: Base<Node2D>,
 }
 
 #[godot_api]
@@ -20,8 +20,8 @@ impl AstroModel {
 }
 
 #[godot_api]
-impl ICanvasItem for AstroModel {
-    fn init(base: Base<CanvasItem>) -> Self {
+impl INode2D for AstroModel {
+    fn init(base: Base<Node2D>) -> Self {
         Self {
             color: godot_utils::color_white(),
             base,
@@ -29,18 +29,19 @@ impl ICanvasItem for AstroModel {
     }
 
     fn draw(&mut self) {
-        self.base()
-            .draw_circle(Vector2::new(0.0, 0.0), 1.0, self.color);
+        let color = self.color;
+        self.base_mut()
+            .draw_circle(Vector2::new(0.0, 0.0), 1.0, color);
     }
 }
 
 #[derive(GodotClass)]
-#[class(base=CanvasItem)]
+#[class(base=Node2D)]
 pub struct OrbitModel {
     pub color: Color,
 
     #[base]
-    pub base: Base<CanvasItem>,
+    pub base: Base<Node2D>,
 }
 
 #[godot_api]
@@ -52,8 +53,8 @@ impl OrbitModel {
 }
 
 #[godot_api]
-impl ICanvasItem for OrbitModel {
-    fn init(base: Base<CanvasItem>) -> Self {
+impl INode2D for OrbitModel {
+    fn init(base: Base<Node2D>) -> Self {
         Self {
             color: godot_utils::color_white(),
             base,
@@ -61,24 +62,19 @@ impl ICanvasItem for OrbitModel {
     }
 
     fn draw(&mut self) {
-        self.base().draw_arc(
-            Vector2::ZERO,
-            1.0,
-            0.0,
-            360.0f32.to_radians(),
-            32,
-            self.color,
-        );
+        let color = self.color;
+        self.base_mut()
+            .draw_arc(Vector2::ZERO, 1.0, 0.0, 360.0f32.to_radians(), 32, color);
     }
 }
 
 #[derive(GodotClass)]
-#[class(base=CanvasItem)]
+#[class(base=Node2D)]
 pub struct SelectedModel {
     pub color: Color,
 
     #[base]
-    base: Base<CanvasItem>,
+    base: Base<Node2D>,
 }
 
 #[godot_api]
@@ -90,8 +86,8 @@ impl SelectedModel {
 }
 
 #[godot_api]
-impl ICanvasItem for SelectedModel {
-    fn init(base: Base<CanvasItem>) -> Self {
+impl INode2D for SelectedModel {
+    fn init(base: Base<Node2D>) -> Self {
         Self {
             color: godot_utils::color_white(),
             base,
@@ -99,10 +95,11 @@ impl ICanvasItem for SelectedModel {
     }
 
     fn draw(&mut self) {
-        self.base()
+        let color = self.color;
+        self.base_mut()
             .draw_rect_ex(
                 Rect2::new(Vector2::new(-1.0, -1.0), Vector2::new(2.0, 2.0)),
-                self.color,
+                color,
             )
             .filled(false)
             .done();

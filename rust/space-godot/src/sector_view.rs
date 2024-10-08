@@ -1,6 +1,7 @@
 use crate::godot_utils;
 use crate::godot_utils::V2Vec;
 use crate::graphics::{AstroModel, OrbitModel, SelectedModel};
+use crate::sector_view::SectorViewState::Selected;
 use commons::math::V2;
 use godot::classes::{
     Control, Engine, IControl, InputEvent, InputEventMouseButton, InputEventMouseMotion,
@@ -444,7 +445,7 @@ impl IControl for SectorView {
         self.objects
             .as_mut()
             .unwrap()
-            .add_child(build_plot_model.clone().upcast());
+            .add_child(build_plot_model.clone().upcast::<Node2D>());
 
         self.build_plot_model = Some(build_plot_model);
         self.selected_model = Some(selected_model);
@@ -476,7 +477,9 @@ impl IControl for SectorView {
 
 /// when default_scale should be false when object will be child of an already scaled object
 fn new_select_model(name: &str, color: Color, default_scale: bool) -> Gd<SelectedModel> {
-    let mut model: Gd<SelectedModel> = Gd::default();
+    // let mut model = SelectedModel::default();
+    let mut model: Gd<SelectedModel> = SelectedModel::new_alloc();
+    // let mut model: Gd<SelectedModel> = Gd::<SelectedModel>::default();
     model.bind_mut().set_color(color);
 
     let mut base = model.clone().upcast::<Node2D>();
@@ -521,7 +524,7 @@ fn resolve_model_for_kind(id: ObjId, pos: V2, kind: ObjKind) -> Gd<Node2D> {
 }
 
 fn new_model(name: String, pos: Vector2, color: Color) -> Gd<Node2D> {
-    let mut model: Gd<AstroModel> = Gd::new_default();
+    let mut model: Gd<AstroModel> = AstroModel::new_alloc();
     model.bind_mut().set_color(color);
 
     let mut base: Gd<Node2D> = model.upcast();
@@ -536,12 +539,9 @@ fn new_orbit_model(name: String, radius: f32, color: Color, pos: Vector2) -> Gd<
     let scale = radius;
     let scale_v = Vector2::new(scale, scale);
 
-    let mut model: Gd<OrbitModel> = Gd::new_default();
-    {
-        let mut model = model.bind_mut();
-        model.set_color(color);
-        model.base.set_name(name.into());
-    }
+    let mut model = OrbitModel::new_alloc();
+    model.bind_mut().set_color(color);
+    model.set_name(name.into());
 
     let mut base: Gd<Node2D> = model.upcast();
     base.set_scale(scale_v);
