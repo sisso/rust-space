@@ -2,6 +2,7 @@ use crate::game_api::{GameApi, Id};
 use godot::prelude::*;
 
 #[derive(Clone, Debug, GodotClass)]
+#[class(no_init)]
 pub struct LabelInfo {
     pub id: Id,
     pub label: String,
@@ -25,7 +26,7 @@ impl LabelInfo {
 }
 
 #[godot_api]
-impl INode for LabelInfo {
+impl IRefCounted for LabelInfo {
     fn to_string(&self) -> GString {
         format!("LabelInfo(id: {}, label: {})", self.id, self.label).into()
     }

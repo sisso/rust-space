@@ -1,18 +1,15 @@
-use godot::builtin::meta::GodotConvert;
-use std::collections::{HashMap, HashSet};
-
-use godot::engine::global::MouseButton;
-use godot::engine::{
-    global, Control, Engine, IControl, InputEvent, InputEventMouseButton, InputEventMouseMotion,
-};
-use godot::prelude::*;
-
-use commons::math::V2;
-use space_domain::game::objects::ObjId;
-
 use crate::godot_utils;
 use crate::godot_utils::V2Vec;
 use crate::graphics::{AstroModel, OrbitModel, SelectedModel};
+use commons::math::V2;
+use godot::classes::{
+    Control, Engine, IControl, InputEvent, InputEventMouseButton, InputEventMouseMotion,
+};
+use godot::global;
+use godot::global::{Key, MouseButton};
+use godot::prelude::*;
+use space_domain::game::objects::ObjId;
+use std::collections::{HashMap, HashSet};
 
 const MODEL_SCALE: f32 = 0.1;
 
@@ -126,7 +123,10 @@ impl SectorView {
                         // add model for new object
                         let model = resolve_model_for_kind(id, pos, kind);
                         self.bodies_model.insert(id, model.clone());
-                        self.objects.as_mut().unwrap().add_child(model.upcast());
+                        self.objects
+                            .as_mut()
+                            .unwrap()
+                            .add_child(model.upcast::<Node2D>());
                     }
                     current_entities.insert(id);
                 }
@@ -153,7 +153,7 @@ impl SectorView {
                             self.objects
                                 .as_mut()
                                 .unwrap()
-                                .add_child(model.clone().upcast());
+                                .add_child(model.clone().upcast::<Node2D>());
                             current_entities.insert(id);
                             model
                         });
@@ -171,38 +171,39 @@ impl SectorView {
         let scale_speed = 0.02f32;
 
         let input = Input::singleton();
-        if input.is_key_pressed(global::Key::KEY_W) {
+
+        if input.is_key_pressed(Key::W) {
             self.objects
                 .as_mut()
                 .unwrap()
                 .translate(Vector2::new(0.0, speed));
         }
-        if input.is_key_pressed(global::Key::KEY_S) {
+        if input.is_key_pressed(Key::S) {
             self.objects
                 .as_mut()
                 .unwrap()
                 .translate(Vector2::new(0.0, -speed));
         }
-        if input.is_key_pressed(global::Key::KEY_A) {
+        if input.is_key_pressed(Key::A) {
             self.objects
                 .as_mut()
                 .unwrap()
                 .translate(Vector2::new(speed, 0.0));
         }
-        if input.is_key_pressed(global::Key::KEY_D) {
+        if input.is_key_pressed(Key::D) {
             self.objects
                 .as_mut()
                 .unwrap()
                 .translate(Vector2::new(-speed, 0.0));
         }
 
-        if input.is_key_pressed(global::Key::KEY_Q) {
+        if input.is_key_pressed(Key::Q) {
             self.objects
                 .as_mut()
                 .unwrap()
                 .apply_scale(Vector2::new(1.0 - scale_speed, 1.0 - scale_speed));
         }
-        if input.is_key_pressed(global::Key::KEY_E) {
+        if input.is_key_pressed(Key::E) {
             self.objects
                 .as_mut()
                 .unwrap()
@@ -230,7 +231,7 @@ impl SectorView {
                     self.objects
                         .as_mut()
                         .unwrap()
-                        .remove_child(orbit_model.clone().upcast());
+                        .remove_child(orbit_model.clone().upcast::<Node2D>());
                     orbit_model.queue_free();
                 }
 
@@ -238,7 +239,7 @@ impl SectorView {
                 self.objects
                     .as_mut()
                     .unwrap()
-                    .remove_child(node.clone().upcast());
+                    .remove_child(node.clone().upcast::<Node2D>());
                 node.queue_free();
                 false
             }
@@ -310,7 +311,7 @@ impl SectorView {
             .map(|mut parent| {
                 let gd = self.selected_model.as_mut().unwrap().clone();
                 log::debug!("removing selected marker model");
-                parent.remove_child(gd.upcast())
+                parent.remove_child(gd.upcast::<Node>())
             });
 
         if let Some(id) = id {
@@ -318,9 +319,13 @@ impl SectorView {
 
             // attach the it as child of new parent, if exists
             if let Some(target_model) = self.bodies_model.get(&id) {
-                target_model
-                    .clone()
-                    .add_child(self.selected_model.as_mut().unwrap().clone().upcast());
+                target_model.clone().add_child(
+                    self.selected_model
+                        .as_mut()
+                        .unwrap()
+                        .clone()
+                        .upcast::<Node>(),
+                );
                 self.selected_model.as_mut().unwrap().show();
                 self.state = SectorViewState::Selected(id);
                 log::debug!("setting selected marker model to {:?}", id);
@@ -365,8 +370,8 @@ impl SectorView {
 
     fn handle_mouse_down(&mut self, mouse_down: Gd<InputEventMouseButton>) {
         let local_mouse_pos = self.to_local(mouse_down.get_global_position());
-        let is_left_button = mouse_down.get_button_index() == MouseButton::MOUSE_BUTTON_LEFT;
-        let is_right_button = mouse_down.get_button_index() == MouseButton::MOUSE_BUTTON_RIGHT;
+        let is_left_button = mouse_down.get_button_index() == MouseButton::LEFT;
+        let is_right_button = mouse_down.get_button_index() == MouseButton::RIGHT;
         match &self.state {
             SectorViewState::Plotting { .. } if is_left_button => {
                 log::debug!("set plotting position to {:?}", local_mouse_pos);
@@ -396,10 +401,14 @@ impl SectorView {
         match &self.state {
             SectorViewState::Plotting { .. } => {
                 let local_mouse_pos = self.to_local(mouse_move.get_global_position());
-                self.build_plot_model
-                    .as_mut()
-                    .unwrap()
-                    .set_position(local_mouse_pos);
+                if let Some(gd) = self.build_plot_model.clone() {
+                    let mut node = gd.upcast::<Node2D>();
+                    node.set_position(local_mouse_pos);
+                }
+                // .as_mut()
+                // .unwrap()
+                // .bind_mut()
+                // .set_position(local_mouse_pos);
             }
             _ => {}
         }
@@ -467,10 +476,10 @@ impl IControl for SectorView {
 
 /// when default_scale should be false when object will be child of an already scaled object
 fn new_select_model(name: &str, color: Color, default_scale: bool) -> Gd<SelectedModel> {
-    let mut model: Gd<SelectedModel> = Gd::new_default();
+    let mut model: Gd<SelectedModel> = Gd::default();
     model.bind_mut().set_color(color);
 
-    let mut base: Gd<Node2D> = model.clone().upcast();
+    let mut base = model.clone().upcast::<Node2D>();
     base.set_name(name.into());
 
     if default_scale {
@@ -496,7 +505,7 @@ fn resolve_model_for_kind(id: ObjId, pos: V2, kind: ObjKind) -> Gd<Node2D> {
         new_model(
             format!("Star {:?}", id),
             pos.as_vector2(),
-            crate::godot_utils::color_yellow(),
+            godot_utils::color_yellow(),
         )
     } else if kind.astro {
         new_model(format!("Astro {:?}", id), pos.as_vector2(), astro_color)
@@ -504,7 +513,7 @@ fn resolve_model_for_kind(id: ObjId, pos: V2, kind: ObjKind) -> Gd<Node2D> {
         new_model(
             format!("Asteroid {:?}", id),
             pos.as_vector2(),
-            crate::godot_utils::color_brown(),
+            godot_utils::color_brown(),
         )
     } else {
         new_model(format!("Unknown {:?}", id), pos.as_vector2(), astro_color)

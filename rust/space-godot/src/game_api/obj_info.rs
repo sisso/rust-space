@@ -5,6 +5,7 @@ use crate::game_api::Id;
 use godot::prelude::*;
 
 #[derive(Clone, Debug, GodotClass)]
+#[class(no_init)]
 pub struct ObjExtendedInfo {
     pub id: Id,
     pub label: String,

@@ -11,8 +11,6 @@ use crate::utils;
 use crate::utils::{decode_entity_and_get, encode_entity};
 use bevy_ecs::prelude::*;
 use commons::math::{P2, V2I};
-use godot::bind::{godot_api, GodotClass};
-use godot::engine::{INode, Node};
 use godot::obj::Base;
 use godot::prelude::*;
 use space_domain::app::App;
@@ -42,37 +40,109 @@ pub type Id = i64;
 
 pub const NULL_ID: Id = -1;
 
-#[derive(Default, Debug, Clone, ToGodot, GodotConvert)]
-pub struct GameEvent {
-    pub target_id: Id,
-    pub added: bool,
-    pub removed: bool,
-}
+// #[derive(GodotClass)]
+// #[class(base=RefCounter)]
+// pub struct GameEvents {
+//     events: Vec<GameEvent>,
+//     base: Base<RefCounted>,
+// }
+//
+// #[godot_api]
+// impl GameEvents {
+//     #[func]
+//     fn len(&self) -> usize {
+//         self.events.len()
+//     }
+// }
+//
+// #[godot_api]
+// impl IRefCounted for GameEvents {
+//     fn init(base: Base<RefCounted>) -> Self {
+//         GameEvents {
+//             events: vec![],
+//             base,
+//         }
+//     }
+// }
 
-#[derive(Clone, Debug, ToGodot, GodotConvert)]
-pub struct SectorInfo {
-    pub id: Id,
-    pub coords: Vector2i,
-    pub label: String,
-}
+// // #[derive(Default, Debug, Clone)]
+// #[derive(GodotClass, Debug)]
+// #[class(no_init, base=RefCounter)]
+// pub struct GameEvent {
+//     target_id: Id,
+//     added: bool,
+//     removed: bool,
+// }
 
-#[derive(Clone, Debug, ToGodot, GodotConvert)]
-pub struct FleetInfo {
-    pub id: Id,
-    pub label: String,
-}
+// #[derive(GodotClass, Debug)]
+// #[class(no_init, base=RefCounter)]
+// pub struct Sectors {
+//     sectors: Vec<SectorInfo>,
+//     base: Base<RefCounted>,
+// }
+//
+// #[godot_api]
+// impl Sectors {
+//     #[func]
+//     fn len(&self) -> usize {
+//         self.sectors.len()
+//     }
+// }
+//
+// #[godot_api]
+// impl IRefCounted for Sectors {
+//     fn init(base: Base<RefCounted>) -> Self {
+//         Self {
+//             sectors: vec![],
+//             base,
+//         }
+//     }
+// }
 
-#[derive(Clone, Debug, ToGodot, GodotConvert)]
-pub struct SpaceLocation {
-    pub sector_id: Id,
-    pub pos: Vector2,
-}
+// #[derive(GodotClass)]
+// #[class(base=RefCounter)]
+// pub struct ObjInfo {
+//     base: Base<RefCounted>,
+// }
+//
+// #[godot_api]
+// impl ObjInfo {}
+//
+// #[godot_api]
+// impl IRefCounted for ObjInfo {
+//     fn init(base: Base<RefCounted>) -> Self {
+//         Self { base }
+//     }
+// }
 
-#[derive(Clone, Debug, ToGodot, GodotConvert)]
-pub struct LabeledInfo {
-    pub id: i64,
-    pub label: String,
-}
+// #[derive(GodotClass, Debug)]
+// #[class(no_init, base=RefCounter)]
+// pub struct SectorInfo {
+//     pub id: Id,
+//     pub coords: Vector2i,
+//     pub label: String,
+// }
+//
+// #[derive(GodotClass, Debug)]
+// #[class(no_init, base=RefCounter)]
+// pub struct FleetInfo {
+//     pub id: Id,
+//     pub label: String,
+// }
+//
+// #[derive(GodotClass, Debug)]
+// #[class(no_init, base=RefCounter)]
+// pub struct SpaceLocation {
+//     pub sector_id: Id,
+//     pub pos: Vector2,
+// }
+//
+// #[derive(GodotClass, Debug)]
+// #[class(no_init, base=RefCounter)]
+// pub struct LabeledInfo {
+//     pub id: i64,
+//     pub label: String,
+// }
 
 struct GameRunning {
     game: Game,
@@ -413,11 +483,17 @@ impl GameApi {
             .query::<(ObjId, &Sector, &Label)>()
             .iter(&game.world)
             .map(|(id, sector, label)| {
-                utils::to_godot_flat_option(Some(SectorInfo {
-                    id: encode_entity(id),
-                    label: label.label.clone(),
-                    coords: Vector2i::new(sector.coords.x, sector.coords.y),
-                }))
+                // utils::to_godot_flat_option(Some(SectorInfo {
+                //     id: encode_entity(id),
+                //     label: label.label.clone(),
+                //     coords: Vector2i::new(sector.coords.x, sector.coords.y),
+                // }))
+                let d = dict! {
+                   "id": encode_entity(id),
+                    "label": label.label.clone(),
+                    "coords": Vector2i::new(sector.coords.x, sector.coords.y)
+                };
+                d.to_variant()
             })
             .collect()
     }
@@ -429,31 +505,32 @@ impl GameApi {
             .query::<(ObjId, &Fleet, &Label)>()
             .iter(&game.world)
             .map(|(id, sector, label)| {
-                utils::to_godot_flat_option(Some(FleetInfo {
-                    id: encode_entity(id),
-                    label: label.label.clone(),
-                }))
+                // utils::to_godot_flat_option(Some(FleetInfo {
+                //     id: encode_entity(id),
+                //     label: label.label.clone(),
+                // }))
+                todo!()
             })
             .collect()
     }
 
-    #[func]
-    pub fn take_events(&mut self) -> VariantArray {
-        self.get_current()
-            .game
-            .take_events()
-            .into_iter()
-            .flat_map(|e| match e.kind {
-                EventKind::Add => Some(GameEvent {
-                    target_id: encode_entity(e.id),
-                    added: true,
-                    ..Default::default()
-                }),
-                _ => None,
-            })
-            .map(|e| e.to_godot())
-            .collect()
-    }
+    // #[func]
+    // pub fn take_events(&mut self) -> VariantArray {
+    //     self.get_current()
+    //         .game
+    //         .take_events()
+    //         .into_iter()
+    //         .flat_map(|e| match e.kind {
+    //             EventKind::Add => Some(GameEvent {
+    //                 target_id: encode_entity(e.id),
+    //                 added: true,
+    //                 ..Default::default()
+    //             }),
+    //             _ => None,
+    //         })
+    //         .map(|e| e.to_godot())
+    //         .collect()
+    // }
 
     #[func]
     pub fn list_at_sector(&mut self, sector_id: Id) -> Array<i64> {
@@ -471,13 +548,13 @@ impl GameApi {
         let running = self.get_current();
         let obj_id = running.decode_entity_and_get(id);
         let mut game = &mut running.game;
-        utils::to_godot_flat_option(
-            game.resolve_space_position(obj_id)
-                .map(|loc| SpaceLocation {
-                    sector_id: encode_entity(loc.sector_id),
-                    pos: Vector2::new(loc.pos.x, loc.pos.y),
-                }),
-        )
+        utils::to_godot_flat_option(game.resolve_space_position(obj_id).map(|loc| {
+            // SpaceLocation {
+            // sector_id: encode_entity(loc.sector_id),
+            // pos: Vector2::new(loc.pos.x, loc.pos.y),
+            // }
+            todo!()
+        }))
     }
 
     #[func]
@@ -503,10 +580,11 @@ impl GameApi {
                     .map(|l| l.clone())
                     .unwrap_or("unknown".to_string());
 
-                utils::to_godot_flat(LabeledInfo {
-                    id: encode_entity(id),
-                    label: label,
-                })
+                todo!()
+                // utils::to_godot_flat(LabeledInfo {
+                //     id: encode_entity(id),
+                //     label: label,
+                // })
             })
             .collect()
     }

@@ -4,6 +4,7 @@ use godot::prelude::*;
 use space_domain::game::shipyard::{ProductionOrder, Shipyard};
 
 #[derive(Clone, Debug, GodotClass)]
+#[class(no_init)]
 pub struct ShipyardInfo {
     pub shipyard: Shipyard,
 }

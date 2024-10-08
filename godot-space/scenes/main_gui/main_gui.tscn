@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3 uid="uid://drf48083o2j5x"]
+[gd_scene load_steps=9 format=3 uid="uid://drf48083o2j5x"]
 
 [ext_resource type="Script" path="res://src/main_gui/main_gui.gd" id="1_mmju6"]
 [ext_resource type="PackedScene" uid="uid://ddr02an8jihyo" path="res://scenes/sector_view/sector_view.tscn" id="2_07xow"]
@@ -11,16 +11,19 @@ bg_color = Color(1, 0.0196078, 0.862745, 1)
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_eaasa"]
 bg_color = Color(0, 0.639216, 0.937255, 1)
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_sp6u0"]
+bg_color = Color(0.701961, 0.596078, 0, 1)
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_80pxr"]
 bg_color = Color(0, 0.0627451, 0.0627451, 1)
 
 [node name="MainGui" type="CanvasLayer" node_paths=PackedStringArray("sectors_container", "fleets_container", "sectors_view", "selected_object_container", "building_panel", "shipyard_orders_popup", "speed_label", "speed_selector")]
 script = ExtResource("1_mmju6")
-sectors_container = NodePath("Control/VBoxContainer/HBoxContainer/LeftPanel/SectorsPanel")
-fleets_container = NodePath("Control/VBoxContainer/HBoxContainer/LeftPanel/FleetsPanel")
+sectors_container = NodePath("Control/VBoxContainer/HBoxContainer/LeftPanel/MarginContainer/SectorsPanel")
+fleets_container = NodePath("Control/VBoxContainer/HBoxContainer/LeftPanel/MarginContainer/FleetsPanel")
 sectors_view = NodePath("Control/VBoxContainer/HBoxContainer/GameArea/SubViewportContainer/SubViewport/SectorView")
-selected_object_container = NodePath("Control/VBoxContainer/HBoxContainer/LeftPanel/SelectedObject")
-building_panel = NodePath("Control/VBoxContainer/HBoxContainer/LeftPanel/BuildingPanel")
+selected_object_container = NodePath("Control/VBoxContainer/HBoxContainer/LeftPanel/MarginContainer/SelectedObject")
+building_panel = NodePath("Control/VBoxContainer/HBoxContainer/LeftPanel/MarginContainer/BuildingPanel")
 shipyard_orders_popup = NodePath("ShipyardOrdersPopup")
 speed_label = NodePath("Control/VBoxContainer/top_panels/FlowContainer/speed_label")
 speed_selector = NodePath("Control/VBoxContainer/top_panels/FlowContainer/speed_selector")
@@ -55,10 +58,9 @@ text = "Time: 0s"
 
 [node name="speed_selector" type="OptionButton" parent="Control/VBoxContainer/top_panels/FlowContainer"]
 layout_mode = 2
-item_count = 8
 selected = 4
+item_count = 8
 popup/item_0/text = "pause"
-popup/item_0/id = 0
 popup/item_1/text = "0.1"
 popup/item_1/id = 1
 popup/item_2/text = "0.25"
@@ -103,55 +105,59 @@ layout_mode = 2
 size_flags_vertical = 3
 
 [node name="LeftPanel" type="PanelContainer" parent="Control/VBoxContainer/HBoxContainer"]
+custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
 
-[node name="Background" type="Panel" parent="Control/VBoxContainer/HBoxContainer/LeftPanel"]
+[node name="MarginContainer" type="MarginContainer" parent="Control/VBoxContainer/HBoxContainer/LeftPanel"]
+layout_mode = 2
+
+[node name="Background" type="Panel" parent="Control/VBoxContainer/HBoxContainer/LeftPanel/MarginContainer"]
 custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_eaasa")
 
-[node name="FleetsPanel" type="VBoxContainer" parent="Control/VBoxContainer/HBoxContainer/LeftPanel"]
+[node name="FleetsPanel" type="VBoxContainer" parent="Control/VBoxContainer/HBoxContainer/LeftPanel/MarginContainer"]
 visible = false
 custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
 
-[node name="Button" type="Button" parent="Control/VBoxContainer/HBoxContainer/LeftPanel/FleetsPanel"]
+[node name="Button" type="Button" parent="Control/VBoxContainer/HBoxContainer/LeftPanel/MarginContainer/FleetsPanel"]
 layout_mode = 2
 text = "Fleet 1"
 
-[node name="SectorsPanel" type="GridContainer" parent="Control/VBoxContainer/HBoxContainer/LeftPanel"]
+[node name="SectorsPanel" type="GridContainer" parent="Control/VBoxContainer/HBoxContainer/LeftPanel/MarginContainer"]
 visible = false
 custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
 columns = 2
 
-[node name="Button" type="Button" parent="Control/VBoxContainer/HBoxContainer/LeftPanel/SectorsPanel"]
+[node name="Button" type="Button" parent="Control/VBoxContainer/HBoxContainer/LeftPanel/MarginContainer/SectorsPanel"]
 layout_mode = 2
 text = "0 0"
 
-[node name="Button2" type="Button" parent="Control/VBoxContainer/HBoxContainer/LeftPanel/SectorsPanel"]
+[node name="Button2" type="Button" parent="Control/VBoxContainer/HBoxContainer/LeftPanel/MarginContainer/SectorsPanel"]
 layout_mode = 2
 text = "0 1"
 
-[node name="Button3" type="Button" parent="Control/VBoxContainer/HBoxContainer/LeftPanel/SectorsPanel"]
+[node name="Button3" type="Button" parent="Control/VBoxContainer/HBoxContainer/LeftPanel/MarginContainer/SectorsPanel"]
 layout_mode = 2
 text = "1 0"
 
-[node name="Button4" type="Button" parent="Control/VBoxContainer/HBoxContainer/LeftPanel/SectorsPanel"]
+[node name="Button4" type="Button" parent="Control/VBoxContainer/HBoxContainer/LeftPanel/MarginContainer/SectorsPanel"]
 layout_mode = 2
 text = "1 1"
 
-[node name="SelectedObject" type="VBoxContainer" parent="Control/VBoxContainer/HBoxContainer/LeftPanel" node_paths=PackedStringArray("shipyard_popup_button")]
+[node name="SelectedObject" type="VBoxContainer" parent="Control/VBoxContainer/HBoxContainer/LeftPanel/MarginContainer" node_paths=PackedStringArray("shipyard_popup_button")]
 custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
 script = ExtResource("2_brncx")
 shipyard_popup_button = NodePath("shipyard_popup_button")
 
-[node name="label" type="Label" parent="Control/VBoxContainer/HBoxContainer/LeftPanel/SelectedObject"]
+[node name="label" type="Label" parent="Control/VBoxContainer/HBoxContainer/LeftPanel/MarginContainer/SelectedObject"]
 layout_mode = 2
 text = "unknown"
 
-[node name="desc" type="RichTextLabel" parent="Control/VBoxContainer/HBoxContainer/LeftPanel/SelectedObject"]
+[node name="desc" type="RichTextLabel" parent="Control/VBoxContainer/HBoxContainer/LeftPanel/MarginContainer/SelectedObject"]
 layout_mode = 2
 bbcode_enabled = true
 text = "Something [color=red]else[/color]
@@ -159,42 +165,45 @@ text = "Something [color=red]else[/color]
 fit_content = true
 shortcut_keys_enabled = false
 
-[node name="shipyard_popup_button" type="Button" parent="Control/VBoxContainer/HBoxContainer/LeftPanel/SelectedObject"]
+[node name="shipyard_popup_button" type="Button" parent="Control/VBoxContainer/HBoxContainer/LeftPanel/MarginContainer/SelectedObject"]
 layout_mode = 2
 text = "orders"
 
-[node name="BuildingPanel" type="VBoxContainer" parent="Control/VBoxContainer/HBoxContainer/LeftPanel"]
+[node name="BuildingPanel" type="VBoxContainer" parent="Control/VBoxContainer/HBoxContainer/LeftPanel/MarginContainer"]
 visible = false
 layout_mode = 2
 
-[node name="Label" type="Label" parent="Control/VBoxContainer/HBoxContainer/LeftPanel/BuildingPanel"]
+[node name="Label" type="Label" parent="Control/VBoxContainer/HBoxContainer/LeftPanel/MarginContainer/BuildingPanel"]
 layout_mode = 2
 text = "Kind:"
 
-[node name="item_list" type="ItemList" parent="Control/VBoxContainer/HBoxContainer/LeftPanel/BuildingPanel"]
+[node name="item_list" type="ItemList" parent="Control/VBoxContainer/HBoxContainer/LeftPanel/MarginContainer/BuildingPanel"]
 layout_mode = 2
 auto_height = true
 item_count = 2
 item_0/text = "1"
 item_1/text = "2"
 
-[node name="button_build" type="Button" parent="Control/VBoxContainer/HBoxContainer/LeftPanel/BuildingPanel"]
+[node name="button_build" type="Button" parent="Control/VBoxContainer/HBoxContainer/LeftPanel/MarginContainer/BuildingPanel"]
 layout_mode = 2
 text = "build"
 
-[node name="button_cancel" type="Button" parent="Control/VBoxContainer/HBoxContainer/LeftPanel/BuildingPanel"]
+[node name="button_cancel" type="Button" parent="Control/VBoxContainer/HBoxContainer/LeftPanel/MarginContainer/BuildingPanel"]
 layout_mode = 2
 text = "cancel"
 
 [node name="GameArea" type="PanelContainer" parent="Control/VBoxContainer/HBoxContainer"]
 layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_sp6u0")
 
 [node name="SubViewportContainer" type="SubViewportContainer" parent="Control/VBoxContainer/HBoxContainer/GameArea"]
 layout_mode = 2
+stretch = true
 
 [node name="SubViewport" type="SubViewport" parent="Control/VBoxContainer/HBoxContainer/GameArea/SubViewportContainer"]
 handle_input_locally = false
-size = Vector2i(900, 700)
+size = Vector2i(996, 730)
 render_target_update_mode = 4
 
 [node name="SectorView" parent="Control/VBoxContainer/HBoxContainer/GameArea/SubViewportContainer/SubViewport" instance=ExtResource("2_07xow")]
@@ -257,10 +266,10 @@ text = "close"
 [connection signal="pressed" from="Control/VBoxContainer/header_buttons/FlowContainer/Button2" to="." method="_on_click_fleets"]
 [connection signal="pressed" from="Control/VBoxContainer/header_buttons/FlowContainer/Button3" to="." method="_on_button_building_pressed"]
 [connection signal="pressed" from="Control/VBoxContainer/header_buttons/FlowContainer/Button4" to="." method="_on_button_4_pressed"]
-[connection signal="on_click_show_shipyard_orders" from="Control/VBoxContainer/HBoxContainer/LeftPanel/SelectedObject" to="." method="_on_selected_object_on_click_show_shipyard_orders"]
-[connection signal="pressed" from="Control/VBoxContainer/HBoxContainer/LeftPanel/SelectedObject/shipyard_popup_button" to="Control/VBoxContainer/HBoxContainer/LeftPanel/SelectedObject" method="_on_shipyard_popup_button_pressed"]
-[connection signal="pressed" from="Control/VBoxContainer/HBoxContainer/LeftPanel/BuildingPanel/button_build" to="." method="_on_button_build_plot_pressed"]
-[connection signal="pressed" from="Control/VBoxContainer/HBoxContainer/LeftPanel/BuildingPanel/button_cancel" to="." method="_on_button_cancel_building_plot_pressed"]
+[connection signal="on_click_show_shipyard_orders" from="Control/VBoxContainer/HBoxContainer/LeftPanel/MarginContainer/SelectedObject" to="." method="_on_selected_object_on_click_show_shipyard_orders"]
+[connection signal="pressed" from="Control/VBoxContainer/HBoxContainer/LeftPanel/MarginContainer/SelectedObject/shipyard_popup_button" to="Control/VBoxContainer/HBoxContainer/LeftPanel/MarginContainer/SelectedObject" method="_on_shipyard_popup_button_pressed"]
+[connection signal="pressed" from="Control/VBoxContainer/HBoxContainer/LeftPanel/MarginContainer/BuildingPanel/button_build" to="." method="_on_button_build_plot_pressed"]
+[connection signal="pressed" from="Control/VBoxContainer/HBoxContainer/LeftPanel/MarginContainer/BuildingPanel/button_cancel" to="." method="_on_button_cancel_building_plot_pressed"]
 [connection signal="on_click_object" from="Control/VBoxContainer/HBoxContainer/GameArea/SubViewportContainer/SubViewport/SectorView" to="." method="_on_sector_view_on_click_object"]
 [connection signal="close_requested" from="ShipyardOrdersPopup" to="ShipyardOrdersPopup" method="_on_close_requested"]
 [connection signal="on_set_shipyard_building_order" from="ShipyardOrdersPopup" to="." method="_on_shipyard_orders_popup_on_set_shipyard_building_order"]

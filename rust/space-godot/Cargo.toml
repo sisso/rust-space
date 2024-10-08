@@ -7,12 +7,12 @@ edition = "2021"
 crate-type = ["cdylib", "lib"]
 
 [dependencies]
-godot = { git = "https://github.com/godot-rust/gdext", rev = "c92de581da1cab8b49d8e7e822abd2055385ae24"}
+godot = { git = "https://github.com/godot-rust/gdext", rev = "8ad9cb0ea877ccf7d4f34b17d87f0a1eb7c47f56" }
 commons = { version = "*", path = "../commons" }
 space-domain = { version = "*", path = "../space-domain" }
-bevy_ecs = {version = "0.12.1"}
+bevy_ecs = { version = "0.12.1" }
 mint = "0.5"
-glam =  { version = "0.23.0", features = ["mint", "serde", "approx"] }
+glam = { version = "0.23.0", features = ["mint", "serde", "approx"] }
 approx = "0.5.1"
 rand = "0.8.4"
 itertools = "0.10"

@@ -1,5 +1,4 @@
 use crate::game_api::Id;
-use godot::engine::class_macros::inherits_transitive_VisualShaderNodeColorFunc;
 use godot::prelude::*;
 use space_domain::game::game::Game;
 use space_domain::game::objects::ObjId;
@@ -59,24 +58,24 @@ pub fn decode_entity_and_get(g: &Game, id: Id) -> ObjId {
     try_decode_entity_and_get(g, id).expect("invalid i")
 }
 
-/// convert into godot variant but flatten the first dictionary to remove classname unique field
-pub fn to_godot_flat<T: ToGodot>(value: T) -> Variant {
-    let variant = value.to_variant();
-    match variant.get_type() {
-        VariantType::Dictionary => {
-            let mut dict = variant.to::<Dictionary>();
-            assert_eq!(dict.len(), 1, "variant must have at least one field");
-            let key = dict.keys_array().get(0);
-            let value = dict.get(key).expect("key must exist");
-            value
-        }
-        _ => panic!("variant must be a dictionary"),
-    }
-}
+// /// convert into godot variant but flatten the first dictionary to remove classname unique field
+// pub fn to_godot_flat<T: ToGodot>(value: T) -> Variant {
+//     let variant = value.to_variant();
+//     match variant.get_type() {
+//         VariantType::Dictionary => {
+//             let mut dict = variant.to::<Dictionary>();
+//             assert_eq!(dict.len(), 1, "variant must have at least one field");
+//             let key = dict.keys_array().get(0);
+//             let value = dict.get(key).expect("key must exist");
+//             value
+//         }
+//         _ => panic!("variant must be a dictionary"),
+//     }
+// }
 
 pub fn to_godot_flat_option<T: ToGodot>(value: Option<T>) -> Variant {
     if let Some(value) = value {
-        to_godot_flat(value)
+        value.to_variant()
     } else {
         Variant::nil()
     }

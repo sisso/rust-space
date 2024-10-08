@@ -3,7 +3,7 @@ members = [
   "commons",
 #  "space-console",
 #  "space-2d-gui",
-#  "space-galaxy",
+  "space-galaxy",
   "space-godot",
   "space-domain",
   "space-domain-macros"
