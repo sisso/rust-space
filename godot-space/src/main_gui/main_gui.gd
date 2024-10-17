@@ -51,8 +51,6 @@ func _get_speed_index(speed):
 
 func _process(delta):
     var events = self.game_api.take_events()
-    for e in events:
-        pass
     self._refresh_sector_view()
     self._refresh_time_label()
 
@@ -111,11 +109,11 @@ func _set_fleets(fleets):
     for obj in fleets:
         var id = obj["id"]
         var label = obj["label"]
-        
+
         var btn = Button.new()
         btn.text = label
         btn.pressed.connect(self._on_click_fleet.bind(id))
-        self.fleets_container.add_child(btn)        
+        self.fleets_container.add_child(btn)
 
 func _set_sector_objects(objects: Array):
     self.sectors_view.update_objects(objects)
@@ -123,7 +121,7 @@ func _set_sector_objects(objects: Array):
 func _set_buildings(list: Array):
     self.building_items = list
     self._refresh_building_items()
-    
+
 func _refresh_building_items():
     var item_list = building_panel.get_node("item_list")
     item_list.clear()
@@ -150,13 +148,13 @@ func _set_panel(kind):
 
 func _on_click_fleets():
     self._set_panel("fleets")
-    
+
 func _on_click_sectors():
     self._set_panel("sectors")
 
 func _center_camera_at(id):
     self.sectors_view.center_camera_at(id)
-    
+
 func _center_camera():
     self.sectors_view.center_camera()
 
@@ -194,7 +192,7 @@ func _on_button_build_plot_pressed():
 
 func _on_button_cancel_building_plot_pressed():
     self._set_building_panel_idle()
-    
+
 func _set_building_panel_idle():
     self.building_panel.get_node("item_list").show()
     self.building_panel.get_node("button_build").show()

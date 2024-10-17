@@ -203,7 +203,7 @@ stretch = true
 
 [node name="SubViewport" type="SubViewport" parent="Control/VBoxContainer/HBoxContainer/GameArea/SubViewportContainer"]
 handle_input_locally = false
-size = Vector2i(996, 730)
+size = Vector2i(2, 2)
 render_target_update_mode = 4
 
 [node name="SectorView" parent="Control/VBoxContainer/HBoxContainer/GameArea/SubViewportContainer/SubViewport" instance=ExtResource("2_07xow")]

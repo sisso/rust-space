@@ -1,3 +1,4 @@
+mod events;
 mod game_api;
 mod godot_utils;
 mod graphics;

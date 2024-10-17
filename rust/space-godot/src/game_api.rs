@@ -6,6 +6,7 @@ mod ware_amount_info;
 use self::obj_info::ObjExtendedInfo;
 use self::shipyard_info::ShipyardInfo;
 use self::ware_amount_info::WareAmountInfo;
+use crate::events::{EventsList, GameEvent};
 use crate::game_api::label_info::LabelInfo;
 use crate::utils;
 use crate::utils::{decode_entity_and_get, encode_entity};
@@ -483,11 +484,6 @@ impl GameApi {
             .query::<(ObjId, &Sector, &Label)>()
             .iter(&game.world)
             .map(|(id, sector, label)| {
-                // utils::to_godot_flat_option(Some(SectorInfo {
-                //     id: encode_entity(id),
-                //     label: label.label.clone(),
-                //     coords: Vector2i::new(sector.coords.x, sector.coords.y),
-                // }))
                 let d = dict! {
                    "id": encode_entity(id),
                     "label": label.label.clone(),
@@ -505,32 +501,33 @@ impl GameApi {
             .query::<(ObjId, &Fleet, &Label)>()
             .iter(&game.world)
             .map(|(id, sector, label)| {
-                // utils::to_godot_flat_option(Some(FleetInfo {
-                //     id: encode_entity(id),
-                //     label: label.label.clone(),
-                // }))
-                todo!()
+                let d = dict! {
+                   "id": encode_entity(id),
+                    "label": label.label.clone(),
+                };
+                d.to_variant()
             })
             .collect()
     }
 
-    // #[func]
-    // pub fn take_events(&mut self) -> VariantArray {
-    //     self.get_current()
-    //         .game
-    //         .take_events()
-    //         .into_iter()
-    //         .flat_map(|e| match e.kind {
-    //             EventKind::Add => Some(GameEvent {
-    //                 target_id: encode_entity(e.id),
-    //                 added: true,
-    //                 ..Default::default()
-    //             }),
-    //             _ => None,
-    //         })
-    //         .map(|e| e.to_godot())
-    //         .collect()
-    // }
+    #[func]
+    pub fn take_events(&mut self) -> Gd<EventsList> {
+        let events = self
+            .get_current()
+            .game
+            .take_events()
+            .into_iter()
+            .flat_map(|e| match e.kind {
+                EventKind::Add => Some(GameEvent {
+                    target_id: encode_entity(e.id),
+                    added: true,
+                    ..Default::default()
+                }),
+                _ => None,
+            })
+            .collect();
+        EventsList::from_vec(events)
+    }
 
     #[func]
     pub fn list_at_sector(&mut self, sector_id: Id) -> Array<i64> {
@@ -549,11 +546,11 @@ impl GameApi {
         let obj_id = running.decode_entity_and_get(id);
         let mut game = &mut running.game;
         utils::to_godot_flat_option(game.resolve_space_position(obj_id).map(|loc| {
-            // SpaceLocation {
-            // sector_id: encode_entity(loc.sector_id),
-            // pos: Vector2::new(loc.pos.x, loc.pos.y),
-            // }
-            todo!()
+            let d = dict! {
+               "sector_id": encode_entity(loc.sector_id),
+                "pos": Vector2::new(loc.pos.x, loc.pos.y)
+            };
+            d.to_variant()
         }))
     }
 
@@ -580,11 +577,11 @@ impl GameApi {
                     .map(|l| l.clone())
                     .unwrap_or("unknown".to_string());
 
-                todo!()
-                // utils::to_godot_flat(LabeledInfo {
-                //     id: encode_entity(id),
-                //     label: label,
-                // })
+                let d = dict! {
+                   "id": encode_entity(id),
+                    "label": label.clone(),
+                };
+                d.to_variant()
             })
             .collect()
     }
