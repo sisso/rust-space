@@ -8,7 +8,7 @@ enum ScreenMode {
 @export_category("containers")
 @export var sectors_container: Container
 @export var fleets_container: Container
-@export var sectors_view: Node2D
+@export var sectors_view: SectorView
 @export var selected_object_container: ShowSelected
 @export var building_panel: Container
 @export var shipyard_orders_popup: ShipyardOrdersPopup
@@ -40,10 +40,10 @@ func _ready():
         7: 10.0,
     }
 
-func _get_speed_from_index(index):
+func _get_speed_from_index(index) -> float:
     return self.speeds[int(index)]
 
-func _get_speed_index(speed):
+func _get_speed_index(speed) -> int:
     for i in self.speeds.keys():
         if abs(self.speeds[i] - speed) < 0.0001:
             return i
@@ -138,6 +138,7 @@ func _on_click_sector(id):
 func _on_click_fleet(id):
     self.selected_obj_id = id
     self._refresh_sector_view()
+    self._show_obj_details(id)
     self._center_camera_at(self.selected_obj_id)
 
 func _set_panel(kind):
@@ -152,8 +153,13 @@ func _on_click_fleets():
 func _on_click_sectors():
     self._set_panel("sectors")
 
-func _center_camera_at(id):
-    self.sectors_view.center_camera_at(id)
+func _center_camera_at(id: int):
+    if not self.sectors_view.center_camera_at_obj(id):
+        var ip = ObjInfoProvider.new()
+        ip.init(self.game_api, id)
+        var info = ip.get_info()
+        self.sectors_view.center_camera_at_pos(info.get_pos())
+
 
 func _center_camera():
     self.sectors_view.center_camera()
@@ -200,7 +206,6 @@ func _set_building_panel_idle():
     self.screen_mode = ScreenMode.NORMAL
     self.sectors_view.clear_cursor()
 
-
 func _on_speed_selector_item_selected(index):
     print("setting previous speed index to ", self.speed_index, " new index ", index)
     self.pause_previous_speed_index = self.speed_index
@@ -239,7 +244,7 @@ func _on_shipyard_orders_popup_on_set_shipyard_building_order(id, order_id):
 
     self._show_obj_details(id)
 
-func _show_obj_details(id):
+func _show_obj_details(id: int):
     self._set_panel("selected")
 
     var provider = ObjInfoProvider.new()

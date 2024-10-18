@@ -22,7 +22,17 @@ impl EventsList {
     }
 
     #[func]
-    fn len(&self) -> i32 {
+    pub fn len(&self) -> i32 {
         self.events.len() as i32
+    }
+
+    #[func]
+    pub fn get_entity(&self, i: i32) -> i64 {
+        self.events[i as usize].target_id
+    }
+
+    #[func]
+    pub fn is_add(&self, i: i32) -> bool {
+        self.events[i as usize].added
     }
 }

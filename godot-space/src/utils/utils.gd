@@ -7,10 +7,10 @@ static func find_nearest(target_position: Vector2, candidates: Array, is_valid: 
     var nearest_distance: float = 1e10
 
     for child in candidates:
-        if child is Node2D: 
+        if child is Node2D:
             if not is_valid.call(child):
                 continue
-            
+
             var distance = target_position.distance_to(child.position)
 
             # Update nearest node if the current one is closer

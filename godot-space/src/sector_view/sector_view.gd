@@ -1,5 +1,6 @@
 @tool
 extends Node2D
+class_name SectorView
 
 enum CursorMode {
     NORMAL,
@@ -60,7 +61,7 @@ func refresh_models():
 
     for obj in self.objects:
         var id = obj.get_id()
-       
+
         var color = self.color_unknown
         if obj.is_fleet():
             color = self.color_fleet
@@ -76,71 +77,80 @@ func refresh_models():
             color = self.color_star
         if obj.is_orbiting():
             var parent_id = obj.get_orbit_parent_id()
-            orbits.push_back([id, parent_id])            
-        
-        var marker = prefab_marker_scene.instantiate()        
-        marker.position = obj.get_pos() * self.pixels_per_au
+            orbits.push_back([id, parent_id])
+
+        var marker = prefab_marker_scene.instantiate()
+        marker.position = self.game_pos_into_local(obj.get_pos())
         marker.color = color
         marker.id = id
-        
+
         $objects.add_child(marker)
 
     for orbit in orbits:
         var obj_marker = self._find_marker_by_id(orbit[0])
         var parent_marker = self._find_marker_by_id(orbit[1])
-        
+
         var orbit_marker = self.prefab_orbit_scene.instantiate()
         orbit_marker.orbiting_obj = obj_marker
         orbit_marker.parent_obj = parent_marker
         orbit_marker.color = orbit_color
         $objects.add_child(orbit_marker)
-        
 
-func _find_marker_by_id(id):
+
+func _find_marker_by_id(id: int) -> Node:
     for c in $objects.get_children():
-        if c is MarkerGeneric:            
+        if c is MarkerGeneric:
             if c.id == id:
                 return c
     return null
 
-func _find_marker_by_position(pixel_position):
+func _find_marker_by_position(pixel_position: Vector2):
     var is_valid = func(node: Node2D):
         return node is MarkerGeneric
-    
+
     var nearest = Utils.find_nearest(pixel_position, $objects.get_children(), is_valid)
     if nearest == null:
-        return null        
-      
+        return null
+
     var distance = nearest.position.distance_to(pixel_position)
     if distance > self.max_click_pixel_distance:
         print("click ignored, too far away ", distance)
         return null
 
     #print("click at ", position, " found ", nearest.id)
-    
+
     return nearest.id
 
-func center_camera_at(id):
+# return true if object was found and camera moved, else if obj is not
+# position on the map (like docked)
+func center_camera_at_obj(id: int) -> bool:
     for c in $objects.get_children():
-        if c is MarkerGeneric:            
+        if c is MarkerGeneric:
             if c.id == id:
                 $camera.position = c.position
-                return
-    print("obj id ", id, " not found")
-    
+                return true
+    return false
+
+func center_camera_at_pos(pos: Vector2):
+    print("set cammera at pos ", pos)
+    $camera.position = game_pos_into_local(pos)
+
 func center_camera():
     print("center camera")
     $camera.position = Vector2(0, 0)
 
-func pixel_to_au(pixel_position):
+func game_pos_into_local(pos: Vector2) -> Vector2:
+    return pos * self.pixels_per_au
+
+func screen_to_local(pixel_position):
     return pixel_position / self.pixels_per_au
 
 func _on_camera_on_click_position(pixel_position):
     if self.cursor_mode == CursorMode.BUILDING:
         if self.cursor_callback != null:
-            var au_pos = pixel_to_au(pixel_position)
+            var au_pos = screen_to_local(pixel_position)
             self.cursor_callback.call(au_pos)
-    else:       
+    else:
         var id = self._find_marker_by_position(pixel_position)
         if id != null:
             emit_signal("on_click_object", id)
@@ -172,6 +182,4 @@ func _process(delta):
     if self.cursor != null:
         var mouse_pos = get_viewport().get_mouse_position()
         var local_pos = get_viewport_transform().inverse() * mouse_pos
-        print("mouse pos: ", mouse_pos, " local pos: ", local_pos)
         self.cursor.position = local_pos
-#        self.cursor.z_index = 1000

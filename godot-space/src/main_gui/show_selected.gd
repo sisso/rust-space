@@ -2,17 +2,20 @@ class_name ShowSelected extends Node
 
 @export var shipyard_popup_button: Button
 
-var obj_info_provider
+var obj_info_provider: ObjInfoProvider
 
-signal on_click_show_shipyard_orders(obj)
+signal on_click_show_shipyard_orders(obj: ObjInfoProvider)
 
-func show_info(obj_info_provider):
+func show_info(obj_info_provider: ObjInfoProvider):
     self.obj_info_provider = obj_info_provider
     self._refresh()
 
 func _refresh():
     var obj = self.obj_info_provider.get_info()
-    
+    if obj == null:
+        print("ERROR: obj info provider return null obj")
+        return
+
     $label.text = str(obj.get_id()) + ": " + obj.get_label()
 
     var desc = ""
@@ -25,7 +28,7 @@ func _refresh():
     if obj.get_cargo_size() > 0:
         desc += "\n"
         desc += "cargo:\n"
-        
+
         for i in range(obj.get_cargo_size()):
             var c = obj.get_cargo(i)
             desc += "- " + c.get_label() + " ("+ str(c.get_id())+ "): " + str(c.get_amount()) + "\n"
@@ -66,7 +69,7 @@ func _refresh():
     $desc.text = desc
 
 
-func _process(delta):
+func _process(delta: float):
     if self.obj_info_provider != null:
         self._refresh()
     else:

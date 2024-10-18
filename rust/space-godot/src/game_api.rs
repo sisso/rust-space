@@ -25,7 +25,7 @@ use space_domain::game::fleets::Fleet;
 use space_domain::game::game::{Game, NewGameParams};
 use space_domain::game::label::Label;
 use space_domain::game::loader::Loader;
-use space_domain::game::locations::{LocationOrbit, LocationSpace};
+use space_domain::game::locations::{LocationDocked, LocationOrbit, LocationSpace, Locations};
 use space_domain::game::objects::ObjId;
 use space_domain::game::order::TradeOrders;
 use space_domain::game::prefab::Prefab;
@@ -170,6 +170,7 @@ fn resolve_log_i32(level: i32) -> log::LevelFilter {
 
 impl GameRunning {
     fn get_obj_extended_info(&mut self, obj_id: ObjId) -> Option<ObjExtendedInfo> {
+        let location_space = self.game.resolve_space_position(obj_id)?;
         let shipyard = self
             .get_shipyard_info(obj_id)
             .map(|value| Gd::from_object(value));
@@ -178,7 +179,6 @@ impl GameRunning {
         let extractable_resources = self.list_extractable_resources(obj_id);
 
         let mut query = self.game.world.query::<(
-            &LocationSpace,
             Option<&Label>,
             Option<&Fleet>,
             Option<&AstroBody>,
@@ -190,20 +190,10 @@ impl GameRunning {
             Option<&Command>,
         )>();
 
-        let (
-            location_space,
-            label,
-            fleet,
-            astro,
-            orbit,
-            extractable,
-            jump,
-            station,
-            active_action,
-            command,
-        ) = query
-            .get(&self.game.world, obj_id)
-            .expect("fail to fetch obj data");
+        let (label, fleet, astro, orbit, extractable, jump, station, active_action, command) =
+            query
+                .get(&self.game.world, obj_id)
+                .expect("fail to fetch obj data");
 
         let label = match label {
             Some(label) => label.label.clone(),
@@ -265,7 +255,7 @@ impl GameRunning {
         let info = ObjExtendedInfo {
             id: encode_entity(obj_id),
             label,
-            pos: Vector2::new(location_space.pos.x, location_space.pos.y),
+            location_space: location_space,
             is_planet,
             is_star,
             is_asteroid: extractable.is_some(),

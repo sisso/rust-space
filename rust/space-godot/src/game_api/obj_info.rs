@@ -3,13 +3,15 @@ use super::ware_amount_info::WareAmountInfo;
 use crate::game_api::label_info::LabelInfo;
 use crate::game_api::Id;
 use godot::prelude::*;
+use space_domain::game::locations::LocationSpace;
 
 #[derive(Clone, Debug, GodotClass)]
 #[class(no_init)]
 pub struct ObjExtendedInfo {
     pub id: Id,
     pub label: String,
-    pub pos: Vector2,
+    // recursive resolved if docked
+    pub location_space: LocationSpace,
     pub kind: String,
     pub is_star: bool,
     pub is_fleet: bool,
@@ -40,7 +42,7 @@ impl ObjExtendedInfo {
     }
     #[func]
     pub fn get_pos(&self) -> Vector2 {
-        self.pos
+        Vector2::new(self.location_space.pos.x, self.location_space.pos.y)
     }
     #[func]
     pub fn get_kind(&self) -> String {
