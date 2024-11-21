@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://src/controller.gd" id="1_73c3i"]
 [ext_resource type="PackedScene" uid="uid://drf48083o2j5x" path="res://scenes/main_gui/main_gui.tscn" id="2_bfkq2"]
-[ext_resource type="Script" path="res://src/game_api_stub.gd" id="3_23wkj"]
+[ext_resource type="Script" path="res://src/api/game_api_stub.gd" id="3_23wkj"]
 
 [node name="controller" type="Node2D" node_paths=PackedStringArray("game_api", "gui")]
 script = ExtResource("1_73c3i")

@@ -20,12 +20,12 @@ enum ScreenMode {
 @export_category("state")
 @export var screen_mode: ScreenMode = ScreenMode.NORMAL
 @export var building_items: Array
-@export var speed_index: float = 4
-@export var pause_previous_speed_index: float = 4
+@export var speed_index: int = 4
+@export var pause_previous_speed_index: int = 4
 @export var selected_sector_id: int = -1
 @export var selected_obj_id: int = -1
 
-var game_api: Node
+var game_api: GameApi
 var speeds: Dictionary
 
 func _ready():
@@ -49,11 +49,12 @@ func _get_speed_index(speed) -> int:
             return i
     return -1
 
-func _process(delta):
-    var events = self.game_api.take_events()
+func _process(_delta):
+    var _events = self.game_api.take_events()
     self._refresh_sector_view()
     self._refresh_time_label()
 
+@warning_ignore("shadowed_variable")
 func init(game_api):
     self.game_api = game_api
 
@@ -66,7 +67,6 @@ func _refresh_gui():
     self._set_sectors(self.game_api.list_sectors())
     self._set_fleets(self.game_api.list_fleets())
     self._set_buildings(self.game_api.list_buildings())
-    self._set_shipyard_prefabs(self.game_api.list_shipyards_prefabs())
     self._refresh_sector_view()
     self._refresh_time_label()
 
@@ -155,8 +155,7 @@ func _on_click_sectors():
 
 func _center_camera_at(id: int):
     if not self.sectors_view.center_camera_at_obj(id):
-        var ip = ObjInfoProvider.new()
-        ip.init(self.game_api, id)
+        var ip = ObjInfoProvider.new(self.game_api, id)
         var info = ip.get_info()
         self.sectors_view.center_camera_at_pos(info.get_pos())
 
@@ -227,13 +226,10 @@ func _unhandled_input(event):
             self._update_speed_selector()
 
 func _on_button_4_pressed():
-    shipyard_orders_popup.show_popup(null)
+    self.shipyard_orders_popup.show_popup(null)
 
-func _on_selected_object_on_click_show_shipyard_orders(obj):
-    shipyard_orders_popup.show_popup(obj)
-
-func _set_shipyard_prefabs(prefabs):
-    self.shipyard_orders_popup.set_prefabs(prefabs)
+func _on_selected_object_on_click_show_shipyard_orders(obj: ObjInfoProvider):
+    self.shipyard_orders_popup.show_popup(obj)
 
 func _on_shipyard_orders_popup_on_set_shipyard_building_order(id, order_id):
     self.selected_obj_id = id
@@ -247,6 +243,5 @@ func _on_shipyard_orders_popup_on_set_shipyard_building_order(id, order_id):
 func _show_obj_details(id: int):
     self._set_panel("selected")
 
-    var provider = ObjInfoProvider.new()
-    provider.init(self.game_api, id)
+    var provider = ObjInfoProvider.new(self.game_api, id)
     self.selected_object_container.show_info(provider)

@@ -1,9 +1,9 @@
 class_name ShowSelected extends Node
 
 @export var shipyard_popup_button: Button
+@export var prefabs_list: PrefabsList
 
 var obj_info_provider: ObjInfoProvider
-
 signal on_click_show_shipyard_orders(obj: ObjInfoProvider)
 
 func show_info(obj_info_provider: ObjInfoProvider):
@@ -11,7 +11,7 @@ func show_info(obj_info_provider: ObjInfoProvider):
     self._refresh()
 
 func _refresh():
-    var obj = self.obj_info_provider.get_info()
+    var obj = self.obj_info_provider.update()
     if obj == null:
         print("ERROR: obj info provider return null obj")
         return
@@ -20,10 +20,11 @@ func _refresh():
 
     var desc = ""
     desc += "kind: " + obj.get_kind() + "\n"
-    if obj.get_command() != "":
-        desc += "command: " + obj.get_command() + "\n"
-    if obj.get_action() != "":
-        desc += "action: " + obj.get_action() + "\n"
+    if obj.get_kind() == "ship":
+        if obj.get_command() != "":
+            desc += "command: " + obj.get_command() + "\n"
+        if obj.get_action() != "":
+            desc += "action: " + obj.get_action() + "\n"
 
     if obj.get_cargo_size() > 0:
         desc += "\n"
@@ -44,13 +45,20 @@ func _refresh():
         desc += "\n"
         desc += "shipyard: \n"
 
-        if obj.get_shipyard().has_current_order():
-            desc += "- producing " + str(obj.get_shipyard().get_current_order()) + "\n"
-        else:
-            desc += "- idle\n"
+        var has_order = obj.get_shipyard().has_current_order()
+        var has_next_order = obj.get_shipyard().has_next_order()
 
-        if obj.get_shipyard().has_next_order():
-            desc += "- next order " + str(obj.get_shipyard().get_next_order()) + "\n"
+        if has_order:
+            var order_id = obj.get_shipyard().get_current_order()
+            var percentile = (100.0 * obj.get_shipyard().get_current_order_percentile()) as int
+            for i in self.prefabs_list.list:
+                if i.get_id() == order_id:
+                    desc += "- producing " + i.get_label() + " at " + str(percentile) + "%\n"
+        if has_next_order:
+            var next_order_id = obj.get_shipyard().get_next_order()
+            for i in self.prefabs_list.list:
+                if i.get_id() == next_order_id:
+                    desc += "- next " + i.get_label() + "\n"
 
         self.shipyard_popup_button.show()
     else:
@@ -78,4 +86,4 @@ func _process(delta: float):
         self.shipyard_popup_button.hide()
 
 func _on_shipyard_popup_button_pressed():
-    emit_signal("on_click_show_shipyard_orders", self.obj_info_provider)
+    self.on_click_show_shipyard_orders.emit(self.obj_info_provider)

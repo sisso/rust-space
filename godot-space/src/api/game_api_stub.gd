@@ -11,7 +11,7 @@ func initialize(log_level, save_path):
 
 func continue_or_start():
     pass
-    
+
 func list_sectors():
     return [
         {
@@ -40,6 +40,6 @@ func update(delta):
 
 func take_events():
     return []
-    
+
 func set_speed(speed):
     pass

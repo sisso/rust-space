@@ -1,9 +1,10 @@
-[gd_scene load_steps=9 format=3 uid="uid://drf48083o2j5x"]
+[gd_scene load_steps=10 format=3 uid="uid://drf48083o2j5x"]
 
 [ext_resource type="Script" path="res://src/main_gui/main_gui.gd" id="1_mmju6"]
 [ext_resource type="PackedScene" uid="uid://ddr02an8jihyo" path="res://scenes/sector_view/sector_view.tscn" id="2_07xow"]
 [ext_resource type="Script" path="res://src/main_gui/show_selected.gd" id="2_brncx"]
 [ext_resource type="Script" path="res://src/main_gui/shipyard_orders_popup.gd" id="4_8g5ab"]
+[ext_resource type="Resource" uid="uid://cbqti4c2fsu2b" path="res://data/new_resource.tres" id="5_8w48o"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_lnhd7"]
 bg_color = Color(1, 0.0196078, 0.862745, 1)
@@ -108,13 +109,17 @@ size_flags_vertical = 3
 custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
 
-[node name="MarginContainer" type="MarginContainer" parent="Control/VBoxContainer/HBoxContainer/LeftPanel"]
-layout_mode = 2
-
-[node name="Background" type="Panel" parent="Control/VBoxContainer/HBoxContainer/LeftPanel/MarginContainer"]
+[node name="Background" type="Panel" parent="Control/VBoxContainer/HBoxContainer/LeftPanel"]
 custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_eaasa")
+
+[node name="MarginContainer" type="MarginContainer" parent="Control/VBoxContainer/HBoxContainer/LeftPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
 
 [node name="FleetsPanel" type="VBoxContainer" parent="Control/VBoxContainer/HBoxContainer/LeftPanel/MarginContainer"]
 visible = false
@@ -152,6 +157,7 @@ custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
 script = ExtResource("2_brncx")
 shipyard_popup_button = NodePath("shipyard_popup_button")
+prefabs_list = ExtResource("5_8w48o")
 
 [node name="label" type="Label" parent="Control/VBoxContainer/HBoxContainer/LeftPanel/MarginContainer/SelectedObject"]
 layout_mode = 2
@@ -203,7 +209,7 @@ stretch = true
 
 [node name="SubViewport" type="SubViewport" parent="Control/VBoxContainer/HBoxContainer/GameArea/SubViewportContainer"]
 handle_input_locally = false
-size = Vector2i(996, 730)
+size = Vector2i(2, 2)
 render_target_update_mode = 4
 
 [node name="SectorView" parent="Control/VBoxContainer/HBoxContainer/GameArea/SubViewportContainer/SubViewport" instance=ExtResource("2_07xow")]
@@ -214,6 +220,7 @@ size = Vector2i(900, 600)
 visible = false
 script = ExtResource("4_8g5ab")
 buttons_container = NodePath("PanelContainer/VBoxContainer/VBoxContainer")
+prefabs_list = ExtResource("5_8w48o")
 
 [node name="PanelContainer" type="PanelContainer" parent="ShipyardOrdersPopup"]
 anchors_preset = 15

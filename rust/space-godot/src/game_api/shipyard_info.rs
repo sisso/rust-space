@@ -17,6 +17,11 @@ impl ShipyardInfo {
     }
 
     #[func]
+    pub fn get_current_order_percentile(&self) -> f32 {
+        self.shipyard.get_current_order_percentile()
+    }
+
+    #[func]
     pub fn get_current_order(&self) -> Id {
         encode_entity(
             self.shipyard

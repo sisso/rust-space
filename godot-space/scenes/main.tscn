@@ -1,6 +1,7 @@
-[gd_scene load_steps=3 format=3 uid="uid://bim2u567p5gx"]
+[gd_scene load_steps=4 format=3 uid="uid://bim2u567p5gx"]
 
 [ext_resource type="Script" path="res://src/controller.gd" id="1_r0rn1"]
+[ext_resource type="Resource" uid="uid://cbqti4c2fsu2b" path="res://data/new_resource.tres" id="2_3yn5u"]
 [ext_resource type="PackedScene" uid="uid://drf48083o2j5x" path="res://scenes/main_gui/main_gui.tscn" id="2_ay072"]
 
 [node name="controller" type="Node2D" node_paths=PackedStringArray("game_api", "gui")]
@@ -9,6 +10,8 @@ log_level = 1
 game_api = NodePath("game_api")
 gui = NodePath("main_gui")
 save_path = "/tmp/space"
+load_prveious_game = false
+prefabs_list = ExtResource("2_3yn5u")
 
 [node name="game_api" type="GameApi" parent="."]
 

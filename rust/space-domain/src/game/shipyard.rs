@@ -16,6 +16,7 @@ use crate::game::work::WorkUnit;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct ShipyardProduction {
     pending_work: WorkUnit,
+    total_work: WorkUnit,
     prefab_id: PrefabId,
 }
 
@@ -95,6 +96,13 @@ impl Shipyard {
 
     pub fn get_producing(&self) -> Option<PrefabId> {
         self.current_production.as_ref().map(|i| i.prefab_id)
+    }
+
+    pub fn get_current_order_percentile(&self) -> f32 {
+        let Some(current) = self.current_production.as_ref() else {
+            return 0.0;
+        };
+        1.0 - (current.pending_work / current.total_work)
     }
 
     pub fn update_production(&mut self, delta_time: DeltaTime) -> ProductionResult {
@@ -251,6 +259,7 @@ fn run_shipyard_next_order(
         // setup completion
         shipyard.current_production = Some(ShipyardProduction {
             pending_work: production_cost.work,
+            total_work: production_cost.work,
             prefab_id,
         });
 
@@ -521,6 +530,7 @@ mod test {
         shipyard.current_production = current_production.map(|pending_work| ShipyardProduction {
             pending_work,
             prefab_id,
+            total_work: pending_work,
         });
         shipyard.dirt_trade_order = true;
 

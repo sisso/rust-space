@@ -14,4 +14,4 @@ func _draw():
     var radius = self.radius
     if self.zoom_level != null:
         radius *= 1.0 / self.zoom_level.value
-    draw_circle(Vector2.ZERO, radius, color, true, false)
+    draw_circle(Vector2.ZERO, radius, color)

@@ -1,0 +1,6 @@
+[gd_resource type="Resource" script_class="PrefabsList" load_steps=2 format=3 uid="uid://cbqti4c2fsu2b"]
+
+[ext_resource type="Script" path="res://src/data/prefabs_list.gd" id="1_g3l1t"]
+
+[resource]
+script = ExtResource("1_g3l1t")
