@@ -1,18 +1,28 @@
-[gd_scene load_steps=4 format=3 uid="uid://ddr02an8jihyo"]
+[gd_scene load_steps=8 format=3 uid="uid://ddr02an8jihyo"]
 
 [ext_resource type="Script" path="res://src/sector_view/sector_view.gd" id="1_xwfw1"]
+[ext_resource type="PackedScene" uid="uid://bfcmg5xxomt2f" path="res://scenes/sector_view/generic_marker.tscn" id="2_cyaw6"]
+[ext_resource type="PackedScene" uid="uid://dn3mdnl1hva51" path="res://scenes/sector_view/generic_orbit.tscn" id="3_bcp1j"]
 [ext_resource type="Script" path="res://src/sector_view/sector_view_distance_indicator.gd" id="3_epqoo"]
+[ext_resource type="PackedScene" uid="uid://emscgl0cunkj" path="res://scenes/sector_view/cursor_building.tscn" id="4_bvx1d"]
 [ext_resource type="Script" path="res://src/sector_view/camera_pan.gd" id="5_6j4cq"]
+[ext_resource type="Script" path="res://src/sector_view/zoom_level.gd" id="7_fii5p"]
 
-[node name="SectorView" type="Node2D"]
+[node name="SectorView" type="Node2D" node_paths=PackedStringArray("zoom_level")]
 script = ExtResource("1_xwfw1")
-prefab_marker = "scenes/sector_view/generic_marker.tscn"
-prefab_orbit = "scenes/sector_view/generic_orbit.tscn"
-prefab_building_cursor = "scenes/sector_view/cursor_building.tscn"
+prefab_marker = ExtResource("2_cyaw6")
+prefab_orbit = ExtResource("3_bcp1j")
+prefab_building_cursor = ExtResource("4_bvx1d")
 max_click_pixel_distance = 100.0
+zoom_level = NodePath("zoom_level")
 
-[node name="camera" type="Camera2D" parent="."]
+[node name="camera" type="Camera2D" parent="." node_paths=PackedStringArray("zoom_level")]
 script = ExtResource("5_6j4cq")
+zoom_sensititvity = 1.0
+zoom_mouse_sensititvity = 0.06
+min_zoom = 0.05
+max_zoom = 20.0
+zoom_level = NodePath("../zoom_level")
 
 [node name="distance_markers" type="Node2D" parent="."]
 script = ExtResource("3_epqoo")
@@ -23,5 +33,8 @@ total_marks = 5
 [node name="objects" type="Node2D" parent="."]
 
 [node name="cursors" type="Node2D" parent="."]
+
+[node name="zoom_level" type="Node" parent="."]
+script = ExtResource("7_fii5p")
 
 [connection signal="on_click_position" from="camera" to="." method="_on_camera_on_click_position"]

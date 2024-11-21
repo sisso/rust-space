@@ -9,7 +9,7 @@ pub fn proper_encode_entity(entity: ObjId) -> u64 {
     let low: u32 = entity.generation();
 
     let encoded: u64 = (high as u64) << 32 | (low as u64);
-    return encoded;
+    encoded
 }
 
 // real decoding of a entity
@@ -23,7 +23,7 @@ pub fn proper_decode_entity(value: u64) -> (u32, u32) {
 pub fn encode_entity(entity: ObjId) -> i64 {
     let high = entity.generation() as i64 * 1_000_000;
     let low = entity.index() as i64;
-    return high + low;
+    high + low
 }
 
 // pretty but broken decode of entity
@@ -45,11 +45,11 @@ pub fn try_decode_entity_and_get(g: &Game, id: Id) -> Option<ObjId> {
                 egen,
                 e.generation()
             );
-            return None;
+            None
         }
         None => {
             log::warn!("get_obj for {}/{} fail, entity not found", index, egen,);
-            return None;
+            None
         }
     }
 }
@@ -57,21 +57,6 @@ pub fn try_decode_entity_and_get(g: &Game, id: Id) -> Option<ObjId> {
 pub fn decode_entity_and_get(g: &Game, id: Id) -> ObjId {
     try_decode_entity_and_get(g, id).expect("invalid i")
 }
-
-// /// convert into godot variant but flatten the first dictionary to remove classname unique field
-// pub fn to_godot_flat<T: ToGodot>(value: T) -> Variant {
-//     let variant = value.to_variant();
-//     match variant.get_type() {
-//         VariantType::Dictionary => {
-//             let mut dict = variant.to::<Dictionary>();
-//             assert_eq!(dict.len(), 1, "variant must have at least one field");
-//             let key = dict.keys_array().get(0);
-//             let value = dict.get(key).expect("key must exist");
-//             value
-//         }
-//         _ => panic!("variant must be a dictionary"),
-//     }
-// }
 
 pub fn to_godot_flat_option<T: ToGodot>(value: Option<T>) -> Variant {
     if let Some(value) = value {

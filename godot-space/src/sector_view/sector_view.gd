@@ -8,14 +8,9 @@ enum CursorMode {
 }
 
 @export_category("models prefab")
-@export var prefab_marker: String
-@export var prefab_orbit: String
-@export var prefab_building_cursor: String
-
-@export_category("models")
-@onready var prefab_marker_scene = load(prefab_marker)
-@onready var prefab_orbit_scene = load(prefab_orbit)
-@onready var prefab_building_cursor_scene = load(prefab_building_cursor)
+@export var prefab_marker: PackedScene
+@export var prefab_orbit: PackedScene
+@export var prefab_building_cursor: PackedScene
 
 @export_category("colors")
 @export var color_unknown: Color = Color.WHITE_SMOKE
@@ -35,8 +30,9 @@ enum CursorMode {
 @export_category("state")
 @export var objects = []
 @export var cursor_mode: CursorMode = CursorMode.NORMAL
-@export var cursor: Node2D = null
+@export var zoom_level: SectorZoomLevel
 
+var cursor: Node2D = null
 var cursor_callback = null
 
 signal on_click_object(id)
@@ -79,10 +75,11 @@ func refresh_models():
             var parent_id = obj.get_orbit_parent_id()
             orbits.push_back([id, parent_id])
 
-        var marker = prefab_marker_scene.instantiate()
+        var marker = self.prefab_marker.instantiate() as MarkerGeneric
         marker.position = self.game_pos_into_local(obj.get_pos())
         marker.color = color
         marker.id = id
+        marker.zoom_level = self.zoom_level
 
         $objects.add_child(marker)
 
@@ -90,7 +87,7 @@ func refresh_models():
         var obj_marker = self._find_marker_by_id(orbit[0])
         var parent_marker = self._find_marker_by_id(orbit[1])
 
-        var orbit_marker = self.prefab_orbit_scene.instantiate()
+        var orbit_marker = self.prefab_orbit.instantiate()
         orbit_marker.orbiting_obj = obj_marker
         orbit_marker.parent_obj = parent_marker
         orbit_marker.color = orbit_color
@@ -153,7 +150,7 @@ func _on_camera_on_click_position(pixel_position):
     else:
         var id = self._find_marker_by_position(pixel_position)
         if id != null:
-            emit_signal("on_click_object", id)
+            self.on_click_object.emit(id)
         else:
             print("no object found at ", pixel_position)
 
@@ -166,7 +163,7 @@ func set_cursor_building(callback):
         self.cursor.queue_free()
         self.cursor = null
 
-    self.cursor = self.prefab_building_cursor_scene.instantiate()
+    self.cursor = self.prefab_building_cursor.instantiate()
     $cursors.add_child(self.cursor)
 
 
