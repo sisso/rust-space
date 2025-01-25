@@ -241,7 +241,9 @@ func _on_shipyard_orders_popup_on_set_shipyard_building_order(id, order_id):
     self._show_obj_details(id)
 
 func _show_obj_details(id: int):
-    self._set_panel("selected")
-
-    var provider = ObjInfoProvider.new(self.game_api, id)
-    self.selected_object_container.show_info(provider)
+    if id == -1:
+        self.selected_object_container.clear_info()
+    else:
+        self._set_panel("selected")
+        var provider = ObjInfoProvider.new(self.game_api, id)
+        self.selected_object_container.show_info(provider)

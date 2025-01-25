@@ -1,4 +1,3 @@
-@tool
 extends Node2D
 class_name SectorView
 
@@ -11,6 +10,7 @@ enum CursorMode {
 @export var prefab_marker: PackedScene
 @export var prefab_orbit: PackedScene
 @export var prefab_building_cursor: PackedScene
+@export var prefab_selected: PackedScene
 
 @export_category("colors")
 @export var color_unknown: Color = Color.WHITE_SMOKE
@@ -35,12 +35,13 @@ enum CursorMode {
 @onready var objects_group: Node2D = %objects
 @onready var distance_markers: Node2D = %distance_markers
 @onready var camera: Camera2D = %camera
-@onready var cursors: Node2D = %cursors
+@onready var _cursors: Node2D = %cursors
 
 var cursor: Node2D = null
 var cursor_callback = null
+var _selected_cursor: Node2D = null
 
-signal on_click_object(id)
+signal on_click_object(id: int)
 
 func _ready():
     self._clear_models()
@@ -50,7 +51,7 @@ func update_objects(objects: Array[ObjExtendedInfo]):
     # print("updating objects ", objects)
     var new_orbits = {}
     var updated_objects = {}
-    
+
     for obj in objects:
         var marker = self.markers_by_id.get(obj.get_id())
         if marker == null:
@@ -58,18 +59,18 @@ func update_objects(objects: Array[ObjExtendedInfo]):
             self.objects_by_id[obj.get_id()] = obj
             self.markers_by_id[obj.get_id()] = marker
             self.objects_group.add_child(marker)
-            
+
             if obj.is_orbiting():
                 var parent_id = obj.get_orbit_parent_id()
                 new_orbits[obj.get_id()] = parent_id
-                
-        # update changes            
+
+        # update changes
         marker.position = self.game_pos_into_local(obj.get_pos())
         marker.zoom_level = self.zoom_level
-        
+
         # mark object as added
         updated_objects[obj.get_id()] = true
-    
+
     # update orbits
     for id in new_orbits:
         var obj_marker = self._find_marker_by_id(id)
@@ -82,18 +83,18 @@ func update_objects(objects: Array[ObjExtendedInfo]):
         orbit_marker.color = color_orbit
         self.objects_group.add_child(orbit_marker)
         #self._orbits[id] = orbit_marker
-        
+
      #check for removed objects
     for obj_id in self.markers_by_id:
         if !updated_objects.has(obj_id):
             self.markers_by_id[obj_id].queue_free()
             self.markers_by_id.erase(obj_id)
             self.objects_by_id.erase(obj_id)
-            
+
             #if self._orbits.has(obj_id):
                 #self._orbits[obj_id].queue_free()
                 #self._orbits.erase(obj_id)
-    
+
 func _clear_models():
     self.objects_by_id = {}
     self.markers_by_id = {}
@@ -101,7 +102,7 @@ func _clear_models():
     while self.objects_group.get_child_count() > 0:
         var c = self.objects_group.get_child(0)
         self.objects_group.remove_child(c)
-        c.queue_free()    
+        c.queue_free()
 
 func _create_marker(obj: ObjExtendedInfo):
     var id = obj.get_id()
@@ -126,14 +127,14 @@ func _create_marker(obj: ObjExtendedInfo):
 
     return marker
 
-func _find_marker_by_id(id: int) -> Node:
+func _find_marker_by_id(id: int) -> MarkerGeneric:
     for c in self.objects_group.get_children():
         if c is MarkerGeneric:
             if c.id == id:
                 return c
     return null
 
-func _find_marker_by_position(pixel_position: Vector2):
+func _find_marker_by_position(pixel_position: Vector2) -> MarkerGeneric:
     var is_valid = func(node: Node2D):
         return node is MarkerGeneric
 
@@ -148,7 +149,7 @@ func _find_marker_by_position(pixel_position: Vector2):
 
     #print("click at ", position, " found ", nearest.id)
 
-    return nearest.id
+    return nearest
 
 # return true if object was found and camera moved, else if obj is not
 # position on the map (like docked)
@@ -161,11 +162,9 @@ func center_camera_at_obj(id: int) -> bool:
     return false
 
 func center_camera_at_pos(pos: Vector2):
-    print("set cammera at pos ", pos)
     self.camera.position = game_pos_into_local(pos)
 
 func center_camera():
-    print("center camera")
     self.camera.position = Vector2(0, 0)
 
 func game_pos_into_local(pos: Vector2) -> Vector2:
@@ -180,14 +179,16 @@ func _on_camera_on_click_position(pixel_position):
             var au_pos = screen_to_local(pixel_position)
             self.cursor_callback.call(au_pos)
     else:
-        var id = self._find_marker_by_position(pixel_position)
-        if id != null:
-            self.on_click_object.emit(id)
+        var marker = self._find_marker_by_position(pixel_position)
+        if marker != null:
+            self.on_click_object.emit(marker.id)
+            self._add_selected_cursor(marker)
         else:
             print("no object found at ", pixel_position)
+            self._clear_selected_cursor()
+            self.on_click_object.emit(-1)
 
 func set_cursor_building(callback):
-    print("set cursor buidling")
     self.cursor_mode = CursorMode.BUILDING
     self.cursor_callback = callback
 
@@ -196,7 +197,7 @@ func set_cursor_building(callback):
         self.cursor = null
 
     self.cursor = self.prefab_building_cursor.instantiate()
-    self.cursors.add_child(self.cursor)
+    self._cursors.add_child(self.cursor)
 
 
 func clear_cursor():
@@ -207,8 +208,20 @@ func clear_cursor():
         self.cursor = null
 
 
-func _process(delta):
+func _process(delta) -> void:
     if self.cursor != null:
         var mouse_pos = get_viewport().get_mouse_position()
         var local_pos = get_viewport_transform().inverse() * mouse_pos
         self.cursor.position = local_pos
+
+func _add_selected_cursor(marker: MarkerGeneric) -> void:
+    self._clear_selected_cursor()
+    var cursor = self.prefab_selected.instantiate() as SetPosition
+    cursor.target = marker
+    self._selected_cursor = cursor
+    self._cursors.add_child(cursor)
+
+func _clear_selected_cursor() -> void:
+    if self._selected_cursor != null:
+        self._selected_cursor.queue_free()
+        self._selected_cursor = null

@@ -3,6 +3,9 @@ class_name ShowSelected extends Node
 @export var shipyard_popup_button: Button
 @export var prefabs_list: PrefabsList
 
+@onready var label: Label = $label
+@onready var desc: RichTextLabel = $desc
+
 var obj_info_provider: ObjInfoProvider
 signal on_click_show_shipyard_orders(obj: ObjInfoProvider)
 
@@ -10,13 +13,19 @@ func show_info(obj_info_provider: ObjInfoProvider):
     self.obj_info_provider = obj_info_provider
     self._refresh()
 
+func clear_info() -> void:
+    self.obj_info_provider = null
+
 func _refresh():
+    if self.obj_info_provider == null:
+        return
+
     var obj = self.obj_info_provider.update()
     if obj == null:
         print("ERROR: obj info provider return null obj")
         return
 
-    $label.text = str(obj.get_id()) + ": " + obj.get_label()
+    self.label.text = str(obj.get_id()) + ": " + obj.get_label()
 
     var desc = ""
     desc += "kind: " + obj.get_kind() + "\n"
@@ -74,15 +83,15 @@ func _refresh():
         for ware in providing_wares:
             desc += "- providing " + ware.get_label() + "\n"
 
-    $desc.text = desc
+    self.desc.text = desc
 
 
 func _process(delta: float):
     if self.obj_info_provider != null:
         self._refresh()
     else:
-        $label.text = ""
-        $desc.text = ""
+        self.label.text = ""
+        self.desc.text = ""
         self.shipyard_popup_button.hide()
 
 func _on_shipyard_popup_button_pressed():
