@@ -33,7 +33,7 @@ func _update_tail() -> void:
         var global_pos = self._positions[i]
         var local_pos = self.to_local(global_pos)
         self._trail.set_point_position(i ,local_pos)
-
+ 
 func _on_trail_capture_time_timeout() -> void:
     self._last_position = self.global_position
     self._positions.push_front(self._last_position)

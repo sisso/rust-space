@@ -29,7 +29,6 @@ enum CursorMode {
 @export_category("state")
 @export var objects_by_id = {}
 @export var markers_by_id = {}
-#@export var orbits = []
 @export var cursor_mode: CursorMode = CursorMode.NORMAL
 @export var zoom_level: SectorZoomLevel
 
@@ -50,6 +49,7 @@ func _ready():
 func update_objects(objects: Array[ObjExtendedInfo]):
     # print("updating objects ", objects)
     var new_orbits = {}
+    var updated_objects = {}
     
     for obj in objects:
         var marker = self.markers_by_id.get(obj.get_id())
@@ -66,7 +66,11 @@ func update_objects(objects: Array[ObjExtendedInfo]):
         # update changes            
         marker.position = self.game_pos_into_local(obj.get_pos())
         marker.zoom_level = self.zoom_level
+        
+        # mark object as added
+        updated_objects[obj.get_id()] = true
     
+    # update orbits
     for id in new_orbits:
         var obj_marker = self._find_marker_by_id(id)
         var parent_id = new_orbits[id]
@@ -76,19 +80,24 @@ func update_objects(objects: Array[ObjExtendedInfo]):
         orbit_marker.orbiting_obj = obj_marker
         orbit_marker.parent_obj = parent_marker
         orbit_marker.color = color_orbit
-        self.objects_group.add_child(orbit_marker)     
+        self.objects_group.add_child(orbit_marker)
+        #self._orbits[id] = orbit_marker
         
-        #self.orbits.push_back({
-            #"id": id,
-            #"parent_id": parent_id,
-            #"marker": orbit_marker
-        #})
-    
+     #check for removed objects
+    for obj_id in self.markers_by_id:
+        if !updated_objects.has(obj_id):
+            self.markers_by_id[obj_id].queue_free()
+            self.markers_by_id.erase(obj_id)
+            self.objects_by_id.erase(obj_id)
+            
+            #if self._orbits.has(obj_id):
+                #self._orbits[obj_id].queue_free()
+                #self._orbits.erase(obj_id)
     
 func _clear_models():
     self.objects_by_id = {}
     self.markers_by_id = {}
-    #self.orbits = {}
+    #self._orbits = {}
     while self.objects_group.get_child_count() > 0:
         var c = self.objects_group.get_child(0)
         self.objects_group.remove_child(c)

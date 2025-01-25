@@ -13,4 +13,7 @@ func _draw():
     draw_arc(Vector2(0, 0), distance, 0, 2*PI, 128, color, -1.0, false)
 
 func _process(delta: float) -> void:
-    self.queue_redraw()
+    if self.orbiting_obj == null || self.parent_obj == null:
+        self.queue_free()
+    else:    
+        self.queue_redraw()
