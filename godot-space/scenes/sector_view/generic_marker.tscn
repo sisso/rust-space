@@ -11,9 +11,14 @@ point_count = 2
 z_index = 1
 script = ExtResource("1_7ranm")
 radius = 5.0
-trail_sqr_distance = 10.0
 max_points = 20
 
 [node name="trail" type="Line2D" parent="."]
 z_index = -1
 width_curve = SubResource("Curve_euqlf")
+
+[node name="trail_capture_time" type="Timer" parent="."]
+wait_time = 0.05
+autostart = true
+
+[connection signal="timeout" from="trail_capture_time" to="." method="_on_trail_capture_time_timeout"]
