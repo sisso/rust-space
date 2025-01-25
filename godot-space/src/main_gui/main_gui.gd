@@ -81,7 +81,7 @@ func _refresh_sector_view():
 
     var objs_id = self.game_api.list_at_sector(self.selected_sector_id)
 
-    var objects = []
+    var objects: Array[ObjExtendedInfo] = []
     for id in objs_id:
         var info = self.game_api.describe_obj(id)
         objects.push_back(info)
@@ -115,7 +115,7 @@ func _set_fleets(fleets):
         btn.pressed.connect(self._on_click_fleet.bind(id))
         self.fleets_container.add_child(btn)
 
-func _set_sector_objects(objects: Array):
+func _set_sector_objects(objects: Array[ObjExtendedInfo]):
     self.sectors_view.update_objects(objects)
 
 func _set_buildings(list: Array):

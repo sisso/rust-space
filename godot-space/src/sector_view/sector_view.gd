@@ -21,16 +21,22 @@ enum CursorMode {
 @export var color_station: Color = Color.BLUE_VIOLET
 @export var color_jump: Color = Color.DARK_ORANGE
 @export var color_orbit: Color = Color.DIM_GRAY
-@export var orbit_color: Color = Color.PAPAYA_WHIP
 
 @export_category("interaction")
 @export var pixels_per_au: float = 100;
 @export_range(0.0, 100.0, 1.0, "or_greater") var max_click_pixel_distance: float = 10.0
 
 @export_category("state")
-@export var objects = []
+@export var objects_by_id = {}
+@export var markers_by_id = {}
+#@export var orbits = []
 @export var cursor_mode: CursorMode = CursorMode.NORMAL
 @export var zoom_level: SectorZoomLevel
+
+@onready var objects_group: Node2D = %objects
+@onready var distance_markers: Node2D = %distance_markers
+@onready var camera: Camera2D = %camera
+@onready var cursors: Node2D = %cursors
 
 var cursor: Node2D = null
 var cursor_callback = null
@@ -38,64 +44,81 @@ var cursor_callback = null
 signal on_click_object(id)
 
 func _ready():
-    self.refresh_models()
-    $distance_markers.distance_per_mark = self.pixels_per_au
+    self._clear_models()
+    self.distance_markers.distance_per_mark = self.pixels_per_au
 
-func update_objects(objects):
+func update_objects(objects: Array[ObjExtendedInfo]):
     # print("updating objects ", objects)
-    self.objects = objects
-    self.refresh_models()
-
-func refresh_models():
-    # remove old nodes
-    while $objects.get_child_count() > 0:
-        var c = $objects.get_child(0)
-        $objects.remove_child(c)
-        c.queue_free()
-
-    var orbits = []
-
-    for obj in self.objects:
-        var id = obj.get_id()
-
-        var color = self.color_unknown
-        if obj.is_fleet():
-            color = self.color_fleet
-        if obj.is_planet():
-            color = self.color_planet
-        if obj.is_asteroid():
-            color = self.color_asteroid
-        if obj.is_jump():
-            color = self.color_jump
-        if obj.is_station():
-            color = self.color_station
-        if obj.is_star():
-            color = self.color_star
-        if obj.is_orbiting():
-            var parent_id = obj.get_orbit_parent_id()
-            orbits.push_back([id, parent_id])
-
-        var marker = self.prefab_marker.instantiate() as MarkerGeneric
+    var new_orbits = {}
+    
+    for obj in objects:
+        var marker = self.markers_by_id.get(obj.get_id())
+        if marker == null:
+            marker = self._create_marker(obj)
+            self.objects_by_id[obj.get_id()] = obj
+            self.markers_by_id[obj.get_id()] = marker
+            self.objects_group.add_child(marker)
+            
+            if obj.is_orbiting():
+                var parent_id = obj.get_orbit_parent_id()
+                new_orbits[obj.get_id()] = parent_id
+                
+        # update changes            
         marker.position = self.game_pos_into_local(obj.get_pos())
-        marker.color = color
-        marker.id = id
         marker.zoom_level = self.zoom_level
-
-        $objects.add_child(marker)
-
-    for orbit in orbits:
-        var obj_marker = self._find_marker_by_id(orbit[0])
-        var parent_marker = self._find_marker_by_id(orbit[1])
+    
+    for id in new_orbits:
+        var obj_marker = self._find_marker_by_id(id)
+        var parent_id = new_orbits[id]
+        var parent_marker = self._find_marker_by_id(parent_id)
 
         var orbit_marker = self.prefab_orbit.instantiate()
         orbit_marker.orbiting_obj = obj_marker
         orbit_marker.parent_obj = parent_marker
-        orbit_marker.color = orbit_color
-        $objects.add_child(orbit_marker)
+        orbit_marker.color = color_orbit
+        self.objects_group.add_child(orbit_marker)     
+        
+        #self.orbits.push_back({
+            #"id": id,
+            #"parent_id": parent_id,
+            #"marker": orbit_marker
+        #})
+    
+    
+func _clear_models():
+    self.objects_by_id = {}
+    self.markers_by_id = {}
+    #self.orbits = {}
+    while self.objects_group.get_child_count() > 0:
+        var c = self.objects_group.get_child(0)
+        self.objects_group.remove_child(c)
+        c.queue_free()    
 
+func _create_marker(obj: ObjExtendedInfo):
+    var id = obj.get_id()
+
+    var color = self.color_unknown
+    if obj.is_fleet():
+        color = self.color_fleet
+    if obj.is_planet():
+        color = self.color_planet
+    if obj.is_asteroid():
+        color = self.color_asteroid
+    if obj.is_jump():
+        color = self.color_jump
+    if obj.is_station():
+        color = self.color_station
+    if obj.is_star():
+        color = self.color_star
+
+    var marker = self.prefab_marker.instantiate() as MarkerGeneric
+    marker.color = color
+    marker.id = id
+
+    return marker
 
 func _find_marker_by_id(id: int) -> Node:
-    for c in $objects.get_children():
+    for c in self.objects_group.get_children():
         if c is MarkerGeneric:
             if c.id == id:
                 return c
@@ -105,7 +128,7 @@ func _find_marker_by_position(pixel_position: Vector2):
     var is_valid = func(node: Node2D):
         return node is MarkerGeneric
 
-    var nearest = Utils.find_nearest(pixel_position, $objects.get_children(), is_valid)
+    var nearest = Utils.find_nearest(pixel_position, self.objects_group.get_children(), is_valid)
     if nearest == null:
         return null
 
@@ -121,20 +144,20 @@ func _find_marker_by_position(pixel_position: Vector2):
 # return true if object was found and camera moved, else if obj is not
 # position on the map (like docked)
 func center_camera_at_obj(id: int) -> bool:
-    for c in $objects.get_children():
+    for c in self.objects_group.get_children():
         if c is MarkerGeneric:
             if c.id == id:
-                $camera.position = c.position
+                self.camera.position = c.position
                 return true
     return false
 
 func center_camera_at_pos(pos: Vector2):
     print("set cammera at pos ", pos)
-    $camera.position = game_pos_into_local(pos)
+    self.camera.position = game_pos_into_local(pos)
 
 func center_camera():
     print("center camera")
-    $camera.position = Vector2(0, 0)
+    self.camera.position = Vector2(0, 0)
 
 func game_pos_into_local(pos: Vector2) -> Vector2:
     return pos * self.pixels_per_au
@@ -164,7 +187,7 @@ func set_cursor_building(callback):
         self.cursor = null
 
     self.cursor = self.prefab_building_cursor.instantiate()
-    $cursors.add_child(self.cursor)
+    self.cursors.add_child(self.cursor)
 
 
 func clear_cursor():

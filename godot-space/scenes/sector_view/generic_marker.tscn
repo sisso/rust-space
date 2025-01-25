@@ -1,9 +1,19 @@
-[gd_scene load_steps=2 format=3 uid="uid://bfcmg5xxomt2f"]
+[gd_scene load_steps=3 format=3 uid="uid://bfcmg5xxomt2f"]
 
 [ext_resource type="Script" path="res://src/sector_view/marker_generic.gd" id="1_7ranm"]
 
+[sub_resource type="Curve" id="Curve_euqlf"]
+max_value = 0.5
+_data = [Vector2(0, 0.263278), 0.0, 0.0, 0, 0, Vector2(1, 0), -0.428111, 0.0, 0, 0]
+point_count = 2
+
 [node name="generic_marker" type="Node2D"]
 z_index = 1
-position = Vector2(95, 190)
 script = ExtResource("1_7ranm")
 radius = 5.0
+trail_sqr_distance = 10.0
+max_points = 20
+
+[node name="trail" type="Line2D" parent="."]
+z_index = -1
+width_curve = SubResource("Curve_euqlf")

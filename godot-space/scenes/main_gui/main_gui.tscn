@@ -209,10 +209,11 @@ stretch = true
 
 [node name="SubViewport" type="SubViewport" parent="Control/VBoxContainer/HBoxContainer/GameArea/SubViewportContainer"]
 handle_input_locally = false
-size = Vector2i(2, 2)
+size = Vector2i(996, 730)
 render_target_update_mode = 4
 
 [node name="SectorView" parent="Control/VBoxContainer/HBoxContainer/GameArea/SubViewportContainer/SubViewport" instance=ExtResource("2_07xow")]
+orbit_color = Color(1, 0.937255, 0.835294, 1)
 
 [node name="ShipyardOrdersPopup" type="Window" parent="." node_paths=PackedStringArray("buttons_container")]
 position = Vector2i(150, 120)

@@ -1,4 +1,3 @@
-@tool
 extends Node2D
 class_name MarkerOrbit
 
@@ -12,3 +11,6 @@ func _draw():
     self.position = parent_obj.position
     var distance = (self.position - orbiting_obj.position).length()
     draw_arc(Vector2(0, 0), distance, 0, 2*PI, 128, color, -1.0, false)
+
+func _process(delta: float) -> void:
+    self.queue_redraw()

@@ -17,6 +17,7 @@ max_click_pixel_distance = 100.0
 zoom_level = NodePath("zoom_level")
 
 [node name="camera" type="Camera2D" parent="." node_paths=PackedStringArray("zoom_level")]
+unique_name_in_owner = true
 script = ExtResource("5_6j4cq")
 zoom_sensititvity = 1.0
 zoom_mouse_sensititvity = 0.06
@@ -25,14 +26,17 @@ max_zoom = 20.0
 zoom_level = NodePath("../zoom_level")
 
 [node name="distance_markers" type="Node2D" parent="."]
+unique_name_in_owner = true
 script = ExtResource("3_epqoo")
 color = Color(1, 1, 1, 0.117647)
 distance_per_mark = 100.0
 total_marks = 5
 
 [node name="objects" type="Node2D" parent="."]
+unique_name_in_owner = true
 
 [node name="cursors" type="Node2D" parent="."]
+unique_name_in_owner = true
 
 [node name="zoom_level" type="Node" parent="."]
 script = ExtResource("7_fii5p")
