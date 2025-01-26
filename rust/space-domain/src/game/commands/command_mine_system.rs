@@ -51,7 +51,7 @@ pub fn system_command_mine(
     for (_, _, command) in &query {
         match command {
             Command::Mine(mine) => {
-                for target_id in &mine.mine_target_id {
+                if let Some(target_id) = &mine.mine_target_id {
                     *already_targets.entry(*target_id).or_insert(0) += 1;
                 }
             }

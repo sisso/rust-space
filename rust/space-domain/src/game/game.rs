@@ -15,7 +15,6 @@ use crate::game::{
     save, scenery_random, sectors, shipyard, wares,
 };
 use bevy_ecs::prelude::*;
-use bevy_ecs::query::QueryIter;
 use bevy_ecs::system::{RunSystemOnce, SystemState};
 use commons::math::V2I;
 use std::path::PathBuf;

@@ -213,9 +213,9 @@ mod test {
 
     #[test]
     fn test_save_and_load() {
-        env_logger::builder()
+        _ = env_logger::builder()
             .filter_level(LevelFilter::Trace)
-            .init();
+            .try_init();
 
         let mut world = World::new();
         world.insert_resource(TotalTime(33.0));

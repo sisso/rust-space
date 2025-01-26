@@ -32,7 +32,6 @@ pub fn system_command_trade(
     let mut deliver_traders = vec![];
 
     let mut back_to_idle = vec![];
-    let mut discard_cargo = vec![];
 
     let mut rnd = rand::thread_rng();
 
@@ -228,11 +227,7 @@ pub fn system_command_trade(
                     .insert(Command::Trade(TradeState::Deliver { target_id, wares }));
             }
             None => {
-                log::warn!(
-                    "{:?} can not find a station to deliver, discarding cargo",
-                    id,
-                );
-                discard_cargo.push(id);
+                log::warn!("{:?} can not find a station to deliver, waiting", id,);
             }
         }
     }
@@ -316,13 +311,6 @@ pub fn system_command_trade(
     for obj_id in back_to_idle {
         log::trace!("{:?} command set to trade idle", obj_id);
         commands.entity(obj_id).insert(Command::trade());
-    }
-
-    for obj_id in discard_cargo {
-        log::warn!("{:?} discarding cargo", obj_id);
-        if let Some(mut cargo) = query_cargos.get_mut(obj_id).ok() {
-            cargo.clear()
-        }
     }
 }
 
@@ -719,7 +707,7 @@ mod test {
     }
 
     #[test]
-    fn command_trade_when_has_cargo_but_no_place_to_deliver_should_throw_cargo_away() {
+    fn command_trade_when_has_cargo_but_no_place_to_deliver_should_wait() {
         let mut world = World::new();
         let scenery = setup_scenery(&mut world);
 
@@ -735,7 +723,7 @@ mod test {
         world.run_system_once(system_command_trade);
 
         Loader::assert_command_trade_idle(&world, scenery.trader_id);
-        Loader::assert_cargo(&world, scenery.trader_id, scenery.ware0_id, 0);
+        Loader::assert_cargo(&world, scenery.trader_id, scenery.ware0_id, SHIP_CARGO);
         Loader::assert_cargo(
             &world,
             scenery.consumer_station_id,

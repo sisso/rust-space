@@ -6,5 +6,6 @@ class_name SetPosition
 func _process(_delta: float) -> void:
     if self.target == null:
         self.queue_free()
+        return
     
     self.global_position = self.target.global_position

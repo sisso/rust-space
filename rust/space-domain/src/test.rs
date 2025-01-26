@@ -13,9 +13,9 @@ pub fn assert_v2(value: V2, expected: V2) {
 }
 
 pub fn init_trace_log() {
-    env_logger::builder()
+    _ = env_logger::builder()
         .filter(None, log::LevelFilter::Trace)
-        .init();
+        .try_init();
 }
 
 pub struct TestSystemRunner {

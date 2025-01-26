@@ -333,18 +333,18 @@ impl Loader {
             builder.insert(Sector::new(sector_pos.clone()));
         }
 
-        for (target_sector_id, target_pos) in &new_obj.jump_to {
+        if let Some((target_sector_id, target_pos)) = &new_obj.jump_to {
             builder.insert(Jump {
                 target_sector_id: *target_sector_id,
                 target_pos: *target_pos,
             });
         }
 
-        for command in &new_obj.command {
+        if let Some(command) = &new_obj.command {
             builder.insert(command.clone());
         }
 
-        for shipyard in &new_obj.shipyard {
+        if let Some(shipyard) = &new_obj.shipyard {
             builder.insert(shipyard.clone());
         }
 
@@ -354,7 +354,7 @@ impl Loader {
             builder.insert(CargoDistributionDirty {});
         }
 
-        for factory in &new_obj.factory {
+        if let Some(factory) = &new_obj.factory {
             builder.insert(factory.clone());
             for wa in &factory.production.input {
                 orders.add_request(TRADE_ORDER_ID_FACTORY, wa.ware_id);

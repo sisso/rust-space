@@ -1,5 +1,5 @@
 use rand::{thread_rng, RngCore};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 pub fn create_tmp_dir(prefix: &str) -> Result<PathBuf, String> {
     let random_name = format!("{}_{}", prefix, thread_rng().next_u32());
