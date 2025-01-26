@@ -8,6 +8,7 @@ enum ScreenMode {
 @export_category("containers")
 @export var sectors_container: Container
 @export var fleets_container: Container
+@export var stations_container: Container
 @export var sectors_view: SectorView
 @export var selected_object_container: ShowSelected
 @export var building_panel: Container
@@ -67,6 +68,7 @@ func _refresh_gui():
     self._set_sectors(self.game_api.list_sectors())
     self._set_fleets(self.game_api.list_fleets())
     self._set_buildings(self.game_api.list_buildings())
+    self._set_stations(self.game_api.list_stations())
     self._refresh_sector_view()
     self._refresh_time_label()
 
@@ -115,6 +117,22 @@ func _set_fleets(fleets):
         btn.pressed.connect(self._on_click_fleet.bind(id))
         self.fleets_container.add_child(btn)
 
+func _set_stations(stations: Array[LabelInfo]):
+    print("refresh_staions ", stations)
+    for b in self.stations_container.get_children():
+        self.stations_container.remove_child(b)
+        b.queue_free()
+
+    for obj in stations:
+        var id = obj.get_id()
+        var label = obj.get_label()
+
+        var btn = Button.new()
+        btn.text = label
+        btn.pressed.connect(self._on_click_station.bind(id))
+        self.stations_container.add_child(btn)
+
+
 func _set_sector_objects(objects: Array[ObjExtendedInfo]):
     self.sectors_view.update_objects(objects)
 
@@ -136,6 +154,12 @@ func _on_click_sector(id):
     self._center_camera()
 
 func _on_click_fleet(id):
+    self._on_click_obj(id)
+
+func _on_click_station(id):
+    self._on_click_obj(id)
+
+func _on_click_obj(id):
     self.selected_obj_id = id
     self._refresh_sector_view()
     self._show_obj_details(id)
@@ -146,9 +170,13 @@ func _set_panel(kind):
     self.sectors_container.visible = kind == "sectors"
     self.selected_object_container.visible = kind == "selected"
     self.building_panel.visible = kind == "building"
+    self.stations_container.visible = kind == "stations"
 
 func _on_click_fleets():
     self._set_panel("fleets")
+
+func _on_click_stations():
+    self._set_panel("stations")
 
 func _on_click_sectors():
     self._set_panel("sectors")

@@ -501,6 +501,21 @@ impl GameApi {
     }
 
     #[func]
+    pub fn list_stations(&mut self) -> Array<Gd<LabelInfo>> {
+        let mut game = &mut self.get_current().game;
+        game.world
+            .query::<(ObjId, &Station, &Label)>()
+            .iter(&game.world)
+            .map(|(id, sector, label)| {
+                Gd::from_object(LabelInfo {
+                    id: encode_entity(id),
+                    label: label.label.clone(),
+                })
+            })
+            .collect()
+    }
+
+    #[func]
     pub fn take_events(&mut self) -> Gd<EventsList> {
         let events = self
             .get_current()

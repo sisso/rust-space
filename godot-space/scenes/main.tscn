@@ -7,11 +7,11 @@
 [node name="controller" type="Node2D" node_paths=PackedStringArray("game_api", "gui")]
 script = ExtResource("1_r0rn1")
 log_level = 1
-game_api = NodePath("game_api")
-gui = NodePath("main_gui")
 save_path = "/tmp/space"
 load_prveious_game = false
 prefabs_list = ExtResource("2_3yn5u")
+game_api = NodePath("game_api")
+gui = NodePath("main_gui")
 
 [node name="game_api" type="GameApi" parent="."]
 
