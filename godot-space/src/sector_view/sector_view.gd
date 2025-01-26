@@ -208,7 +208,7 @@ func clear_cursor():
         self.cursor = null
 
 
-func _process(delta) -> void:
+func _process(_delta) -> void:
     if self.cursor != null:
         var mouse_pos = get_viewport().get_mouse_position()
         var local_pos = get_viewport_transform().inverse() * mouse_pos

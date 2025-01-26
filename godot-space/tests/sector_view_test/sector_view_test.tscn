@@ -1,3 +1,22 @@
-[gd_scene format=3 uid="uid://cbq01pcy4i4n5"]
+[gd_scene load_steps=3 format=3 uid="uid://cbq01pcy4i4n5"]
+
+[ext_resource type="PackedScene" uid="uid://ddr02an8jihyo" path="res://scenes/sector_view/sector_view.tscn" id="1_2thyc"]
+[ext_resource type="PackedScene" uid="uid://bfcmg5xxomt2f" path="res://scenes/sector_view/generic_marker.tscn" id="2_v15xg"]
 
 [node name="SectorViewTest" type="Node2D"]
+
+[node name="SectorView" parent="." instance=ExtResource("1_2thyc")]
+
+[node name="generic_marker" parent="SectorView" node_paths=PackedStringArray("zoom_level") instance=ExtResource("2_v15xg")]
+position = Vector2(-196, -139)
+color = Color(1, 0.31933, 0.68891, 1)
+label = "fleet 1"
+zoom_level = NodePath("../zoom_level")
+
+[node name="generic_marker2" parent="SectorView" node_paths=PackedStringArray("zoom_level") instance=ExtResource("2_v15xg")]
+position = Vector2(289, 132)
+color = Color(0.574678, 0.211742, 0.0589239, 1)
+label = "moon"
+zoom_level = NodePath("../zoom_level")
+
+[editable path="SectorView"]

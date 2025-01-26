@@ -1,6 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://bfcmg5xxomt2f"]
+[gd_scene load_steps=5 format=3 uid="uid://bfcmg5xxomt2f"]
 
 [ext_resource type="Script" path="res://src/sector_view/marker_generic.gd" id="1_7ranm"]
+[ext_resource type="Texture2D" uid="uid://byjknsc2rc3sm" path="res://gfx/icon_circle_full.png" id="2_xvml4"]
+[ext_resource type="LabelSettings" uid="uid://b0edy5xw83j7l" path="res://scenes/sector_view/sector_view_labels.tres" id="3_5wqem"]
 
 [sub_resource type="Curve" id="Curve_euqlf"]
 max_value = 0.5
@@ -10,7 +12,6 @@ point_count = 2
 [node name="generic_marker" type="Node2D"]
 z_index = 1
 script = ExtResource("1_7ranm")
-radius = 5.0
 max_points = 20
 
 [node name="trail" type="Line2D" parent="."]
@@ -20,5 +21,18 @@ width_curve = SubResource("Curve_euqlf")
 [node name="trail_capture_time" type="Timer" parent="."]
 wait_time = 0.05
 autostart = true
+
+[node name="sprite" type="Sprite2D" parent="."]
+scale = Vector2(0.25, 0.25)
+texture = ExtResource("2_xvml4")
+
+[node name="label" type="Label" parent="."]
+offset_left = 7.0
+offset_top = -9.0
+offset_right = 106.0
+offset_bottom = 8.0
+text = "Object name"
+label_settings = ExtResource("3_5wqem")
+vertical_alignment = 1
 
 [connection signal="timeout" from="trail_capture_time" to="." method="_on_trail_capture_time_timeout"]
