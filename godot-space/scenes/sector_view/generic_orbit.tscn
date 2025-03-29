@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://dn3mdnl1hva51"]
 
-[ext_resource type="Script" path="res://src/sector_view/marker_orbit.gd" id="1_l6aqu"]
+[ext_resource type="Script" uid="uid://5fmsjxy6dt7g" path="res://src/sector_view/marker_orbit.gd" id="1_l6aqu"]
 
 [node name="generic_orbit" type="Node2D"]
 z_index = -1

@@ -1,9 +1,9 @@
 [gd_scene load_steps=10 format=3 uid="uid://drf48083o2j5x"]
 
-[ext_resource type="Script" path="res://src/main_gui/main_gui.gd" id="1_mmju6"]
+[ext_resource type="Script" uid="uid://cmiytr3q716ef" path="res://src/main_gui/main_gui.gd" id="1_mmju6"]
 [ext_resource type="PackedScene" uid="uid://ddr02an8jihyo" path="res://scenes/sector_view/sector_view.tscn" id="2_07xow"]
-[ext_resource type="Script" path="res://src/main_gui/show_selected.gd" id="2_brncx"]
-[ext_resource type="Script" path="res://src/main_gui/shipyard_orders_popup.gd" id="4_8g5ab"]
+[ext_resource type="Script" uid="uid://j51vexk41o2d" path="res://src/main_gui/show_selected.gd" id="2_brncx"]
+[ext_resource type="Script" uid="uid://cfcqe55ltw4lf" path="res://src/main_gui/shipyard_orders_popup.gd" id="4_8g5ab"]
 [ext_resource type="Resource" uid="uid://cbqti4c2fsu2b" path="res://data/new_resource.tres" id="5_8w48o"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_lnhd7"]
@@ -69,6 +69,7 @@ layout_mode = 2
 selected = 4
 item_count = 8
 popup/item_0/text = "pause"
+popup/item_0/id = 0
 popup/item_1/text = "0.1"
 popup/item_1/id = 1
 popup/item_2/text = "0.25"
@@ -229,7 +230,7 @@ stretch = true
 
 [node name="SubViewport" type="SubViewport" parent="Control/VBoxContainer/HBoxContainer/GameArea/SubViewportContainer"]
 handle_input_locally = false
-size = Vector2i(996, 730)
+size = Vector2i(2, 2)
 render_target_update_mode = 4
 
 [node name="SectorView" parent="Control/VBoxContainer/HBoxContainer/GameArea/SubViewportContainer/SubViewport" instance=ExtResource("2_07xow")]

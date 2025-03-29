@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3 uid="uid://d0jba2vbtx7yp"]
 
 [ext_resource type="Texture2D" uid="uid://bxx0rckk3hlej" path="res://gfx/select.png" id="1_mjeri"]
-[ext_resource type="Script" path="res://src/sector_view/set_position.gd" id="2_q88hk"]
+[ext_resource type="Script" uid="uid://behuplcearm1f" path="res://src/sector_view/set_position.gd" id="2_q88hk"]
 
 [node name="selected_cursor" type="Sprite2D"]
 self_modulate = Color(0, 1, 1, 1)

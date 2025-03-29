@@ -1,11 +1,11 @@
 [gd_scene load_steps=5 format=3 uid="uid://bfcmg5xxomt2f"]
 
-[ext_resource type="Script" path="res://src/sector_view/marker_generic.gd" id="1_7ranm"]
+[ext_resource type="Script" uid="uid://c8ufyg2gitbue" path="res://src/sector_view/marker_generic.gd" id="1_7ranm"]
 [ext_resource type="Texture2D" uid="uid://byjknsc2rc3sm" path="res://gfx/icon_circle_full.png" id="2_xvml4"]
 [ext_resource type="LabelSettings" uid="uid://b0edy5xw83j7l" path="res://scenes/sector_view/sector_view_labels.tres" id="3_5wqem"]
 
 [sub_resource type="Curve" id="Curve_euqlf"]
-max_value = 0.5
+_limits = [0.0, 0.5, 0.0, 1.0]
 _data = [Vector2(0, 0.263278), 0.0, 0.0, 0, 0, Vector2(1, 0), -0.428111, 0.0, 0, 0]
 point_count = 2
 
