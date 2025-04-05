@@ -1,13 +1,13 @@
 [gd_scene load_steps=9 format=3 uid="uid://ddr02an8jihyo"]
 
-[ext_resource type="Script" uid="uid://b5wdciwq8d73n" path="res://src/sector_view/sector_view.gd" id="1_xwfw1"]
+[ext_resource type="Script" uid="uid://bn3hunb6o3vah" path="res://src/sector_view/sector_view.gd" id="1_xwfw1"]
 [ext_resource type="PackedScene" uid="uid://bfcmg5xxomt2f" path="res://scenes/sector_view/generic_marker.tscn" id="2_cyaw6"]
 [ext_resource type="PackedScene" uid="uid://dn3mdnl1hva51" path="res://scenes/sector_view/generic_orbit.tscn" id="3_bcp1j"]
-[ext_resource type="Script" uid="uid://d0s0j2qyyum8u" path="res://src/sector_view/sector_view_distance_indicator.gd" id="3_epqoo"]
+[ext_resource type="Script" uid="uid://dxe3kmythc4tl" path="res://src/sector_view/sector_view_distance_indicator.gd" id="3_epqoo"]
 [ext_resource type="PackedScene" uid="uid://emscgl0cunkj" path="res://scenes/sector_view/cursor_building.tscn" id="4_bvx1d"]
-[ext_resource type="Script" uid="uid://bq55d4i7m2lue" path="res://src/sector_view/camera_pan.gd" id="5_6j4cq"]
+[ext_resource type="Script" uid="uid://clf2kgo4t02wf" path="res://src/sector_view/camera_pan.gd" id="5_6j4cq"]
 [ext_resource type="PackedScene" uid="uid://d0jba2vbtx7yp" path="res://scenes/sector_view/selected_cursor.tscn" id="5_ru712"]
-[ext_resource type="Script" uid="uid://08gfbvj5xdfw" path="res://src/sector_view/zoom_level.gd" id="7_fii5p"]
+[ext_resource type="Script" uid="uid://jtky7aryd3cr" path="res://src/sector_view/zoom_level.gd" id="7_fii5p"]
 
 [node name="SectorView" type="Node2D" node_paths=PackedStringArray("zoom_level")]
 script = ExtResource("1_xwfw1")
