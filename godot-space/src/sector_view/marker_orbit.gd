@@ -15,5 +15,5 @@ func _draw():
 func _process(delta: float) -> void:
     if self.orbiting_obj == null || self.parent_obj == null:
         self.queue_free()
-    else:    
+    else:
         self.queue_redraw()

@@ -29,7 +29,7 @@ func _refresh():
 
     var desc = ""
     desc += "kind: " + obj.get_kind() + "\n"
-    if obj.get_kind() == "ship":
+    if obj.get_kind() == "ship" || obj.get_kind() == "fleet":
         if obj.get_command() != "":
             desc += "command: " + obj.get_command() + "\n"
         if obj.get_action() != "":
