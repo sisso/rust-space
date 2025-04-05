@@ -13,4 +13,4 @@ build_rust() {
 build_rust
 
 pushd "$SCRIPT_DIR/.."
-godot4 godot-space/project.godot
+godot godot-space/project.godot

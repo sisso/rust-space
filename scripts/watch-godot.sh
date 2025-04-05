@@ -8,7 +8,7 @@ build_rust() {
 }
 
 build_rust
-godot4 godot-space/project.godot &
+godot godot-space/project.godot &
 # do not work, at least looks like not
 # pushd rust/space-godot
 # cargo watch -x 'build -p space-godot'

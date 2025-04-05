@@ -10,5 +10,5 @@ build_rust() {
 while true
 do
     build_rust
-    godot4 godot-space/project.godot
+    godot godot-space/project.godot
 done
